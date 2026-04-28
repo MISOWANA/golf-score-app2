@@ -1,33 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Trash2, TrendingUp, Target, Flag, Circle, Home, BookOpen, BarChart3, Award, X, Check, Zap, Briefcase, Edit2, Edit3, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trash2, TrendingUp, Target, Flag, Circle, Home, BookOpen, BarChart3, Award, X, Check, Zap, Briefcase, Edit2, Edit3, AlertTriangle, LogOut } from 'lucide-react';
+import { initDB, loadRoundsByUser, saveRound, deleteRound, getCurrentUser, setCurrentUser } from './db.js';
 
 export default function GolfScoringApp() {
-  const [view, setView] = useState('home'); // home, setup, scoring, analysis, history, roundDetail
+  const [view, setView] = useState('login'); // login, home, setup, scoring, analysis, history, roundDetail
+  const [currentUser, setCurrentUserState] = useState(null);
   const [currentRound, setCurrentRound] = useState(null);
   const [rounds, setRounds] = useState([]);
   const [selectedRoundId, setSelectedRoundId] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load past rounds from persistent storage
+  // DB 초기화 및 사용자 정보 로드
   useEffect(() => {
-  try {
-    const saved = localStorage.getItem('rounds');
-    if (saved) {
-      setRounds(JSON.parse(saved));
-    }
-  } catch (e) {
-    console.error('Load failed', e);
-  }
-  setLoading(false);
-}, []);
+    const initApp = async () => {
+      try {
+        await initDB();
+        const user = await getCurrentUser();
+        if (user) {
+          setCurrentUserState(user);
+          await loadUserRounds(user.userId);
+          setView('home');
+        } else {
+          setView('login');
+        }
+      } catch (e) {
+        console.error('Init failed', e);
+        setView('login');
+      }
+      setLoading(false);
+    };
+    initApp();
+  }, []);
 
-const saveRounds = async (updatedRounds) => {
-  try {
-    localStorage.setItem('rounds', JSON.stringify(updatedRounds));
-  } catch (e) {
-    console.error('Save failed', e);
-  }
-};
+  const loadUserRounds = async (userId) => {
+    try {
+      const userRounds = await loadRoundsByUser(userId);
+      setRounds(userRounds);
+    } catch (e) {
+      console.error('Load rounds failed', e);
+    }
+  };
+
+  const handleUserLogin = async (userName) => {
+    try {
+      const userId = `user_${Date.now()}`;
+      const newUser = { userId, userName };
+      await setCurrentUser(userId, userName);
+      setCurrentUserState(newUser);
+      await loadUserRounds(userId);
+      setView('home');
+    } catch (e) {
+      console.error('Login failed', e);
+    }
+  };
+
+  const handleSwitchUser = () => {
+    setCurrentUserState(null);
+    setRounds([]);
+    setCurrentRound(null);
+    setSelectedRoundId(null);
+    setView('login');
+  };
+
+  const saveRounds = async (updatedRounds) => {
+    try {
+      for (const round of updatedRounds) {
+        await saveRound(round, currentUser.userId);
+      }
+      setRounds(updatedRounds);
+    } catch (e) {
+      console.error('Save failed', e);
+    }
+  };
 
   const startNewRound = (players, courseName, pars) => {
     const newRound = {
@@ -71,30 +115,39 @@ const saveRounds = async (updatedRounds) => {
 
   const finishRound = async () => {
     const finished = { ...currentRound, completed: true, finishedAt: new Date().toISOString() };
+    await saveRound(finished, currentUser.userId);
     const updated = [finished, ...rounds];
     setRounds(updated);
-    await saveRounds(updated);
     setCurrentRound(null);
     setSelectedRoundId(finished.id);
     setView('analysis');
   };
 
-  const deleteRound = async (id) => {
+  const handleDeleteRound = async (id) => {
+    await deleteRound(id);
     const updated = rounds.filter(r => r.id !== id);
     setRounds(updated);
-    await saveRounds(updated);
   };
 
   return (
     <div style={styles.app}>
       <style>{globalCSS}</style>
 
-      {view === 'home' && (
+      {view === 'login' && (
+        <LoginView
+          onLogin={handleUserLogin}
+          loading={loading}
+        />
+      )}
+
+      {view === 'home' && currentUser && (
         <HomeView
           rounds={rounds}
+          currentUser={currentUser}
           onNewRound={() => setView('setup')}
           onViewHistory={() => setView('history')}
           onViewStats={() => setView('stats')}
+          onSwitchUser={handleSwitchUser}
           loading={loading}
         />
       )}
@@ -133,7 +186,7 @@ const saveRounds = async (updatedRounds) => {
           rounds={rounds}
           onBack={() => setView('home')}
           onSelect={(id) => { setSelectedRoundId(id); setView('analysis'); }}
-          onDelete={deleteRound}
+          onDelete={handleDeleteRound}
         />
       )}
 
@@ -206,8 +259,61 @@ function BottomTabBar({ current, onChange }) {
   );
 }
 
+// ============== LOGIN VIEW ==============
+function LoginView({ onLogin, loading }) {
+  const [userName, setUserName] = useState('');
+  const [inputFocused, setInputFocused] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (userName.trim()) {
+      onLogin(userName.trim());
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.loginCard}>
+        <div style={styles.loginLogo}>⛳</div>
+        <h1 style={styles.loginTitle}>Every Score</h1>
+        <p style={styles.loginSubtitle}>골프 스코어 기록 앱</p>
+
+        <form onSubmit={handleSubmit} style={styles.loginForm}>
+          <div style={styles.formSection}>
+            <label style={styles.formLabel}>이름</label>
+            <input
+              style={{
+                ...styles.formInput,
+                borderColor: inputFocused ? '#1f3d2e' : '#e0dbd3',
+              }}
+              placeholder="플레이어 이름을 입력하세요"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              disabled={loading}
+            />
+          </div>
+
+          <button
+            style={{
+              ...styles.primaryButton,
+              opacity: userName.trim() && !loading ? 1 : 0.4,
+              cursor: userName.trim() && !loading ? 'pointer' : 'not-allowed',
+            }}
+            disabled={!userName.trim() || loading}
+            type="submit"
+          >
+            {loading ? '로딩 중...' : '시작하기'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ============== HOME VIEW ==============
-function HomeView({ rounds, onNewRound, onViewHistory, onViewStats, loading }) {
+function HomeView({ rounds, currentUser, onNewRound, onViewHistory, onViewStats, onSwitchUser, loading }) {
   const recentRound = rounds[0];
   const totalRounds = rounds.length;
 
@@ -231,6 +337,12 @@ function HomeView({ rounds, onNewRound, onViewHistory, onViewStats, loading }) {
               <div style={styles.brandName}>Every</div>
               <div style={styles.brandTagline}>Score</div>
             </div>
+          </div>
+          <div style={styles.userSection}>
+            <span style={styles.userName}>{currentUser.userName}</span>
+            <button style={styles.logoutButton} onClick={onSwitchUser} title="다른 사용자로 로그인">
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
         <div style={styles.dateLine}>
@@ -3025,6 +3137,25 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  userSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  userName: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#1f3d2e',
+  },
+  logoutButton: {
+    background: 'none',
+    border: 'none',
+    padding: '4px 8px',
+    display: 'flex',
+    alignItems: 'center',
+    color: '#8b8574',
+    cursor: 'pointer',
+  },
   logo: {
     display: 'flex',
     alignItems: 'center',
@@ -3053,6 +3184,34 @@ const styles = {
     color: '#6b6558',
     marginTop: '18px',
     letterSpacing: '0.05em',
+  },
+  // ===== LOGIN SCREEN =====
+  loginCard: {
+    background: '#fff',
+    padding: '40px 28px',
+    borderRadius: '4px',
+    textAlign: 'center',
+    marginTop: '60px',
+  },
+  loginLogo: {
+    fontSize: '60px',
+    marginBottom: '20px',
+  },
+  loginTitle: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#1f3d2e',
+    margin: '0 0 8px',
+  },
+  loginSubtitle: {
+    fontSize: '14px',
+    color: '#8b8574',
+    margin: '0 0 40px',
+  },
+  loginForm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
   },
   heroCard: {
     background: '#1f3d2e',

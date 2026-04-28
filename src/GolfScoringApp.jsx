@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Trash2, TrendingUp, Target, Flag, Circle, Home, BookOpen, BarChart3, Award, X, Check, Zap, Briefcase, Edit2, Edit3, AlertTriangle, LogOut } from 'lucide-react';
-import { initDB, loadRoundsByUser, saveRound, deleteRound, getCurrentUser, setCurrentUser } from './db.js';
+import { ChevronLeft, ChevronRight, Plus, Trash2, TrendingUp, Target, Flag, Circle, Home, BookOpen, BarChart3, Award, X, Check, Zap, Briefcase, Edit2, Edit3, AlertTriangle, LogOut, Download, Upload } from 'lucide-react';
+import { initDB, loadRoundsByUser, saveRound, deleteRound, getCurrentUser, setCurrentUser, loadClubsByUser, saveClubsForUser, exportUserData, importUserData } from './db.js';
 
 export default function GolfScoringApp() {
   const [view, setView] = useState('login'); // login, home, setup, scoring, analysis, history, roundDetail
@@ -129,6 +129,44 @@ export default function GolfScoringApp() {
     setRounds(updated);
   };
 
+  const handleExportData = async () => {
+    try {
+      const exportedData = await exportUserData(currentUser.userId);
+      const jsonStr = JSON.stringify(exportedData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `golf-data-${currentUser.userName}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export failed', e);
+      alert('데이터 내보내기 실패: ' + e.message);
+    }
+  };
+
+  const handleImportData = async (file) => {
+    try {
+      const text = await file.text();
+      const importedData = JSON.parse(text);
+      
+      // 유효성 검사
+      if (!importedData.data || !Array.isArray(importedData.data.rounds)) {
+        throw new Error('유효하지 않은 파일 형식입니다');
+      }
+
+      await importUserData(currentUser.userId, importedData, false);
+      await loadUserRounds(currentUser.userId);
+      alert('데이터를 성공적으로 복원했습니다!');
+    } catch (e) {
+      console.error('Import failed', e);
+      alert('데이터 가져오기 실패: ' + e.message);
+    }
+  };
+
   return (
     <div style={styles.app}>
       <style>{globalCSS}</style>
@@ -148,6 +186,8 @@ export default function GolfScoringApp() {
           onViewHistory={() => setView('history')}
           onViewStats={() => setView('stats')}
           onSwitchUser={handleSwitchUser}
+          onExportData={handleExportData}
+          onImportData={handleImportData}
           loading={loading}
         />
       )}
@@ -204,8 +244,9 @@ export default function GolfScoringApp() {
         />
       )}
 
-      {view === 'mybag' && (
+      {view === 'mybag' && currentUser && (
         <MyBagView
+          currentUser={currentUser}
           onBack={() => setView('home')}
         />
       )}
@@ -224,32 +265,37 @@ function BottomTabBar({ current, onChange }) {
   const tabs = [
     { id: 'history', label: '히스토리', icon: BookOpen },
     { id: 'stats', label: '스탯', icon: BarChart3 },
+    { id: 'home', label: '홈', icon: Home },
     { id: 'insights', label: '인사이트', icon: Zap },
     { id: 'mybag', label: 'MY BAG', icon: Briefcase },
   ];
 
-  // home이 현재면 어떤 탭도 활성화되지 않음
   return (
     <div style={styles.tabBar}>
       <div style={styles.tabBarInner}>
         {tabs.map(({ id, label, icon: Icon }) => {
           const isActive = current === id;
+          const isHome = id === 'home';
           return (
             <button
               key={id}
               style={{
                 ...styles.tabBarBtn,
+                ...(isHome ? styles.tabBarBtnHome : {}),
                 color: isActive ? '#1f3d2e' : '#8b8574',
               }}
               onClick={() => onChange(id)}
+              title={label}
             >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span style={{
-                ...styles.tabBarLabel,
-                fontWeight: isActive ? '700' : '500',
-              }}>
-                {label}
-              </span>
+              <Icon size={isHome ? 24 : 20} strokeWidth={isActive ? 2.5 : 1.8} />
+              {!isHome && (
+                <span style={{
+                  ...styles.tabBarLabel,
+                  fontWeight: isActive ? '700' : '500',
+                }}>
+                  {label}
+                </span>
+              )}
               {isActive && <div style={styles.tabBarActiveIndicator} />}
             </button>
           );
@@ -313,7 +359,7 @@ function LoginView({ onLogin, loading }) {
 }
 
 // ============== HOME VIEW ==============
-function HomeView({ rounds, currentUser, onNewRound, onViewHistory, onViewStats, onSwitchUser, loading }) {
+function HomeView({ rounds, currentUser, onNewRound, onViewHistory, onViewStats, onSwitchUser, onExportData, onImportData, loading }) {
   const recentRound = rounds[0];
   const totalRounds = rounds.length;
 
@@ -338,7 +384,27 @@ function HomeView({ rounds, currentUser, onNewRound, onViewHistory, onViewStats,
               <div style={styles.brandTagline}>Score</div>
             </div>
           </div>
-          <div style={styles.userSection}>
+          <div style={styles.headerActions}>
+            <button 
+              style={styles.actionButton} 
+              onClick={onExportData} 
+              title="데이터 백업 (내보내기)"
+            >
+              <Download size={18} />
+            </button>
+            <label style={styles.actionButton} title="데이터 복원 (가져오기)">
+              <Upload size={18} />
+              <input
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files[0]) {
+                    onImportData(e.target.files[0]);
+                  }
+                }}
+              />
+            </label>
             <span style={styles.userName}>{currentUser.userName}</span>
             <button style={styles.logoutButton} onClick={onSwitchUser} title="다른 사용자로 로그인">
               <LogOut size={18} />
@@ -1323,7 +1389,6 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
                   const isToggleOff = playerScore.fairwayHit === 'L';
                   updateScoreFields({
                     fairwayHit: isToggleOff ? null : 'L',
-                    fairway: isToggleOff ? playerScore.fairway : false,
                   });
                 }}
               >
@@ -1340,7 +1405,6 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
                   const isToggleOff = playerScore.fairwayHit === 'C';
                   updateScoreFields({
                     fairwayHit: isToggleOff ? null : 'C',
-                    fairway: isToggleOff ? playerScore.fairway : true,
                   });
                 }}
               >
@@ -1357,7 +1421,6 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
                   const isToggleOff = playerScore.fairwayHit === 'R';
                   updateScoreFields({
                     fairwayHit: isToggleOff ? null : 'R',
-                    fairway: isToggleOff ? playerScore.fairway : false,
                   });
                 }}
               >
@@ -2623,7 +2686,7 @@ const CLUB_NAME_SUGGESTIONS = {
   Wedge: ['46°', '48°', '50°', '52°', '54°', '56°', '58°', '60°', '62°', '64°'],
 };
 
-function MyBagView({ onBack }) {
+function MyBagView({ currentUser, onBack }) {
   const [clubs, setClubs] = useState(DEFAULT_CLUBS);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
@@ -2632,11 +2695,10 @@ function MyBagView({ onBack }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const result = await localStorage.getItem('mybag');
-        if (result) {
-          const loaded = JSON.parse(result.value);
+        const savedClubs = await loadClubsByUser(currentUser.userId);
+        if (savedClubs && Array.isArray(savedClubs)) {
           // 기존 데이터 마이그레이션
-          const migrated = loaded.map(c => {
+          const migrated = savedClubs.map(c => {
             if (c.type === 'Putter') {
               // 퍼터: avgPutts/avg 등 거리 관련 필드 모두 제거 (이름과 type만 유지)
               return { id: c.id, name: c.name, type: 'Putter' };
@@ -2650,20 +2712,23 @@ function MyBagView({ onBack }) {
             };
           });
           setClubs(migrated);
+        } else {
+          setClubs(DEFAULT_CLUBS);
         }
       } catch (e) {
-        // 기본값 사용
+        console.error('Load clubs failed', e);
+        setClubs(DEFAULT_CLUBS);
       }
     };
     load();
-  }, []);
+  }, [currentUser.userId]);
 
   const saveClubs = async (updated) => {
     setClubs(updated);
     try {
-      await localStorage.setItem('mybag', JSON.stringify(updated));
+      await saveClubsForUser(currentUser.userId, updated);
     } catch (e) {
-      console.error('Save failed', e);
+      console.error('Save clubs failed', e);
     }
   };
 
@@ -3141,6 +3206,22 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  actionButton: {
+    background: 'none',
+    border: 'none',
+    padding: '4px 6px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#8b8574',
+    cursor: 'pointer',
+    transition: 'color 0.2s ease',
   },
   userName: {
     fontSize: '13px',
@@ -5064,24 +5145,32 @@ const styles = {
     maxWidth: '520px',
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(5, 1fr)',
   },
   tabBarBtn: {
     background: 'transparent',
     border: 'none',
-    padding: '10px 4px 12px',
+    padding: '10px 2px 12px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '4px',
     position: 'relative',
     cursor: 'pointer',
     transition: 'color 0.15s ease',
+    minHeight: '56px',
+  },
+  tabBarBtnHome: {
+    padding: '6px 2px 12px',
   },
   tabBarLabel: {
-    fontSize: '10px',
-    letterSpacing: '0.05em',
+    fontSize: '9px',
+    letterSpacing: '0.03em',
     lineHeight: 1,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '100%',
   },
   tabBarActiveIndicator: {
     position: 'absolute',

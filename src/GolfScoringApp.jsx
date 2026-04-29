@@ -1325,9 +1325,9 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
         {/* FAIRWAY HIT (O / X) - 파4/5에서만 */}
         {hole.par > 3 && (
           <div style={styles.statRow}>
-            <div style={styles.statRowLabel}>
+            <div style={{...styles.statRowLabel, whiteSpace: 'normal', minWidth: 'auto'}}>
               <Target size={14} strokeWidth={2} />
-              <span>FAIRWAY HIT</span>
+              <span>FAIRWAY<br />HIT</span>
             </div>
             <div style={styles.fairwayHitRow}>
               <button
@@ -1373,9 +1373,9 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
         {/* LANDING POINT (L / C / R) - 파4/5에서만 */}
         {hole.par > 3 && (
           <div style={styles.statRow}>
-            <div style={styles.statRowLabel}>
+            <div style={{...styles.statRowLabel, whiteSpace: 'normal', minWidth: 'auto'}}>
               <Flag size={14} strokeWidth={2} />
-              <span>LANDING POINT</span>
+              <span>LANDING<br />POINT</span>
             </div>
             <div style={styles.fairwayHitRow}>
               <button
@@ -4315,6 +4315,7 @@ const styles = {
     letterSpacing: '0.1em',
     color: '#8b8574',
     fontWeight: '700',
+    textAlign: 'center',
   },
   penaltyBadge: {
     fontSize: '10px',

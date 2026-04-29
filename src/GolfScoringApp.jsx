@@ -1459,11 +1459,6 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
           <div style={styles.statRowLabel}>
             <AlertTriangle size={14} strokeWidth={2} />
             <span>페널티</span>
-            {(playerScore.ob > 0 || playerScore.hazard > 0) && (
-              <span style={styles.penaltyBadge}>
-                +{(playerScore.ob || 0) + (playerScore.hazard || 0)}
-              </span>
-            )}
           </div>
           <div style={styles.penaltyGroup}>
             {/* OB 카운터 */}
@@ -1512,6 +1507,14 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
                 />
               </div>
             </div>
+
+            {/* 페널티 합계 배지 */}
+            {(playerScore.ob > 0 || playerScore.hazard > 0) && (
+              <div style={styles.penaltyTotalBadge}>
+                +{(playerScore.ob || 0) + (playerScore.hazard || 0)}
+              </div>
+            )}
+
             {/* 해저드 카운터 */}
             <div style={styles.penaltyItem}>
               <div style={styles.penaltyLabel}>해저드</div>
@@ -4179,16 +4182,20 @@ const styles = {
     padding: '14px 16px',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderBottom: '1px solid #f0ead9',
+    gap: '12px',
   },
   statRowLabel: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '6px',
     fontSize: '13px',
     color: '#3a3a3a',
     fontWeight: '500',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+    minWidth: '60px',
   },
   autoBadge: {
     fontSize: '9px',
@@ -4236,9 +4243,10 @@ const styles = {
   },
   penaltyGroup: {
     display: 'flex',
-    gap: '12px',
-    width: '260px',
-    flexShrink: 0,
+    gap: '8px',
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   penaltyItem: {
     flex: 1,
@@ -4299,6 +4307,19 @@ const styles = {
     padding: '2px 7px',
     borderRadius: '8px',
     fontWeight: '800',
+  },
+  penaltyTotalBadge: {
+    fontSize: '12px',
+    fontWeight: '800',
+    color: '#c04a3e',
+    background: '#ffe8e3',
+    padding: '6px 10px',
+    borderRadius: '3px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: '44px',
+    textAlign: 'center',
   },
   toggleRow: {
     display: 'flex',
@@ -4646,8 +4667,8 @@ const styles = {
   fairwayHitRow: {
     display: 'flex',
     gap: '5px',
-    width: '260px',
-    flexShrink: 0,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   fairwayHitBtn: {
     flex: 1,

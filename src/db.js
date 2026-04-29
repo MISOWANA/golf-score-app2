@@ -1,4 +1,4 @@
-// IndexedDB 초기화 및 관리 유틸리티
+ /IndexedDB 초기화 및 관리 유틸리티/
 const DB_NAME = 'GolfScoreDB';
 const DB_VERSION = 2;
 const ROUNDS_STORE = 'rounds';

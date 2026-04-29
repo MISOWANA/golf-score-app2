@@ -1327,7 +1327,7 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
           <div style={styles.statRow}>
             <div style={{...styles.statRowLabel, whiteSpace: 'normal', minWidth: 'auto'}}>
               <Target size={14} strokeWidth={2} />
-              <span>FAIRWAY<br />HIT</span>
+              <span style={{display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2}}>FAIRWAY <br />HIT</span>
             </div>
             <div style={styles.fairwayHitRow}>
               <button
@@ -1375,8 +1375,9 @@ function ScoringView({ round, onUpdate, onFinish, onExit }) {
           <div style={styles.statRow}>
             <div style={{...styles.statRowLabel, whiteSpace: 'normal', minWidth: 'auto'}}>
               <Flag size={14} strokeWidth={2} />
-              <span>LANDING<br />POINT</span>
+              <span style={{display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2}}>LANDING <br />POINT</span>
             </div>
+
             <div style={styles.fairwayHitRow}>
               <button
                 style={{
@@ -4270,6 +4271,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '4px',
   },
   penaltyStepper: {

@@ -3181,6 +3181,19 @@ const globalCSS = `
     from { opacity: 0; transform: translateY(20px) scale(0.96); }
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
+
+  /* 모바일 반응형 스타일 */
+  @media (max-width: 430px) {
+    * {
+      -webkit-text-size-adjust: none !important;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+  }
 `;
 
 const styles = {
@@ -3190,12 +3203,16 @@ const styles = {
     fontFamily: "'Noto Sans KR', -apple-system, sans-serif",
     color: '#3a3a3a',
     paddingBottom: '0',
+    width: '100%',
+    overflowX: 'hidden',
   },
   container: {
+    width: '100%',
     maxWidth: '520px',
     margin: '0 auto',
-    padding: '20px 18px 100px',
+    padding: '20px 8px 100px',
     animation: 'fadeIn 0.3s ease-out',
+    boxSizing: 'border-box',
   },
   header: {
     padding: '12px 0 24px',
@@ -4323,17 +4340,22 @@ const styles = {
   },
   toggleRow: {
     display: 'flex',
-    gap: '6px',
+    gap: '3px',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
   toggleBtn: {
-    padding: '7px 12px',
+    padding: '5px 8px',
     borderRadius: '2px',
     border: '1px solid #d4ccbb',
-    fontSize: '12px',
+    fontSize: '10px',
     fontWeight: '600',
     display: 'flex',
     alignItems: 'center',
-    gap: '4px',
+    gap: '3px',
+    minHeight: '30px',
+    minWidth: '0',
+    whiteSpace: 'nowrap',
   },
 
   // ===== 퍼팅 + 메모 분할 행 (3:1) =====
@@ -4635,27 +4657,28 @@ const styles = {
     textAlign: 'center',
     whiteSpace: 'nowrap',
   },
-  // 기존 shotShapeRow/Btn (호환성 유지를 위해 남겨둠)
   shotShapeRow: {
     display: 'flex',
-    gap: '5px',
-    width: '260px',
-    flexShrink: 0,
+    gap: '3px',
+    flex: 1,
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
   shotShapeBtn: {
     flex: 1,
-    height: '38px',
-    padding: '4px 2px',
-    borderRadius: '4px',
+    minWidth: '32px',
+    height: '32px',
+    padding: '2px 2px',
+    borderRadius: '3px',
     border: '1.5px solid',
     fontWeight: '700',
+    fontSize: '12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.15s ease',
     cursor: 'pointer',
     background: 'transparent',
-    minWidth: 0,
   },
   shotShapeLabel: {
     fontSize: '10px',
@@ -4666,17 +4689,18 @@ const styles = {
   },
   fairwayHitRow: {
     display: 'flex',
-    gap: '5px',
+    gap: '3px',
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
   },
   fairwayHitBtn: {
     flex: 1,
-    height: '38px',
-    minWidth: '36px',
-    borderRadius: '4px',
+    minWidth: '34px',
+    height: '32px',
+    borderRadius: '3px',
     border: '1.5px solid',
-    fontSize: '15px',
+    fontSize: '12px',
     fontWeight: '800',
     display: 'flex',
     alignItems: 'center',
@@ -4684,6 +4708,7 @@ const styles = {
     letterSpacing: '0.05em',
     cursor: 'pointer',
     transition: 'all 0.15s ease',
+    padding: '2px',
   },
   scoringNav: {
     display: 'flex',

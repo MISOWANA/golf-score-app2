@@ -1,58 +1,74 @@
 import React from 'react';
 import styles from '../../styles/styles';
+import { toHoleInput, analyzeRound } from '../../engine/engine.js';
+import { HOLE_RULES } from '../../engine/rules/holeRules.js';
+import { ROUND_RULES } from '../../engine/rules/roundRules.js';
 
-export default function Insights({ stats, round, player }) {
-  const insights = [];
+const SEVERITY_COLOR  = { positive: '#1f5e3a', neutral: '#6b6558', warning: '#d97706', critical: '#c04a3e' };
+const SEVERITY_BG     = { positive: '#e8f5eb', neutral: '#f5f0e6', warning: '#fef3c7', critical: '#fde8e3' };
+const SEVERITY_BADGE  = { positive: '✓', neutral: '·', warning: '△', critical: '!' };
 
-  if (stats.girPct >= 50) {
-    insights.push({ icon: '🎯', text: `GIR ${stats.girPct}% — 아이언 샷이 견고했습니다.` });
-  } else if (stats.girPct < 30) {
-    insights.push({ icon: '⚠️', text: `GIR ${stats.girPct}% — 아이언/어프로치 정확도 개선 여지.` });
-  }
+export default function Insights({ round, player }) {
+  const holeInputs = round.holes.map(h => toHoleInput(h, player));
+  const { roundInsights, holeInsights } = analyzeRound(holeInputs, HOLE_RULES, ROUND_RULES);
 
-  if (stats.avgPutts <= 1.8) {
-    insights.push({ icon: '⛳', text: `홀당 평균 ${stats.avgPutts}퍼팅 — 훌륭한 그린 감각.` });
-  } else if (stats.avgPutts >= 2.2) {
-    insights.push({ icon: '📉', text: `퍼팅당 평균 ${stats.avgPutts} — 퍼팅 연습이 스코어에 큰 영향.` });
-  }
+  // 라운드 인사이트: critical/warning/positive 중 상위 5개
+  const topRoundInsights = roundInsights
+    .filter(i => i.severity !== 'neutral')
+    .slice(0, 5);
 
-  if (stats.fairwayPct >= 60) {
-    insights.push({ icon: '🏹', text: `페어웨이 안착 ${stats.fairwayPct}% — 티샷이 안정적.` });
-  } else if (stats.fairwayPct < 40) {
-    insights.push({ icon: '🌲', text: `페어웨이 ${stats.fairwayPct}% — 티샷 정확도가 스코어 관리의 열쇠.` });
-  }
+  // 홀 인사이트: 홀당 가장 심각한 1개만, warning/critical 우선
+  const notableHoles = holeInsights
+    .flatMap(insights =>
+      insights
+        .filter(i => i.severity === 'critical' || i.severity === 'warning')
+        .slice(0, 1)
+    )
+    .sort((a, b) => {
+      const order = { critical: 0, warning: 1 };
+      return (order[a.severity] ?? 2) - (order[b.severity] ?? 2);
+    })
+    .slice(0, 3);
 
-  const front = stats.front9;
-  const back = stats.back9;
-  if (Math.abs(front - back) >= 4) {
-    insights.push({
-      icon: front > back ? '📈' : '📉',
-      text: front > back
-        ? `후반 9홀(${back})이 전반(${front})보다 ${front - back}타 좋았습니다 — 페이스 잘 유지.`
-        : `전반 9홀(${front})이 후반(${back})보다 ${back - front}타 좋았습니다 — 후반 집중력 관리 필요.`
-    });
-  }
+  const allInsights = [...topRoundInsights, ...notableHoles];
 
-  if (stats.doubles >= 4) {
-    insights.push({ icon: '🚨', text: `더블보기 이상 ${stats.doubles}회 — 큰 실수 줄이면 스코어 크게 개선.` });
-  }
-
-  if (stats.birdies + stats.eagles >= 3) {
-    insights.push({ icon: '🔥', text: `버디 이상 ${stats.birdies + stats.eagles}회 — 찬스에서 잘 마무리했습니다.` });
-  }
-
-  if (insights.length === 0) {
-    insights.push({ icon: '✨', text: '균형 잡힌 라운드였습니다.' });
+  if (allInsights.length === 0) {
+    return (
+      <div style={styles.insightsList}>
+        <div style={styles.insightRow}>
+          <div style={styles.insightIcon}>✨</div>
+          <div style={styles.insightText}>균형 잡힌 라운드였습니다.</div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={styles.insightsList}>
-      {insights.map((ins, i) => (
-        <div key={i} style={styles.insightRow}>
-          <div style={styles.insightIcon}>{ins.icon}</div>
-          <div style={styles.insightText}>{ins.text}</div>
-        </div>
-      ))}
+    <div style={styles.insightCards}>
+      {allInsights.map((ins, i) => {
+        const color = SEVERITY_COLOR[ins.severity] ?? '#6b6558';
+        const bg    = SEVERITY_BG[ins.severity]    ?? '#f5f0e6';
+        const badge = SEVERITY_BADGE[ins.severity] ?? '·';
+        return (
+          <div key={i} style={{ ...styles.insightCard, borderLeftColor: color }}>
+            <div style={{ ...styles.insightCardBadge, background: bg, color }}>
+              {badge}
+            </div>
+            <div style={styles.insightCardContent}>
+              {ins.holeNumber != null && (
+                <div style={{ fontSize: 10, color: '#8b6f47', fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
+                  HOLE {ins.holeNumber}
+                </div>
+              )}
+              <div style={styles.insightCardTitle}>{ins.title}</div>
+              <div style={styles.insightCardDetail}>{ins.summary}</div>
+              <div style={{ ...styles.insightCardDetail, color: '#888', marginTop: 3 }}>
+                {ins.recommendation}
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

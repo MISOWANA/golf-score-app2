@@ -2,6 +2,15 @@ import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
 import GreenMissSelector from '../scoring/GreenMissSelector';
+import { toHoleInput, matchRoundInsightRules } from '../../engine/engine.js';
+import { buildRoundMetrics } from '../../engine/metrics.js';
+import { ROUND_RULES } from '../../engine/rules/roundRules.js';
+
+const SEVERITY_COLOR  = { positive: '#1f5e3a', neutral: '#6b6558', warning: '#d97706', critical: '#c04a3e' };
+const SEVERITY_BG     = { positive: '#e8f5eb', neutral: '#f5f0e6', warning: '#fef3c7', critical: '#fde8e3' };
+const SEVERITY_BADGE  = { positive: '✓', neutral: '·', warning: '△', critical: '!' };
+
+const careerRules = ROUND_RULES.filter(r => r.careerApplicable !== false);
 
 export default function InsightsView({ rounds, onBack }) {
   if (rounds.length === 0) {
@@ -144,6 +153,16 @@ export default function InsightsView({ rounds, onBack }) {
     return { ...counts, total };
   })();
 
+  // 커리어 인사이트 (엔진 기반)
+  const allHoleInputs = rounds.flatMap(r => {
+    const p = r.players[0];
+    return r.holes.map(h => toHoleInput(h, p));
+  });
+  const careerMetrics = buildRoundMetrics(allHoleInputs);
+  const careerInsights = careerMetrics
+    ? matchRoundInsightRules(careerMetrics, careerRules)
+    : [];
+
   const frontHoles = allHoles.filter((_, idx) => idx % 18 < 9);
   const backHoles = allHoles.filter((_, idx) => idx % 18 >= 9);
   const frontAvgDiff = frontHoles.reduce((s, h) => s + h.diff, 0) / frontHoles.length;
@@ -237,6 +256,33 @@ export default function InsightsView({ rounds, onBack }) {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {careerInsights.length > 0 && (
+        <div style={styles.section}>
+          <div style={styles.sectionTitle}>PATTERN INSIGHTS · 반복 패턴 분석</div>
+          <div style={styles.insightCards}>
+            {careerInsights.map((ins, i) => {
+              const color = SEVERITY_COLOR[ins.severity] ?? '#6b6558';
+              const bg    = SEVERITY_BG[ins.severity]    ?? '#f5f0e6';
+              const badge = SEVERITY_BADGE[ins.severity] ?? '·';
+              return (
+                <div key={i} style={{ ...styles.insightCard, borderLeftColor: color }}>
+                  <div style={{ ...styles.insightCardBadge, background: bg, color }}>
+                    {badge}
+                  </div>
+                  <div style={styles.insightCardContent}>
+                    <div style={styles.insightCardTitle}>{ins.title}</div>
+                    <div style={styles.insightCardDetail}>{ins.summary}</div>
+                    <div style={{ ...styles.insightCardDetail, color: '#888', marginTop: 3 }}>
+                      {ins.recommendation}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

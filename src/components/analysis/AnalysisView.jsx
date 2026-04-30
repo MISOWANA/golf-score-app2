@@ -125,7 +125,7 @@ export default function AnalysisView({ round, onBack, onGoHome, onGoHistory, onN
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>INSIGHTS</div>
-        <Insights stats={stats} round={round} player={activePlayer} />
+        <Insights round={round} player={activePlayer} />
       </div>
 
       {(() => {

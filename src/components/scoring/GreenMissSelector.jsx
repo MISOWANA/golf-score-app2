@@ -77,7 +77,10 @@ export default function GreenMissSelector({ value, onChange, stats }) {
         const isBottom = sec.lAngle === 180;
         const isHoriz  = !isTop && !isBottom;
 
-        const labelY     = isTop ? lp.y - 14 : isBottom ? lp.y - 14 : lp.y - 16;
+        const labelY     = isTop    ? lp.y - 14
+                         : isBottom ? lp.y - 14
+                         : isDisplay ? lp.y - 16
+                         : lp.y + 4;
         const pctY       = isTop ? lp.y + 4  : isBottom ? lp.y + 4  : lp.y + 2;
         const countY     = isTop ? lp.y + 19 : isBottom ? lp.y + 19 : lp.y + 17;
 
@@ -160,16 +163,12 @@ export default function GreenMissSelector({ value, onChange, stats }) {
         );
       })}
 
-      {/* 중앙 홀 마커 */}
-      <rect
-        x={CX - 7} y={CY - 7}
-        width={14} height={14}
-        fill="#0d1f16"
-        rx="2"
-        stroke="rgba(255,255,255,0.35)"
-        strokeWidth="1"
-        style={{ pointerEvents: 'none' }}
-      />
+      {/* 중앙 깃대 마커 */}
+      <g style={{ pointerEvents: 'none' }}>
+        <circle cx={CX} cy={CY} r={10} fill="#0d1f16" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        <line x1={CX} y1={CY - 7} x2={CX} y2={CY + 7} stroke="#d0cfc8" strokeWidth="1.5" strokeLinecap="round" />
+        <polygon points={`${CX},${CY - 7} ${CX + 7},${CY - 4} ${CX},${CY - 1}`} fill="#c04a3e" />
+      </g>
 
       {/* 선택 시 하이라이트 링 */}
       {value && onChange && (

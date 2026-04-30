@@ -22,16 +22,16 @@ const DEFAULT_CLUBS = [
 ];
 
 const CLUB_TYPE_DEFAULTS = {
-  Wood: { name: '새 우드', carry: 180, total: 195 },
-  Hybrid: { name: '새 하이브리드', carry: 160, total: 170 },
-  Iron: { name: '새 아이언', carry: 140, total: 145 },
-  Wedge: { name: '50°', carry: 90, total: 92 },
+  Wood: { name: '새 우드', carry: 250, total: 260 },
+  Hybrid: { name: '새 하이브리드', carry: 220, total: 230 },
+  Iron: { name: '새 아이언', carry: 150, total: 155 },
+  Wedge: { name: '새 웨지', carry: 90, total: 92 },
 };
 
 const CLUB_NAME_SUGGESTIONS = {
-  Wood: ['Driver', '2W', '3W', '4W', '5W', '7W', '9W', '11W'],
+  Wood: ['Driver', '2W', '3W', '4W', '5W', '7W', '9W'],
   Hybrid: ['1H', '2H', '3H', '4H', '5H', '6H', '7H'],
-  Iron: ['1i', '2i', '3i', '4i', '5i', '6i', '7i', '8i', '9i'],
+  Iron: ['1I', '2I', '3I', '4I', '5I', '6I', '7I', '8I', '9I'],
   Wedge: ['46°', '48°', '50°', '52°', '54°', '56°', '58°', '60°', '62°', '64°'],
 };
 

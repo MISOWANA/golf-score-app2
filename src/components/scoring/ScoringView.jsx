@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp, Target, Flag, Circle, X, Check, Edit3, AlertTriangle } from 'lucide-react';
 import styles from '../../styles/styles';
 import ShotShapeIcon from './ShotShapeIcon';
+import GreenMissSelector from './GreenMissSelector';
+
+const GREEN_MISS_LABELS = { long: 'LONG', short: 'SHORT', left: 'LEFT', right: 'RIGHT' };
 
 export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
@@ -618,6 +621,52 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
               <X size={14} /> 오프
             </button>
           </div>
+        </div>
+
+        {/* 그린 방향 */}
+        <div style={{ ...styles.statRow, flexDirection: 'column', alignItems: 'stretch', gap: '6px' }}>
+          <div style={{ ...styles.statRowLabel, justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Target size={13} strokeWidth={2} />
+              <span>그린 방향</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {playerScore.greenMiss && (
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  background: '#1f3d2e',
+                  color: '#a8d8b0',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  letterSpacing: '0.04em',
+                }}>
+                  {GREEN_MISS_LABELS[playerScore.greenMiss]}
+                </span>
+              )}
+              {playerScore.greenMiss && (
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#b8b0a0',
+                    cursor: 'pointer',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  onClick={() => updateScore('greenMiss', null)}
+                  aria-label="그린 방향 초기화"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+          <GreenMissSelector
+            value={playerScore.greenMiss}
+            onChange={(v) => updateScore('greenMiss', v)}
+          />
         </div>
 
         {/* 페널티 */}

@@ -94,6 +94,7 @@ export default function GolfScoringApp() {
             hazard: 0,
             gir: true,
             girAuto: true,
+            greenMiss: null,
             memo: '',
             touched: false
           };

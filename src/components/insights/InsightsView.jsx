@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
+import GreenMissSelector from '../scoring/GreenMissSelector';
 
 export default function InsightsView({ rounds, onBack }) {
   if (rounds.length === 0) {
@@ -30,6 +31,7 @@ export default function InsightsView({ rounds, onBack }) {
       putts: h.scores[p]?.putts || 0,
       gir: h.scores[p]?.gir,
       fairway: h.scores[p]?.fairway,
+      greenMiss: h.scores[p]?.greenMiss,
       diff: (h.scores[p]?.strokes || 0) - h.par,
     }));
   });
@@ -129,6 +131,18 @@ export default function InsightsView({ rounds, onBack }) {
       detail: `평균 +${bestPar.avgDiff}타 — 파${bestPar.par} 홀에서 안정적`
     });
   }
+
+  const greenMissStats = (() => {
+    const counts = { long: 0, short: 0, left: 0, right: 0 };
+    let total = 0;
+    allHoles.forEach(h => {
+      if (h.greenMiss && counts[h.greenMiss] !== undefined) {
+        counts[h.greenMiss]++;
+        total++;
+      }
+    });
+    return { ...counts, total };
+  })();
 
   const frontHoles = allHoles.filter((_, idx) => idx % 18 < 9);
   const backHoles = allHoles.filter((_, idx) => idx % 18 >= 9);
@@ -254,6 +268,16 @@ export default function InsightsView({ rounds, onBack }) {
           ))}
         </div>
       </div>
+
+      {greenMissStats.total > 0 && (
+        <div style={styles.section}>
+          <div style={styles.sectionTitle}>GREEN APPROACH · 그린 방향 분석</div>
+          <GreenMissSelector stats={greenMissStats} />
+          <div style={{ textAlign: 'center', color: '#6b6558', fontSize: '12px', marginTop: 8 }}>
+            총 {greenMissStats.total}회 기록
+          </div>
+        </div>
+      )}
 
       {!isNaN(fadeDiff) && (
         <div style={styles.section}>

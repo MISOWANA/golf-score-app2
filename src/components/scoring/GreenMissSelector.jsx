@@ -77,9 +77,8 @@ export default function GreenMissSelector({ value, onChange, stats }) {
         const isBottom = sec.lAngle === 180;
         const isHoriz  = !isTop && !isBottom;
 
-        const labelY     = isTop    ? lp.y - 14
-                         : isBottom ? lp.y - 14
-                         : isDisplay ? lp.y - 16
+        const labelY     = isDisplay
+                         ? (isTop || isBottom ? lp.y - 14 : lp.y - 16)
                          : lp.y + 4;
         const pctY       = isTop ? lp.y + 4  : isBottom ? lp.y + 4  : lp.y + 2;
         const countY     = isTop ? lp.y + 19 : isBottom ? lp.y + 19 : lp.y + 17;

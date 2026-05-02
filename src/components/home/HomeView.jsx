@@ -1,9 +1,9 @@
 import React from 'react';
-import { Plus, Download, Upload, LogOut } from 'lucide-react';
+import { Plus, Download, Upload, LogOut, PlayCircle } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
 
-export default function HomeView({ rounds, currentUser, onNewRound, onViewHistory, onViewStats, onSwitchUser, onExportData, onImportData, loading }) {
+export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onViewStats, onSwitchUser, onExportData, onImportData, loading }) {
   const recentRound = rounds[0];
   const totalRounds = rounds.length;
 
@@ -59,6 +59,40 @@ export default function HomeView({ rounds, currentUser, onNewRound, onViewHistor
           {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
         </div>
       </header>
+
+      {activeRound && (
+        <div style={{
+          background: 'linear-gradient(135deg, #1f5e3a 0%, #2d7a50 100%)',
+          borderRadius: '14px', padding: '16px 18px', marginBottom: '12px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          boxShadow: '0 2px 10px rgba(31,94,58,0.25)'
+        }}>
+          <div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>
+              진행 중인 라운드
+            </div>
+            <div style={{ fontSize: '15px', color: '#fff', fontWeight: 700, marginBottom: '2px' }}>
+              {activeRound.courseName}
+            </div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)' }}>
+              {activeRound.currentHole + 1}홀 진행 중 · {activeRound.players.join(', ')}
+            </div>
+          </div>
+          <button
+            onClick={onResume}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: 'rgba(255,255,255,0.2)', color: '#fff',
+              border: '1.5px solid rgba(255,255,255,0.4)',
+              borderRadius: '8px', padding: '8px 14px',
+              fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
+            }}
+          >
+            <PlayCircle size={15} />
+            이어서
+          </button>
+        </div>
+      )}
 
       <div style={styles.heroCard}>
         <div style={styles.heroLabel}>TODAY</div>

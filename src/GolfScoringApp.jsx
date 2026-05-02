@@ -21,6 +21,7 @@ export default function GolfScoringApp() {
   const [rounds, setRounds] = useState([]);
   const [selectedRoundId, setSelectedRoundId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
     const initApp = async () => {
@@ -33,10 +34,8 @@ export default function GolfScoringApp() {
           const active = await loadActiveRound(user.userId);
           if (active) {
             setCurrentRound(active);
-            setView('scoring');
-          } else {
-            setView('home');
           }
+          setView('home');
         } else {
           setView('login');
         }
@@ -68,6 +67,26 @@ export default function GolfScoringApp() {
       setView('home');
     } catch (e) {
       console.error('Login failed', e);
+    }
+  };
+
+  const handleResumeRound = () => {
+    setShowResumeModal(false);
+    setView('scoring');
+  };
+
+  const handleDiscardAndSetup = async () => {
+    setShowResumeModal(false);
+    await clearActiveRound(currentUser.userId);
+    setCurrentRound(null);
+    setView('setup');
+  };
+
+  const handleNewRound = () => {
+    if (currentRound) {
+      setShowResumeModal(true);
+    } else {
+      setView('setup');
     }
   };
 
@@ -191,7 +210,9 @@ export default function GolfScoringApp() {
         <HomeView
           rounds={rounds}
           currentUser={currentUser}
-          onNewRound={() => setView('setup')}
+          activeRound={currentRound}
+          onNewRound={handleNewRound}
+          onResume={handleResumeRound}
           onViewHistory={() => setView('history')}
           onViewStats={() => setView('stats')}
           onSwitchUser={handleSwitchUser}
@@ -265,6 +286,50 @@ export default function GolfScoringApp() {
         current={view}
         onChange={(tab) => setView(tab)}
       />
+
+      {showResumeModal && currentRound && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '24px'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '16px', padding: '28px 24px',
+            width: '100%', maxWidth: '340px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
+          }}>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a2e1a', marginBottom: '8px' }}>
+              진행 중인 라운드가 있어요
+            </div>
+            <div style={{ fontSize: '14px', color: '#5a6a5a', marginBottom: '6px' }}>
+              {currentRound.courseName}
+            </div>
+            <div style={{ fontSize: '13px', color: '#8a9a8a', marginBottom: '24px' }}>
+              {currentRound.currentHole + 1}홀 진행 중 · {currentRound.players.join(', ')}
+            </div>
+            <button
+              onClick={handleResumeRound}
+              style={{
+                width: '100%', padding: '14px', marginBottom: '10px',
+                background: '#1f5e3a', color: '#fff', border: 'none',
+                borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              이어서 기록하기
+            </button>
+            <button
+              onClick={handleDiscardAndSetup}
+              style={{
+                width: '100%', padding: '14px',
+                background: 'transparent', color: '#c04a3e',
+                border: '1.5px solid #c04a3e', borderRadius: '10px',
+                fontSize: '15px', fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              새 라운딩 시작
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

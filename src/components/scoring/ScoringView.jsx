@@ -94,7 +94,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
     if (field === 'strokes') {
       const inferred = inferStatsFromStrokes(value, hole.par);
       newPlayerScore.putts = inferred.putts;
-      if (hole.par > 3) newPlayerScore.fairway = inferred.fairway;
+      if (hole.par > 3 && !playerScore.touched) newPlayerScore.fairway = inferred.fairway;
       newPlayerScore.gir = inferred.gir;
       newPlayerScore.girAuto = true;
     }

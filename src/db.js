@@ -163,6 +163,45 @@ export const saveClubsForUser = async (userId, clubs) => {
   });
 };
 
+// 진행 중인 라운드 저장
+export const saveActiveRound = async (userId, round) => {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([USERS_STORE], 'readwrite');
+    const store = transaction.objectStore(USERS_STORE);
+    const request = store.put({ id: `active_round_${userId}`, userId, round });
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+};
+
+// 진행 중인 라운드 로드
+export const loadActiveRound = async (userId) => {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([USERS_STORE], 'readonly');
+    const store = transaction.objectStore(USERS_STORE);
+    const request = store.get(`active_round_${userId}`);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const result = request.result;
+      resolve(result ? result.round : null);
+    };
+  });
+};
+
+// 진행 중인 라운드 삭제
+export const clearActiveRound = async (userId) => {
+  if (!db) await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([USERS_STORE], 'readwrite');
+    const store = transaction.objectStore(USERS_STORE);
+    const request = store.delete(`active_round_${userId}`);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve();
+  });
+};
+
 // 사용자의 모든 데이터 Export (JSON)
 export const exportUserData = async (userId) => {
   if (!db) await initDB();

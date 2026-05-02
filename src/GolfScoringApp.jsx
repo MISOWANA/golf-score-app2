@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { initDB, loadRoundsByUser, saveRound, deleteRound, getCurrentUser, setCurrentUser, exportUserData, importUserData } from './db.js';
+import { initDB, loadRoundsByUser, saveRound, deleteRound, getCurrentUser, setCurrentUser, exportUserData, importUserData, saveActiveRound, loadActiveRound, clearActiveRound } from './db.js';
 import globalCSS from './styles/globalCSS';
 import styles from './styles/styles';
 
@@ -30,7 +30,13 @@ export default function GolfScoringApp() {
         if (user) {
           setCurrentUserState(user);
           await loadUserRounds(user.userId);
-          setView('home');
+          const active = await loadActiveRound(user.userId);
+          if (active) {
+            setCurrentRound(active);
+            setView('scoring');
+          } else {
+            setView('home');
+          }
         } else {
           setView('login');
         }
@@ -105,16 +111,21 @@ export default function GolfScoringApp() {
       completed: false
     };
     setCurrentRound(newRound);
+    saveActiveRound(currentUser.userId, newRound).catch(console.error);
     setView('scoring');
   };
 
   const updateRound = (updated) => {
     setCurrentRound(updated);
+    if (currentUser) {
+      saveActiveRound(currentUser.userId, updated).catch(console.error);
+    }
   };
 
   const finishRound = async () => {
     const finished = { ...currentRound, completed: true, finishedAt: new Date().toISOString() };
     await saveRound(finished, currentUser.userId);
+    await clearActiveRound(currentUser.userId);
     const updated = [finished, ...rounds];
     setRounds(updated);
     setCurrentRound(null);
@@ -202,7 +213,8 @@ export default function GolfScoringApp() {
           round={currentRound}
           onUpdate={updateRound}
           onFinish={finishRound}
-          onExit={() => {
+          onExit={async () => {
+            await clearActiveRound(currentUser.userId);
             setCurrentRound(null);
             setView('home');
           }}

@@ -24,8 +24,8 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
           <div style={styles.logo}>
             <div style={styles.logoMark}>⛳</div>
             <div>
-              <div style={styles.brandName}>Every</div>
-              <div style={styles.brandTagline}>Score</div>
+              <div style={styles.brandName}>Birdie</div>
+              <div style={styles.brandTagline}>Buddy</div>
             </div>
           </div>
           <div style={styles.headerActions}>

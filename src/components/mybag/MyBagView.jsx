@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { loadClubsByUser, saveClubsForUser } from '../../db.js';
 import styles from '../../styles/styles';
@@ -41,6 +41,17 @@ export default function MyBagView({ currentUser, onBack }) {
   const [editingName, setEditingName] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
 
+  // drag-to-reorder state
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
+  // refs for touch reorder (avoids stale closure in event listeners)
+  const clubsRef = useRef(clubs);
+  const touchDragRef = useRef({ id: null, lastOverId: null });
+  const saveClubsRef = useRef(null);
+
+  useEffect(() => { clubsRef.current = clubs; }, [clubs]);
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -79,6 +90,90 @@ export default function MyBagView({ currentUser, onBack }) {
     }
   };
 
+  // keep ref in sync so touch handlers can call it without stale closure
+  saveClubsRef.current = saveClubs;
+
+  // ── touch drag: document-level listeners ─────────────────────────────────
+  useEffect(() => {
+    const onTouchMove = (e) => {
+      if (!touchDragRef.current.id) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const card = el?.closest('[data-club-id]');
+      const overId = card?.dataset.clubId;
+      if (!overId || overId === touchDragRef.current.id) return;
+      const current = clubsRef.current;
+      const dragClub = current.find(c => c.id === touchDragRef.current.id);
+      const overClub = current.find(c => c.id === overId);
+      if (dragClub?.type === overClub?.type) {
+        touchDragRef.current.lastOverId = overId;
+        setDragOverId(overId);
+      }
+    };
+
+    const onTouchEnd = () => {
+      const { id: fromId, lastOverId: toId } = touchDragRef.current;
+      if (fromId && toId) {
+        const current = clubsRef.current;
+        const fromClub = current.find(c => c.id === fromId);
+        const toClub = current.find(c => c.id === toId);
+        if (fromClub && toClub && fromClub.type === toClub.type) {
+          const updated = current.filter(c => c.id !== fromId);
+          const toIdx = updated.findIndex(c => c.id === toId);
+          updated.splice(toIdx, 0, fromClub);
+          saveClubsRef.current(updated);
+        }
+      }
+      touchDragRef.current = { id: null, lastOverId: null };
+      setDragId(null);
+      setDragOverId(null);
+    };
+
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
+
+  // ── HTML5 drag handlers ───────────────────────────────────────────────────
+  const handleDragStart = (id) => setDragId(id);
+
+  const handleDragEnd = () => {
+    setDragId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragOver = (id) => {
+    if (!dragId || id === dragId) return;
+    const dragClub = clubs.find(c => c.id === dragId);
+    const overClub = clubs.find(c => c.id === id);
+    if (dragClub?.type !== overClub?.type) return;
+    setDragOverId(id);
+  };
+
+  const handleDrop = (id) => {
+    if (!dragId || !dragOverId) return;
+    const fromClub = clubs.find(c => c.id === dragId);
+    const toClub = clubs.find(c => c.id === dragOverId);
+    if (fromClub && toClub && fromClub.type === toClub.type) {
+      const updated = clubs.filter(c => c.id !== dragId);
+      const toIdx = updated.findIndex(c => c.id === dragOverId);
+      updated.splice(toIdx, 0, fromClub);
+      saveClubs(updated);
+    }
+    setDragId(null);
+    setDragOverId(null);
+  };
+
+  const handleGripTouchStart = (id) => {
+    touchDragRef.current = { id, lastOverId: null };
+    setDragId(id);
+  };
+
+  // ── other club operations ─────────────────────────────────────────────────
   const updateField = (id, field, delta) => {
     const updated = clubs.map(c => {
       if (c.id !== id) return c;
@@ -199,7 +294,7 @@ export default function MyBagView({ currentUser, onBack }) {
       </div>
 
       <div style={styles.bagHint}>
-        캐리 · 토탈 거리 설정 · 클럽명 탭하여 수정 · 하단 + 버튼으로 추가
+        캐리 · 토탈 거리 설정 · 클럽명 탭하여 수정 · ≡ 드래그로 순서 변경
       </div>
 
       {Object.entries(grouped).map(([type, typeClubs]) => {
@@ -248,6 +343,13 @@ export default function MyBagView({ currentUser, onBack }) {
                     onUpdate={(field, delta) => updateField(club.id, field, delta)}
                     onDelete={() => requestDeleteClub(club.id)}
                     canDelete={true}
+                    isDragging={dragId === club.id}
+                    isDragOver={dragOverId === club.id}
+                    onDragStart={() => handleDragStart(club.id)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={() => handleDragOver(club.id)}
+                    onDrop={() => handleDrop(club.id)}
+                    onGripTouchStart={() => handleGripTouchStart(club.id)}
                   />
                 ))}
               </div>

@@ -2927,6 +2927,19 @@ const styles = {
     padding: 0,
     opacity: 0.7,
   },
+  clubGripHandle: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '32px',
+    color: C.textMuted,
+    cursor: 'grab',
+    flexShrink: 0,
+    touchAction: 'none',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+  },
 };
 
 export default styles;

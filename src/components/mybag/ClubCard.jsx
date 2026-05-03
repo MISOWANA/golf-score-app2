@@ -1,13 +1,24 @@
 import React from 'react';
-import { Trash2, Edit3, Check, X } from 'lucide-react';
+import { Trash2, Edit3, Check, X, GripVertical } from 'lucide-react';
 import styles from '../../styles/styles';
 import Stepper from './Stepper';
 
 export default function ClubCard({
   club, isEditing, editingName, onEditingNameChange,
   onStartEdit, onSaveEdit, onCancelEdit,
-  onUpdate, onDelete, canDelete
+  onUpdate, onDelete, canDelete,
+  isDragging, isDragOver,
+  onDragStart, onDragEnd, onDragOver, onDrop,
+  onGripTouchStart,
 }) {
+  const cardStyle = {
+    ...styles.clubCard,
+    opacity: isDragging ? 0.4 : 1,
+    borderLeft: isDragOver ? '3px solid #c9a228' : '3px solid transparent',
+    transition: 'opacity 0.15s, border-left-color 0.12s',
+    boxSizing: 'border-box',
+  };
+
   const renderName = () => {
     if (isEditing) {
       return (
@@ -44,10 +55,29 @@ export default function ClubCard({
     );
   };
 
+  const gripHandle = !isEditing && (
+    <div
+      style={styles.clubGripHandle}
+      onTouchStart={onGripTouchStart}
+      aria-label="순서 변경"
+    >
+      <GripVertical size={16} strokeWidth={1.5} />
+    </div>
+  );
+
   if (club.type === 'Putter') {
     return (
-      <div style={styles.clubCard}>
+      <div
+        data-club-id={club.id}
+        draggable={!isEditing}
+        style={cardStyle}
+        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart?.(); }}
+        onDragEnd={onDragEnd}
+        onDragOver={(e) => { e.preventDefault(); onDragOver?.(); }}
+        onDrop={(e) => { e.preventDefault(); onDrop?.(); }}
+      >
         <div style={styles.clubCardHeader}>
+          {gripHandle}
           {renderName()}
           {canDelete && !isEditing && (
             <div style={styles.clubCardHeaderRight}>
@@ -68,8 +98,17 @@ export default function ClubCard({
   const run = (club.total ?? 0) - (club.carry ?? 0);
 
   return (
-    <div style={styles.clubCard}>
+    <div
+      data-club-id={club.id}
+      draggable={!isEditing}
+      style={cardStyle}
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart?.(); }}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => { e.preventDefault(); onDragOver?.(); }}
+      onDrop={(e) => { e.preventDefault(); onDrop?.(); }}
+    >
       <div style={styles.clubCardHeader}>
+        {gripHandle}
         {renderName()}
         <div style={styles.clubCardHeaderRight}>
           {run > 0 && !isEditing && (

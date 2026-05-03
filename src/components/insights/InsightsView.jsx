@@ -6,8 +6,8 @@ import { toHoleInput, matchRoundInsightRules } from '../../engine/engine.js';
 import { buildRoundMetrics } from '../../engine/metrics.js';
 import { ROUND_RULES } from '../../engine/rules/roundRules.js';
 
-const SEVERITY_COLOR  = { positive: '#1f5e3a', neutral: '#6b6558', warning: '#d97706', critical: '#c04a3e' };
-const SEVERITY_BG     = { positive: '#e8f5eb', neutral: '#f5f0e6', warning: '#fef3c7', critical: '#fde8e3' };
+const SEVERITY_COLOR  = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
+const SEVERITY_BG     = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.10)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
 const SEVERITY_BADGE  = { positive: '✓', neutral: '·', warning: '△', critical: '!' };
 
 const careerRules = ROUND_RULES.filter(r => r.careerApplicable !== false);
@@ -90,25 +90,25 @@ export default function InsightsView({ rounds, onBack }) {
     styleSubtitle = '실수 없는 꾸준한 스코어 관리';
     styleDescription = '큰 실수가 적고 안정적으로 파와 보기 사이에서 스코어를 관리합니다. 꾸준함이 무기예요.';
     styleIcon = '🛡️';
-    styleColor = '#1f5e3a';
+    styleColor = '#3db87a';
   } else if (parRatePct >= 35) {
     styleType = '정교형 · PRECISION';
     styleSubtitle = '파 세이브 능력이 뛰어난 플레이어';
     styleDescription = '파 세이브율이 높아 안정적인 스코어를 만들어냅니다. 정확한 샷메이킹이 강점입니다.';
     styleIcon = '🎯';
-    styleColor = '#1f3d2e';
+    styleColor = '#e8edf8';
   } else if (stdDev >= 6) {
     styleType = '기복형 · INCONSISTENT';
     styleSubtitle = '라운드마다 스코어 편차가 큰 스타일';
     styleDescription = `라운드별 편차 ±${stdDev.toFixed(1)}타 — 좋을 땐 환상적이지만 컨디션에 좌우됩니다. 꾸준함이 과제예요.`;
     styleIcon = '⚡';
-    styleColor = '#d9a441';
+    styleColor = '#c9a228';
   } else {
     styleType = '밸런스형 · BALANCED';
     styleSubtitle = '공격과 수비의 균형이 잡힌 플레이어';
     styleDescription = '공격적인 플레이와 안정적인 관리를 적절히 섞는 스타일입니다. 전천후 골퍼예요.';
     styleIcon = '⚖️';
-    styleColor = '#1f3d2e';
+    styleColor = '#e8edf8';
   }
 
   const strengths = [];
@@ -231,7 +231,7 @@ export default function InsightsView({ rounds, onBack }) {
           <div style={styles.sectionTitle}>STRENGTHS · 강점</div>
           <div style={styles.insightCards}>
             {strengths.map((s, i) => (
-              <div key={i} style={{ ...styles.insightCard, borderLeftColor: '#1f5e3a' }}>
+              <div key={i} style={{ ...styles.insightCard, borderLeftColor: '#3db87a' }}>
                 <div style={styles.insightCardBadge}>✓</div>
                 <div style={styles.insightCardContent}>
                   <div style={styles.insightCardTitle}>{s.title}</div>
@@ -265,8 +265,8 @@ export default function InsightsView({ rounds, onBack }) {
           <div style={styles.sectionTitle}>PATTERN INSIGHTS · 반복 패턴 분석</div>
           <div style={styles.insightCards}>
             {careerInsights.map((ins, i) => {
-              const color = SEVERITY_COLOR[ins.severity] ?? '#6b6558';
-              const bg    = SEVERITY_BG[ins.severity]    ?? '#f5f0e6';
+              const color = SEVERITY_COLOR[ins.severity] ?? '#8896b0';
+              const bg    = SEVERITY_BG[ins.severity]    ?? 'rgba(136,150,176,0.10)';
               const badge = SEVERITY_BADGE[ins.severity] ?? '·';
               return (
                 <div key={i} style={{ ...styles.insightCard, borderLeftColor: color }}>
@@ -298,7 +298,7 @@ export default function InsightsView({ rounds, onBack }) {
                   <span style={styles.parAnalysisStrokes}>{p.avgStrokes}</span>
                   <span style={{
                     ...styles.parAnalysisDiff,
-                    color: parseFloat(p.avgDiff) > 0 ? '#c04a3e' : parseFloat(p.avgDiff) < 0 ? '#1f5e3a' : '#6b6558',
+                    color: parseFloat(p.avgDiff) > 0 ? '#ef5350' : parseFloat(p.avgDiff) < 0 ? '#3db87a' : '#8896b0',
                   }}>
                     {parseFloat(p.avgDiff) > 0 ? '+' : ''}{p.avgDiff}
                   </span>

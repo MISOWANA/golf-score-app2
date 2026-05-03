@@ -1,52 +1,102 @@
-﻿// 전역 CSS 애니메이션 및 기본 스타일
+// Global CSS — LIV Golf Design System
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
 
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; }
-  button { font-family: inherit; border: none; cursor: pointer; }
-  input { font-family: inherit; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background: #0b0e18;
+    color: #e8edf8;
+  }
+
+  button {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  input, textarea {
+    font-family: inherit;
+    color-scheme: dark;
+  }
+
+  /* Scrollbar — dark themed */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #252f4a; border-radius: 2px; }
+
+  /* Hide scrollbar for horizontal tab strips */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── Animations ─────────────────────────────────────────────────────── */
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes holeInOnePulse {
-    0%, 100% {
-      box-shadow: 0 2px 12px rgba(217, 164, 65, 0.4), 0 0 0 0 rgba(217, 164, 65, 0.6);
+  @keyframes fadeInFast {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Gold shimmer for hole-in-one marker */
+  @keyframes holeInOneShine {
+    0%,100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+
+  /* Gold pulse ring — used for exceptional scores */
+  @keyframes goldPulse {
+    0%,100% {
+      box-shadow: 0 2px 12px rgba(201,162,40,0.4), 0 0 0 0 rgba(201,162,40,0.55);
     }
     50% {
-      box-shadow: 0 2px 16px rgba(217, 164, 65, 0.7), 0 0 0 6px rgba(217, 164, 65, 0);
+      box-shadow: 0 2px 20px rgba(201,162,40,0.7), 0 0 0 8px rgba(201,162,40,0);
     }
-  }
-
-  @keyframes holeInOneShine {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
   }
 
   @keyframes modalFadeIn {
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
   }
 
   @keyframes modalSlideUp {
-    from { opacity: 0; transform: translateY(20px) scale(0.96); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(24px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  /* 紐⑤컮??諛섏쓳???ㅽ???*/
+  /* Gold accent bar sweep — for premium panel decoration */
+  @keyframes goldSweep {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+  }
+
+  /* ── Mobile optimisations ───────────────────────────────────────────── */
   @media (max-width: 430px) {
-    * {
-      -webkit-text-size-adjust: none !important;
-    }
-    
-    body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
+    * { -webkit-text-size-adjust: none !important; }
+    body { margin: 0; padding: 0; overflow-x: hidden; }
   }
 `;
 

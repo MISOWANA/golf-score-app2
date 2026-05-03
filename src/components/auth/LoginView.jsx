@@ -25,7 +25,7 @@ export default function LoginView({ onLogin, loading }) {
             <input
               style={{
                 ...styles.formInput,
-                borderColor: inputFocused ? '#1f3d2e' : '#e0dbd3',
+                borderColor: inputFocused ? '#c9a228' : '#252f4a',
               }}
               placeholder="플레이어 이름을 입력하세요"
               value={userName}

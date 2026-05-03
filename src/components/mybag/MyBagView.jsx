@@ -261,11 +261,11 @@ export default function MyBagView({ currentUser, onBack }) {
           <div style={styles.sectionTitle}>DISTANCE CHART · 거리 분포</div>
           <div style={styles.distanceChartLegend}>
             <div style={styles.distanceLegendItem}>
-              <span style={{ ...styles.distanceLegendDot, background: '#a8c2a5' }} />
+              <span style={{ ...styles.distanceLegendDot, background: '#3db87a' }} />
               <span>캐리</span>
             </div>
             <div style={styles.distanceLegendItem}>
-              <span style={{ ...styles.distanceLegendDot, background: '#1f3d2e' }} />
+              <span style={{ ...styles.distanceLegendDot, background: '#0e1c14' }} />
               <span>토탈</span>
             </div>
           </div>

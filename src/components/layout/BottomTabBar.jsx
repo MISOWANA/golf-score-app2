@@ -23,7 +23,7 @@ export default function BottomTabBar({ current, onChange }) {
               style={{
                 ...styles.tabBarBtn,
                 ...(isHome ? styles.tabBarBtnHome : {}),
-                color: isActive ? '#1f3d2e' : '#8b8574',
+                color: isActive ? '#c9a228' : '#4d5a78',
               }}
               onClick={() => onChange(id)}
               title={label}

@@ -19,7 +19,7 @@ export default function RoundRow({ round, onClick }) {
       </div>
       <div style={styles.roundRowRight}>
         <div style={styles.roundScore}>{total}</div>
-        <div style={{ ...styles.roundDiff, color: diff > 0 ? '#c04a3e' : diff < 0 ? '#1f5e3a' : '#6b6558' }}>
+        <div style={{ ...styles.roundDiff, color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>
           {diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff}
         </div>
       </div>

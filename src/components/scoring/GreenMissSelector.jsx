@@ -27,8 +27,8 @@ const SECTORS = [
   { id: 'left',  label: 'LEFT',  start: 225, end: 315, lAngle: 270 },
 ];
 
-const ACTIVE_COLOR  = '#4cae7a';
-const BASE_COLORS   = ['#1f5e3a', '#1a5233'];
+const ACTIVE_COLOR  = '#3db87a';
+const BASE_COLORS   = ['#0e1c14', '#122018'];
 
 export default function GreenMissSelector({ value, onChange, stats }) {
   const isDisplay = !!stats;
@@ -51,7 +51,7 @@ export default function GreenMissSelector({ value, onChange, stats }) {
       </defs>
 
       {/* 기본 원 배경 */}
-      <circle cx={CX} cy={CY} r={R} fill="#1f5e3a" />
+      <circle cx={CX} cy={CY} r={R} fill="#0e1c14" />
 
       {SECTORS.map((sec, i) => {
         const isActive = value === sec.id;

@@ -64,9 +64,9 @@ export default function AnalysisView({ round, onBack, onGoHome, onGoHistory, onN
                 key={p}
                 style={{
                   ...styles.playerTab,
-                  background: activePlayer === p ? '#f5f0e6' : 'transparent',
-                  color: activePlayer === p ? '#1f3d2e' : '#6b6558',
-                  borderColor: activePlayer === p ? '#1f3d2e' : 'transparent'
+                  background: activePlayer === p ? '#c9a228' : 'transparent',
+                  color: activePlayer === p ? '#0b0e18' : '#8896b0',
+                  borderColor: activePlayer === p ? '#c9a228' : '#252f4a'
                 }}
                 onClick={() => setActivePlayer(p)}
               >
@@ -78,7 +78,7 @@ export default function AnalysisView({ round, onBack, onGoHome, onGoHistory, onN
 
         <div style={styles.bigScoreDisplay}>
           <div style={styles.bigScoreNum}>{stats.total}</div>
-          <div style={{ ...styles.bigScoreDiff, color: stats.diff > 0 ? '#c04a3e' : stats.diff < 0 ? '#1f5e3a' : '#4a4a4a' }}>
+          <div style={{ ...styles.bigScoreDiff, color: stats.diff > 0 ? '#ef5350' : stats.diff < 0 ? '#3db87a' : '#8896b0' }}>
             {stats.diff > 0 ? `+${stats.diff}` : stats.diff === 0 ? 'Even' : stats.diff}
           </div>
           <div style={styles.bigScoreLabel}>vs par {stats.totalPar}</div>
@@ -110,11 +110,11 @@ export default function AnalysisView({ round, onBack, onGoHome, onGoHistory, onN
       <div style={styles.section}>
         <div style={styles.sectionTitle}>SCORE BREAKDOWN</div>
         <div style={styles.breakdownList}>
-          <BreakdownBar label="Eagle+" count={stats.eagles} total={18} color="#d97706" />
-          <BreakdownBar label="Birdie" count={stats.birdies} total={18} color="#1f5e3a" />
-          <BreakdownBar label="Par" count={stats.pars} total={18} color="#4a4a4a" />
-          <BreakdownBar label="Bogey" count={stats.bogeys} total={18} color="#8b6f47" />
-          <BreakdownBar label="Double+" count={stats.doubles} total={18} color="#c04a3e" />
+          <BreakdownBar label="Eagle+" count={stats.eagles} total={18} color="#c9a228" />
+          <BreakdownBar label="Birdie" count={stats.birdies} total={18} color="#3db87a" />
+          <BreakdownBar label="Par" count={stats.pars} total={18} color="#8896b0" />
+          <BreakdownBar label="Bogey" count={stats.bogeys} total={18} color="#6b7c9a" />
+          <BreakdownBar label="Double+" count={stats.doubles} total={18} color="#ef5350" />
         </div>
       </div>
 
@@ -139,7 +139,7 @@ export default function AnalysisView({ round, onBack, onGoHome, onGoHistory, onN
                 const ps = h.scores[activePlayer];
                 const diff = ps.strokes - h.par;
                 const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
-                const diffColor = diff <= -1 ? '#1f5e3a' : diff === 0 ? '#3a3a3a' : diff === 1 ? '#8b6f47' : '#c04a3e';
+                const diffColor = diff <= -1 ? '#3db87a' : diff === 0 ? '#8896b0' : diff === 1 ? '#6b7c9a' : '#ef5350';
                 return (
                   <div key={h.holeNumber} style={styles.noteCard}>
                     <div style={styles.noteCardHeader}>

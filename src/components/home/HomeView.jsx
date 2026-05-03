@@ -62,19 +62,20 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
 
       {activeRound && (
         <div style={{
-          background: 'linear-gradient(135deg, #1f5e3a 0%, #2d7a50 100%)',
-          borderRadius: '14px', padding: '16px 18px', marginBottom: '12px',
+          background: 'linear-gradient(135deg, #0e1c14 0%, #1a3028 100%)',
+          borderRadius: '4px', padding: '16px 18px', marginBottom: '12px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          boxShadow: '0 2px 10px rgba(31,94,58,0.25)'
+          border: '1px solid #1a3028',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
         }}>
           <div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>
+            <div style={{ fontSize: '10px', color: '#c9a228', fontWeight: 700, letterSpacing: '0.2em', marginBottom: '4px', textTransform: 'uppercase' }}>
               진행 중인 라운드
             </div>
-            <div style={{ fontSize: '15px', color: '#fff', fontWeight: 700, marginBottom: '2px' }}>
+            <div style={{ fontSize: '15px', color: '#e8edf8', fontWeight: 700, marginBottom: '2px' }}>
               {activeRound.courseName}
             </div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)' }}>
+            <div style={{ fontSize: '12px', color: '#8896b0' }}>
               {activeRound.currentHole + 1}홀 진행 중 · {activeRound.players.join(', ')}
             </div>
           </div>
@@ -82,9 +83,9 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             onClick={onResume}
             style={{
               display: 'flex', alignItems: 'center', gap: '5px',
-              background: 'rgba(255,255,255,0.2)', color: '#fff',
-              border: '1.5px solid rgba(255,255,255,0.4)',
-              borderRadius: '8px', padding: '8px 14px',
+              background: 'rgba(201,162,40,0.15)', color: '#c9a228',
+              border: '1px solid rgba(201,162,40,0.5)',
+              borderRadius: '4px', padding: '8px 14px',
               fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
             }}
           >

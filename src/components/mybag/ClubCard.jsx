@@ -27,7 +27,7 @@ export default function ClubCard({
             <Check size={16} strokeWidth={2.5} />
           </button>
           <button
-            style={{ ...styles.clubNameActionBtn, color: '#8b8574' }}
+            style={{ ...styles.clubNameActionBtn, color: '#4d5a78' }}
             onClick={onCancelEdit}
             aria-label="취소"
           >

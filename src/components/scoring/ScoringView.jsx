@@ -155,15 +155,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
 
   const getScoreName = (strokes, par) => {
     if (!strokes) return null;
-    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c88a2e', isHoleInOne: true };
+    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', isHoleInOne: true };
     const diff = strokes - par;
-    if (diff <= -3) return { name: 'Albatross', color: '#7c3aed' };
-    if (diff === -2) return { name: 'Eagle', color: '#d97706' };
-    if (diff === -1) return { name: 'Birdie', color: '#1f5e3a' };
-    if (diff === 0) return { name: 'Par', color: '#4a4a4a' };
-    if (diff === 1) return { name: 'Bogey', color: '#8b6f47' };
-    if (diff === 2) return { name: 'Double', color: '#c04a3e' };
-    return { name: `+${diff}`, color: '#8b2e22' };
+    if (diff <= -3) return { name: 'Albatross', color: '#e8c84e' };
+    if (diff === -2) return { name: 'Eagle', color: '#c9a228' };
+    if (diff === -1) return { name: 'Birdie', color: '#3db87a' };
+    if (diff === 0) return { name: 'Par', color: '#8896b0' };
+    if (diff === 1) return { name: 'Bogey', color: '#6b7c9a' };
+    if (diff === 2) return { name: 'Double', color: '#ef5350' };
+    return { name: `+${diff}`, color: '#c62828' };
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
@@ -205,7 +205,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
         const playedPutts = touchedHoles.reduce((s, h) => s + (h.scores[activePlayer]?.putts || 0), 0);
         const playedDiff = playedStrokes - playedPar;
         const diffLabel = playedDiff === 0 ? 'E' : playedDiff > 0 ? `+${playedDiff}` : `${playedDiff}`;
-        const diffColor = playedDiff > 0 ? '#f5b09c' : playedDiff < 0 ? '#a8d8b0' : '#d4ccbb';
+        const diffColor = playedDiff > 0 ? '#ef5350' : playedDiff < 0 ? '#3db87a' : '#8896b0';
 
         const frontTouched = round.holes.slice(0, 9).filter(h => h.scores[activePlayer]?.touched === true);
         const backTouched = round.holes.slice(9).filter(h => h.scores[activePlayer]?.touched === true);
@@ -222,10 +222,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
           return diff > 0 ? `+${diff}` : `${diff}`;
         };
         const formatDiffColor = (diff, hasData) => {
-          if (!hasData) return '#a8c2a5';
-          if (diff > 0) return '#f5b09c';
-          if (diff < 0) return '#a8d8b0';
-          return '#f5f0e6';
+          if (!hasData) return '#4d5a78';
+          if (diff > 0) return '#ef5350';
+          if (diff < 0) return '#3db87a';
+          return '#8896b0';
         };
 
         return (
@@ -290,8 +290,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                       key={i}
                       style={{
                         ...styles.holeNavHoleCell,
-                        background: isCurrent ? '#1f3d2e' : 'transparent',
-                        color: isCurrent ? '#f5f0e6' : '#3a3a3a',
+                        background: isCurrent ? '#c9a228' : 'transparent',
+                        color: isCurrent ? '#0b0e18' : '#8896b0',
                       }}
                       onClick={() => goToHole(i)}
                     >
@@ -313,8 +313,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                       key={i}
                       style={{
                         ...styles.holeNavParCell,
-                        background: isCurrent ? '#2d5643' : 'transparent',
-                        color: isCurrent ? '#a8c2a5' : '#6b6558',
+                        background: isCurrent ? '#1a2235' : 'transparent',
+                        color: isCurrent ? '#c9a228' : '#8896b0',
                       }}
                     >
                       {h.par}
@@ -359,7 +359,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                       key={i}
                       style={{
                         ...styles.holeNavScoreCell,
-                        background: isCurrent ? '#2d5643' : 'transparent',
+                        background: isCurrent ? '#1a2235' : 'transparent',
                       }}
                       onClick={() => goToHole(i)}
                     >
@@ -367,10 +367,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                         ...styles.scoreMarker,
                         ...markerStyle,
                         color: isHoleInOne
-                          ? '#fff'
+                          ? '#0b0e18'
                           : done
-                          ? (diff <= -1 ? '#b8410a' : diff >= 1 ? '#1f3d2e' : '#3a3a3a')
-                          : (isCurrent ? '#a8c2a5' : '#b8b0a0'),
+                          ? (diff <= -1 ? '#3db87a' : diff >= 1 ? '#ef5350' : '#e8edf8')
+                          : (isCurrent ? '#c9a228' : '#4d5a78'),
                         fontWeight: done ? '700' : '500',
                       }}>
                         {isHoleInOne && <span style={styles.holeInOneStar}>★</span>}
@@ -396,8 +396,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
             ...styles.scoreName,
             color: scoreName.isHoleInOne ? '#fff' : scoreName.color,
             borderColor: scoreName.color,
-            background: scoreName.isHoleInOne ? 'linear-gradient(135deg, #d9a441 0%, #b8821f 100%)' : 'transparent',
-            boxShadow: scoreName.isHoleInOne ? '0 2px 12px rgba(217, 164, 65, 0.4)' : 'none',
+            background: scoreName.isHoleInOne ? 'linear-gradient(135deg, #e8c84e 0%, #c9a228 50%, #7a611a 100%)' : 'transparent',
+            boxShadow: scoreName.isHoleInOne ? '0 2px 12px rgba(201,162,40,0.5)' : 'none',
             fontWeight: scoreName.isHoleInOne ? '800' : '600',
             opacity: playerScore.touched ? 1 : 0.35,
             animation: scoreName.isHoleInOne && playerScore.touched ? 'holeInOnePulse 2s ease-in-out infinite' : 'none',
@@ -418,16 +418,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                 key={p}
                 style={{
                   ...styles.playerTab,
-                  background: activePlayer === p ? '#f5f0e6' : 'transparent',
-                  color: activePlayer === p ? '#1f3d2e' : '#6b6558',
-                  borderColor: activePlayer === p ? '#1f3d2e' : 'transparent'
+                  background: activePlayer === p ? '#c9a228' : 'transparent',
+                  color: activePlayer === p ? '#0b0e18' : '#8896b0',
+                  borderColor: activePlayer === p ? '#c9a228' : '#252f4a'
                 }}
                 onClick={() => setActivePlayer(p)}
               >
                 {p}
                 <span style={{
                   ...styles.playerTabScore,
-                  background: isTouched ? '#1f3d2e' : '#b8b0a0',
+                  background: isTouched ? '#0b0e18' : '#252f4a',
                   opacity: isTouched ? 1 : 0.7
                 }}>
                   {pScore.strokes}
@@ -496,11 +496,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
               ].map(s => {
                 const active = playerScore.shotShape === s.id;
                 let color;
-                if (s.id === 'straight') color = '#1f3d2e';
-                else if (s.id === 'hook') color = '#7c3aed';
-                else if (s.id === 'draw') color = '#1f5e3a';
-                else if (s.id === 'fade') color = '#d9a441';
-                else color = '#c04a3e';
+                if (s.id === 'straight') color = '#e8edf8';
+                else if (s.id === 'hook') color = '#ef5350';
+                else if (s.id === 'draw') color = '#3db87a';
+                else if (s.id === 'fade') color = '#c9a228';
+                else color = '#c62828';
 
                 return (
                   <button
@@ -509,7 +509,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                       ...styles.shotShapeBtn,
                       background: active ? color : 'transparent',
                       color: active ? '#fff' : color,
-                      borderColor: active ? color : '#d4ccbb',
+                      borderColor: active ? color : '#252f4a',
                       fontWeight: active ? '800' : '700',
                     }}
                     onClick={() => updateScore('shotShape', active ? null : s.id)}
@@ -534,9 +534,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
               <button
                 style={{
                   ...styles.fairwayHitBtn,
-                  background: playerScore.fairway === true ? '#1f5e3a' : 'transparent',
-                  color: playerScore.fairway === true ? '#fff' : '#1f5e3a',
-                  borderColor: playerScore.fairway === true ? '#1f5e3a' : '#d4ccbb',
+                  background: playerScore.fairway === true ? '#3db87a' : 'transparent',
+                  color: playerScore.fairway === true ? '#0b0e18' : '#3db87a',
+                  borderColor: playerScore.fairway === true ? '#3db87a' : '#252f4a',
                 }}
                 onClick={() => {
                   const isToggleOff = playerScore.fairway === true;
@@ -551,9 +551,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
               <button
                 style={{
                   ...styles.fairwayHitBtn,
-                  background: playerScore.fairway === false ? '#c04a3e' : 'transparent',
-                  color: playerScore.fairway === false ? '#fff' : '#c04a3e',
-                  borderColor: playerScore.fairway === false ? '#c04a3e' : '#d4ccbb',
+                  background: playerScore.fairway === false ? '#ef5350' : 'transparent',
+                  color: playerScore.fairway === false ? '#0b0e18' : '#ef5350',
+                  borderColor: playerScore.fairway === false ? '#ef5350' : '#252f4a',
                 }}
                 onClick={() => {
                   const isToggleOff = playerScore.fairway === false;
@@ -582,9 +582,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                   key={point}
                   style={{
                     ...styles.fairwayHitBtn,
-                    background: playerScore.fairwayHit === point ? (point === 'C' ? '#1f5e3a' : '#8b6f47') : 'transparent',
-                    color: playerScore.fairwayHit === point ? '#fff' : (point === 'C' ? '#1f5e3a' : '#8b6f47'),
-                    borderColor: playerScore.fairwayHit === point ? (point === 'C' ? '#1f5e3a' : '#8b6f47') : '#d4ccbb',
+                    background: playerScore.fairwayHit === point ? (point === 'C' ? '#3db87a' : '#c9a228') : 'transparent',
+                    color: playerScore.fairwayHit === point ? '#0b0e18' : (point === 'C' ? '#3db87a' : '#c9a228'),
+                    borderColor: playerScore.fairwayHit === point ? (point === 'C' ? '#3db87a' : '#c9a228') : '#252f4a',
                   }}
                   onClick={() => {
                     const isToggleOff = playerScore.fairwayHit === point;
@@ -609,13 +609,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
           </div>
           <div style={styles.toggleRow}>
             <button
-              style={{ ...styles.toggleBtn, background: playerScore.gir === true ? '#1f5e3a' : 'transparent', color: playerScore.gir === true ? '#f5f0e6' : '#3a3a3a' }}
+              style={{ ...styles.toggleBtn, background: playerScore.gir === true ? '#3db87a' : 'transparent', color: playerScore.gir === true ? '#0b0e18' : '#e8edf8' }}
               onClick={() => updateScore('gir', true)}
             >
               <Check size={14} /> 온
             </button>
             <button
-              style={{ ...styles.toggleBtn, background: playerScore.gir === false ? '#8b2e22' : 'transparent', color: playerScore.gir === false ? '#f5f0e6' : '#3a3a3a' }}
+              style={{ ...styles.toggleBtn, background: playerScore.gir === false ? '#ef5350' : 'transparent', color: playerScore.gir === false ? '#0b0e18' : '#e8edf8' }}
               onClick={() => updateScore('gir', false)}
             >
               <X size={14} /> 오프
@@ -635,8 +635,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                 <span style={{
                   fontSize: '11px',
                   fontWeight: '700',
-                  background: '#1f3d2e',
-                  color: '#a8d8b0',
+                  background: 'rgba(61,184,122,0.15)',
+                  color: '#3db87a',
                   padding: '2px 8px',
                   borderRadius: '10px',
                   letterSpacing: '0.04em',
@@ -649,7 +649,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#b8b0a0',
+                    color: '#4d5a78',
                     cursor: 'pointer',
                     padding: '2px',
                     display: 'flex',
@@ -687,7 +687,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                 <div style={styles.splitStepperContent}>
                   <span style={{
                     ...styles.splitStepperValue,
-                    color: (playerScore.ob || 0) > 0 ? '#c04a3e' : '#1f3d2e',
+                    color: (playerScore.ob || 0) > 0 ? '#ef5350' : '#e8edf8',
                   }}>
                     {playerScore.ob || 0}
                   </span>
@@ -740,7 +740,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                 <div style={styles.splitStepperContent}>
                   <span style={{
                     ...styles.splitStepperValue,
-                    color: (playerScore.hazard || 0) > 0 ? '#d9a441' : '#1f3d2e',
+                    color: (playerScore.hazard || 0) > 0 ? '#c9a228' : '#e8edf8',
                   }}>
                     {playerScore.hazard || 0}
                   </span>

@@ -129,8 +129,8 @@ export default function SetupView({ onStart, onBack }) {
                     <div key={holeIdx} style={styles.parTableParCell}>
                       <div style={{
                         ...styles.parTableParValue,
-                        background: p === 3 ? '#e8f0e3' : p === 4 ? '#1f3d2e' : p === 5 ? '#d9a441' : '#c04a3e',
-                        color: p === 3 ? '#1f3d2e' : '#fff',
+                        background: p === 3 ? 'rgba(61,184,122,0.15)' : p === 4 ? '#0e1c14' : p === 5 ? '#c9a228' : '#ef5350',
+                        color: p === 3 ? '#3db87a' : p === 4 ? '#e8edf8' : '#0b0e18',
                       }}>
                         {p}
                       </div>
@@ -169,19 +169,19 @@ export default function SetupView({ onStart, onBack }) {
 
         <div style={styles.parLegend}>
           <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#e8f0e3', color: '#1f3d2e', border: '1px solid #1f3d2e' }}>3</span>
+            <span style={{ ...styles.parLegendDot, background: 'rgba(61,184,122,0.15)', color: '#3db87a', border: '1px solid #3db87a' }}>3</span>
             <span>파 3</span>
           </div>
           <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#1f3d2e', color: '#fff' }}>4</span>
+            <span style={{ ...styles.parLegendDot, background: '#0e1c14', color: '#e8edf8', border: '1px solid #1a3028' }}>4</span>
             <span>파 4</span>
           </div>
           <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#d9a441', color: '#fff' }}>5</span>
+            <span style={{ ...styles.parLegendDot, background: '#c9a228', color: '#0b0e18' }}>5</span>
             <span>파 5</span>
           </div>
           <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#c04a3e', color: '#fff' }}>6</span>
+            <span style={{ ...styles.parLegendDot, background: '#ef5350', color: '#fff' }}>6</span>
             <span>파 6</span>
           </div>
         </div>

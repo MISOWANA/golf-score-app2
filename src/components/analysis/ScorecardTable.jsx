@@ -78,7 +78,7 @@ export default function ScorecardTable({ round, player }) {
           </div>
           <div style={{
             ...styles.scorecardTotalCell,
-            color: diffSum > 0 ? '#c04a3e' : diffSum < 0 ? '#1f5e3a' : '#3a3a3a',
+            color: diffSum > 0 ? '#ef5350' : diffSum < 0 ? '#3db87a' : '#e8edf8',
             fontWeight: '700',
           }}>
             {strokesSum}
@@ -126,7 +126,7 @@ export default function ScorecardTable({ round, player }) {
               <span style={styles.scorecardGrandItemLabel}>Score</span>
               <span style={{
                 ...styles.scorecardGrandItemValue,
-                color: totalDiff > 0 ? '#c04a3e' : totalDiff < 0 ? '#1f5e3a' : '#f5f0e6',
+                color: totalDiff > 0 ? '#ef5350' : totalDiff < 0 ? '#3db87a' : '#e8edf8',
               }}>
                 {totalStrokes} ({totalDiff === 0 ? 'E' : totalDiff > 0 ? `+${totalDiff}` : totalDiff})
               </span>

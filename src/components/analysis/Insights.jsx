@@ -4,8 +4,8 @@ import { toHoleInput, analyzeRound } from '../../engine/engine.js';
 import { HOLE_RULES } from '../../engine/rules/holeRules.js';
 import { ROUND_RULES } from '../../engine/rules/roundRules.js';
 
-const SEVERITY_COLOR  = { positive: '#1f5e3a', neutral: '#6b6558', warning: '#d97706', critical: '#c04a3e' };
-const SEVERITY_BG     = { positive: '#e8f5eb', neutral: '#f5f0e6', warning: '#fef3c7', critical: '#fde8e3' };
+const SEVERITY_COLOR  = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
+const SEVERITY_BG     = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.12)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
 const SEVERITY_BADGE  = { positive: '✓', neutral: '·', warning: '△', critical: '!' };
 
 export default function Insights({ round, player }) {
@@ -56,13 +56,13 @@ export default function Insights({ round, player }) {
             </div>
             <div style={styles.insightCardContent}>
               {ins.holeNumber != null && (
-                <div style={{ fontSize: 10, color: '#8b6f47', fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
+                <div style={{ fontSize: 10, color: '#c9a228', fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
                   HOLE {ins.holeNumber}
                 </div>
               )}
               <div style={styles.insightCardTitle}>{ins.title}</div>
               <div style={styles.insightCardDetail}>{ins.summary}</div>
-              <div style={{ ...styles.insightCardDetail, color: '#888', marginTop: 3 }}>
+              <div style={{ ...styles.insightCardDetail, color: '#4d5a78', marginTop: 3 }}>
                 {ins.recommendation}
               </div>
             </div>

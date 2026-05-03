@@ -157,11 +157,11 @@ const styles = {
   // ─── Login ──────────────────────────────────────────────────────────────
   loginCard: {
     background: C.surface1,
-    padding: '40px 28px',
+    padding: '44px 28px 36px',
     borderRadius: '4px',
     border: `1px solid ${C.border}`,
     textAlign: 'center',
-    marginTop: '60px',
+    marginTop: '48px',
   },
   loginLogo: {
     fontSize: '60px',

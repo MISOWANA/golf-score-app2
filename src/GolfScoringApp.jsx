@@ -181,6 +181,13 @@ export default function GolfScoringApp() {
 
   const handleImportData = async (file) => {
     try {
+      if (!file.name.endsWith('.json')) {
+        throw new Error('JSON 파일만 가져올 수 있습니다');
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('파일 크기가 너무 큽니다 (최대 10MB)');
+      }
+
       const text = await file.text();
       const importedData = JSON.parse(text);
 
@@ -188,9 +195,23 @@ export default function GolfScoringApp() {
         throw new Error('유효하지 않은 파일 형식입니다');
       }
 
-      await importUserData(currentUser.userId, importedData, false);
+      const validRounds = importedData.data.rounds.filter(r =>
+        r &&
+        typeof r.id === 'string' &&
+        typeof r.date === 'string' &&
+        Array.isArray(r.holes) &&
+        Array.isArray(r.players) &&
+        r.players.length > 0
+      );
+
+      const sanitized = {
+        ...importedData,
+        data: { ...importedData.data, rounds: validRounds },
+      };
+
+      await importUserData(currentUser.userId, sanitized, false);
       await loadUserRounds(currentUser.userId);
-      alert('데이터를 성공적으로 복원했습니다!');
+      alert(`데이터를 성공적으로 복원했습니다! (${validRounds.length}개 라운드)`);
     } catch (e) {
       console.error('Import failed', e);
       alert('데이터 가져오기 실패: ' + e.message);

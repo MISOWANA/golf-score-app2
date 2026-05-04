@@ -98,6 +98,7 @@ export default function LoginView({ onLogin, loading }) {
               onFocus={() => setInputFocused(true)}
               onBlur={() => setInputFocused(false)}
               disabled={loading}
+              maxLength={20}
             />
           </div>
 

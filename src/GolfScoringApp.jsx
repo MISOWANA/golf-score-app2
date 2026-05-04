@@ -98,11 +98,13 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars) => {
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName) => {
     const newRound = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       courseName,
+      outCourseName: outCourseName || 'OUT',
+      inCourseName: inCourseName || 'IN',
       players,
       pars,
       holes: Array.from({ length: 18 }, (_, i) => ({

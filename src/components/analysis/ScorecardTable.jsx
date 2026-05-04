@@ -1,6 +1,15 @@
 import React from 'react';
 import styles from '../../styles/styles';
 
+const getHeaderFontSize = (text) => {
+  const len = (text || '').length;
+  if (len <= 3) return '11px';
+  if (len <= 5) return '9px';
+  if (len <= 7) return '8px';
+  if (len <= 10) return '7px';
+  return '6px';
+};
+
 export default function ScorecardTable({ round, player }) {
   const renderTable = (holes, label, offset) => {
     const parSum = holes.reduce((s, h) => s + h.par, 0);
@@ -12,7 +21,11 @@ export default function ScorecardTable({ round, player }) {
     return (
       <div style={styles.scorecardTable}>
         <div style={styles.scorecardTableRow}>
-          <div style={{ ...styles.scorecardRowLabel, ...styles.scorecardRowLabelHeader }}>
+          <div style={{
+            ...styles.scorecardRowLabel,
+            ...styles.scorecardRowLabelHeader,
+            fontSize: getHeaderFontSize(label),
+          }}>
             {label}
           </div>
           <div style={styles.scorecardTableCells}>
@@ -111,8 +124,8 @@ export default function ScorecardTable({ round, player }) {
 
   return (
     <div style={styles.scorecardWrap}>
-      {renderTable(round.holes.slice(0, 9), 'OUT', 0)}
-      {renderTable(round.holes.slice(9), 'IN', 9)}
+      {renderTable(round.holes.slice(0, 9), round.outCourseName || 'OUT', 0)}
+      {renderTable(round.holes.slice(9), round.inCourseName || 'IN', 9)}
 
       <div style={styles.scorecardGrandTotal}>
         <div style={styles.scorecardGrandRow}>

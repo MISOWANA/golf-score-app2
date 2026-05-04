@@ -4,6 +4,8 @@ import styles from '../../styles/styles';
 
 export default function SetupView({ onStart, onBack }) {
   const [courseName, setCourseName] = useState('');
+  const [outCourseName, setOutCourseName] = useState('');
+  const [inCourseName, setInCourseName] = useState('');
   const [players, setPlayers] = useState(['']);
   const [pars, setPars] = useState(Array(18).fill(4));
 
@@ -27,7 +29,7 @@ export default function SetupView({ onStart, onBack }) {
     setPars(updated);
   };
 
-  const canStart = courseName.trim() && players.every(p => p.trim());
+  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim());
 
   return (
     <div style={styles.container}>
@@ -40,13 +42,37 @@ export default function SetupView({ onStart, onBack }) {
       </header>
 
       <div style={styles.formSection}>
-        <label style={styles.formLabel}>코스 이름</label>
+        <label style={styles.formLabel}>골프장 이름</label>
         <input
           style={styles.formInput}
-          placeholder="예: 레이크사이드 CC"
+          placeholder="예: 레이크사이드 컨트리클럽"
           value={courseName}
           onChange={(e) => setCourseName(e.target.value)}
         />
+      </div>
+
+      <div style={styles.formSection}>
+        <label style={styles.formLabel}>코스 이름</label>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '10px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>OUT (1~9홀)</div>
+            <input
+              style={{ ...styles.formInput, marginBottom: 0 }}
+              placeholder="예: 파인"
+              value={outCourseName}
+              onChange={(e) => setOutCourseName(e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '10px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>IN (10~18홀)</div>
+            <input
+              style={{ ...styles.formInput, marginBottom: 0 }}
+              placeholder="예: 레이크"
+              value={inCourseName}
+              onChange={(e) => setInCourseName(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       <div style={styles.formSection}>
@@ -190,7 +216,7 @@ export default function SetupView({ onStart, onBack }) {
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars)}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim())}
       >
         라운드 시작하기
       </button>

@@ -868,7 +868,7 @@ const styles = {
     minHeight: '30px',
   },
   holeNavRowLabel: {
-    width: '48px',
+    width: '54px',
     flexShrink: 0,
     background: C.surface2,
     borderRight: `1px solid ${C.borderMid}`,
@@ -884,7 +884,12 @@ const styles = {
     background: C.hero,
     color: C.gold,
     fontSize: '11px',
-    letterSpacing: '0.15em',
+    letterSpacing: '0.1em',
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    lineHeight: '1.25',
+    textAlign: 'center',
+    padding: '4px 3px',
   },
   holeNavTableCells: {
     display: 'grid',

@@ -6,6 +6,15 @@ import GreenMissSelector from './GreenMissSelector';
 
 const GREEN_MISS_LABELS = { long: 'LONG', short: 'SHORT', left: 'LEFT', right: 'RIGHT' };
 
+const getNavLabelFontSize = (text) => {
+  const len = (text || '').length;
+  if (len <= 3) return '11px';
+  if (len <= 5) return '9px';
+  if (len <= 7) return '8px';
+  if (len <= 10) return '7px';
+  return '6px';
+};
+
 export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToSetup }) {
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
   const [activePlayer, setActivePlayer] = useState(round.players[0]);
@@ -244,7 +253,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
             <div style={styles.runningScoreDivider} />
             <div style={styles.runningScoreStats}>
               <div style={styles.runningScoreStat}>
-                <span style={styles.runningScoreStatLabel}>OUT</span>
+                <span style={{
+                  ...styles.runningScoreStatLabel,
+                  fontSize: (round.outCourseName || 'OUT').length > 5 ? '7px' : '9px',
+                  letterSpacing: (round.outCourseName || 'OUT').length > 5 ? '0.05em' : '0.2em',
+                }}>
+                  {round.outCourseName || 'OUT'}
+                </span>
                 <span style={{
                   ...styles.runningScoreStatValue,
                   color: formatDiffColor(frontDiff, frontTouched.length > 0),
@@ -253,7 +268,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
                 </span>
               </div>
               <div style={styles.runningScoreStat}>
-                <span style={styles.runningScoreStatLabel}>IN</span>
+                <span style={{
+                  ...styles.runningScoreStatLabel,
+                  fontSize: (round.inCourseName || 'IN').length > 5 ? '7px' : '9px',
+                  letterSpacing: (round.inCourseName || 'IN').length > 5 ? '0.05em' : '0.2em',
+                }}>
+                  {round.inCourseName || 'IN'}
+                </span>
                 <span style={{
                   ...styles.runningScoreStatValue,
                   color: formatDiffColor(backDiff, backTouched.length > 0),
@@ -273,12 +294,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
       {/* Hole navigator */}
       <div style={styles.holeNavigator}>
         {[
-          { label: 'OUT', holes: round.holes.slice(0, 9), offset: 0 },
-          { label: 'IN', holes: round.holes.slice(9, 18), offset: 9 }
+          { label: round.outCourseName || 'OUT', holes: round.holes.slice(0, 9), offset: 0 },
+          { label: round.inCourseName || 'IN', holes: round.holes.slice(9, 18), offset: 9 }
         ].map(({ label, holes, offset }) => (
           <div key={label} style={styles.holeNavTable}>
             <div style={styles.holeNavTableRow}>
-              <div style={{ ...styles.holeNavRowLabel, ...styles.holeNavRowLabelHeader }}>
+              <div style={{
+                ...styles.holeNavRowLabel,
+                ...styles.holeNavRowLabelHeader,
+                fontSize: getNavLabelFontSize(label),
+              }}>
                 {label}
               </div>
               <div style={styles.holeNavTableCells}>

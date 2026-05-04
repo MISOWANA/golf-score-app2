@@ -241,6 +241,11 @@ export default function GolfScoringApp() {
             setCurrentRound(null);
             setView('home');
           }}
+          onGoToSetup={async () => {
+            await clearActiveRound(currentUser.userId);
+            setCurrentRound(null);
+            setView('setup');
+          }}
         />
       )}
 

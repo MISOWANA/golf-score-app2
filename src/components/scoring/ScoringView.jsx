@@ -6,7 +6,7 @@ import GreenMissSelector from './GreenMissSelector';
 
 const GREEN_MISS_LABELS = { long: 'LONG', short: 'SHORT', left: 'LEFT', right: 'RIGHT' };
 
-export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
+export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToSetup }) {
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
   const [activePlayer, setActivePlayer] = useState(round.players[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -20,11 +20,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
     round.players.some(p => h.scores[p]?.touched === true)
   );
 
-  const handleExitClick = () => {
+  const handleBackClick = () => {
     if (hasProgress) {
       setShowExitConfirm(true);
     } else {
-      onExit();
+      onGoToSetup();
     }
   };
 
@@ -172,8 +172,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
   return (
     <div style={styles.container}>
       <header style={styles.scoringHeader}>
-        <button style={styles.iconBack} onClick={handleExitClick}>
-          <X size={22} />
+        <button style={styles.iconBack} onClick={handleBackClick}>
+          <ChevronLeft size={22} />
         </button>
         <div style={styles.scoringCourse}>{round.courseName}</div>
         <div style={{ width: 40 }} />
@@ -883,16 +883,25 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
         <div style={styles.modalOverlay} onClick={() => setShowExitConfirm(false)}>
           <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
-            <div style={styles.modalTitle}>라운드를 종료할까요?</div>
+            <div style={styles.modalTitle}>라운드를 나가시겠어요?</div>
             <div style={styles.modalText}>
               현재까지 입력한 스코어는<br/>저장되지 않습니다
             </div>
-            <div style={styles.modalActions}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button
                 style={styles.modalBtnCancel}
                 onClick={() => setShowExitConfirm(false)}
               >
                 계속 하기
+              </button>
+              <button
+                style={styles.modalBtnPrimary}
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  onGoToSetup();
+                }}
+              >
+                세팅 다시하기
               </button>
               <button
                 style={styles.modalBtnConfirm}
@@ -901,7 +910,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit }) {
                   onExit();
                 }}
               >
-                나가기
+                홈으로 나가기
               </button>
             </div>
           </div>

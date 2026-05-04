@@ -335,13 +335,24 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
                 {holes.map((h, localIdx) => {
                   const i = offset + localIdx;
                   const isCurrent = i === holeIdx;
+                  const parColor = h.par === 3
+                    ? (isCurrent ? '#ff8844' : '#c96820')
+                    : h.par === 5
+                    ? (isCurrent ? '#5dd49a' : '#2ea868')
+                    : (isCurrent ? '#c9a228' : '#8896b0');
+                  const parBg = isCurrent
+                    ? h.par === 3 ? 'rgba(200,80,20,0.22)'
+                      : h.par === 5 ? 'rgba(61,184,122,0.18)'
+                      : '#1a2235'
+                    : 'transparent';
                   return (
                     <div
                       key={i}
                       style={{
                         ...styles.holeNavParCell,
-                        background: isCurrent ? '#1a2235' : 'transparent',
-                        color: isCurrent ? '#c9a228' : '#8896b0',
+                        background: parBg,
+                        color: parColor,
+                        fontWeight: (h.par === 3 || h.par === 5) ? '800' : '700',
                       }}
                     >
                       {h.par}

@@ -177,6 +177,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
   const isLastHole = holeIdx === 17;
+  const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
+  const isPar5 = hole.par === 5;
 
   return (
     <div style={styles.container}>
@@ -414,20 +416,49 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
       <div style={styles.holeHeader}>
         <div>
           <div style={styles.holeLabel}>HOLE {holeIdx + 1}</div>
-          <div style={styles.holePar}>PAR {hole.par}</div>
+          <div style={{
+            ...styles.holePar,
+            color: isPar5 ? '#3db87a' : styles.holePar.color,
+          }}>
+            PAR {hole.par}
+          </div>
+          {isPar5 && (
+            <div style={{
+              display: 'inline-block',
+              marginTop: '6px',
+              fontSize: '10px',
+              fontWeight: '700',
+              color: '#3db87a',
+              background: 'rgba(61,184,122,0.12)',
+              border: '1px solid rgba(61,184,122,0.4)',
+              padding: '3px 10px',
+              borderRadius: '3px',
+              letterSpacing: '0.08em',
+            }}>
+              찬스홀
+            </div>
+          )}
         </div>
         {scoreName && (
           <div style={{
             ...styles.scoreName,
-            color: scoreName.isHoleInOne ? '#fff' : scoreName.color,
-            borderColor: scoreName.color,
-            background: scoreName.isHoleInOne ? 'linear-gradient(135deg, #e8c84e 0%, #c9a228 50%, #7a611a 100%)' : 'transparent',
-            boxShadow: scoreName.isHoleInOne ? '0 2px 12px rgba(201,162,40,0.5)' : 'none',
-            fontWeight: scoreName.isHoleInOne ? '800' : '600',
+            color: isPar3AtPar ? '#fff' : (scoreName.isHoleInOne ? '#fff' : scoreName.color),
+            borderColor: isPar3AtPar ? '#c04a10' : scoreName.color,
+            background: isPar3AtPar
+              ? 'linear-gradient(135deg, #c04a10 0%, #7a2000 100%)'
+              : scoreName.isHoleInOne
+              ? 'linear-gradient(135deg, #e8c84e 0%, #c9a228 50%, #7a611a 100%)'
+              : 'transparent',
+            boxShadow: isPar3AtPar
+              ? '0 2px 12px rgba(180,60,0,0.45)'
+              : scoreName.isHoleInOne
+              ? '0 2px 12px rgba(201,162,40,0.5)'
+              : 'none',
+            fontWeight: (isPar3AtPar || scoreName.isHoleInOne) ? '800' : '600',
             opacity: playerScore.touched ? 1 : 0.35,
             animation: scoreName.isHoleInOne && playerScore.touched ? 'holeInOnePulse 2s ease-in-out infinite' : 'none',
           }}>
-            {scoreName.name}
+            {isPar3AtPar ? 'PAR 3 !' : scoreName.name}
           </div>
         )}
       </div>
@@ -466,7 +497,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
       {/* Score input */}
       <div style={styles.scoringSection}>
         <div style={styles.fieldLabel}>스코어 (타수)</div>
-        <div style={styles.bigScoreContainer}>
+        <div style={{
+          ...styles.bigScoreContainer,
+          background: isPar3AtPar ? 'rgba(180, 60, 0, 0.22)' : styles.bigScoreContainer.background,
+          borderColor: isPar3AtPar ? 'rgba(200, 80, 20, 0.65)' : undefined,
+        }}>
           <div style={styles.bigScoreHalves}>
             <div style={styles.bigScoreLeftHalf} />
             <div style={styles.bigScoreRightHalf} />

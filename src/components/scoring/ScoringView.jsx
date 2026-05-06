@@ -147,19 +147,24 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
 
   const goToHole = (idx) => {
     if (idx >= 0 && idx < 18) {
-      const updated = { ...round };
-      updated.holes = [...round.holes];
-      const currentHoleData = updated.holes[holeIdx];
-      const updatedScores = {};
-      round.players.forEach(p => {
-        updatedScores[p] = { ...currentHoleData.scores[p], touched: true };
-      });
-      updated.holes[holeIdx] = { ...currentHoleData, scores: updatedScores };
-      updated.currentHole = idx;
-
+      const updated = { ...round, currentHole: idx };
       setHoleIdx(idx);
       onUpdate(updated);
     }
+  };
+
+  const confirmAndGoToHole = (idx) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    const currentHoleData = updated.holes[holeIdx];
+    const updatedScores = {};
+    round.players.forEach(p => {
+      updatedScores[p] = { ...currentHoleData.scores[p], touched: true };
+    });
+    updated.holes[holeIdx] = { ...currentHoleData, scores: updatedScores };
+    updated.currentHole = idx;
+    setHoleIdx(idx);
+    onUpdate(updated);
   };
 
   const getScoreName = (strokes, par) => {
@@ -943,7 +948,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
             라운드 종료
           </button>
         ) : (
-          <button style={styles.navBtn} onClick={() => goToHole(holeIdx + 1)}>
+          <button style={styles.navBtn} onClick={() => confirmAndGoToHole(holeIdx + 1)}>
             다음 <ChevronRight size={18} />
           </button>
         )}

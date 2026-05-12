@@ -21,6 +21,48 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoDraft, setMemoDraft] = useState('');
+  const [showParEditModal, setShowParEditModal] = useState(false);
+  const [parDraft, setParDraft] = useState([...round.pars]);
+
+  const openParEdit = () => {
+    setParDraft([...round.pars]);
+    setShowParEditModal(true);
+  };
+
+  const updateParDraft = (idx, val) => {
+    const updated = [...parDraft];
+    updated[idx] = val;
+    setParDraft(updated);
+  };
+
+  const saveParEdit = () => {
+    const updated = { ...round };
+    updated.pars = [...parDraft];
+    updated.holes = round.holes.map((h, i) => {
+      const newPar = parDraft[i];
+      const newHole = { ...h, par: newPar };
+      const updatedScores = {};
+      round.players.forEach(p => {
+        const ps = h.scores[p];
+        if (!ps.touched) {
+          const inferred = inferStatsFromStrokes(newPar, newPar);
+          updatedScores[p] = {
+            ...ps,
+            strokes: newPar,
+            putts: inferred.putts,
+            fairway: newPar > 3 ? true : null,
+            gir: inferred.gir,
+          };
+        } else {
+          updatedScores[p] = { ...ps };
+        }
+      });
+      newHole.scores = updatedScores;
+      return newHole;
+    });
+    onUpdate(updated);
+    setShowParEditModal(false);
+  };
 
   const hole = round.holes[holeIdx];
   const playerScore = hole.scores[activePlayer];
@@ -192,7 +234,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           <ChevronLeft size={22} />
         </button>
         <div style={styles.scoringCourse}>{round.courseName}</div>
-        <div style={{ width: 40 }} />
+        <button
+          style={{
+            width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: '#8896b0', borderRadius: '8px',
+          }}
+          onClick={openParEdit}
+          aria-label="파 수정"
+        >
+          <Edit3 size={18} strokeWidth={2} />
+        </button>
       </header>
 
       {/* Progress indicator */}
@@ -987,6 +1039,128 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
                 }}
               >
                 홈으로 나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 파 수정 모달 */}
+      {showParEditModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowParEditModal(false)}>
+          <div
+            style={{
+              ...styles.modalCard,
+              maxWidth: '400px',
+              width: 'calc(100% - 32px)',
+              padding: '20px 16px 24px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: '#e8edf8', letterSpacing: '0.04em' }}>파 수정</div>
+              <button
+                style={{ background: 'none', border: 'none', color: '#8896b0', cursor: 'pointer', padding: '4px' }}
+                onClick={() => setShowParEditModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* 합계 요약 */}
+            <div style={{ ...styles.parSummary, marginBottom: '12px' }}>
+              <div style={styles.parSummaryMain}>
+                <div style={styles.parSummaryLabel}>TOTAL PAR</div>
+                <div style={styles.parSummaryValue}>{parDraft.reduce((a, b) => a + b, 0)}</div>
+              </div>
+              <div style={styles.parSummaryDivider} />
+              <div style={styles.parSummaryNines}>
+                <div style={styles.parSummaryNineRow}>
+                  <span style={styles.parSummaryNineLabel}>{round.outCourseName || 'OUT'}</span>
+                  <span style={styles.parSummaryNineValue}>{parDraft.slice(0, 9).reduce((a, b) => a + b, 0)}</span>
+                </div>
+                <div style={styles.parSummaryNineRow}>
+                  <span style={styles.parSummaryNineLabel}>{round.inCourseName || 'IN'}</span>
+                  <span style={styles.parSummaryNineValue}>{parDraft.slice(9).reduce((a, b) => a + b, 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.parTableHint}>← 왼쪽 탭: -1 · 오른쪽 탭: +1 →</div>
+
+            {[
+              { label: round.outCourseName || 'OUT', start: 0, end: 9 },
+              { label: round.inCourseName || 'IN', start: 9, end: 18 },
+            ].map(({ label, start, end }) => (
+              <div key={label} style={styles.parTable}>
+                <div style={styles.parTableRow}>
+                  <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
+                  <div style={styles.parTableCells}>
+                    {parDraft.slice(start, end).map((_, localIdx) => (
+                      <div key={localIdx} style={styles.parTableHoleCell}>{start + localIdx + 1}</div>
+                    ))}
+                  </div>
+                  <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
+                </div>
+                <div style={{ ...styles.parTableRow, borderBottom: 'none' }}>
+                  <div style={styles.parTableLabel}>PAR</div>
+                  <div style={styles.parTableCells}>
+                    {parDraft.slice(start, end).map((p, localIdx) => {
+                      const holeI = start + localIdx;
+                      const canDec = p > 3;
+                      const canInc = p < 6;
+                      const isCurrentHole = holeI === holeIdx;
+                      return (
+                        <div key={holeI} style={styles.parTableParCell}>
+                          <div style={{
+                            ...styles.parTableParValue,
+                            background: p === 3 ? 'rgba(61,184,122,0.15)' : p === 4 ? '#0e1c14' : p === 5 ? '#c9a228' : '#ef5350',
+                            color: p === 3 ? '#3db87a' : p === 4 ? '#e8edf8' : '#0b0e18',
+                            outline: isCurrentHole ? '2px solid #c9a228' : 'none',
+                            outlineOffset: '1px',
+                          }}>
+                            {p}
+                          </div>
+                          <button
+                            style={{ ...styles.parTapZone, left: 0, opacity: canDec ? 1 : 0.3, cursor: canDec ? 'pointer' : 'not-allowed' }}
+                            onClick={() => canDec && updateParDraft(holeI, p - 1)}
+                            disabled={!canDec}
+                            aria-label="파 감소"
+                          />
+                          <button
+                            style={{ ...styles.parTapZone, right: 0, opacity: canInc ? 1 : 0.3, cursor: canInc ? 'pointer' : 'not-allowed' }}
+                            onClick={() => canInc && updateParDraft(holeI, p + 1)}
+                            disabled={!canInc}
+                            aria-label="파 증가"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={styles.parTableTotal}>{parDraft.slice(start, end).reduce((a, b) => a + b, 0)}</div>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ fontSize: '11px', color: '#4d5a78', marginTop: '10px', marginBottom: '16px', lineHeight: 1.5 }}>
+              * 이미 입력된 홀의 스코어는 유지됩니다.<br/>
+              * 미입력 홀은 변경된 파 기준으로 초기화됩니다.
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                style={{ ...styles.modalBtnCancel, flex: 1 }}
+                onClick={() => setShowParEditModal(false)}
+              >
+                취소
+              </button>
+              <button
+                style={{ ...styles.memoSaveBtn, flex: 2 }}
+                onClick={saveParEdit}
+              >
+                저장
               </button>
             </div>
           </div>

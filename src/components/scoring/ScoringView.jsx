@@ -118,30 +118,38 @@ function SwipeDistance({ value, min = 1, max = 300, onChange, step = 1, decimals
 function WindCompass({ direction, onChange }) {
   const ref = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const lastBearing = useRef(direction ?? 0);
 
   const getBearing = (clientX, clientY) => {
     const rect = ref.current.getBoundingClientRect();
     const dx = clientX - (rect.left + rect.width / 2);
     const dy = clientY - (rect.top + rect.height / 2);
-    if (Math.hypot(dx, dy) < 8) return direction ?? 0;
-    return Math.round((Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360);
+    if (Math.hypot(dx, dy) < 8) return lastBearing.current;
+    const b = Math.round((Math.atan2(dy, dx) * 180 / Math.PI + 90 + 360) % 360);
+    lastBearing.current = b;
+    return b;
   };
-
-  const onStart = (x, y) => { setDragging(true); onChange(getBearing(x, y)); };
 
   return (
     <div>
       <div
         ref={ref}
         style={{ position: 'relative', width: 210, height: 210, margin: '0 auto', touchAction: 'none', cursor: 'crosshair', userSelect: 'none' }}
-        onTouchStart={e => onStart(e.touches[0].clientX, e.touches[0].clientY)}
-        onTouchMove={e => { e.preventDefault(); onChange(getBearing(e.touches[0].clientX, e.touches[0].clientY)); }}
-        onTouchEnd={() => setDragging(false)}
-        onMouseDown={e => {
-          onStart(e.clientX, e.clientY);
-          const mv = me => onChange(getBearing(me.clientX, me.clientY));
-          const up = () => { setDragging(false); window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); };
-          window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+        onPointerDown={e => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setDragging(true);
+          onChange(getBearing(e.clientX, e.clientY));
+        }}
+        onPointerMove={e => {
+          if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+          onChange(getBearing(e.clientX, e.clientY));
+        }}
+        onPointerUp={e => {
+          setDragging(false);
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }}
+        onPointerCancel={e => {
+          setDragging(false);
         }}
       >
         <svg viewBox="0 0 100 100" width="100%" height="100%">

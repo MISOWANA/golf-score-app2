@@ -205,8 +205,6 @@ function WindCompass({ direction, onChange }) {
         {direction != null ? (<>
           <span style={{ fontSize: 18, fontWeight: 800, color: '#c9a228' }}>{toCompassLabel(direction)}</span>
           <span style={{ fontSize: 11, color: '#4d5a78' }}>{direction}°</span>
-          <button style={{ fontSize: 9, color: '#4d5a78', background: 'none', border: '1px solid #1b2238', borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}
-            onClick={e => { e.stopPropagation(); onChange(null); }}>초기화</button>
         </>) : (
           <span style={{ fontSize: 10, color: '#3d4d65' }}>방향 미설정</span>
         )}
@@ -845,9 +843,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
 
         {/* 바람 */}
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>💨</span><span style={fLbl}>바람</span>
-            {playerScore.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(playerScore.windDirection)} {playerScore.windDirection}°</span>}
-            {playerScore.windStrength != null && playerScore.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(playerScore.windStrength).toFixed(1)}m/s</span>}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
+              {playerScore.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(playerScore.windDirection)} {playerScore.windDirection}°</span>}
+              {playerScore.windStrength != null && playerScore.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(playerScore.windStrength).toFixed(1)}m/s</span>}
+            </div>
+            {playerScore.windDirection != null && (
+              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+                onClick={() => updateField('windDirection', null)}>초기화</button>
+            )}
           </div>
           <WindInput direction={playerScore.windDirection} strength={playerScore.windStrength}
             onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)} />

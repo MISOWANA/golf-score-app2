@@ -160,6 +160,11 @@ export default function GolfScoringApp() {
     setRounds(updated);
   };
 
+  const updateCompletedRound = async (updatedRound) => {
+    await saveRound(updatedRound, currentUser.userId);
+    setRounds(prev => prev.map(r => r.id === updatedRound.id ? updatedRound : r));
+  };
+
   const handleExportData = async () => {
     try {
       const exportedData = await exportUserData(currentUser.userId);
@@ -277,6 +282,7 @@ export default function GolfScoringApp() {
           onGoHome={() => setView('home')}
           onGoHistory={() => setView('history')}
           onNewRound={() => setView('setup')}
+          onUpdateRound={updateCompletedRound}
         />
       )}
 

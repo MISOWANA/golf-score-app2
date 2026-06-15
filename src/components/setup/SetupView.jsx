@@ -11,6 +11,12 @@ export default function SetupView({ onStart, onBack }) {
   const [pars, setPars] = useState(Array(18).fill(4));
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // 다중코스 선택 상태
+  const [selectedClub, setSelectedClub] = useState(null); // 클럽 전체 데이터
+  const [selectedOut, setSelectedOut] = useState(null);   // 선택된 OUT 9홀 코스
+  const [selectedIn, setSelectedIn] = useState(null);     // 선택된 IN 9홀 코스
+
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -23,43 +29,71 @@ export default function SetupView({ onStart, onBack }) {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
+  // OUT/IN 코스 선택될 때마다 파 자동 계산
+  useEffect(() => {
+    if (selectedOut) setOutCourseName(selectedOut.name);
+    if (selectedIn)  setInCourseName(selectedIn.name);
+    if (selectedOut && selectedIn) {
+      setPars([...selectedOut.pars, ...selectedIn.pars]);
+    }
+  }, [selectedOut, selectedIn]);
+
   const handleCourseNameChange = (val) => {
     setCourseName(val);
+    setSelectedClub(null);
+    setSelectedOut(null);
+    setSelectedIn(null);
     const results = searchCourses(val);
     setSuggestions(results);
     setShowSuggestions(results.length > 0);
   };
 
-  const selectCourse = (course) => {
-    setCourseName(course.name);
-    setOutCourseName(course.outName);
-    setInCourseName(course.inName);
-    setPars([...course.pars]);
+  const selectClub = (club) => {
+    setCourseName(club.name);
+    setSelectedClub(club);
     setShowSuggestions(false);
     setSuggestions([]);
+
+    if (club.courses.length === 2) {
+      // 2개 코스면 자동 선택
+      setSelectedOut(club.courses[0]);
+      setSelectedIn(club.courses[1]);
+    } else {
+      // 3개 이상이면 선택 UI 표시
+      setSelectedOut(null);
+      setSelectedIn(null);
+      setOutCourseName('');
+      setInCourseName('');
+    }
   };
 
   const addPlayer = () => {
     if (players.length < 4) setPlayers([...players, '']);
   };
-
   const removePlayer = (idx) => {
     if (players.length > 1) setPlayers(players.filter((_, i) => i !== idx));
   };
-
   const updatePlayer = (idx, name) => {
     const updated = [...players];
     updated[idx] = name;
     setPlayers(updated);
   };
-
   const updatePar = (idx, val) => {
     const updated = [...pars];
     updated[idx] = val;
     setPars(updated);
   };
 
+  const needsCourseSelect = selectedClub && selectedClub.courses.length > 2;
   const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim());
+
+  const chipStyle = (active) => ({
+    flex: 1, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
+    border: `1.5px solid ${active ? '#c9a228' : '#252f4a'}`,
+    background: active ? 'rgba(201,162,40,0.18)' : '#1a2235',
+    color: active ? '#c9a228' : '#8896b0',
+    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+  });
 
   return (
     <div style={styles.container}>
@@ -90,28 +124,34 @@ export default function SetupView({ onStart, onBack }) {
               background: '#131d35', border: '1px solid #252f4a', borderRadius: 10,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 500, overflow: 'hidden',
             }}>
-              {suggestions.map((course, i) => (
-                <button
-                  key={i}
-                  style={{
-                    width: '100%', textAlign: 'left', padding: '11px 14px',
-                    background: 'transparent', border: 'none',
-                    borderBottom: i < suggestions.length - 1 ? '1px solid #1b2744' : 'none',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  }}
-                  onMouseDown={(e) => { e.preventDefault(); selectCourse(course); }}
-                >
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e8edf8' }}>{course.name}</div>
-                    <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>
-                      {course.outName} · {course.inName} &nbsp;|&nbsp; PAR {course.pars.reduce((a,b)=>a+b,0)}
+              {suggestions.map((club, i) => {
+                const totalPar = club.courses.length === 2
+                  ? club.courses[0].pars.reduce((a,b)=>a+b,0) + club.courses[1].pars.reduce((a,b)=>a+b,0)
+                  : null;
+                return (
+                  <button
+                    key={i}
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '11px 14px',
+                      background: 'transparent', border: 'none',
+                      borderBottom: i < suggestions.length - 1 ? '1px solid #1b2744' : 'none',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}
+                    onMouseDown={(e) => { e.preventDefault(); selectClub(club); }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e8edf8' }}>{club.name}</div>
+                      <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>
+                        {club.courses.map(c => c.name).join(' · ')}
+                        {totalPar ? ` | PAR ${totalPar}` : ` | ${club.courses.length}개 코스`}
+                      </div>
                     </div>
-                  </div>
-                  <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
-                    {course.location}
-                  </span>
-                </button>
-              ))}
+                    <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
+                      {club.location}
+                    </span>
+                  </button>
+                );
+              })}
               <div style={{ padding: '7px 14px', fontSize: 9, color: '#3d4d65', borderTop: '1px solid #1b2744' }}>
                 찾는 코스가 없으면 직접 입력 후 파 수정 가능
               </div>
@@ -119,6 +159,49 @@ export default function SetupView({ onStart, onBack }) {
           )}
         </div>
       </div>
+
+      {/* 다중 코스 선택 UI */}
+      {needsCourseSelect && (
+        <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 12, border: '1px solid #1b2744' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
+            코스 조합 선택
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 9, color: '#3d4d65', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>OUT (1~9홀)</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {selectedClub.courses.map((c, idx) => (
+                <button key={c.name} style={chipStyle(selectedOut?.name === c.name)}
+                  onClick={() => {
+                    setSelectedOut(c);
+                    const nextIdx = (idx + 1) % selectedClub.courses.length;
+                    setSelectedIn(selectedClub.courses[nextIdx]);
+                  }}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 9, color: '#3d4d65', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>IN (10~18홀)</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {selectedClub.courses.map((c) => (
+                <button key={c.name} style={chipStyle(selectedIn?.name === c.name)}
+                  onClick={() => setSelectedIn(c)}>
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedOut && selectedIn && (
+            <div style={{ marginTop: 10, fontSize: 10, color: '#3db87a', fontWeight: 600 }}>
+              ✓ {selectedOut.name}(OUT) + {selectedIn.name}(IN) · PAR {[...selectedOut.pars, ...selectedIn.pars].reduce((a,b)=>a+b,0)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 코스 이름 */}
       <div style={styles.formSection}>
@@ -205,19 +288,13 @@ export default function SetupView({ onStart, onBack }) {
         ].map(({ label, start, end }) => (
           <div key={label} style={styles.parTable}>
             <div style={styles.parTableRow}>
-              <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>
-                {label}
-              </div>
+              <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
               <div style={styles.parTableCells}>
                 {pars.slice(start, end).map((_, localIdx) => (
-                  <div key={localIdx} style={styles.parTableHoleCell}>
-                    {start + localIdx + 1}
-                  </div>
+                  <div key={localIdx} style={styles.parTableHoleCell}>{start + localIdx + 1}</div>
                 ))}
               </div>
-              <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>
-                TOT
-              </div>
+              <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
             </div>
             <div style={{ ...styles.parTableRow, borderBottom: 'none' }}>
               <div style={styles.parTableLabel}>PAR</div>
@@ -232,49 +309,25 @@ export default function SetupView({ onStart, onBack }) {
                         ...styles.parTableParValue,
                         background: p === 3 ? 'rgba(61,184,122,0.15)' : p === 4 ? '#0e1c14' : p === 5 ? '#c9a228' : '#ef5350',
                         color: p === 3 ? '#3db87a' : p === 4 ? '#e8edf8' : '#0b0e18',
-                      }}>
-                        {p}
-                      </div>
-                      <button
-                        style={{ ...styles.parTapZone, left: 0, opacity: canDecrease ? 1 : 0.3, cursor: canDecrease ? 'pointer' : 'not-allowed' }}
-                        onClick={() => canDecrease && updatePar(holeIdx, p - 1)}
-                        disabled={!canDecrease}
-                        aria-label="파 감소"
-                      />
-                      <button
-                        style={{ ...styles.parTapZone, right: 0, opacity: canIncrease ? 1 : 0.3, cursor: canIncrease ? 'pointer' : 'not-allowed' }}
-                        onClick={() => canIncrease && updatePar(holeIdx, p + 1)}
-                        disabled={!canIncrease}
-                        aria-label="파 증가"
-                      />
+                      }}>{p}</div>
+                      <button style={{ ...styles.parTapZone, left: 0, opacity: canDecrease ? 1 : 0.3, cursor: canDecrease ? 'pointer' : 'not-allowed' }}
+                        onClick={() => canDecrease && updatePar(holeIdx, p - 1)} disabled={!canDecrease} aria-label="파 감소" />
+                      <button style={{ ...styles.parTapZone, right: 0, opacity: canIncrease ? 1 : 0.3, cursor: canIncrease ? 'pointer' : 'not-allowed' }}
+                        onClick={() => canIncrease && updatePar(holeIdx, p + 1)} disabled={!canIncrease} aria-label="파 증가" />
                     </div>
                   );
                 })}
               </div>
-              <div style={styles.parTableTotal}>
-                {pars.slice(start, end).reduce((a, b) => a + b, 0)}
-              </div>
+              <div style={styles.parTableTotal}>{pars.slice(start, end).reduce((a, b) => a + b, 0)}</div>
             </div>
           </div>
         ))}
 
         <div style={styles.parLegend}>
-          <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: 'rgba(61,184,122,0.15)', color: '#3db87a', border: '1px solid #3db87a' }}>3</span>
-            <span>파 3</span>
-          </div>
-          <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#0e1c14', color: '#e8edf8', border: '1px solid #1a3028' }}>4</span>
-            <span>파 4</span>
-          </div>
-          <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#c9a228', color: '#0b0e18' }}>5</span>
-            <span>파 5</span>
-          </div>
-          <div style={styles.parLegendItem}>
-            <span style={{ ...styles.parLegendDot, background: '#ef5350', color: '#fff' }}>6</span>
-            <span>파 6</span>
-          </div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: 'rgba(61,184,122,0.15)', color: '#3db87a', border: '1px solid #3db87a' }}>3</span><span>파 3</span></div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#0e1c14', color: '#e8edf8', border: '1px solid #1a3028' }}>4</span><span>파 4</span></div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#c9a228', color: '#0b0e18' }}>5</span><span>파 5</span></div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#ef5350', color: '#fff' }}>6</span><span>파 6</span></div>
         </div>
       </div>
 

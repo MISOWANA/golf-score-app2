@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, TrendingUp, Target, Flag, Circle, X, Check, Edit3, AlertTriangle } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, X, Edit3 } from 'lucide-react';
+import HoleWizard, { wizardToScoreFields } from './wizard/HoleWizard';
 import styles from '../../styles/styles';
-import ShotShapeIcon from './ShotShapeIcon';
-import GreenMissSelector from './GreenMissSelector';
 
 const GREEN_MISS_LABELS = { long: 'LONG', short: 'SHORT', left: 'LEFT', right: 'RIGHT' };
 
@@ -23,6 +22,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
   const [memoDraft, setMemoDraft] = useState('');
   const [showParEditModal, setShowParEditModal] = useState(false);
   const [parDraft, setParDraft] = useState([...round.pars]);
+  const [showWizard, setShowWizard] = useState(false);
 
   const openParEdit = () => {
     setParDraft([...round.pars]);
@@ -562,416 +562,85 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         </div>
       )}
 
-      {/* Score input */}
-      <div style={styles.scoringSection}>
-        <div style={styles.fieldLabel}>스코어 (타수)</div>
-        <div style={{
-          ...styles.bigScoreContainer,
-          background: isPar3AtPar ? 'rgba(180, 60, 0, 0.22)' : styles.bigScoreContainer.background,
-          borderColor: isPar3AtPar ? 'rgba(200, 80, 20, 0.65)' : undefined,
-        }}>
-          <div style={styles.bigScoreHalves}>
-            <div style={styles.bigScoreLeftHalf} />
-            <div style={styles.bigScoreRightHalf} />
-          </div>
-          <div style={{ ...styles.bigScoreSideAbs, left: '14px' }}>
-            <ChevronLeft size={28} strokeWidth={2.5} />
-            <span style={styles.bigScoreSideLabel}>−1</span>
-          </div>
-          <div style={styles.bigScoreCenter}>
-            <div style={styles.bigScoreValue}>
-              {playerScore.strokes || hole.par}
+      {/* ── Wizard trigger ── */}
+      {(() => {
+        const touched = playerScore.touched;
+        const diff = (playerScore.strokes || hole.par) - hole.par;
+        const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
+        const diffColor = diff < 0 ? '#3db87a' : diff > 0 ? '#ef5350' : '#8896b0';
+
+        if (!touched) {
+          return (
+            <button style={wBtn} onClick={() => setShowWizard(true)}>
+              <span style={{ fontSize: 28 }}>⛳</span>
+              <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: '0.06em' }}>스코어 입력 시작</span>
+              <span style={{ fontSize: 11, color: '#4d5a78' }}>5단계 빠른 입력 (약 5초)</span>
+            </button>
+          );
+        }
+
+        return (
+          <div style={wCard}>
+            <div style={{
+              width: 54, height: 54, borderRadius: '50%', flexShrink: 0,
+              background: diff < 0 ? 'rgba(61,184,122,0.15)' : diff > 0 ? 'rgba(239,83,80,0.12)' : 'rgba(136,150,176,0.12)',
+              border: `2px solid ${diffColor}`,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 20, fontWeight: 800, color: diffColor, lineHeight: 1 }}>{playerScore.strokes}</span>
+              <span style={{ fontSize: 9, color: diffColor, fontWeight: 700 }}>{diffLabel}</span>
             </div>
-            <div style={styles.bigScoreHint}>
-              {playerScore.strokes === hole.par && !playerScore.touched
-                ? 'PAR · 좌우 탭으로 조정'
-                : `vs Par ${hole.par}`}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 6px', marginBottom: 3 }}>
+                {playerScore.teeClub && <span style={wChip}>{({ driver: '드라이버', wood: '우드', hybrid: '하이브리드', iron: '아이언' })[playerScore.teeClub]}</span>}
+                {playerScore.remainingDistance && <span style={wChip}>{playerScore.remainingDistance}m</span>}
+                {playerScore.lieCondition && <span style={wChip}>{({ flat: 'FLAT', up: 'UP', down: 'DOWN', hook: 'HOOK', slice: 'SLICE' })[playerScore.lieCondition]}</span>}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px 6px' }}>
+                {playerScore.missDirection && <span style={{ ...wChip, color: '#c9a228' }}>{playerScore.missDirection}시 방향</span>}
+                {playerScore.putts != null && <span style={wChip}>{playerScore.putts}퍼트</span>}
+                {playerScore.gir && <span style={{ ...wChip, color: '#3db87a' }}>GIR ✓</span>}
+              </div>
             </div>
+            <button style={wEditBtn} onClick={() => setShowWizard(true)}>수정</button>
           </div>
-          <div style={{ ...styles.bigScoreSideAbs, right: '14px' }}>
-            <span style={styles.bigScoreSideLabel}>+1</span>
-            <ChevronRight size={28} strokeWidth={2.5} />
+        );
+      })()}
+
+      {/* ── OB / 해저드 / 메모 compact row ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={wPenalty}>
+          <span style={wPenaltyLabel}>OB</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button style={wMiniBtn} onClick={() => { const c = playerScore.ob || 0; if (c > 0) updateScore('ob', c - 1); }}>−</button>
+            <span style={{ fontSize: 18, fontWeight: 800, color: (playerScore.ob || 0) > 0 ? '#ef5350' : '#e8edf8', minWidth: 20, textAlign: 'center' }}>{playerScore.ob || 0}</span>
+            <button style={wMiniBtn} onClick={() => updateScore('ob', Math.min(5, (playerScore.ob || 0) + 1))}>+</button>
           </div>
-          <button
-            style={{ ...styles.bigScoreTapZone, left: 0 }}
-            onClick={() => updateScore('strokes', Math.max(1, (playerScore.strokes || hole.par) - 1))}
-            aria-label="스코어 감소"
-          />
-          <button
-            style={{ ...styles.bigScoreTapZone, right: 0 }}
-            onClick={() => updateScore('strokes', (playerScore.strokes || hole.par) + 1)}
-            aria-label="스코어 증가"
-          />
         </div>
+        <div style={wPenalty}>
+          <span style={wPenaltyLabel}>해저드</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button style={wMiniBtn} onClick={() => { const c = playerScore.hazard || 0; if (c > 0) updateScore('hazard', c - 1); }}>−</button>
+            <span style={{ fontSize: 18, fontWeight: 800, color: (playerScore.hazard || 0) > 0 ? '#c9a228' : '#e8edf8', minWidth: 20, textAlign: 'center' }}>{playerScore.hazard || 0}</span>
+            <button style={wMiniBtn} onClick={() => updateScore('hazard', Math.min(5, (playerScore.hazard || 0) + 1))}>+</button>
+          </div>
+        </div>
+        <button
+          style={{
+            flex: 1, minHeight: 60, borderRadius: 10,
+            border: `1px solid ${playerScore.memo ? '#c9a228' : '#252f4a'}`,
+            background: playerScore.memo ? 'rgba(201,162,40,0.1)' : '#1a2235',
+            color: playerScore.memo ? '#c9a228' : '#8896b0',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
+          }}
+          onClick={() => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); }}
+        >
+          <Edit3 size={16} strokeWidth={2} />
+          <span style={{ letterSpacing: '0.12em' }}>메모</span>
+          {playerScore.memo && <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#c9a228' }} />}
+        </button>
       </div>
-
-      {/* Detailed stats */}
-      <div style={styles.statsSection}>
-        {/* 티샷 구질 */}
-        {hole.par > 3 && (
-          <div style={styles.statRow}>
-            <div style={styles.statRowLabel}>
-              <TrendingUp size={13} strokeWidth={2} />
-              <span>티샷 구질</span>
-            </div>
-            <div style={styles.shotShapeRow}>
-              {[
-                { id: 'hook', label: '훅', desc: '강한 좌' },
-                { id: 'fade', label: '페이드', desc: '약한 우' },
-                { id: 'straight', label: '스트레이트', desc: '직진' },
-                { id: 'draw', label: '드로우', desc: '약한 좌' },
-                { id: 'slice', label: '슬라이스', desc: '강한 우' },
-              ].map(s => {
-                const active = playerScore.shotShape === s.id;
-                let color;
-                if (s.id === 'straight') color = '#e8edf8';
-                else if (s.id === 'hook') color = '#ef5350';
-                else if (s.id === 'draw') color = '#3db87a';
-                else if (s.id === 'fade') color = '#c9a228';
-                else color = '#c62828';
-
-                return (
-                  <button
-                    key={s.id}
-                    style={{
-                      ...styles.shotShapeBtn,
-                      background: active ? color : 'transparent',
-                      color: active ? '#fff' : color,
-                      borderColor: active ? color : '#252f4a',
-                      fontWeight: active ? '800' : '700',
-                    }}
-                    onClick={() => updateScore('shotShape', active ? null : s.id)}
-                    title={s.desc}
-                  >
-                    <span style={styles.shotShapeLabel}>{s.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* FAIRWAY HIT */}
-        {hole.par > 3 && (
-          <div style={styles.statRow}>
-            <div style={{...styles.statRowLabel, whiteSpace: 'normal', minWidth: 'auto'}}>
-              <Target size={13} strokeWidth={2} />
-              <span style={{display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2}}>FAIRWAY <br />HIT</span>
-            </div>
-            <div style={styles.fairwayHitRow}>
-              <button
-                style={{
-                  ...styles.fairwayHitBtn,
-                  background: playerScore.fairway === true ? '#3db87a' : 'transparent',
-                  color: playerScore.fairway === true ? '#0b0e18' : '#3db87a',
-                  borderColor: playerScore.fairway === true ? '#3db87a' : '#252f4a',
-                }}
-                onClick={() => {
-                  const isToggleOff = playerScore.fairway === true;
-                  updateScoreFields({
-                    fairway: isToggleOff ? null : true,
-                    fairwayHit: isToggleOff ? null : 'C',
-                  });
-                }}
-              >
-                O
-              </button>
-              <button
-                style={{
-                  ...styles.fairwayHitBtn,
-                  background: playerScore.fairway === false ? '#ef5350' : 'transparent',
-                  color: playerScore.fairway === false ? '#0b0e18' : '#ef5350',
-                  borderColor: playerScore.fairway === false ? '#ef5350' : '#252f4a',
-                }}
-                onClick={() => {
-                  const isToggleOff = playerScore.fairway === false;
-                  updateScoreFields({
-                    fairway: isToggleOff ? null : false,
-                    fairwayHit: isToggleOff ? null : (playerScore.fairwayHit === 'C' ? null : playerScore.fairwayHit),
-                  });
-                }}
-              >
-                X
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* LANDING POINT */}
-        {hole.par > 3 && (
-          <div style={styles.statRow}>
-            <div style={{...styles.statRowLabel, whiteSpace: 'normal', minWidth: 'auto'}}>
-              <Flag size={13} strokeWidth={2} />
-              <span style={{display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2}}>LANDING <br />POINT</span>
-            </div>
-            <div style={styles.fairwayHitRow}>
-              {['L', 'C', 'R'].map(point => (
-                <button
-                  key={point}
-                  style={{
-                    ...styles.fairwayHitBtn,
-                    background: playerScore.fairwayHit === point ? (point === 'C' ? '#3db87a' : '#c9a228') : 'transparent',
-                    color: playerScore.fairwayHit === point ? '#0b0e18' : (point === 'C' ? '#3db87a' : '#c9a228'),
-                    borderColor: playerScore.fairwayHit === point ? (point === 'C' ? '#3db87a' : '#c9a228') : '#252f4a',
-                  }}
-                  onClick={() => {
-                    const isToggleOff = playerScore.fairwayHit === point;
-                    updateScoreFields({ fairwayHit: isToggleOff ? null : point });
-                  }}
-                >
-                  {point}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* GIR */}
-        <div style={styles.statRow}>
-          <div style={styles.statRowLabel}>
-            <Flag size={13} strokeWidth={2} />
-            <span>GIR</span>
-            {playerScore.girAuto && playerScore.gir !== null && (
-              <span style={styles.autoBadge}>AUTO</span>
-            )}
-          </div>
-          <div style={styles.toggleRow}>
-            <button
-              style={{ ...styles.toggleBtn, background: playerScore.gir === true ? '#3db87a' : 'transparent', color: playerScore.gir === true ? '#0b0e18' : '#e8edf8' }}
-              onClick={() => updateScore('gir', true)}
-            >
-              <Check size={14} /> 온
-            </button>
-            <button
-              style={{ ...styles.toggleBtn, background: playerScore.gir === false ? '#ef5350' : 'transparent', color: playerScore.gir === false ? '#0b0e18' : '#e8edf8' }}
-              onClick={() => updateScore('gir', false)}
-            >
-              <X size={14} /> 오프
-            </button>
-          </div>
-        </div>
-
-        {/* 그린 방향 */}
-        <div style={{ ...styles.statRow, flexDirection: 'column', alignItems: 'stretch', gap: '6px' }}>
-          <div style={{ ...styles.statRowLabel, justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Target size={13} strokeWidth={2} />
-              <span>그린 방향</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {playerScore.greenMiss && (
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  background: 'rgba(61,184,122,0.15)',
-                  color: '#3db87a',
-                  padding: '2px 8px',
-                  borderRadius: '10px',
-                  letterSpacing: '0.04em',
-                }}>
-                  {GREEN_MISS_LABELS[playerScore.greenMiss]}
-                </span>
-              )}
-              {playerScore.greenMiss && (
-                <button
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#4d5a78',
-                    cursor: 'pointer',
-                    padding: '2px',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                  onClick={() => updateScore('greenMiss', null)}
-                  aria-label="그린 방향 초기화"
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-          </div>
-          <GreenMissSelector
-            value={playerScore.greenMiss}
-            onChange={(v) => updateScore('greenMiss', v)}
-          />
-        </div>
-
-        {/* 페널티 */}
-        <div style={styles.statRow}>
-          <div style={styles.statRowLabel}>
-            <AlertTriangle size={13} strokeWidth={2} />
-            <span>페널티</span>
-          </div>
-          <div style={styles.penaltyGroup}>
-            {/* OB 카운터 */}
-            <div style={styles.penaltyItem}>
-              <div style={styles.penaltyLabel}>OB</div>
-              <div style={{ ...styles.splitStepper, width: '100%' }}>
-                <div style={styles.splitStepperHalves}>
-                  <div style={styles.splitStepperLeftHalf} />
-                  <div style={styles.splitStepperRightHalf} />
-                </div>
-                <div style={styles.splitStepperContent}>
-                  <span style={{
-                    ...styles.splitStepperValue,
-                    color: (playerScore.ob || 0) > 0 ? '#ef5350' : '#e8edf8',
-                  }}>
-                    {playerScore.ob || 0}
-                  </span>
-                </div>
-                <button
-                  style={{
-                    ...styles.splitStepperTapZone,
-                    left: 0,
-                    opacity: (playerScore.ob || 0) > 0 ? 1 : 0.4,
-                    cursor: (playerScore.ob || 0) > 0 ? 'pointer' : 'not-allowed',
-                  }}
-                  onClick={() => {
-                    const curr = playerScore.ob || 0;
-                    if (curr > 0) updateScore('ob', curr - 1);
-                  }}
-                  disabled={(playerScore.ob || 0) <= 0}
-                  aria-label="OB 감소"
-                />
-                <button
-                  style={{
-                    ...styles.splitStepperTapZone,
-                    right: 0,
-                    opacity: (playerScore.ob || 0) < 5 ? 1 : 0.4,
-                    cursor: (playerScore.ob || 0) < 5 ? 'pointer' : 'not-allowed',
-                  }}
-                  onClick={() => {
-                    const curr = playerScore.ob || 0;
-                    if (curr < 5) updateScore('ob', curr + 1);
-                  }}
-                  disabled={(playerScore.ob || 0) >= 5}
-                  aria-label="OB 증가"
-                />
-              </div>
-            </div>
-
-            {(playerScore.ob > 0 || playerScore.hazard > 0) && (
-              <div style={styles.penaltyTotalBadge}>
-                +{(playerScore.ob || 0) + (playerScore.hazard || 0)}
-              </div>
-            )}
-
-            {/* 해저드 카운터 */}
-            <div style={styles.penaltyItem}>
-              <div style={styles.penaltyLabel}>해저드</div>
-              <div style={{ ...styles.splitStepper, width: '100%' }}>
-                <div style={styles.splitStepperHalves}>
-                  <div style={styles.splitStepperLeftHalf} />
-                  <div style={styles.splitStepperRightHalf} />
-                </div>
-                <div style={styles.splitStepperContent}>
-                  <span style={{
-                    ...styles.splitStepperValue,
-                    color: (playerScore.hazard || 0) > 0 ? '#c9a228' : '#e8edf8',
-                  }}>
-                    {playerScore.hazard || 0}
-                  </span>
-                </div>
-                <button
-                  style={{
-                    ...styles.splitStepperTapZone,
-                    left: 0,
-                    opacity: (playerScore.hazard || 0) > 0 ? 1 : 0.4,
-                    cursor: (playerScore.hazard || 0) > 0 ? 'pointer' : 'not-allowed',
-                  }}
-                  onClick={() => {
-                    const curr = playerScore.hazard || 0;
-                    if (curr > 0) updateScore('hazard', curr - 1);
-                  }}
-                  disabled={(playerScore.hazard || 0) <= 0}
-                  aria-label="해저드 감소"
-                />
-                <button
-                  style={{
-                    ...styles.splitStepperTapZone,
-                    right: 0,
-                    opacity: (playerScore.hazard || 0) < 5 ? 1 : 0.4,
-                    cursor: (playerScore.hazard || 0) < 5 ? 'pointer' : 'not-allowed',
-                  }}
-                  onClick={() => {
-                    const curr = playerScore.hazard || 0;
-                    if (curr < 5) updateScore('hazard', curr + 1);
-                  }}
-                  disabled={(playerScore.hazard || 0) >= 5}
-                  aria-label="해저드 증가"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 퍼팅 + 메모 */}
-        <div style={styles.statRow}>
-          <div style={styles.statRowLabel}>
-            <Circle size={13} strokeWidth={2} />
-            <span>퍼팅</span>
-          </div>
-          <div style={styles.puttMemoRow}>
-            {(() => {
-              const strokes = playerScore.strokes || hole.par;
-              const maxPutts = strokes === 1 ? 0 : Math.max(0, strokes - 1);
-              const currPutts = playerScore.putts ?? 2;
-              const canDec = currPutts > 0;
-              const canInc = currPutts < maxPutts;
-              return (
-                <div style={{ ...styles.splitStepper, flex: 3 }}>
-                  <div style={styles.splitStepperHalves}>
-                    <div style={styles.splitStepperLeftHalf} />
-                    <div style={styles.splitStepperRightHalf} />
-                  </div>
-                  <div style={styles.splitStepperContent}>
-                    <span style={styles.splitStepperValue}>{currPutts}</span>
-                  </div>
-                  <button
-                    style={{
-                      ...styles.splitStepperTapZone,
-                      left: 0,
-                      opacity: canDec ? 1 : 0.4,
-                      cursor: canDec ? 'pointer' : 'not-allowed',
-                    }}
-                    onClick={() => { if (canDec) updateScore('putts', currPutts - 1); }}
-                    disabled={!canDec}
-                    aria-label="퍼팅 감소"
-                  />
-                  <button
-                    style={{
-                      ...styles.splitStepperTapZone,
-                      right: 0,
-                      opacity: canInc ? 1 : 0.4,
-                      cursor: canInc ? 'pointer' : 'not-allowed',
-                    }}
-                    onClick={() => { if (canInc) updateScore('putts', currPutts + 1); }}
-                    disabled={!canInc}
-                    aria-label="퍼팅 증가"
-                  />
-                </div>
-              );
-            })()}
-
-            <button
-              style={{
-                ...styles.memoButton,
-                ...(playerScore.memo ? styles.memoButtonFilled : {}),
-              }}
-              onClick={() => {
-                setMemoDraft(playerScore.memo || '');
-                setShowMemoModal(true);
-              }}
-            >
-              <Edit3 size={13} strokeWidth={2.2} />
-              <span>메모</span>
-              {playerScore.memo && <span style={styles.memoDot} />}
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation */}
       <div style={styles.scoringNav}>
         <button
@@ -1005,6 +674,25 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           </button>
         )}
       </div>
+
+      {/* ── Hole Wizard 오버레이 ── */}
+      {showWizard && (
+        <HoleWizard
+          hole={hole}
+          par={hole.par}
+          holeNumber={holeIdx + 1}
+          initialData={playerScore}
+          onComplete={(wizardData) => {
+            const fields = wizardToScoreFields(wizardData, hole.par, playerScore);
+            updateScoreFields(fields);
+            setShowWizard(false);
+            if (holeIdx < 17) {
+              setTimeout(() => confirmAndGoToHole(holeIdx + 1), 350);
+            }
+          }}
+          onClose={() => setShowWizard(false)}
+        />
+      )}
 
       {/* Exit 확인 모달 */}
       {showExitConfirm && (
@@ -1218,3 +906,50 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
     </div>
   );
 }
+
+// ─── Wizard UI inline style constants ────────────────────────────────────────
+
+const wBtn = {
+  width: '100%', minHeight: 88, marginBottom: 16,
+  background: 'linear-gradient(135deg, #111827, #1a2235)',
+  border: '2px dashed #252f4a', borderRadius: 14, cursor: 'pointer',
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+  gap: 8, color: '#c9a228',
+};
+
+const wCard = {
+  display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12,
+  background: '#111827', border: '1px solid #1b2238',
+  borderRadius: 12, padding: '12px 14px',
+};
+
+const wChip = {
+  fontSize: 10, color: '#8896b0', background: '#1a2235',
+  border: '1px solid #252f4a', borderRadius: 4,
+  padding: '2px 7px', fontWeight: 600, letterSpacing: '0.04em',
+};
+
+const wEditBtn = {
+  padding: '8px 14px', borderRadius: 8,
+  border: '1px solid #252f4a', background: '#1a2235',
+  color: '#c9a228', fontSize: 12, fontWeight: 700,
+  cursor: 'pointer', flexShrink: 0, letterSpacing: '0.04em',
+};
+
+const wPenalty = {
+  flex: 1, minHeight: 60, background: '#1a2235',
+  border: '1px solid #252f4a', borderRadius: 10,
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+};
+
+const wPenaltyLabel = {
+  fontSize: 9, color: '#8896b0', fontWeight: 700,
+  letterSpacing: '0.18em', textTransform: 'uppercase',
+};
+
+const wMiniBtn = {
+  width: 28, height: 28, borderRadius: 6,
+  border: '1px solid #252f4a', background: '#111827',
+  color: '#e8edf8', fontSize: 16, fontWeight: 700,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+};

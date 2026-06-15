@@ -91,6 +91,23 @@ const globalCSS = `
     to   { transform: translateX(100%); }
   }
 
+  /* ── Wizard step slide animations ──────────────────────────────────── */
+
+  @keyframes wizardSlideRight {
+    from { opacity: 0; transform: translateX(48px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes wizardSlideLeft {
+    from { opacity: 0; transform: translateX(-48px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes holeInOnePulse {
+    0%, 100% { box-shadow: 0 2px 12px rgba(201,162,40,0.5); }
+    50%       { box-shadow: 0 2px 28px rgba(201,162,40,0.9), 0 0 0 6px rgba(201,162,40,0.15); }
+  }
+
   /* ── Mobile optimisations ───────────────────────────────────────────── */
   @media (max-width: 430px) {
     * { -webkit-text-size-adjust: none !important; }

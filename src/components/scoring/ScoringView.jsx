@@ -12,11 +12,17 @@ const CLOCK_HOURS = Array.from({ length: 12 }, (_, i) => {
 });
 
 const TERRAIN_OPTIONS = [
-  { id: 'flat',     label: '평지',   color: '#8896b0' },
-  { id: 'uphill',   label: '업힐',   color: '#3db87a' },
-  { id: 'downhill', label: '다운힐', color: '#6b7c9a' },
-  { id: 'hook',     label: '좌경사', color: '#c9a228' },
-  { id: 'slice',    label: '우경사', color: '#ef5350' },
+  { id: 'flat',     label: '평지' },
+  { id: 'uphill',   label: '오르막' },
+  { id: 'downhill', label: '내리막' },
+  { id: 'hook',     label: '훅' },
+  { id: 'slice',    label: '슬라이스' },
+];
+
+const LIE_GRID = [
+  null,      'uphill', null,
+  'slice',   'flat',   'hook',
+  null,      'downhill', null,
 ];
 
 const PUTT_LIE_OPTIONS = [
@@ -264,7 +270,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
         <span style={fIcon}>{icon}</span>
         <span style={fLbl}>{label}</span>
       </div>
-      <div style={{ display:'flex', gap:5, flexWrap:'wrap', justifyContent:'flex-end', flex:1 }}>
+      <div style={{ display:'flex', gap:5, flex:1 }}>
         {categories.map(c => {
           const isSelected = value === c.id;
           const subs = CLUB_SUBS[c.id] || [];
@@ -272,12 +278,20 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
           const selectedSub = isSelected && subValue != null ? subs.find(s => s.id === subValue) : null;
           const displayLabel = selectedSub ? selectedSub.label : c.label;
           return (
-            <div key={c.id} style={{ position:'relative' }}>
+            <div key={c.id} style={{ position:'relative', flex:1 }}>
               <button
                 style={{
                   ...fChip,
+                  width: '100%',
+                  textAlign: 'center',
                   ...(isSelected ? fChipOn : {}),
-                  border: `1.5px solid ${isSelected ? '#c9a228' : '#252f4a'}`,
+                  border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
+                  ...(selectedSub ? {
+                    fontWeight: 900,
+                    fontSize: 13,
+                    boxShadow: '0 0 8px rgba(201,162,40,0.45)',
+                    color: '#f0c93a',
+                  } : {}),
                 }}
                 onClick={() => {
                   if (isSelected) { onCategory(null); setOpenId(null); }
@@ -628,7 +642,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         {/* 총 타수 */}
         <div style={fRow}>
           <div style={fLeft}><span style={fIcon}>🏌️</span><span style={fLbl}>총 타수</span></div>
-          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:14, flex:1, justifyContent:'flex-end' }}>
             <button style={fMiniBtn} onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
             <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', minWidth:36, textAlign:'center', lineHeight:1 }}>{playerScore.strokes}</span>
             <button style={fMiniBtn} onClick={()=>updateScore('strokes',playerScore.strokes+1)}>+</button>
@@ -651,9 +665,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           <div style={fLeft}><span style={fIcon}>〜</span><span style={fLbl}>구질</span></div>
           <div style={{ display:'flex', flexDirection:'column', gap:5, flex:1 }}>
             {[['페이드','스트레이트','드로우'],['훅','풀','푸시','슬라이스']].map((row, ri) => (
-              <div key={ri} style={{ display:'flex', gap:4, justifyContent:'center' }}>
+              <div key={ri} style={{ display:'flex', gap:4 }}>
                 {row.map(s => (
-                  <button key={s} style={{ ...fChip, ...(playerScore.shotShape===s?fChipOn:{}) }}
+                  <button key={s}
+                    style={{ ...fChip, flex:1, textAlign:'center', ...(playerScore.shotShape===s?fChipOn:{}) }}
                     onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
                 ))}
               </div>
@@ -665,9 +680,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         {hole.par > 3 && (
           <div style={fRow}>
             <div style={fLeft}><span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span></div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button style={{ ...fChipWide, ...(playerScore.fairway===true?{ border:'2px solid #3db87a', background:'rgba(61,184,122,0.18)', color:'#3db87a' }:{}) }} onClick={()=>updateScore('fairway',true)}>O</button>
-              <button style={{ ...fChipWide, ...(playerScore.fairway===false?{ border:'2px solid #ef5350', background:'rgba(239,83,80,0.12)', color:'#ef5350' }:{}) }} onClick={()=>updateScore('fairway',false)}>X</button>
+            <div style={{ display:'flex', gap:8, flex:1 }}>
+              <button style={{ ...fChipWide, flex:1, textAlign:'center', ...(playerScore.fairway===true?{ border:'1.5px solid #3db87a', background:'rgba(61,184,122,0.18)', color:'#3db87a' }:{}) }} onClick={()=>updateScore('fairway',true)}>O</button>
+              <button style={{ ...fChipWide, flex:1, textAlign:'center', ...(playerScore.fairway===false?{ border:'1.5px solid #ef5350', background:'rgba(239,83,80,0.12)', color:'#ef5350' }:{}) }} onClick={()=>updateScore('fairway',false)}>X</button>
             </div>
           </div>
         )}
@@ -676,9 +691,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         {hole.par > 3 && (
           <div style={fRow}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span></div>
-            <div style={{ display:'flex', gap:8 }}>
-              {[['L','레프트','#c9a228'],['C','센터','#8896b0'],['R','라이트','#ef5350']].map(([id,label,col])=>(
-                <button key={id} style={{ minWidth:60, padding:'7px 10px', borderRadius:8, border:`1.5px solid ${playerScore.fairwayHit===id?col:'#252f4a'}`, background:playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:playerScore.fairwayHit===id?col:'#8896b0', fontSize:12, fontWeight:700, cursor:'pointer' }}
+            <div style={{ display:'flex', gap:8, flex:1 }}>
+              {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
+                <button key={id} style={{ flex:1, textAlign:'center', padding:'7px 4px', borderRadius:8, border:`1.5px solid ${playerScore.fairwayHit===id?col:'#252f4a'}`, background:playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:playerScore.fairwayHit===id?col:'#8896b0', fontSize:12, fontWeight:700, cursor:'pointer' }}
                   onClick={()=>updateLandingPoint(playerScore.fairwayHit===id?null:id)}>
                   <div style={{ fontSize:10, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:8, marginTop:1 }}>{label}</div>
@@ -709,6 +724,25 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           onSub={v => updateField('secondClubSub', v)}
         />
 
+        {/* 세컨샷 라이 */}
+        <div style={{ ...fRow, alignItems:'flex-start', paddingTop:10, paddingBottom:10 }}>
+          <div style={fLeft}><span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span></div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5, flex:1 }}>
+            {LIE_GRID.map((id, i) => {
+              if (!id) return <div key={i} />;
+              const opt = TERRAIN_OPTIONS.find(t => t.id === id);
+              const sel = playerScore.terrainCondition === id;
+              return (
+                <button key={id}
+                  style={{ ...fChip, textAlign:'center', border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0' }}
+                  onClick={() => updateField('terrainCondition', sel ? null : id)}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* 바람 */}
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>💨</span><span style={fLbl}>바람</span>
@@ -717,18 +751,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           </div>
           <WindInput direction={playerScore.windDirection} strength={playerScore.windStrength}
             onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)} />
-        </div>
-
-        {/* 세컨샷 지형 */}
-        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ ...fLeft, marginBottom:8 }}><span style={fIcon}>▲</span><span style={fLbl}>세컨샷 지형</span></div>
-          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-            {TERRAIN_OPTIONS.map(t => {
-              const sel=playerScore.terrainCondition===t.id;
-              return <button key={t.id} style={{ padding:'6px 14px', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', border:`1.5px solid ${sel?t.color:'#252f4a'}`, background:sel?`${t.color}22`:'#1a2235', color:sel?t.color:'#8896b0' }}
-                onClick={()=>updateField('terrainCondition',sel?null:t.id)}>{t.label}</button>;
-            })}
-          </div>
         </div>
 
         {/* ── 그린 ── */}
@@ -939,7 +961,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
 // ─── Style constants ──────────────────────────────────────────────────────────
 
 const fRow = { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54, gap:12 };
-const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0 };
+const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0, minWidth:130 };
 const fIcon = { fontSize:14, width:18, textAlign:'center', color:'#8896b0', flexShrink:0 };
 const fLbl  = { fontSize:11, fontWeight:700, color:'#8896b0', letterSpacing:'0.15em', textTransform:'uppercase' };
 

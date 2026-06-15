@@ -647,10 +647,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         />
 
         {/* 티샷 구질 */}
-        <div style={fRow}>
+        <div style={{ ...fRow, alignItems:'flex-start', paddingTop:12, paddingBottom:12 }}>
           <div style={fLeft}><span style={fIcon}>〜</span><span style={fLbl}>구질</span></div>
-          <div style={{ display:'flex', gap:4, flexWrap:'wrap', justifyContent:'flex-end', flex:1 }}>
-            {['훅','페이드','스트레이트','드로우','슬라이스'].map(s => <button key={s} style={{ ...fChip, ...(playerScore.shotShape===s?fChipOn:{}) }} onClick={()=>updateField('shotShape',playerScore.shotShape===s?null:s)}>{s}</button>)}
+          <div style={{ display:'flex', flexDirection:'column', gap:5, flex:1 }}>
+            {[['페이드','스트레이트','드로우'],['훅','풀','푸시','슬라이스']].map((row, ri) => (
+              <div key={ri} style={{ display:'flex', gap:4, justifyContent:'center' }}>
+                {row.map(s => (
+                  <button key={s} style={{ ...fChip, ...(playerScore.shotShape===s?fChipOn:{}) }}
+                    onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
 

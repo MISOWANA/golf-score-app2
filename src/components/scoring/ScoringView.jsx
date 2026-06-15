@@ -1054,45 +1054,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
             </div>
           </div>
 
-          {/* 퍼팅 라이 */}
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <span style={fIcon}>〜</span><span style={fLbl}>퍼팅 라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:4 }}>복수 선택</span>
-              </div>
-              <div style={{ display:'flex', gap:5 }}>
-                {[{id:'grain-with',label:'순결',col:'#3db87a'},{id:'grain-against',label:'역결',col:'#ef5350'}].map(({id,label,col}) => {
-                  const sel = (playerScore.puttLie||[]).includes(id);
-                  const other = id==='grain-with' ? 'grain-against' : 'grain-with';
-                  return (
-                    <button key={id}
-                      style={{ ...fChip, border:`1.5px solid ${sel?col:'#252f4a'}`, background:sel?`${col}22`:'#1a2235', color:sel?col:'#8896b0' }}
-                      onClick={() => {
-                        const cur = playerScore.puttLie||[];
-                        updateField('puttLie', sel ? cur.filter(v=>v!==id) : [...cur.filter(v=>v!==other), id]);
-                      }}>{label}</button>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
-              {[null,'uphill',null,'break-left','flat','break-right',null,'downhill',null].map((id, i) => {
-                if (!id) return <div key={i} />;
-                const labels = { flat:'평지', uphill:'오르막', downhill:'내리막', 'break-left':'슬라이스', 'break-right':'훅' };
-                const sel = (playerScore.puttLie||[]).includes(id);
-                return (
-                  <button key={id}
-                    style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
-                    onClick={() => {
-                      const cur = playerScore.puttLie||[];
-                      updateField('puttLie', sel ? cur.filter(v=>v!==id) : [...cur, id]);
-                    }}>
-                    {labels[id]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+
 
           {/* 퍼팅별 거리 */}
           {puttDetails.map((putt, puttIdx) => (
@@ -1110,28 +1072,26 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
                 <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
                 <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
               </div>
-              {playerScore.putts > 1 && (
-                <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-                    <span style={fIcon}>〜</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
-                  </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
-                    {[null,'uphill',null,'break-left','flat','break-right',null,'downhill',null].map((id, i) => {
-                      if (!id) return <div key={i} />;
-                      const labels = { flat:'평지', uphill:'오르막', downhill:'내리막', 'break-left':'슬라이스', 'break-right':'훅' };
-                      const cur = putt.lie || [];
-                      const sel = cur.includes(id);
-                      return (
-                        <button key={id}
-                          style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
-                          onClick={() => updatePutt(puttIdx, 'lie', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
-                          {labels[id]}
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                  <span style={fIcon}>〜</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
                 </div>
-              )}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
+                  {[null,'uphill',null,'break-left','flat','break-right',null,'downhill',null].map((id, i) => {
+                    if (!id) return <div key={i} />;
+                    const labels = { flat:'평지', uphill:'오르막', downhill:'내리막', 'break-left':'슬라이스', 'break-right':'훅' };
+                    const cur = putt.lie || [];
+                    const sel = cur.includes(id);
+                    return (
+                      <button key={id}
+                        style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
+                        onClick={() => updatePutt(puttIdx, 'lie', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
+                        {labels[id]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </React.Fragment>
           ))}
 

@@ -603,7 +603,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
   const extraShots = playerScore.extraShots || [];
 
   const addExtraShot = () =>
-    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [] }]);
+    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: 150, windDirection: null, windStrength: null }]);
 
   const removeExtraShot = (idx) =>
     updateField('extraShots', extraShots.filter((_, i) => i !== idx));
@@ -911,6 +911,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           <React.Fragment key={idx}>
             {secHdr(`${idx + 3}번 째 샷`, () => removeExtraShot(idx))}
 
+            {/* 남은 거리 */}
+            <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+              <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
+              <SwipeDistance value={shot.remainingDistance||150} min={1} max={300} onChange={v => updateExtraShot(idx, { remainingDistance: v })} />
+              <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
+            </div>
+
+            {/* 클럽 */}
             <ClubSelector
               icon="〽"
               label="클럽"
@@ -922,6 +930,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
               stacked
             />
 
+            {/* 라이 */}
             <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
                 <span style={fIcon}>▲</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
@@ -941,6 +950,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
                   );
                 })}
               </div>
+            </div>
+
+            {/* 바람 */}
+            <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
+                  {shot.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(shot.windDirection)} {shot.windDirection}°</span>}
+                  {shot.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(shot.windStrength).toFixed(1)}m/s</span>}
+                </div>
+                {shot.windDirection != null && (
+                  <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+                    onClick={() => updateExtraShot(idx, { windDirection: null })}>초기화</button>
+                )}
+              </div>
+              <WindInput
+                direction={shot.windDirection}
+                strength={shot.windStrength}
+                onDir={v => updateExtraShot(idx, { windDirection: v })}
+                onStrength={v => updateExtraShot(idx, { windStrength: v })}
+              />
             </div>
           </React.Fragment>
         ))}

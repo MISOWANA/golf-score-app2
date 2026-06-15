@@ -621,7 +621,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
   })();
 
   const updatePuttsCount = (n) => {
-    const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null });
+    const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
     updateFields({ putts: n, puttDetails: newDetails });
   };
 
@@ -1109,6 +1109,26 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
               <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
                 <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
                 <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+              </div>
+              <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                  <span style={fIcon}>〜</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
+                  {[null,'uphill',null,'break-left','flat','break-right',null,'downhill',null].map((id, i) => {
+                    if (!id) return <div key={i} />;
+                    const labels = { flat:'평지', uphill:'오르막', downhill:'내리막', 'break-left':'슬라이스', 'break-right':'훅' };
+                    const cur = putt.lie || [];
+                    const sel = cur.includes(id);
+                    return (
+                      <button key={id}
+                        style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
+                        onClick={() => updatePutt(puttIdx, 'lie', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
+                        {labels[id]}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </React.Fragment>
           ))}

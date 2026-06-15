@@ -543,6 +543,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
   const goToHole = (idx) => { if (idx >= 0 && idx < 18) { setHoleIdx(idx); onUpdate({ ...round, currentHole: idx }); } };
 
   const confirmAndGoToHole = (idx) => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
     const updated = { ...round };
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];

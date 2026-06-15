@@ -27,11 +27,11 @@ const LIE_GRID = [
 
 const PUTT_LIE_OPTIONS = [
   { id: 'flat',         label: '평지' },
-  { id: 'uphill',       label: '업힐' },
-  { id: 'downhill',     label: '다운힐' },
-  { id: 'break-left',   label: '좌경사' },
-  { id: 'break-right',  label: '우경사' },
-  { id: 'grain-with',   label: '결따라' },
+  { id: 'uphill',       label: '오르막' },
+  { id: 'downhill',     label: '내리막' },
+  { id: 'break-left',   label: '슬라이스' },
+  { id: 'break-right',  label: '훅' },
+  { id: 'grain-with',   label: '순결' },
   { id: 'grain-against',label: '역결' },
 ];
 
@@ -254,7 +254,7 @@ function MultiChips({ options, value = [], onChange }) {
       {options.map(o => {
         const sel = value.includes(o.id);
         return (
-          <button key={o.id} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${sel ? '#c9a228' : '#252f4a'}`, background: sel ? 'rgba(201,162,40,0.18)' : '#1a2235', color: sel ? '#c9a228' : '#8896b0' }}
+          <button key={o.id} style={{ flex:'1 1 calc(33% - 6px)', padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign:'center', border: `1.5px solid ${sel ? '#c9a228' : '#252f4a'}`, background: sel ? 'rgba(201,162,40,0.18)' : '#1a2235', color: sel ? '#c9a228' : '#8896b0' }}
             onClick={() => toggle(o.id)}>{o.label}</button>
         );
       })}
@@ -262,87 +262,106 @@ function MultiChips({ options, value = [], onChange }) {
   );
 }
 
-function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub }) {
+function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked }) {
   const [openId, setOpenId] = useState(null);
+
+  const btnChip = stacked
+    ? { ...fChip, padding:'10px 8px', fontSize:13, borderRadius:8, width:'100%', textAlign:'center' }
+    : { ...fChip, width:'100%', textAlign:'center' };
+
+  const buttons = (
+    <div style={{ display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
+      {categories.map(c => {
+        const isSelected = value === c.id;
+        const subs = CLUB_SUBS[c.id] || [];
+        const isOpen = openId === c.id;
+        const selectedSub = isSelected && subValue != null ? subs.find(s => s.id === subValue) : null;
+        const displayLabel = selectedSub ? selectedSub.label : c.label;
+        return (
+          <div key={c.id} style={{ position:'relative', flex:1 }}>
+            <button
+              style={{
+                ...btnChip,
+                ...(isSelected ? fChipOn : {}),
+                border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
+                ...(selectedSub ? {
+                  fontWeight: 900,
+                  fontSize: stacked ? 14 : 13,
+                  boxShadow: '0 0 8px rgba(201,162,40,0.45)',
+                  color: '#f0c93a',
+                } : {}),
+              }}
+              onClick={() => {
+                if (isSelected) { onCategory(null); setOpenId(null); }
+                else { onCategory(c.id); setOpenId(c.id); }
+              }}>
+              {displayLabel}
+            </button>
+
+            {isSelected && isOpen && subs.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                zIndex: 200,
+                background: '#0d1425',
+                borderRadius: 10,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,162,40,0.28)',
+                padding: '5px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+                minWidth: '100%',
+                animation: 'slideUp 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
+              }}>
+                {subs.map((s, i) => (
+                  <button key={s.id}
+                    style={{
+                      ...fChip,
+                      width: '100%',
+                      textAlign: 'center',
+                      fontSize: 11,
+                      padding: '6px 4px',
+                      borderRadius: 7,
+                      border: `1.5px solid ${subValue === s.id ? '#c9a228' : '#252f4a'}`,
+                      animation: `fadeIn 0.12s ease-out ${i * 0.025}s both`,
+                      ...(subValue === s.id ? fChipOn : {}),
+                    }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      onSub(subValue === s.id ? null : s.id);
+                      setOpenId(null);
+                    }}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (stacked) {
+    return (
+      <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+          <span style={fIcon}>{icon}</span>
+          <span style={fLbl}>{label}</span>
+        </div>
+        {buttons}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ ...fRow, position: 'relative' }}>
+    <div style={{ ...fRow, position:'relative' }}>
       <div style={fLeft}>
         <span style={fIcon}>{icon}</span>
         <span style={fLbl}>{label}</span>
       </div>
-      <div style={{ display:'flex', gap:5, flex:1 }}>
-        {categories.map(c => {
-          const isSelected = value === c.id;
-          const subs = CLUB_SUBS[c.id] || [];
-          const isOpen = openId === c.id;
-          const selectedSub = isSelected && subValue != null ? subs.find(s => s.id === subValue) : null;
-          const displayLabel = selectedSub ? selectedSub.label : c.label;
-          return (
-            <div key={c.id} style={{ position:'relative', flex:1 }}>
-              <button
-                style={{
-                  ...fChip,
-                  width: '100%',
-                  textAlign: 'center',
-                  ...(isSelected ? fChipOn : {}),
-                  border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
-                  ...(selectedSub ? {
-                    fontWeight: 900,
-                    fontSize: 13,
-                    boxShadow: '0 0 8px rgba(201,162,40,0.45)',
-                    color: '#f0c93a',
-                  } : {}),
-                }}
-                onClick={() => {
-                  if (isSelected) { onCategory(null); setOpenId(null); }
-                  else { onCategory(c.id); setOpenId(c.id); }
-                }}>
-                {displayLabel}
-              </button>
-
-              {isSelected && isOpen && subs.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 6px)',
-                  right: 0,
-                  zIndex: 200,
-                  background: '#0d1425',
-                  borderRadius: 10,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,162,40,0.28)',
-                  padding: '5px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 3,
-                  minWidth: '100%',
-                  animation: 'slideUp 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
-                }}>
-                  {subs.map((s, i) => (
-                    <button key={s.id}
-                      style={{
-                        ...fChip,
-                        width: '100%',
-                        textAlign: 'center',
-                        fontSize: 11,
-                        padding: '6px 4px',
-                        borderRadius: 7,
-                        border: `1.5px solid ${subValue === s.id ? '#c9a228' : '#252f4a'}`,
-                        animation: `fadeIn 0.12s ease-out ${i * 0.025}s both`,
-                        ...(subValue === s.id ? fChipOn : {}),
-                      }}
-                      onClick={e => {
-                        e.stopPropagation();
-                        onSub(subValue === s.id ? null : s.id);
-                        setOpenId(null);
-                      }}>
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {buttons}
     </div>
   );
 }
@@ -658,17 +677,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           subValue={playerScore.teeClubSub}
           onCategory={v => updateFields({ teeClub: v, teeClubSub: null })}
           onSub={v => updateField('teeClubSub', v)}
+          stacked
         />
 
         {/* 티샷 구질 */}
-        <div style={{ ...fRow, alignItems:'flex-start', paddingTop:12, paddingBottom:12 }}>
-          <div style={fLeft}><span style={fIcon}>〜</span><span style={fLbl}>구질</span></div>
-          <div style={{ display:'flex', flexDirection:'column', gap:5, flex:1 }}>
+        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+            <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {[['페이드','스트레이트','드로우'],['훅','풀','푸시','슬라이스']].map((row, ri) => (
-              <div key={ri} style={{ display:'flex', gap:4 }}>
+              <div key={ri} style={{ display:'flex', gap:6 }}>
                 {row.map(s => (
                   <button key={s}
-                    style={{ ...fChip, flex:1, textAlign:'center', ...(playerScore.shotShape===s?fChipOn:{}) }}
+                    style={{ ...fChip, flex:1, textAlign:'center', padding:'10px 6px', fontSize:13, borderRadius:8, ...(playerScore.shotShape===s?fChipOn:{}) }}
                     onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
                 ))}
               </div>
@@ -678,25 +700,29 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
 
         {/* FAIRWAY HIT */}
         {hole.par > 3 && (
-          <div style={fRow}>
-            <div style={fLeft}><span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span></div>
-            <div style={{ display:'flex', gap:8, flex:1 }}>
-              <button style={{ ...fChipWide, flex:1, textAlign:'center', ...(playerScore.fairway===true?{ border:'1.5px solid #3db87a', background:'rgba(61,184,122,0.18)', color:'#3db87a' }:{}) }} onClick={()=>updateScore('fairway',true)}>O</button>
-              <button style={{ ...fChipWide, flex:1, textAlign:'center', ...(playerScore.fairway===false?{ border:'1.5px solid #ef5350', background:'rgba(239,83,80,0.12)', color:'#ef5350' }:{}) }} onClick={()=>updateScore('fairway',false)}>X</button>
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>updateScore('fairway',true)}>O</button>
+              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>updateScore('fairway',false)}>X</button>
             </div>
           </div>
         )}
 
         {/* LANDING POINT (L/C/R) */}
         {hole.par > 3 && (
-          <div style={fRow}>
-            <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span></div>
-            <div style={{ display:'flex', gap:8, flex:1 }}>
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
               {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
-                <button key={id} style={{ flex:1, textAlign:'center', padding:'7px 4px', borderRadius:8, border:`1.5px solid ${playerScore.fairwayHit===id?col:'#252f4a'}`, background:playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:playerScore.fairwayHit===id?col:'#8896b0', fontSize:12, fontWeight:700, cursor:'pointer' }}
+                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${playerScore.fairwayHit===id?col:'#252f4a'}`, background:playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
                   onClick={()=>updateLandingPoint(playerScore.fairwayHit===id?null:id)}>
-                  <div style={{ fontSize:10, fontWeight:800 }}>{id}</div>
-                  <div style={{ fontSize:8, marginTop:1 }}>{label}</div>
+                  <div style={{ fontSize:12, fontWeight:800 }}>{id}</div>
+                  <div style={{ fontSize:10, marginTop:2 }}>{label}</div>
                 </button>
               ))}
             </div>
@@ -722,6 +748,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           subValue={playerScore.secondClubSub}
           onCategory={v => updateFields({ secondClub: v, secondClubSub: null })}
           onSub={v => updateField('secondClubSub', v)}
+          stacked
         />
 
         {/* 세컨샷 라이 */}
@@ -731,11 +758,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
             {LIE_GRID.map((id, i) => {
               if (!id) return <div key={i} />;
               const opt = TERRAIN_OPTIONS.find(t => t.id === id);
-              const sel = playerScore.terrainCondition === id;
+              const cur = Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition : (playerScore.terrainCondition ? [playerScore.terrainCondition] : []);
+              const sel = cur.includes(id);
               return (
                 <button key={id}
                   style={{ ...fChip, textAlign:'center', border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0' }}
-                  onClick={() => updateField('terrainCondition', sel ? null : id)}>
+                  onClick={() => updateField('terrainCondition', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
                   {opt.label}
                 </button>
               );
@@ -788,11 +816,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         {secHdr('퍼 팅')}
 
         {/* 퍼팅 횟수 */}
-        <div style={fRow}>
-          <div style={fLeft}><span style={fIcon}>○</span><span style={fLbl}>퍼팅 횟수</span></div>
+        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+            <span style={fIcon}>○</span><span style={fLbl}>퍼팅 횟수</span>
+          </div>
           <div style={{ display:'flex', gap:6 }}>
             {[0,1,2,3,4].map(n => (
-              <button key={n} style={{ width:42, height:42, borderRadius:8, border:`2px solid ${playerScore.putts===n?'#c9a228':'#252f4a'}`, background:playerScore.putts===n?'rgba(201,162,40,0.2)':'#1a2235', color:playerScore.putts===n?'#c9a228':'#e8edf8', fontSize:17, fontWeight:800, cursor:'pointer' }}
+              <button key={n} style={{ flex:1, height:46, borderRadius:8, border:`2px solid ${playerScore.putts===n?'#c9a228':'#252f4a'}`, background:playerScore.putts===n?'rgba(201,162,40,0.2)':'#1a2235', color:playerScore.putts===n?'#c9a228':'#e8edf8', fontSize:18, fontWeight:800, cursor:'pointer' }}
                 onClick={()=>updateScore('putts',n)}>{n}</button>
             ))}
           </div>
@@ -801,27 +831,79 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         {playerScore.putts > 0 && (<>
 
           {/* 핀 위치 */}
-          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ ...fLeft, marginBottom:8 }}><span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span></div>
-            <MultiChips options={PIN_OPTIONS} value={playerScore.pinPosition||[]} onChange={v=>updateField('pinPosition',v)} />
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
+              {[null,'back',null,'left','center','right',null,'front',null].map((id, i) => {
+                if (!id) return <div key={i} />;
+                const opt = PIN_OPTIONS.find(o => o.id === id);
+                const sel = (playerScore.pinPosition||[]).includes(id);
+                return (
+                  <button key={id}
+                    style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
+                    onClick={() => {
+                      const cur = playerScore.pinPosition||[];
+                      updateField('pinPosition', sel ? cur.filter(v=>v!==id) : [...cur, id]);
+                    }}>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* 퍼팅 라이 */}
-          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ ...fLeft, marginBottom:8 }}><span style={fIcon}>〜</span><span style={fLbl}>퍼팅 라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span></div>
-            <MultiChips options={PUTT_LIE_OPTIONS} value={playerScore.puttLie||[]} onChange={v=>updateField('puttLie',v)} />
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={fIcon}>〜</span><span style={fLbl}>퍼팅 라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:4 }}>복수 선택</span>
+              </div>
+              <div style={{ display:'flex', gap:5 }}>
+                {[{id:'grain-with',label:'순결',col:'#3db87a'},{id:'grain-against',label:'역결',col:'#ef5350'}].map(({id,label,col}) => {
+                  const sel = (playerScore.puttLie||[]).includes(id);
+                  const other = id==='grain-with' ? 'grain-against' : 'grain-with';
+                  return (
+                    <button key={id}
+                      style={{ ...fChip, border:`1.5px solid ${sel?col:'#252f4a'}`, background:sel?`${col}22`:'#1a2235', color:sel?col:'#8896b0' }}
+                      onClick={() => {
+                        const cur = playerScore.puttLie||[];
+                        updateField('puttLie', sel ? cur.filter(v=>v!==id) : [...cur.filter(v=>v!==other), id]);
+                      }}>{label}</button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
+              {[null,'uphill',null,'break-left','flat','break-right',null,'downhill',null].map((id, i) => {
+                if (!id) return <div key={i} />;
+                const labels = { flat:'평지', uphill:'오르막', downhill:'내리막', 'break-left':'슬라이스', 'break-right':'훅' };
+                const sel = (playerScore.puttLie||[]).includes(id);
+                return (
+                  <button key={id}
+                    style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
+                    onClick={() => {
+                      const cur = playerScore.puttLie||[];
+                      updateField('puttLie', sel ? cur.filter(v=>v!==id) : [...cur, id]);
+                    }}>
+                    {labels[id]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* 남은 퍼팅 거리 */}
           <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
             <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 퍼팅 거리</span></div>
-            <SwipeDistance value={playerScore.puttDistance||3} min={1} max={30} onChange={v=>updateField('puttDistance',v)} />
+            <SwipeDistance value={playerScore.puttDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updateField('puttDistance',v)} />
           </div>
 
           {/* 조준 거리 */}
           <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
             <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-            <SwipeDistance value={playerScore.puttAimedDistance||3} min={1} max={30} onChange={v=>updateField('puttAimedDistance',v)} />
+            <SwipeDistance value={playerScore.puttAimedDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updateField('puttAimedDistance',v)} />
           </div>
 
         </>)}

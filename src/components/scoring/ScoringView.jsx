@@ -589,13 +589,44 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
     ? [{ id: 'iron', label: 'IRON' }, { id: 'hybrid', label: 'HYBRID' }]
     : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
 
-  const secHdr = (label) => (
+  const secHdr = (label, onDelete) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
       <div style={{ height: 1, flex: 1, background: '#1b2238' }} />
       <span style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.22em' }}>{label}</span>
       <div style={{ height: 1, flex: 1, background: '#1b2238' }} />
+      {onDelete && (
+        <button onClick={onDelete} style={{ fontSize: 9, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
+      )}
     </div>
   );
+
+  const extraShots = playerScore.extraShots || [];
+
+  const addExtraShot = () =>
+    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [] }]);
+
+  const removeExtraShot = (idx) =>
+    updateField('extraShots', extraShots.filter((_, i) => i !== idx));
+
+  const updateExtraShot = (idx, patch) =>
+    updateField('extraShots', extraShots.map((s, i) => i === idx ? { ...s, ...patch } : s));
+
+  const puttDetails = (() => {
+    const raw = playerScore.puttDetails;
+    return Array.from({ length: playerScore.putts || 0 }, (_, i) =>
+      (raw && raw[i]) || (i === 0
+        ? { distance: playerScore.puttDistance || null, aimDistance: playerScore.puttAimedDistance || null }
+        : { distance: null, aimDistance: null })
+    );
+  })();
+
+  const updatePuttsCount = (n) => {
+    const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null });
+    updateFields({ putts: n, puttDetails: newDetails });
+  };
+
+  const updatePutt = (idx, key, val) =>
+    updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
   return (
     <div style={styles.container}>
@@ -875,6 +906,51 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
             onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)} />
         </div>
 
+        {/* ── 추가 샷 ── */}
+        {extraShots.map((shot, idx) => (
+          <React.Fragment key={idx}>
+            {secHdr(`${idx + 3}번 째 샷`, () => removeExtraShot(idx))}
+
+            <ClubSelector
+              icon="〽"
+              label="클럽"
+              categories={SECOND_CLUBS}
+              value={shot.club}
+              subValue={shot.subClub}
+              onCategory={v => updateExtraShot(idx, { club: v, subClub: null })}
+              onSub={v => updateExtraShot(idx, { subClub: v })}
+              stacked
+            />
+
+            <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                <span style={fIcon}>▲</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
+                {LIE_GRID.map((id, i) => {
+                  if (!id) return <div key={i} />;
+                  const opt = TERRAIN_OPTIONS.find(t => t.id === id);
+                  const cur = shot.lie || [];
+                  const sel = cur.includes(id);
+                  return (
+                    <button key={id}
+                      style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
+                      onClick={() => updateExtraShot(idx, { lie: sel ? cur.filter(v=>v!==id) : [...cur, id] })}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </React.Fragment>
+        ))}
+
+        <div style={{ padding:'8px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+          <button
+            style={{ width:'100%', padding:'11px', borderRadius:9, border:'1.5px dashed #252f4a', background:'transparent', color:'#4d5a78', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'0.08em' }}
+            onClick={addExtraShot}>+ 샷 추가</button>
+        </div>
+
         {/* ── 그린 ── */}
         {secHdr('그 린')}
 
@@ -917,7 +993,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
           <div style={{ display:'flex', gap:6 }}>
             {[0,1,2,3,4].map(n => (
               <button key={n} style={{ flex:1, height:46, borderRadius:8, border:`2px solid ${playerScore.putts===n?'#c9a228':'#252f4a'}`, background:playerScore.putts===n?'rgba(201,162,40,0.2)':'#1a2235', color:playerScore.putts===n?'#c9a228':'#e8edf8', fontSize:18, fontWeight:800, cursor:'pointer' }}
-                onClick={()=>updateScore('putts',n)}>{n}</button>
+                onClick={()=>updatePuttsCount(n)}>{n}</button>
             ))}
           </div>
         </div>
@@ -988,17 +1064,24 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
             </div>
           </div>
 
-          {/* 남은 퍼팅 거리 */}
-          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 퍼팅 거리</span></div>
-            <SwipeDistance value={playerScore.puttDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updateField('puttDistance',v)} />
-          </div>
-
-          {/* 조준 거리 */}
-          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-            <SwipeDistance value={playerScore.puttAimedDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updateField('puttAimedDistance',v)} />
-          </div>
+          {/* 퍼팅별 거리 */}
+          {puttDetails.map((putt, puttIdx) => (
+            <React.Fragment key={puttIdx}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 16px 4px' }}>
+                <div style={{ height:1, flex:1, background:'#151e32' }} />
+                <span style={{ fontSize:9, fontWeight:700, color:'#3d4d65', letterSpacing:'0.18em' }}>PUTT {puttIdx + 1}</span>
+                <div style={{ height:1, flex:1, background:'#151e32' }} />
+              </div>
+              <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
+                <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
+              </div>
+              <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
+                <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+              </div>
+            </React.Fragment>
+          ))}
 
         </>)}
 

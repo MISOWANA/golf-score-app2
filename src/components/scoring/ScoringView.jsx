@@ -226,7 +226,16 @@ function WindInput({ direction, strength, onDir, onStrength }) {
     <div>
       <WindCompass direction={direction} onChange={onDir} />
       <div style={{ marginTop: 16 }}>
-        <div style={{ textAlign: 'center', fontSize: 9, color: '#8896b0', letterSpacing: '0.18em', marginBottom: 8, textTransform: 'uppercase' }}>바람 세기</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8 }}>
+          <div style={{ flex:1 }} />
+          <div style={{ fontSize: 9, color: '#8896b0', letterSpacing: '0.18em', textTransform: 'uppercase' }}>바람 세기</div>
+          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
+            {strength > 0 && (
+              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+                onClick={() => onStrength(0)}>초기화</button>
+            )}
+          </div>
+        </div>
         <SwipeDistance value={strength ?? 0} min={0} max={20} step={0.1} decimals={1} unit="m/s" onChange={onStrength} />
       </div>
     </div>

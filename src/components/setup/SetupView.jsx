@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Plus, X } from 'lucide-react';
 import styles from '../../styles/styles';
+import { searchCourses } from '../../data/courseDatabase';
 
 export default function SetupView({ onStart, onBack }) {
   const [courseName, setCourseName] = useState('');
@@ -8,6 +9,35 @@ export default function SetupView({ onStart, onBack }) {
   const [inCourseName, setInCourseName] = useState('');
   const [players, setPlayers] = useState(['']);
   const [pars, setPars] = useState(Array(18).fill(4));
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const onClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
+  const handleCourseNameChange = (val) => {
+    setCourseName(val);
+    const results = searchCourses(val);
+    setSuggestions(results);
+    setShowSuggestions(results.length > 0);
+  };
+
+  const selectCourse = (course) => {
+    setCourseName(course.name);
+    setOutCourseName(course.outName);
+    setInCourseName(course.inName);
+    setPars([...course.pars]);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
 
   const addPlayer = () => {
     if (players.length < 4) setPlayers([...players, '']);
@@ -41,17 +71,56 @@ export default function SetupView({ onStart, onBack }) {
         <div style={{ width: 40 }} />
       </header>
 
+      {/* 골프장 검색 */}
       <div style={styles.formSection}>
         <label style={styles.formLabel}>골프장 이름</label>
-        <input
-          style={styles.formInput}
-          placeholder="예: 레이크사이드 컨트리클럽"
-          value={courseName}
-          onChange={(e) => setCourseName(e.target.value)}
-          maxLength={50}
-        />
+        <div ref={searchRef} style={{ position: 'relative' }}>
+          <input
+            style={styles.formInput}
+            placeholder="골프장 이름 검색..."
+            value={courseName}
+            onChange={(e) => handleCourseNameChange(e.target.value)}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+            maxLength={50}
+            autoComplete="off"
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+              background: '#131d35', border: '1px solid #252f4a', borderRadius: 10,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 500, overflow: 'hidden',
+            }}>
+              {suggestions.map((course, i) => (
+                <button
+                  key={i}
+                  style={{
+                    width: '100%', textAlign: 'left', padding: '11px 14px',
+                    background: 'transparent', border: 'none',
+                    borderBottom: i < suggestions.length - 1 ? '1px solid #1b2744' : 'none',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}
+                  onMouseDown={(e) => { e.preventDefault(); selectCourse(course); }}
+                >
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#e8edf8' }}>{course.name}</div>
+                    <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>
+                      {course.outName} · {course.inName} &nbsp;|&nbsp; PAR {course.pars.reduce((a,b)=>a+b,0)}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
+                    {course.location}
+                  </span>
+                </button>
+              ))}
+              <div style={{ padding: '7px 14px', fontSize: 9, color: '#3d4d65', borderTop: '1px solid #1b2744' }}>
+                찾는 코스가 없으면 직접 입력 후 파 수정 가능
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* 코스 이름 */}
       <div style={styles.formSection}>
         <label style={styles.formLabel}>코스 이름</label>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -78,6 +147,7 @@ export default function SetupView({ onStart, onBack }) {
         </div>
       </div>
 
+      {/* 플레이어 */}
       <div style={styles.formSection}>
         <div style={styles.formLabelRow}>
           <label style={styles.formLabel}>플레이어 ({players.length}/4)</label>
@@ -106,6 +176,7 @@ export default function SetupView({ onStart, onBack }) {
         ))}
       </div>
 
+      {/* 파 설정 */}
       <div style={styles.formSection}>
         <label style={styles.formLabel}>파 설정</label>
 
@@ -165,23 +236,13 @@ export default function SetupView({ onStart, onBack }) {
                         {p}
                       </div>
                       <button
-                        style={{
-                          ...styles.parTapZone,
-                          left: 0,
-                          opacity: canDecrease ? 1 : 0.3,
-                          cursor: canDecrease ? 'pointer' : 'not-allowed',
-                        }}
+                        style={{ ...styles.parTapZone, left: 0, opacity: canDecrease ? 1 : 0.3, cursor: canDecrease ? 'pointer' : 'not-allowed' }}
                         onClick={() => canDecrease && updatePar(holeIdx, p - 1)}
                         disabled={!canDecrease}
                         aria-label="파 감소"
                       />
                       <button
-                        style={{
-                          ...styles.parTapZone,
-                          right: 0,
-                          opacity: canIncrease ? 1 : 0.3,
-                          cursor: canIncrease ? 'pointer' : 'not-allowed',
-                        }}
+                        style={{ ...styles.parTapZone, right: 0, opacity: canIncrease ? 1 : 0.3, cursor: canIncrease ? 'pointer' : 'not-allowed' }}
                         onClick={() => canIncrease && updatePar(holeIdx, p + 1)}
                         disabled={!canIncrease}
                         aria-label="파 증가"

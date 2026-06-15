@@ -264,10 +264,63 @@ function MultiChips({ options, value = [], onChange }) {
 
 function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked }) {
   const [openId, setOpenId] = useState(null);
+  const [hoveredSub, setHoveredSub] = useState(null);
+  const isDragging = useRef(false);
+  const hoveredSubRef = useRef(null);
 
   const btnChip = stacked
     ? { ...fChip, padding:'10px 8px', fontSize:13, borderRadius:8, width:'100%', textAlign:'center' }
     : { ...fChip, width:'100%', textAlign:'center' };
+
+  const handlePointerDown = (e, c) => {
+    const subs = CLUB_SUBS[c.id] || [];
+    if (subs.length === 0) {
+      onCategory(value === c.id ? null : c.id);
+      return;
+    }
+    e.preventDefault();
+    if (value === c.id && openId === c.id) {
+      onCategory(null);
+      setOpenId(null);
+      return;
+    }
+    onCategory(c.id);
+    setOpenId(c.id);
+    hoveredSubRef.current = null;
+    setHoveredSub(null);
+    isDragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging.current) return;
+    const els = document.elementsFromPoint(e.clientX, e.clientY);
+    let found = null;
+    for (const el of els) {
+      if (el.dataset && el.dataset.subId) { found = el.dataset.subId; break; }
+    }
+    if (found !== hoveredSubRef.current) {
+      hoveredSubRef.current = found;
+      setHoveredSub(found);
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const sub = hoveredSubRef.current;
+    hoveredSubRef.current = null;
+    setHoveredSub(null);
+    setOpenId(null);
+    if (sub) onSub(sub === subValue ? null : sub);
+  };
+
+  const handlePointerCancel = () => {
+    isDragging.current = false;
+    hoveredSubRef.current = null;
+    setHoveredSub(null);
+    setOpenId(null);
+  };
 
   const buttons = (
     <div style={{ display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
@@ -282,6 +335,8 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
             <button
               style={{
                 ...btnChip,
+                touchAction: 'none',
+                userSelect: 'none',
                 ...(isSelected ? fChipOn : {}),
                 border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
                 ...(selectedSub ? {
@@ -291,10 +346,10 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
                   color: '#f0c93a',
                 } : {}),
               }}
-              onClick={() => {
-                if (isSelected) { onCategory(null); setOpenId(null); }
-                else { onCategory(c.id); setOpenId(c.id); }
-              }}>
+              onPointerDown={(e) => handlePointerDown(e, c)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}>
               {displayLabel}
             </button>
 
@@ -314,27 +369,33 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
                 minWidth: '100%',
                 animation: 'slideUp 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
               }}>
-                {subs.map((s, i) => (
-                  <button key={s.id}
-                    style={{
-                      ...fChip,
-                      width: '100%',
-                      textAlign: 'center',
-                      fontSize: 11,
-                      padding: '6px 4px',
-                      borderRadius: 7,
-                      border: `1.5px solid ${subValue === s.id ? '#c9a228' : '#252f4a'}`,
-                      animation: `fadeIn 0.12s ease-out ${i * 0.025}s both`,
-                      ...(subValue === s.id ? fChipOn : {}),
-                    }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      onSub(subValue === s.id ? null : s.id);
-                      setOpenId(null);
-                    }}>
-                    {s.label}
-                  </button>
-                ))}
+                {subs.map((s, i) => {
+                  const isHov = hoveredSub === s.id;
+                  const isSel = subValue === s.id;
+                  return (
+                    <div
+                      key={s.id}
+                      data-sub-id={s.id}
+                      style={{
+                        ...fChip,
+                        width: '100%',
+                        textAlign: 'center',
+                        fontSize: 11,
+                        padding: '7px 4px',
+                        borderRadius: 7,
+                        border: `${isHov ? '2px' : '1.5px'} solid ${isHov ? '#f0c93a' : isSel ? '#c9a228' : '#252f4a'}`,
+                        background: isHov ? 'rgba(240,201,58,0.22)' : isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
+                        color: isHov ? '#f0c93a' : isSel ? '#c9a228' : '#e8edf8',
+                        fontWeight: isHov ? 800 : isSel ? 700 : 600,
+                        transform: isHov ? 'scale(1.04)' : 'scale(1)',
+                        transition: 'transform 0.07s, background 0.07s, border-color 0.07s',
+                        animation: `fadeIn 0.12s ease-out ${i * 0.025}s both`,
+                        cursor: 'default',
+                      }}>
+                      {s.label}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -659,12 +720,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         {secHdr('티 샷')}
 
         {/* 총 타수 */}
-        <div style={fRow}>
-          <div style={fLeft}><span style={fIcon}>🏌️</span><span style={fLbl}>총 타수</span></div>
-          <div style={{ display:'flex', alignItems:'center', gap:14, flex:1, justifyContent:'flex-end' }}>
-            <button style={fMiniBtn} onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
-            <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', minWidth:36, textAlign:'center', lineHeight:1 }}>{playerScore.strokes}</span>
-            <button style={fMiniBtn} onClick={()=>updateScore('strokes',playerScore.strokes+1)}>+</button>
+        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+            <span style={fIcon}>🏌️</span><span style={fLbl}>총 타수</span>
+          </div>
+          <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
+            <button
+              style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
+              onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
+            <button
+              style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
+              onClick={()=>updateScore('strokes',playerScore.strokes+1)}>+</button>
+            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+              <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
+            </div>
           </div>
         </div>
 

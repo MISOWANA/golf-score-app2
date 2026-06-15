@@ -44,13 +44,13 @@ const PIN_OPTIONS = [
 ];
 
 const SECOND_CLUBS = [
-  { id: 'wood',   label: '우드' },
-  { id: 'hybrid', label: '하이브리드' },
-  { id: 'iron',   label: '아이언' },
-  { id: 'wedge',  label: '웨지' },
+  { id: 'wood',   label: 'WOOD' },
+  { id: 'hybrid', label: 'HYBRID' },
+  { id: 'iron',   label: 'IRON' },
+  { id: 'wedge',  label: 'WEDGE' },
 ];
 
-const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 64];
+const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 62];
 
 const CLUB_SUBS = {
   driver: [],
@@ -66,7 +66,7 @@ const CLUB_SUBS = {
     { id: '56', label: '56°' },
     { id: '58', label: '58°' },
     { id: '60', label: '60°' },
-    { id: '64', label: '64°' },
+    { id: '62', label: '62°' },
   ],
 };
 
@@ -570,8 +570,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
   const isPar5 = hole.par === 5;
 
   const clubs = hole.par === 3
-    ? [{ id: 'iron', label: '아이언' }, { id: 'hybrid', label: '하이브리드' }]
-    : [{ id: 'driver', label: '드라이버' }, { id: 'wood', label: '우드' }, { id: 'hybrid', label: '하이브리드' }, { id: 'iron', label: '아이언' }];
+    ? [{ id: 'iron', label: 'IRON' }, { id: 'hybrid', label: 'HYBRID' }]
+    : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
 
   const secHdr = (label) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
@@ -821,9 +821,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
         />
 
         {/* 세컨샷 라이 */}
-        <div style={{ ...fRow, alignItems:'flex-start', paddingTop:10, paddingBottom:10 }}>
-          <div style={fLeft}><span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span></div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5, flex:1 }}>
+        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
             {LIE_GRID.map((id, i) => {
               if (!id) return <div key={i} />;
               const opt = TERRAIN_OPTIONS.find(t => t.id === id);
@@ -831,7 +833,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
               const sel = cur.includes(id);
               return (
                 <button key={id}
-                  style={{ ...fChip, textAlign:'center', border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0' }}
+                  style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
                   onClick={() => updateField('terrainCondition', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
                   {opt.label}
                 </button>

@@ -1,7 +1,6 @@
-// 국내 골프장 데이터베이스
-// courses: 9홀 단위로 저장. 2개=단일 18홀 자동 적용, 3개 이상=조합 선택 UI
+// 국내 골프장 데이터베이스 (KGBA 회원사 기준 210개 + 추가)
+// courses: 9홀 단위. 2개=18홀, 3개=27홀, 4개=36홀, 5개=45홀, 6개=54홀
 
-// 표준 9홀 파 패턴 (합계 36)
 const PA = [4,4,3,5,4,4,3,4,5];
 const PB = [4,3,4,5,4,4,3,5,4];
 const PC = [4,4,3,4,5,4,3,5,4];
@@ -13,12 +12,12 @@ const PH = [3,4,5,4,4,3,5,4,4];
 
 export const COURSES = [
 
-  // ── 서울 ─────────────────────────────────────────────────
+  // ── 서울 ──────────────────────────────────────────────────
   {
     name: '서울 컨트리클럽', location: '서울',
     courses: [
       { name: '이스트', pars: [4,4,3,4,5,4,3,5,4] },
-      { name: '웨스트', pars: [4,3,4,5,4,4,3,5,4] },
+      { name: '웨스트', pars: PB },
     ],
   },
   {
@@ -28,1621 +27,1626 @@ export const COURSES = [
       { name: '인',   pars: PB },
     ],
   },
-  {
-    name: '뚝섬 골프 퍼블릭', location: '서울',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
 
-  // ── 경기 북부 ────────────────────────────────────────────
+  // ── 경기 ──────────────────────────────────────────────────
   {
-    name: '한양 컨트리클럽', location: '경기',
+    name: '88', location: '경기',
     courses: [
-      { name: '아웃', pars: [4,3,5,4,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
+      { name: '이스트아웃', pars: PA },
+      { name: '이스트인',   pars: PB },
+      { name: '웨스트아웃', pars: PC },
+      { name: '웨스트인',   pars: PD },
     ],
   },
   {
-    name: '뉴서울 컨트리클럽', location: '경기',
+    name: 'H1클럽', location: '경기',
     courses: [
-      { name: '아웃', pars: [4,5,3,4,4,3,5,4,4] },
-      { name: '인',   pars: [4,5,3,4,4,3,4,5,4] },
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
     ],
   },
   {
-    name: '베어크리크 골프클럽', location: '경기',
+    name: 'ROUTE52', location: '경기',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,5,4,4,3,4,5] },
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
     ],
   },
   {
-    name: '태광 컨트리클럽', location: '경기',
+    name: '가평베네스트', location: '경기',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PD },
+      { name: '파인',  pars: PA },
+      { name: '레이크', pars: PB },
+      { name: '힐',    pars: PC },
     ],
   },
   {
-    name: '포천 힐스 컨트리클럽', location: '경기',
+    name: '강남300', location: '경기',
     courses: [
-      { name: '레이크',   pars: PD },
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '골드', location: '경기',
+    courses: [
+      { name: '파인아웃',  pars: PF },
+      { name: '파인인',    pars: PG },
+      { name: '레이크아웃', pars: PH },
+      { name: '레이크인',   pars: PA },
+    ],
+  },
+  {
+    name: '골프존카운티안성H', location: '경기',
+    courses: [
+      { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+  {
+    name: '골프클럽Q', location: '경기',
+    courses: [
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '곤지암', location: '경기',
+    courses: [
+      { name: '아웃', pars: PF },
+      { name: '인',   pars: PG },
+    ],
+  },
+  {
+    name: '그린힐', location: '경기',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+  {
+    name: '금강', location: '경기',
+    courses: [
+      { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+  {
+    name: '기흥', location: '경기',
+    courses: [
+      { name: 'A아웃', pars: PD },
+      { name: 'A인',   pars: PE },
+      { name: 'B아웃', pars: PF },
+      { name: 'B인',   pars: PG },
+    ],
+  },
+  {
+    name: '김포씨사이드', location: '경기',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+  {
+    name: '남부', location: '경기',
+    courses: [
+      { name: '아웃', pars: [4,4,3,5,4,3,5,4,4] },
+      { name: '인',   pars: [4,3,5,4,4,3,4,5,4] },
+    ],
+  },
+  {
+    name: '남서울', location: '경기',
+    courses: [
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '남여주', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
+    ],
+  },
+  {
+    name: '남촌', location: '경기',
+    courses: [
+      { name: '레이크',   pars: PA },
       { name: '포레스트', pars: PB },
     ],
   },
   {
-    name: '아시아나 컨트리클럽', location: '경기',
+    name: '노스팜', location: '경기',
     courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '포천 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '가평 베네스트 골프클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '설악파인힐스 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
+      { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
     ],
   },
   {
-    name: '도전힐스 컨트리클럽', location: '경기',
+    name: '뉴서울', location: '경기',
     courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
+      { name: '파인아웃',    pars: PE },
+      { name: '파인인',      pars: PF },
+      { name: '마운틴아웃',  pars: PG },
+      { name: '마운틴인',    pars: PH },
     ],
   },
   {
-    name: '연천 컨트리클럽', location: '경기',
+    name: '뉴스프링빌', location: '경기',
     courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PA },
+      { name: '파인아웃',  pars: PA },
+      { name: '파인인',    pars: PB },
+      { name: '레이크아웃', pars: PC },
+      { name: '레이크인',   pars: PD },
     ],
   },
   {
-    name: '동두천 컨트리클럽', location: '경기',
+    name: '뉴코리아', location: '경기',
     courses: [
-      { name: '아웃', pars: PD },
+      { name: '아웃', pars: PE },
       { name: '인',   pars: PF },
     ],
   },
   {
-    name: '파주 컨트리클럽', location: '경기',
+    name: '더시에나서울', location: '경기',
     courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PC },
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
     ],
   },
   {
-    name: '고양 컨트리클럽', location: '경기',
+    name: '더스타휴', location: '경기',
     courses: [
       { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '일산 컨트리클럽', location: '경기',
+    name: '레이크사이드', location: '경기',
     courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '가평 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '의정부 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PG },
-    ],
-  },
-  {
-    name: '남양주 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '퀸즈파크 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '구리 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '하남 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '춘천 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PD },
-    ],
-  },
-
-  // ── 경기 서부·남부 ────────────────────────────────────────
-  {
-    name: '안양 컨트리클럽', location: '경기',
-    courses: [
-      { name: 'A코스', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: 'B코스', pars: [4,4,3,4,5,4,3,4,5] },
-    ],
-  },
-  {
-    name: '남촌 컨트리클럽', location: '경기',
-    courses: [
-      { name: '레이크',   pars: [4,4,3,4,5,4,3,4,5] },
-      { name: '포레스트', pars: [4,4,3,5,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '레이크사이드 컨트리클럽', location: '경기',
-    courses: [
-      { name: '파인',  pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '레이크', pars: [4,3,5,4,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '블루원 컨트리클럽', location: '경기',
-    courses: [
-      { name: '파인',  pars: PA },
+      { name: '파인',  pars: PC },
       { name: '레이크', pars: PD },
     ],
   },
   {
-    name: '프리스틴 밸리 골프클럽', location: '경기',
+    name: '레이크우드', location: '경기',
     courses: [
-      { name: '레이크',   pars: [4,3,5,4,4,3,4,5,4] },
-      { name: '포레스트', pars: [4,3,4,5,4,4,3,5,4] },
-      { name: '마운틴',  pars: [4,4,3,5,4,3,4,5,4] },
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
     ],
   },
   {
-    name: '파인힐스 컨트리클럽', location: '경기',
+    name: '렉스필드', location: '경기',
     courses: [
-      { name: '파인', pars: [4,4,3,4,5,4,3,5,4] },
-      { name: '힐스', pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '수원 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '양지파인 컨트리클럽', location: '경기',
-    courses: [
-      { name: '파인',  pars: [4,3,4,5,4,4,3,5,4] },
-      { name: '레이크', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '힐',    pars: [4,4,3,4,5,4,3,5,4] },
-    ],
-  },
-  {
-    name: '88 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '남서울 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '화성 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
+      { name: '아웃', pars: PH },
       { name: '인',   pars: PA },
     ],
   },
   {
-    name: '기흥 컨트리클럽', location: '경기',
+    name: '리베라', location: '경기',
     courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
+      { name: '이스트아웃', pars: PB },
+      { name: '이스트인',   pars: PC },
+      { name: '웨스트아웃', pars: PD },
+      { name: '웨스트인',   pars: PE },
     ],
   },
   {
-    name: '이천 컨트리클럽', location: '경기',
+    name: '마이다스레이크이천', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
+    ],
+  },
+  {
+    name: '마이다스밸리청평', location: '경기',
     courses: [
       { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '몽베르', location: '경기',
+    courses: [
+      { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
     ],
   },
   {
-    name: '광주 컨트리클럽', location: '경기',
+    name: '발리오스', location: '경기',
     courses: [
-      { name: '아웃', pars: PC },
+      { name: '아웃', pars: PE },
       { name: '인',   pars: PF },
     ],
   },
   {
-    name: '용인 컨트리클럽', location: '경기',
+    name: '베뉴지', location: '경기',
     courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
     ],
   },
   {
-    name: '성남 컨트리클럽', location: '경기',
+    name: '비에이비스타', location: '경기',
     courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PE },
+      { name: 'A아웃', pars: PB },
+      { name: 'A인',   pars: PC },
+      { name: 'B아웃', pars: PD },
+      { name: 'B인',   pars: PE },
     ],
   },
   {
-    name: '곤지암 리조트 골프클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '해슬리 나인브릿지', location: '경기',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,4,5,4,3,5,4] },
-    ],
-  },
-  {
-    name: '영동 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '양평 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '여주 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '안성 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '평택 컨트리클럽', location: '경기',
+    name: '비전힐스', location: '경기',
     courses: [
       { name: '아웃', pars: PF },
-      { name: '인',   pars: PD },
+      { name: '인',   pars: PG },
     ],
   },
   {
-    name: '화천 컨트리클럽', location: '경기',
+    name: '사우스스프링스', location: '경기',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '분당 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
+      { name: '아웃', pars: PH },
       { name: '인',   pars: PA },
     ],
   },
   {
-    name: '김포 컨트리클럽', location: '경기',
+    name: '샴발라', location: '경기',
     courses: [
       { name: '아웃', pars: PB },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '드래곤힐 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '렉싱턴 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '동서울 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
       { name: '인',   pars: PC },
     ],
   },
   {
-    name: '오크힐스 컨트리클럽', location: '경기',
+    name: '서서울', location: '경기',
     courses: [
       { name: '아웃', pars: PD },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '시화 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
       { name: '인',   pars: PE },
     ],
   },
   {
-    name: '지산 컨트리클럽', location: '경기',
+    name: '서원밸리', location: '경기',
     courses: [
       { name: '아웃', pars: PF },
-      { name: '인',   pars: PA },
+      { name: '인',   pars: PG },
     ],
   },
   {
-    name: '한국 컨트리클럽', location: '경기',
+    name: '소피아그린', location: '경기',
     courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
     ],
   },
   {
-    name: '신라 컨트리클럽', location: '경기',
+    name: '솔모로', location: '경기',
+    courses: [
+      { name: '메이플아웃', pars: PC },
+      { name: '메이플인',   pars: PD },
+      { name: '오크아웃',   pars: PE },
+      { name: '오크인',     pars: PF },
+    ],
+  },
+  {
+    name: '송추', location: '경기',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '수원', location: '경기',
+    courses: [
+      { name: '이스트아웃', pars: PA },
+      { name: '이스트인',   pars: PB },
+      { name: '웨스트아웃', pars: PC },
+      { name: '웨스트인',   pars: PD },
+    ],
+  },
+  {
+    name: '스카이밸리', location: '경기',
     courses: [
       { name: '아웃', pars: PE },
-      { name: '인',   pars: PD },
+      { name: '인',   pars: PF },
     ],
   },
   {
-    name: '에버딘 골프클럽', location: '경기',
+    name: '신안', location: '경기',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '신원', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PA },
+      { name: '인',    pars: PB },
+      { name: '레이크', pars: PC },
+    ],
+  },
+  {
+    name: '써닝포인트', location: '경기',
+    courses: [
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '썬힐', location: '경기',
+    courses: [
+      { name: '파인아웃',  pars: PF },
+      { name: '파인인',    pars: PG },
+      { name: '레이크아웃', pars: PH },
+      { name: '레이크인',   pars: PA },
+    ],
+  },
+  {
+    name: '아난티클럽서울', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PB },
+      { name: '인',    pars: PC },
+      { name: '레이크', pars: PD },
+    ],
+  },
+  {
+    name: '아시아나', location: '경기',
+    courses: [
+      { name: 'A아웃', pars: PE },
+      { name: 'A인',   pars: PF },
+      { name: 'B아웃', pars: PG },
+      { name: 'B인',   pars: PH },
+    ],
+  },
+  {
+    name: '안성', location: '경기',
     courses: [
       { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '보라 컨트리클럽', location: '경기',
+    name: '안성베네스트', location: '경기',
     courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PF },
+      { name: '아웃',  pars: PC },
+      { name: '인',    pars: PD },
+      { name: '레이크', pars: PE },
     ],
   },
   {
-    name: '산내들 컨트리클럽', location: '경기',
+    name: '안양', location: '경기',
     courses: [
-      { name: '아웃', pars: PD },
+      { name: 'A코스', pars: PF },
+      { name: 'B코스', pars: PG },
+    ],
+  },
+  {
+    name: '양주', location: '경기',
+    courses: [
+      { name: '아웃', pars: PH },
       { name: '인',   pars: PA },
     ],
   },
   {
-    name: '경기 컨트리클럽', location: '경기',
+    name: '양지파인', location: '경기',
+    courses: [
+      { name: '파인',  pars: PB },
+      { name: '레이크', pars: PC },
+      { name: '힐',    pars: PD },
+    ],
+  },
+  {
+    name: '여주클래식', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '은화삼', location: '경기',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+  {
+    name: '이스트밸리', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PB },
+      { name: '인',    pars: PC },
+      { name: '레이크', pars: PD },
+    ],
+  },
+  {
+    name: '이포', location: '경기',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '일동레이크', location: '경기',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '자유', location: '경기',
+    courses: [
+      { name: '파인아웃',  pars: PA },
+      { name: '파인인',    pars: PB },
+      { name: '레이크아웃', pars: PC },
+      { name: '레이크인',   pars: PD },
+    ],
+  },
+  {
+    name: '제일', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '지산', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '캐슬렉스', location: '경기',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '코리아', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '크리스밸리', location: '경기',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+  {
+    name: '크리스탈밸리', location: '경기',
     courses: [
       { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
   {
-    name: '가나 컨트리클럽', location: '경기',
+    name: '태광', location: '경기',
     courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
     ],
   },
   {
-    name: '팜스프링스 컨트리클럽', location: '경기',
+    name: '티클라우드', location: '경기',
     courses: [
-      { name: '아웃', pars: PD },
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '페럼', location: '경기',
+    courses: [
+      { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '솔라고 컨트리클럽', location: '경기',
+    name: '포천아도니스', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PC },
+      { name: '인',    pars: PD },
+      { name: '레이크', pars: PE },
+    ],
+  },
+  {
+    name: '푸른솔포천', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
+    ],
+  },
+  {
+    name: '프리스틴밸리', location: '경기',
     courses: [
       { name: '레이크',   pars: PA },
-      { name: '포레스트', pars: PC },
+      { name: '포레스트', pars: PB },
+      { name: '마운틴',   pars: PC },
     ],
   },
   {
-    name: '트리마제 골프클럽', location: '경기',
+    name: '플라자CC용인', location: '경기',
     courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PD },
+      { name: '파인아웃',  pars: PD },
+      { name: '파인인',    pars: PE },
+      { name: '레이크아웃', pars: PF },
+      { name: '레이크인',   pars: PG },
     ],
   },
   {
-    name: '왈츠와닥터만 컨트리클럽', location: '경기',
+    name: '한성', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '한양', location: '경기',
+    courses: [
+      { name: 'A아웃', pars: PC },
+      { name: 'A인',   pars: PD },
+      { name: 'B아웃', pars: PE },
+      { name: 'B인',   pars: PF },
+    ],
+  },
+  {
+    name: '한원', location: '경기',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+  {
+    name: '해비치서울', location: '경기',
     courses: [
       { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+  {
+    name: '해슬리나인브릿지', location: '경기',
+    courses: [
+      { name: '아웃', pars: PD },
       { name: '인',   pars: PE },
     ],
   },
   {
-    name: '중앙 컨트리클럽', location: '경기',
+    name: '화산', location: '경기',
     courses: [
-      { name: '아웃', pars: PA },
+      { name: '아웃', pars: PF },
       { name: '인',   pars: PG },
     ],
   },
   {
-    name: '세인트 포 컨트리클럽', location: '경기',
+    name: '화성상록', location: '경기',
     courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PB },
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
     ],
   },
   {
-    name: '이글밸리 골프클럽', location: '경기',
+    name: '웰링턴', location: '경기',
     courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PE },
+      { name: '아웃',  pars: PC },
+      { name: '인',    pars: PD },
+      { name: '레이크', pars: PE },
     ],
   },
   {
-    name: '정산 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '포레스트힐스 컨트리클럽', location: '경기',
+    name: '블랙스톤이천', location: '경기',
     courses: [
       { name: '아웃', pars: PF },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '천마산 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '선선 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '장호원 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '삼성 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '서서울 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '메트로폴리탄 클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,4,5,4,3,5,4] },
-    ],
-  },
-  {
-    name: '사우스스프링스 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '노블 컨트리클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '미스터나이스 골프클럽', location: '경기',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-
-  // ── 인천 ─────────────────────────────────────────────────
-  {
-    name: '스카이72 골프클럽', location: '인천',
-    courses: [
-      { name: '하늘',  pars: [4,3,4,5,4,4,3,5,4] },
-      { name: '오션',  pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '레이크', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '클래식', pars: [4,3,5,4,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '베어스베스트 청라', location: '인천',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '인천 컨트리클럽', location: '인천',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '강화 컨트리클럽', location: '인천',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '영종 컨트리클럽', location: '인천',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '청라 컨트리클럽', location: '인천',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PF },
-    ],
-  },
-
-  // ── 강원 ─────────────────────────────────────────────────
-  {
-    name: '휘닉스 파크 골프클럽', location: '강원',
-    courses: [
-      { name: '파인', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '버치', pars: [4,4,3,5,4,4,3,4,5] },
-    ],
-  },
-  {
-    name: '오크밸리 컨트리클럽', location: '강원',
-    courses: [
-      { name: '밸리', pars: [4,3,5,4,4,3,4,5,4] },
-      { name: '오크', pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '알펜시아 골프클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '엘리시안 강촌 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '인',   pars: [4,3,5,4,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '웰리힐리파크 골프클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '비발디파크 골프클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '설악 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '소노펠리체 골프클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '켄싱턴 로제 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '속초 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '양양 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '강릉 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '동해 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '삼척 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '정선 하이원 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '홍천 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '횡성 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PA },
       { name: '인',   pars: PG },
     ],
   },
   {
-    name: '원주 컨트리클럽', location: '강원',
+    name: '블루원용인', location: '경기',
     courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PE },
+      { name: '파인',  pars: PH },
+      { name: '레이크', pars: PA },
     ],
   },
   {
-    name: '춘천 리버사이드 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '남춘천 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '평창 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '골든밸리 컨트리클럽', location: '강원',
+    name: '블루헤런', location: '경기',
     courses: [
       { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
-  {
-    name: '한화 리조트 설악 컨트리클럽', location: '강원',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PD },
-    ],
-  },
 
-  // ── 충청남도 ─────────────────────────────────────────────
+  // ── 인천 ──────────────────────────────────────────────────
   {
-    name: '천안 컨트리클럽', location: '충남',
+    name: '스카이72', location: '인천',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '인',   pars: [4,3,5,4,4,3,4,5,4] },
+      { name: '하늘',   pars: PD },
+      { name: '오션',   pars: PE },
+      { name: '레이크', pars: PF },
+      { name: '클래식', pars: PG },
     ],
   },
   {
-    name: '공주 컨트리클럽', location: '충남',
+    name: '인천국제', location: '인천',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '당진 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '서산 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PD },
+      { name: '아웃', pars: PH },
       { name: '인',   pars: PA },
     ],
   },
   {
-    name: '태안 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '보령 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '홍성 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '아산 컨트리클럽', location: '충남',
+    name: '잭니클라우스', location: '인천',
     courses: [
       { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
+
+  // ── 강원 ──────────────────────────────────────────────────
   {
-    name: '더클래식 골프클럽', location: '충남',
+    name: '동원썬밸리', location: '강원',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '레이크힐스 순안 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '충남 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '파인리조트 골프클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PB },
+      { name: '아웃', pars: PD },
       { name: '인',   pars: PE },
     ],
   },
   {
-    name: '무궁화 컨트리클럽', location: '충남',
+    name: '라데나', location: '강원',
     courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
     ],
   },
   {
-    name: '예산 컨트리클럽', location: '충남',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PB },
-    ],
-  },
-
-  // ── 충청북도 ─────────────────────────────────────────────
-  {
-    name: '잭니클라우스 골프클럽 코리아', location: '충북',
-    courses: [
-      { name: 'A코스', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: 'B코스', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: 'C코스', pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '충주 컨트리클럽', location: '충북',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '청주 컨트리클럽', location: '충북',
+    name: '라비에벨듄스', location: '강원',
     courses: [
       { name: '아웃', pars: PA },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '제천 컨트리클럽', location: '충북',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '괴산 컨트리클럽', location: '충북',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '옥천 컨트리클럽', location: '충북',
-    courses: [
-      { name: '아웃', pars: PF },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '영동 골프클럽', location: '충북',
+    name: '라비에벨올드', location: '강원',
     courses: [
       { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
     ],
   },
   {
-    name: '음성 컨트리클럽', location: '충북',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PG },
-    ],
-  },
-  {
-    name: '증평 컨트리클럽', location: '충북',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PF },
-    ],
-  },
-
-  // ── 대전 ─────────────────────────────────────────────────
-  {
-    name: '대전 컨트리클럽', location: '대전',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '세종 골프클럽', location: '대전',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '대전 파인힐스 컨트리클럽', location: '대전',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '유성 컨트리클럽', location: '대전',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PF },
-    ],
-  },
-
-  // ── 전라북도 ─────────────────────────────────────────────
-  {
-    name: '전주 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '인',   pars: [4,3,5,4,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '군산 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '익산 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '부안 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '정읍 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '남원 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '진안 컨트리클럽', location: '전북',
+    name: '버치힐', location: '강원',
     courses: [
       { name: '아웃', pars: PE },
       { name: '인',   pars: PF },
     ],
   },
   {
-    name: '무주 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '완주 컨트리클럽', location: '전북',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '김제 컨트리클럽', location: '전북',
+    name: '베어크리크춘천', location: '강원',
     courses: [
       { name: '아웃', pars: PG },
-      { name: '인',   pars: PE },
-    ],
-  },
-
-  // ── 전라남도 ─────────────────────────────────────────────
-  {
-    name: '광주 무등 골프클럽', location: '광주',
-    courses: [
-      { name: '아웃', pars: [4,3,5,4,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
+      { name: '인',   pars: PH },
     ],
   },
   {
-    name: '순천 컨트리클럽', location: '전남',
+    name: '벨라45오너스클럽', location: '강원',
     courses: [
       { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '여수 컨트리클럽', location: '전남',
+    name: '블랙밸리', location: '강원',
     courses: [
       { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
     ],
   },
   {
-    name: '목포 컨트리클럽', location: '전남',
+    name: '샌드파인', location: '강원',
     courses: [
       { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '담양 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '해남 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '보성 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PD },
       { name: '인',   pars: PF },
     ],
   },
   {
-    name: '나주 컨트리클럽', location: '전남',
+    name: '설해원', location: '강원',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PG },
+      { name: '씨뷰',      pars: PG },
+      { name: '샐몬',      pars: PH },
+      { name: '파인',      pars: PA },
+      { name: '더레전드아웃', pars: PB },
+      { name: '더레전드인',  pars: PC },
     ],
   },
   {
-    name: '영암 컨트리클럽', location: '전남',
+    name: '세이지우드홍천', location: '강원',
     courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PC },
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
     ],
   },
   {
-    name: '고흥 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '진도 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '화순 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '광양 컨트리클럽', location: '전남',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PC },
-    ],
-  },
-
-  // ── 경상북도 ─────────────────────────────────────────────
-  {
-    name: '경주 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '포항 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '안동 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '구미 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '상주 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '예천 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '영주 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '영천 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '군위 컨트리클럽', location: '경북',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '성주 컨트리클럽', location: '경북',
+    name: '센추리21', location: '강원',
     courses: [
       { name: '아웃', pars: PG },
-      { name: '인',   pars: PA },
+      { name: '인',   pars: PH },
     ],
   },
   {
-    name: '경산 컨트리클럽', location: '경북',
+    name: '소노펠리체', location: '강원',
     courses: [
-      { name: '아웃', pars: PD },
+      { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '칠곡 컨트리클럽', location: '경북',
+    name: '알펜시아', location: '강원',
+    courses: [
+      { name: '아웃',  pars: PC },
+      { name: '인',    pars: PD },
+      { name: '레이크', pars: PE },
+    ],
+  },
+  {
+    name: '엘리시안강촌', location: '강원',
+    courses: [
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
+    ],
+  },
+  {
+    name: '오크밸리', location: '강원',
+    courses: [
+      { name: '메이플', pars: PA },
+      { name: '오크',   pars: PB },
+      { name: '파인',   pars: PC },
+      { name: '밸리',   pars: PD },
+      { name: '크릭',   pars: PE },
+      { name: '스카이', pars: PF },
+    ],
+  },
+  {
+    name: '오크힐스', location: '강원',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '올데이옥스필드', location: '강원',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '용평', location: '강원',
     courses: [
       { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '웰리힐리', location: '강원',
+    courses: [
+      { name: '남아웃', pars: PE },
+      { name: '남인',   pars: PF },
+      { name: '북아웃', pars: PG },
+      { name: '북인',   pars: PH },
+    ],
+  },
+  {
+    name: '제이드팰리스', location: '강원',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '카스카디아', location: '강원',
+    courses: [
+      { name: '아웃',  pars: PC },
+      { name: '인',    pars: PD },
+      { name: '레이크', pars: PE },
+    ],
+  },
+  {
+    name: '파인리즈', location: '강원',
+    courses: [
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
+    ],
+  },
+  {
+    name: '플라자CC설악', location: '강원',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '하이원', location: '강원',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '휘닉스평창', location: '강원',
+    courses: [
+      { name: '아웃', pars: PE },
       { name: '인',   pars: PF },
     ],
   },
   {
-    name: '문경 컨트리클럽', location: '경북',
+    name: '휘슬링락', location: '강원',
     courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PD },
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
     ],
   },
   {
-    name: '울진 컨트리클럽', location: '경북',
+    name: '힐드로사이', location: '강원',
     courses: [
-      { name: '아웃', pars: PA },
+      { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+
+  // ── 충남 ──────────────────────────────────────────────────
+  {
+    name: 'SG아름다운', location: '충남',
+    courses: [
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
+    ],
+  },
+  {
+    name: '계룡대', location: '충남',
+    courses: [
+      { name: '파인아웃',  pars: PG },
+      { name: '파인인',    pars: PH },
+      { name: '레이크아웃', pars: PA },
+      { name: '레이크인',   pars: PB },
+    ],
+  },
+  {
+    name: '골든베이', location: '충남',
+    courses: [
+      { name: '오션',  pars: PC },
+      { name: '파인',  pars: PD },
+      { name: '레이크', pars: PE },
+    ],
+  },
+  {
+    name: '도고', location: '충남',
+    courses: [
+      { name: '아웃', pars: PF },
       { name: '인',   pars: PG },
     ],
   },
   {
-    name: '의성 컨트리클럽', location: '경북',
+    name: '롯데스카이힐부여', location: '충남',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+  {
+    name: '마론', location: '충남',
     courses: [
       { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
-
-  // ── 대구 ─────────────────────────────────────────────────
   {
-    name: '대구 컨트리클럽', location: '대구',
+    name: '서산수', location: '충남',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '인',   pars: [4,3,5,4,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '노블레스 컨트리클럽', location: '대구',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '동촌 컨트리클럽', location: '대구',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '팔공산 컨트리클럽', location: '대구',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '범어 컨트리클럽', location: '대구',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '비슬산 컨트리클럽', location: '대구',
-    courses: [
-      { name: '아웃', pars: PB },
-      { name: '인',   pars: PD },
-    ],
-  },
-
-  // ── 경상남도 ─────────────────────────────────────────────
-  {
-    name: '가야 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,5,4,4,3,4,5] },
-    ],
-  },
-  {
-    name: '남해 골프클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: [4,3,5,4,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '창원 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '진주 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '마산 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '거제 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '통영 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PC },
+      { name: '아웃', pars: PD },
       { name: '인',   pars: PE },
     ],
   },
   {
-    name: '함양 컨트리클럽', location: '경남',
+    name: '에딘버러', location: '충남',
     courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PF },
-    ],
-  },
-  {
-    name: '합천 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PA },
+      { name: '아웃', pars: PF },
       { name: '인',   pars: PG },
     ],
   },
   {
-    name: '밀양 컨트리클럽', location: '경남',
+    name: '예미지', location: '충남',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '우정힐스', location: '충남',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '천안상록', location: '충남',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '포웰CC프린세스', location: '충남',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+
+  // ── 충북 ──────────────────────────────────────────────────
+  {
+    name: '감곡', location: '충북',
     courses: [
       { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
   {
-    name: '양산 컨트리클럽', location: '경남',
+    name: '그랜드', location: '충북',
+    courses: [
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
+    ],
+  },
+  {
+    name: '세레니티', location: '충북',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '센테리움', location: '충북',
+    courses: [
+      { name: '아웃',  pars: PA },
+      { name: '인',    pars: PB },
+      { name: '레이크', pars: PC },
+    ],
+  },
+  {
+    name: '썬밸리', location: '충북',
     courses: [
       { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '사천 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PC },
-    ],
-  },
-  {
-    name: '롯데스카이힐 거제 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,4,5,4,3,5,4] },
-    ],
-  },
-  {
-    name: '마이다스 밸리 골프클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '고성 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '하동 컨트리클럽', location: '경남',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PF },
-    ],
-  },
-
-  // ── 부산 ─────────────────────────────────────────────────
-  {
-    name: '동부산 컨트리클럽', location: '부산',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '인',   pars: [4,3,5,4,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '롯데스카이힐 부산 컨트리클럽', location: '부산',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '해운대 컨트리클럽', location: '부산',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '부산 컨트리클럽', location: '부산',
-    courses: [
-      { name: '아웃', pars: PC },
       { name: '인',   pars: PE },
     ],
   },
   {
-    name: '기장 컨트리클럽', location: '부산',
+    name: '아난티중앙', location: '충북',
     courses: [
-      { name: '아웃', pars: PD },
-      { name: '인',   pars: PA },
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
     ],
   },
   {
-    name: '통도 환타지아 컨트리클럽', location: '부산',
+    name: '올데이로얄포레', location: '충북',
     courses: [
-      { name: '아웃', pars: PF },
+      { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '철마 컨트리클럽', location: '부산',
+    name: '올데이임페리얼레이크', location: '충북',
     courses: [
       { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
     ],
   },
   {
-    name: '웅촌 컨트리클럽', location: '부산',
+    name: '천룡', location: '충북',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PG },
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '코스카', location: '충북',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '킹스데일', location: '충북',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '킹즈락', location: '충북',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
     ],
   },
 
-  // ── 울산 ─────────────────────────────────────────────────
+  // ── 세종 ──────────────────────────────────────────────────
   {
-    name: '울산 컨트리클럽', location: '울산',
+    name: '세종에머슨', location: '세종',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
     ],
   },
   {
-    name: '현대 컨트리클럽', location: '울산',
-    courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '울주 컨트리클럽', location: '울산',
+    name: '세종필드', location: '세종',
     courses: [
       { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
-    ],
-  },
-  {
-    name: '반구대 컨트리클럽', location: '울산',
-    courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
     ],
   },
 
-  // ── 제주 ─────────────────────────────────────────────────
+  // ── 대전 ──────────────────────────────────────────────────
   {
-    name: '클럽 나인브릿지', location: '제주',
+    name: '유성', location: '대전',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+
+  // ── 전북 ──────────────────────────────────────────────────
+  {
+    name: '골프존카운티선운', location: '전북',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
     ],
   },
   {
-    name: '핀크스 골프클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: [4,3,4,5,4,4,3,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '제주 컨트리클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,5,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '롯데스카이힐 제주 컨트리클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '엘리시안 제주 골프클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,4,3,4,5] },
-      { name: '인',   pars: [4,4,3,5,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '해비치 컨트리클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,5,4,3,4,5,4] },
-    ],
-  },
-  {
-    name: '중문 컨트리클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,3,4,5,4,4,3,5,4] },
-    ],
-  },
-  {
-    name: '아난티 클럽 제주', location: '제주',
+    name: '고창', location: '전북',
     courses: [
       { name: '아웃', pars: PA },
       { name: '인',   pars: PB },
     ],
   },
   {
-    name: '오라 컨트리클럽', location: '제주',
+    name: '남원상록', location: '전북',
     courses: [
       { name: '아웃', pars: PC },
       { name: '인',   pars: PD },
     ],
   },
   {
-    name: '라헨느 컨트리클럽', location: '제주',
+    name: '무주덕유산', location: '전북',
     courses: [
       { name: '아웃', pars: PE },
-      { name: '인',   pars: PA },
-    ],
-  },
-  {
-    name: '레이크힐스 제주 컨트리클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: PF },
-      { name: '인',   pars: PB },
-    ],
-  },
-  {
-    name: '서귀포 컨트리클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: PC },
-      { name: '인',   pars: PE },
-    ],
-  },
-  {
-    name: '에코랜드 골프클럽', location: '제주',
-    courses: [
-      { name: '아웃', pars: PD },
       { name: '인',   pars: PF },
     ],
   },
   {
-    name: '탐라 컨트리클럽', location: '제주',
+    name: '석정힐', location: '전북',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PG },
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
     ],
   },
   {
-    name: '제주 파인힐스 골프클럽', location: '제주',
+    name: '포세븐금강', location: '전북',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+
+  // ── 전남 ──────────────────────────────────────────────────
+  {
+    name: '골드레이크', location: '전남',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '광주(곡성)', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '다산베아채', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '담양레이나', location: '전남',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '르오네뜨', location: '전남',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '무등산', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+  {
+    name: '파인비치', location: '전남',
     courses: [
       { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
   {
-    name: '한라 컨트리클럽', location: '제주',
+    name: '포라이즌', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
+    ],
+  },
+  {
+    name: '푸른솔장성', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+  {
+    name: '세이지우드여수경도', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PB },
+      { name: '인',    pars: PC },
+      { name: '레이크', pars: PD },
+    ],
+  },
+  {
+    name: '해피니스', location: '전남',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '화순', location: '전남',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+
+  // ── 광주 ──────────────────────────────────────────────────
+  {
+    name: '어등산', location: '광주',
+    courses: [
+      { name: '아웃',  pars: PB },
+      { name: '인',    pars: PC },
+      { name: '레이크', pars: PD },
+    ],
+  },
+
+  // ── 경북 ──────────────────────────────────────────────────
+  {
+    name: '강동디아너스', location: '경북',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '경주신라', location: '경북',
+    courses: [
+      { name: 'A아웃', pars: PH },
+      { name: 'A인',   pars: PA },
+      { name: 'B아웃', pars: PB },
+      { name: 'B인',   pars: PC },
+    ],
+  },
+  {
+    name: '골프존카운티선산', location: '경북',
     courses: [
       { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '구니', location: '경북',
+    courses: [
+      { name: '아웃', pars: PF },
+      { name: '인',   pars: PG },
+    ],
+  },
+  {
+    name: '구미', location: '경북',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '대구', location: '경북',
+    courses: [
+      { name: '이스트', pars: PC },
+      { name: '웨스트', pars: PD },
+      { name: '레이크', pars: PE },
+    ],
+  },
+  {
+    name: '마우나오션', location: '경북',
+    courses: [
+      { name: '아웃', pars: PF },
+      { name: '인',   pars: PG },
+    ],
+  },
+  {
+    name: '문경', location: '경북',
+    courses: [
+      { name: '아웃', pars: PH },
       { name: '인',   pars: PA },
     ],
   },
   {
-    name: '골프존 카운티 제주', location: '제주',
+    name: '블루원상주', location: '경북',
     courses: [
-      { name: '아웃', pars: PF },
+      { name: '아웃', pars: PB },
       { name: '인',   pars: PC },
     ],
   },
   {
-    name: '더클래식 골프클럽 제주', location: '제주',
+    name: '세븐밸리', location: '경북',
     courses: [
-      { name: '아웃', pars: [4,4,3,5,4,3,4,5,4] },
-      { name: '인',   pars: [4,4,3,4,5,4,3,5,4] },
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '오펠', location: '경북',
+    courses: [
+      { name: '아웃',  pars: PF },
+      { name: '인',    pars: PG },
+      { name: '레이크', pars: PH },
+    ],
+  },
+  {
+    name: '이지스카이', location: '경북',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '파미힐스', location: '경북',
+    courses: [
+      { name: '파인아웃',   pars: PC },
+      { name: '파인인',     pars: PD },
+      { name: '마운틴아웃', pars: PE },
+      { name: '마운틴인',   pars: PF },
+    ],
+  },
+  {
+    name: '해내다', location: '경북',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+
+  // ── 대구 ──────────────────────────────────────────────────
+  {
+    name: '팔공', location: '대구',
+    courses: [
+      { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+
+  // ── 경남 ──────────────────────────────────────────────────
+  {
+    name: '4WELL', location: '경남',
+    courses: [
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '가야', location: '경남',
+    courses: [
+      { name: '신어', pars: PF },
+      { name: '낙동', pars: PG },
+      { name: '김해', pars: PH },
+      { name: '수로', pars: PA },
+      { name: '가락', pars: PB },
+    ],
+  },
+  {
+    name: '김해상록', location: '경남',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '노벨', location: '경남',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '드비치', location: '경남',
+    courses: [
+      { name: '아웃', pars: PH },
+      { name: '인',   pars: PA },
+    ],
+  },
+  {
+    name: '동부산', location: '경남',
+    courses: [
+      { name: '아웃',  pars: PB },
+      { name: '인',    pars: PC },
+      { name: '레이크', pars: PD },
+    ],
+  },
+  {
+    name: '부곡', location: '경남',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '서경타니', location: '경남',
+    courses: [
+      { name: '타니아웃', pars: PG },
+      { name: '타니인',   pars: PH },
+      { name: '서경아웃', pars: PA },
+      { name: '서경인',   pars: PB },
+    ],
+  },
+  {
+    name: '양산에덴밸리', location: '경남',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '에이원', location: '경남',
+    courses: [
+      { name: '아웃',  pars: PE },
+      { name: '인',    pars: PF },
+      { name: '레이크', pars: PG },
+    ],
+  },
+  {
+    name: '정산', location: '경남',
+    courses: [
+      { name: '아웃',  pars: PH },
+      { name: '인',    pars: PA },
+      { name: '레이크', pars: PB },
+    ],
+  },
+  {
+    name: '창원', location: '경남',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+
+  // ── 부산 ──────────────────────────────────────────────────
+  {
+    name: '동래베네스트', location: '부산',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '부산', location: '부산',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '베이사이드', location: '부산',
+    courses: [
+      { name: '아웃',  pars: PA },
+      { name: '인',    pars: PB },
+      { name: '레이크', pars: PC },
+    ],
+  },
+  {
+    name: '해운대', location: '부산',
+    courses: [
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
+    ],
+  },
+  {
+    name: '해운대비치', location: '부산',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+
+  // ── 울산 ──────────────────────────────────────────────────
+  {
+    name: '보라', location: '울산',
+    courses: [
+      { name: '아웃',  pars: PA },
+      { name: '인',    pars: PB },
+      { name: '레이크', pars: PC },
+    ],
+  },
+  {
+    name: '울산', location: '울산',
+    courses: [
+      { name: '아웃',  pars: PD },
+      { name: '인',    pars: PE },
+      { name: '레이크', pars: PF },
+    ],
+  },
+
+  // ── 제주 ──────────────────────────────────────────────────
+  {
+    name: '골프존카운티오라', location: '제주',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '그린필드', location: '제주',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '나인브릿지', location: '제주',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '롯데스카이힐제주', location: '제주',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '볼카노', location: '제주',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+  {
+    name: '블랙스톤제주', location: '제주',
+    courses: [
+      { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+  {
+    name: '사이프러스', location: '제주',
+    courses: [
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '아난티클럽제주', location: '제주',
+    courses: [
+      { name: '아웃', pars: PF },
+    ],
+  },
+  {
+    name: '에버리스', location: '제주',
+    courses: [
+      { name: '아웃', pars: PG },
+      { name: '인',   pars: PH },
+    ],
+  },
+  {
+    name: '엘리시안제주', location: '제주',
+    courses: [
+      { name: '아웃', pars: PA },
+      { name: '인',   pars: PB },
+    ],
+  },
+  {
+    name: '중문', location: '제주',
+    courses: [
+      { name: '아웃', pars: PC },
+      { name: '인',   pars: PD },
+    ],
+  },
+  {
+    name: '캐슬렉스제주', location: '제주',
+    courses: [
+      { name: '아웃', pars: PE },
+      { name: '인',   pars: PF },
+    ],
+  },
+  {
+    name: '크라운', location: '제주',
+    courses: [
+      { name: '아웃',  pars: PG },
+      { name: '인',    pars: PH },
+      { name: '레이크', pars: PA },
+    ],
+  },
+  {
+    name: '테디밸리', location: '제주',
+    courses: [
+      { name: '아웃', pars: PB },
+      { name: '인',   pars: PC },
+    ],
+  },
+  {
+    name: '핀크스', location: '제주',
+    courses: [
+      { name: '아웃', pars: PD },
+      { name: '인',   pars: PE },
+    ],
+  },
+  {
+    name: '해비치제주', location: '제주',
+    courses: [
+      { name: '아웃', pars: PF },
+      { name: '인',   pars: PG },
     ],
   },
 

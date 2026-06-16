@@ -709,6 +709,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     onUpdate(updated);
   };
 
+  const updateOnGreen = (val) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, onGreen: val, touched: true } } };
+    onUpdate(updated);
+  };
+
+  const extraShotTopRef = useRef(null);
+  const prevExtraShotsLenRef = useRef(0);
+
   const goToHole = (idx) => { if (idx >= 0 && idx < 18) { setHoleIdx(idx); onUpdate({ ...round, currentHole: idx }); } };
 
   const confirmAndGoToHole = (idx) => {
@@ -810,7 +820,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puttDetails.length]);
 
-  useEffect(() => { setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); }, [holeIdx]);
+  useEffect(() => { setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); prevExtraShotsLenRef.current = 0; }, [holeIdx]);
+
+  useEffect(() => {
+    if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current) {
+      setTimeout(() => extraShotTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
+    prevExtraShotsLenRef.current = extraShots.length;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extraShots.length]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(0); } }, [teeComplete]);
@@ -1140,6 +1158,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* ── 추가 샷 + GIR + 샷 추가 ── */}
         {playerScore.terrainCondition && (<>
         {/* ── 추가 샷 ── */}
+        <div ref={extraShotTopRef} />
         {extraShots.map((shot, idx) => (
           <React.Fragment key={idx}>
             {secHdr(`${idx + 3}번 째 샷`, () => { removeExtraShot(idx); if (idx === extraShots.length - 1) setSecondShotExpanded(true); })}
@@ -1197,7 +1216,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </React.Fragment>
         ))}
 
-        {/* GIR */}
+        {/* GIR / 온그린 */}
+        {extraShots.length === 0 ? (
         <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
           <div style={fLeft}>
             <span style={fIcon}>⚑</span>
@@ -1205,9 +1225,21 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
-            <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>{ updateGir(false); setSecondShotExpanded(false); if (extraShots.length === 0) addExtraShot(); }}>실패</button>
+            <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>{ updateGir(false); setSecondShotExpanded(false); addExtraShot(); }}>실패</button>
           </div>
         </div>
+        ) : (
+        <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+          <div style={fLeft}>
+            <span style={fIcon}>⚑</span>
+            <span style={fLbl}>온그린</span>
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button style={{ ...fChipWide, padding:'10px 16px', fontSize:12, ...(playerScore.onGreen===true?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>{ updateOnGreen(true); setShotPage(1); }}>온그린 성공</button>
+            <button style={{ ...fChipWide, padding:'10px 16px', fontSize:12, ...(playerScore.onGreen===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>{ updateOnGreen(false); addExtraShot(); }}>온그린 실패</button>
+          </div>
+        </div>
+        )}
 
         <div style={{ padding:'8px 16px 10px', borderBottom:'1px solid #0e1320' }}>
           <button

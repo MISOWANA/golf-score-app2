@@ -771,12 +771,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
   useEffect(() => {
-    const prevLast = puttDetails[puttDetails.length - 2];
-    const prevHasData = prevLast != null && (
-      prevLast.distance != null || prevLast.aimDistance != null ||
-      (prevLast.lie != null && prevLast.lie !== '')
+    const firstEmpty = puttDetails.findIndex(p =>
+      p.distance == null && p.aimDistance == null && (p.lie == null || p.lie === '')
     );
-    setExpandedPutt(puttDetails.length > 1 && prevHasData ? puttDetails.length - 1 : 0);
+    setExpandedPutt(firstEmpty >= 0 ? firstEmpty : 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puttDetails.length]);
 

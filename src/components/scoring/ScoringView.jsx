@@ -593,6 +593,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [showParEditModal, setShowParEditModal] = useState(false);
   const [parDraft, setParDraft] = useState([...round.pars]);
   const [expandedPutt, setExpandedPutt] = useState(0);
+  const [shotPage, setShotPage] = useState(0);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -770,6 +771,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
   useEffect(() => { setExpandedPutt(puttDetails.length - 1); }, [puttDetails.length]);
+
+  useEffect(() => { setShotPage(0); }, [holeIdx]);
 
   return (
     <div style={styles.container}>
@@ -988,6 +991,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         )}
 
+        {/* ── 페이지 네이션 ── */}
+        <div style={{ display:'flex', margin:'8px 16px 0', borderRadius:10, overflow:'hidden', border:'1px solid #1b2238', background:'#0a0e1a' }}>
+          {[['세컨샷', 0], ['퍼팅', 1]].map(([label, pg]) => (
+            <button key={pg} onClick={() => setShotPage(pg)}
+              style={{ flex:1, padding:'12px 0', border:'none', cursor:'pointer', background: shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: shotPage===pg ? '#c9a228' : '#4d5a78', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
+            >{label}</button>
+          ))}
+        </div>
+
+        {shotPage === 0 && <>
         {/* ── 세컨샷 ── */}
         {secHdr('세 컨 샷')}
 
@@ -1132,7 +1145,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             12시=롱 · 6시=숏 · 9시=레프트 · 3시=라이트 (핀 기준)
           </div>
         </div>
+        </>}
 
+        {shotPage === 1 && <>
         {/* ── 퍼팅 ── */}
         {secHdr('퍼 팅')}
 
@@ -1247,6 +1262,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           </div>
         </div>
+        </>}
 
       </div>
 

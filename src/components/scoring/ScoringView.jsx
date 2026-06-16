@@ -651,6 +651,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     return { putts, fairway, gir };
   };
 
+  const calcAutoStrokes = (score, par) => {
+    const field = (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
+    return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
+  };
+
   // updateScore handles strokes/putts with auto-inference; other fields use updateField
   const updateScore = (field, value) => {
     const updated = { ...round };
@@ -709,7 +714,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const updated = { ...round };
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];
-    const us = {}; round.players.forEach(p => { us[p] = { ...ch.scores[p], touched: true }; });
+    const us = {};
+    round.players.forEach(p => {
+      const s = ch.scores[p];
+      const autoStrokes = calcAutoStrokes(s, ch.par);
+      const autoGir = (autoStrokes - (s.putts || 0)) <= ch.par - 2;
+      us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
+    });
     updated.holes[holeIdx] = { ...ch, scores: us };
     updated.currentHole = idx; setHoleIdx(idx); onUpdate(updated);
   };
@@ -1366,7 +1377,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               onClick={() => {
                 const u = { ...round }; u.holes = [...round.holes];
                 const lh = u.holes[holeIdx]; const us = {};
-                round.players.forEach(p => { us[p] = { ...lh.scores[p], touched: true }; });
+                round.players.forEach(p => {
+                  const s = lh.scores[p];
+                  const autoStrokes = calcAutoStrokes(s, lh.par);
+                  const autoGir = (autoStrokes - (s.putts || 0)) <= lh.par - 2;
+                  us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
+                });
                 u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
               }}
             >

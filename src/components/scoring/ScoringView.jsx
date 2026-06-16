@@ -443,6 +443,19 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
 }
 
 // ─── RadialPicker: press-and-slide cross selector (generic) ──────────────────
+const SliceIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 11 C4 10 10 7 11 2" />
+    <path d="M8.5 2 L11 2 L11 4.5" />
+  </svg>
+);
+const HookIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 11 C9 10 3 7 2 2" />
+    <path d="M4.5 2 L2 2 L2 4.5" />
+  </svg>
+);
+
 const RADIAL_POS = {
   up:    { tx:   0, ty: -56 },
   down:  { tx:   0, ty:  56 },
@@ -518,14 +531,14 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
               ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), opacity 0.14s ease, background 0.1s, box-shadow 0.1s'
               : 'transform 0.14s ease, opacity 0.1s ease',
             width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
-            display:'flex', alignItems:'center', justifyContent:'center',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
             pointerEvents:'none', zIndex:8,
             border:`1.5px solid ${isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.55)' : '#252f4a'}`,
             background: isHov ? 'rgba(201,162,40,0.28)' : isSel ? 'rgba(201,162,40,0.12)' : '#131d35',
             color: isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.8)' : '#8896b0',
             boxShadow: isHov ? '0 0 14px rgba(201,162,40,0.45)' : 'none',
           }}>
-            {d.label}
+            {d.icon && d.icon}{d.label}
           </div>
         );
       })}
@@ -551,9 +564,9 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
 
 const LIE_DIRS = [
   { id:'uphill',   label:'오르막',   pos:'up'    },
-  { id:'slice',    label:'슬라이스', pos:'left'  },
+  { id:'slice',    label:'슬라이스', pos:'left',  icon: <SliceIcon /> },
   { id:'downhill', label:'내리막',   pos:'down'  },
-  { id:'hook',     label:'훅',       pos:'right' },
+  { id:'hook',     label:'훅',       pos:'right', icon: <HookIcon /> },
 ];
 const PIN_DIRS = [
   { id:'back',  label:'백',    pos:'up'    },
@@ -563,9 +576,9 @@ const PIN_DIRS = [
 ];
 const PUTT_LIE_DIRS = [
   { id:'uphill',      label:'오르막',   pos:'up'    },
-  { id:'break-left',  label:'슬라이스', pos:'left'  },
+  { id:'break-left',  label:'슬라이스', pos:'left',  icon: <SliceIcon /> },
   { id:'downhill',    label:'내리막',   pos:'down'  },
-  { id:'break-right', label:'훅',       pos:'right' },
+  { id:'break-right', label:'훅',       pos:'right', icon: <HookIcon /> },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────

@@ -442,6 +442,121 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
   );
 }
 
+// ─── LiePicker: press-and-slide radial selector ──────────────────────────────
+function LiePicker({ value, onChange }) {
+  const raw = Array.isArray(value) ? value[0] || null : value || null;
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(null);
+  const isDragging = useRef(false);
+  const hoveredRef = useRef(null);
+  const centerRef = useRef(null);
+
+  // tx/ty: offset from center when open (px)
+  const DIRS = [
+    { id: 'uphill',   label: '오르막',   tx:   0, ty: -54 },
+    { id: 'slice',    label: '슬라이스', tx: -72, ty:   0 },
+    { id: 'downhill', label: '내리막',   tx:   0, ty:  54 },
+    { id: 'hook',     label: '훅',       tx:  72, ty:   0 },
+  ];
+
+  const getDir = (clientX, clientY) => {
+    if (!centerRef.current) return 'flat';
+    const r = centerRef.current.getBoundingClientRect();
+    const dx = clientX - (r.left + r.width / 2);
+    const dy = clientY - (r.top + r.height / 2);
+    if (Math.hypot(dx, dy) < 32) return 'flat';
+    const a = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (a > -45  && a <= 45)  return 'hook';
+    if (a > 45   && a <= 135) return 'downhill';
+    if (a > -135 && a <= -45) return 'uphill';
+    return 'slice';
+  };
+
+  const onDown = (e) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isDragging.current = true;
+    hoveredRef.current = 'flat';
+    setHovered('flat');
+    setOpen(true);
+  };
+  const onMove = (e) => {
+    if (!isDragging.current) return;
+    const h = getDir(e.clientX, e.clientY);
+    if (h !== hoveredRef.current) { hoveredRef.current = h; setHovered(h); }
+  };
+  const onUp = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const sel = hoveredRef.current;
+    hoveredRef.current = null; setHovered(null); setOpen(false);
+    onChange(sel === raw ? null : sel);
+  };
+  const onCancel = () => {
+    isDragging.current = false; hoveredRef.current = null; setHovered(null); setOpen(false);
+  };
+
+  const selLabel = raw === 'flat' ? '평지' : (DIRS.find(d => d.id === raw)?.label ?? null);
+  const isCtrHov = open && hovered === 'flat';
+
+  return (
+    <div style={{ position:'relative', height:130, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      {/* Directional buttons — always in DOM, animate via transform */}
+      {DIRS.map(d => {
+        const isHov = hovered === d.id;
+        const isSel = raw === d.id;
+        return (
+          <div key={d.id} style={{
+            position:'absolute', top:'50%', left:'50%',
+            transform: open
+              ? `translate(calc(-50% + ${d.tx}px), calc(-50% + ${d.ty}px)) scale(${isHov ? 1.1 : 1})`
+              : 'translate(-50%, -50%) scale(0)',
+            opacity: open ? 1 : 0,
+            transition: open
+              ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), opacity 0.14s ease, background 0.1s, box-shadow 0.1s'
+              : 'transform 0.14s ease, opacity 0.1s ease',
+            padding:'9px 14px', borderRadius:8, fontSize:12, fontWeight:700,
+            pointerEvents:'none', whiteSpace:'nowrap', zIndex:8,
+            border:`1.5px solid ${isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.55)' : '#252f4a'}`,
+            background: isHov ? 'rgba(201,162,40,0.28)' : isSel ? 'rgba(201,162,40,0.12)' : '#131d35',
+            color: isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.8)' : '#8896b0',
+            boxShadow: isHov ? '0 0 14px rgba(201,162,40,0.45)' : 'none',
+          }}>
+            {d.label}
+          </div>
+        );
+      })}
+
+      {/* Center button */}
+      <button
+        ref={centerRef}
+        style={{
+          position:'relative', zIndex:10,
+          padding:'11px 28px', borderRadius:8, fontSize:13, fontWeight:700,
+          touchAction:'none', userSelect:'none', cursor:'pointer',
+          border:`1.5px solid ${isCtrHov ? '#c9a228' : raw ? '#c9a228' : '#252f4a'}`,
+          background: isCtrHov ? 'rgba(201,162,40,0.28)' : raw ? 'rgba(201,162,40,0.18)' : '#1a2235',
+          color: (isCtrHov || raw) ? '#c9a228' : '#8896b0',
+          transition:'border-color 0.1s, background 0.1s, color 0.1s',
+        }}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
+      >
+        평지
+      </button>
+
+      {/* Selected direction label */}
+      {selLabel && selLabel !== '평지' && !open && (
+        <div style={{
+          position:'absolute', bottom:6, fontSize:10, color:'#c9a228',
+          fontWeight:700, letterSpacing:'0.1em', pointerEvents:'none',
+        }}>
+          {selLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExit, onGoToSetup }) {
@@ -868,25 +983,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         />
 
         {/* 세컨샷 라이 */}
-        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
-            {LIE_GRID.map((id, i) => {
-              if (!id) return <div key={i} />;
-              const opt = TERRAIN_OPTIONS.find(t => t.id === id);
-              const cur = Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition : (playerScore.terrainCondition ? [playerScore.terrainCondition] : []);
-              const sel = cur.includes(id);
-              return (
-                <button key={id}
-                  style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
-                  onClick={() => updateField('terrainCondition', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+          <LiePicker
+            value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
+            onChange={v => updateField('terrainCondition', v)}
+          />
         </div>
 
         {/* 바람 */}
@@ -931,25 +1035,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             />
 
             {/* 라이 */}
-            <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-                <span style={fIcon}>▲</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+            <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
-                {LIE_GRID.map((id, i) => {
-                  if (!id) return <div key={i} />;
-                  const opt = TERRAIN_OPTIONS.find(t => t.id === id);
-                  const cur = shot.lie || [];
-                  const sel = cur.includes(id);
-                  return (
-                    <button key={id}
-                      style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
-                      onClick={() => updateExtraShot(idx, { lie: sel ? cur.filter(v=>v!==id) : [...cur, id] })}>
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <LiePicker
+                value={Array.isArray(shot.lie) ? shot.lie[0] : shot.lie}
+                onChange={v => updateExtraShot(idx, { lie: v })}
+              />
             </div>
 
             {/* 바람 */}
@@ -1101,18 +1194,26 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         <div style={{ display:'flex', gap:8, padding:'12px 16px', marginBottom:4 }}>
           <div style={fPenBox}>
             <span style={fPenLbl}>OB</span>
-            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <button style={fMiniBtn} onClick={()=>{ const c=playerScore.ob||0; if(c>0) updateScore('ob',c-1); }}>−</button>
-              <span style={{ fontSize:22, fontWeight:800, color:(playerScore.ob||0)>0?'#ef5350':'#e8edf8', minWidth:24, textAlign:'center' }}>{playerScore.ob||0}</span>
-              <button style={fMiniBtn} onClick={()=>updateScore('ob',Math.min(5,(playerScore.ob||0)+1))}>+</button>
+            <div style={{ position:'relative', display:'flex', height:52, width:'100%', borderRadius:8, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
+              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
+                onClick={()=>{ const c=playerScore.ob||0; if(c>0) updateScore('ob',c-1); }}>−</button>
+              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
+                onClick={()=>updateScore('ob',Math.min(5,(playerScore.ob||0)+1))}>+</button>
+              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                <span style={{ fontSize:26, fontWeight:900, color:(playerScore.ob||0)>0?'#ef5350':'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.ob||0}</span>
+              </div>
             </div>
           </div>
           <div style={fPenBox}>
             <span style={fPenLbl}>해저드</span>
-            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <button style={fMiniBtn} onClick={()=>{ const c=playerScore.hazard||0; if(c>0) updateScore('hazard',c-1); }}>−</button>
-              <span style={{ fontSize:22, fontWeight:800, color:(playerScore.hazard||0)>0?'#c9a228':'#e8edf8', minWidth:24, textAlign:'center' }}>{playerScore.hazard||0}</span>
-              <button style={fMiniBtn} onClick={()=>updateScore('hazard',Math.min(5,(playerScore.hazard||0)+1))}>+</button>
+            <div style={{ position:'relative', display:'flex', height:52, width:'100%', borderRadius:8, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
+              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
+                onClick={()=>{ const c=playerScore.hazard||0; if(c>0) updateScore('hazard',c-1); }}>−</button>
+              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
+                onClick={()=>updateScore('hazard',Math.min(5,(playerScore.hazard||0)+1))}>+</button>
+              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                <span style={{ fontSize:26, fontWeight:900, color:(playerScore.hazard||0)>0?'#c9a228':'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.hazard||0}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1284,5 +1385,5 @@ const fChipWide = { minWidth:52, padding:'7px 12px', borderRadius:8, border:'1.5
 
 const fMiniBtn = { width:32, height:32, borderRadius:7, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
 
-const fPenBox = { flex:1, minHeight:64, background:'#1a2235', border:'1px solid #252f4a', borderRadius:10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 };
+const fPenBox = { flex:1, minHeight:64, background:'#1a2235', border:'1px solid #252f4a', borderRadius:10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, padding:'8px 10px' };
 const fPenLbl = { fontSize:9, color:'#8896b0', fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' };

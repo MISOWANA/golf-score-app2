@@ -442,8 +442,16 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
   );
 }
 
-// ─── LiePicker: press-and-slide radial selector ──────────────────────────────
-function LiePicker({ value, onChange }) {
+// ─── RadialPicker: press-and-slide cross selector (generic) ──────────────────
+const RADIAL_POS = {
+  up:    { tx:  0,  ty: -54 },
+  down:  { tx:  0,  ty:  54 },
+  left:  { tx: -76, ty:   0 },
+  right: { tx:  76, ty:   0 },
+};
+
+function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
+  // dirs: [{ id, label, pos: 'up'|'down'|'left'|'right' }]
   const raw = Array.isArray(value) ? value[0] || null : value || null;
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(null);
@@ -451,38 +459,32 @@ function LiePicker({ value, onChange }) {
   const hoveredRef = useRef(null);
   const centerRef = useRef(null);
 
-  // tx/ty: offset from center when open (px)
-  const DIRS = [
-    { id: 'uphill',   label: '오르막',   tx:   0, ty: -54 },
-    { id: 'slice',    label: '슬라이스', tx: -72, ty:   0 },
-    { id: 'downhill', label: '내리막',   tx:   0, ty:  54 },
-    { id: 'hook',     label: '훅',       tx:  72, ty:   0 },
-  ];
-
-  const getDir = (clientX, clientY) => {
-    if (!centerRef.current) return 'flat';
+  const getHoverId = (clientX, clientY) => {
+    if (!centerRef.current) return centerId;
     const r = centerRef.current.getBoundingClientRect();
     const dx = clientX - (r.left + r.width / 2);
     const dy = clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < 32) return 'flat';
+    if (Math.hypot(dx, dy) < 32) return centerId;
     const a = Math.atan2(dy, dx) * 180 / Math.PI;
-    if (a > -45  && a <= 45)  return 'hook';
-    if (a > 45   && a <= 135) return 'downhill';
-    if (a > -135 && a <= -45) return 'uphill';
-    return 'slice';
+    let pos;
+    if (a > -45  && a <= 45)  pos = 'right';
+    else if (a > 45 && a <= 135) pos = 'down';
+    else if (a > -135 && a <= -45) pos = 'up';
+    else pos = 'left';
+    return dirs.find(d => d.pos === pos)?.id ?? centerId;
   };
 
   const onDown = (e) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     isDragging.current = true;
-    hoveredRef.current = 'flat';
-    setHovered('flat');
+    hoveredRef.current = centerId;
+    setHovered(centerId);
     setOpen(true);
   };
   const onMove = (e) => {
     if (!isDragging.current) return;
-    const h = getDir(e.clientX, e.clientY);
+    const h = getHoverId(e.clientX, e.clientY);
     if (h !== hoveredRef.current) { hoveredRef.current = h; setHovered(h); }
   };
   const onUp = () => {
@@ -496,20 +498,20 @@ function LiePicker({ value, onChange }) {
     isDragging.current = false; hoveredRef.current = null; setHovered(null); setOpen(false);
   };
 
-  const selLabel = raw === 'flat' ? '평지' : (DIRS.find(d => d.id === raw)?.label ?? null);
-  const isCtrHov = open && hovered === 'flat';
+  const selLabel = raw === centerId ? centerLabel : (dirs.find(d => d.id === raw)?.label ?? null);
+  const isCtrHov = open && hovered === centerId;
 
   return (
     <div style={{ position:'relative', height:130, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      {/* Directional buttons — always in DOM, animate via transform */}
-      {DIRS.map(d => {
+      {dirs.map(d => {
+        const { tx, ty } = RADIAL_POS[d.pos];
         const isHov = hovered === d.id;
         const isSel = raw === d.id;
         return (
           <div key={d.id} style={{
             position:'absolute', top:'50%', left:'50%',
             transform: open
-              ? `translate(calc(-50% + ${d.tx}px), calc(-50% + ${d.ty}px)) scale(${isHov ? 1.1 : 1})`
+              ? `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${isHov ? 1.1 : 1})`
               : 'translate(-50%, -50%) scale(0)',
             opacity: open ? 1 : 0,
             transition: open
@@ -527,7 +529,6 @@ function LiePicker({ value, onChange }) {
         );
       })}
 
-      {/* Center button */}
       <button
         ref={centerRef}
         style={{
@@ -541,21 +542,30 @@ function LiePicker({ value, onChange }) {
         }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
       >
-        평지
+        {open ? centerLabel : (selLabel || centerLabel)}
       </button>
-
-      {/* Selected direction label */}
-      {selLabel && selLabel !== '평지' && !open && (
-        <div style={{
-          position:'absolute', bottom:6, fontSize:10, color:'#c9a228',
-          fontWeight:700, letterSpacing:'0.1em', pointerEvents:'none',
-        }}>
-          {selLabel}
-        </div>
-      )}
     </div>
   );
 }
+
+const LIE_DIRS = [
+  { id:'uphill',   label:'오르막',   pos:'up'    },
+  { id:'slice',    label:'슬라이스', pos:'left'  },
+  { id:'downhill', label:'내리막',   pos:'down'  },
+  { id:'hook',     label:'훅',       pos:'right' },
+];
+const PIN_DIRS = [
+  { id:'back',  label:'백',    pos:'up'    },
+  { id:'left',  label:'레프트', pos:'left'  },
+  { id:'front', label:'프론트', pos:'down'  },
+  { id:'right', label:'라이트', pos:'right' },
+];
+const PUTT_LIE_DIRS = [
+  { id:'uphill',      label:'오르막',   pos:'up'    },
+  { id:'break-left',  label:'슬라이스', pos:'left'  },
+  { id:'downhill',    label:'내리막',   pos:'down'  },
+  { id:'break-right', label:'훅',       pos:'right' },
+];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -987,7 +997,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
             <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
           </div>
-          <LiePicker
+          <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
             value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
             onChange={v => updateField('terrainCondition', v)}
           />
@@ -1039,7 +1049,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
                 <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
               </div>
-              <LiePicker
+              <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
                 value={Array.isArray(shot.lie) ? shot.lie[0] : shot.lie}
                 onChange={v => updateExtraShot(idx, { lie: v })}
               />
@@ -1124,27 +1134,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {playerScore.putts > 0 && (<>
 
           {/* 핀 위치 */}
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+          <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
-              {[null,'back',null,'left','center','right',null,'front',null].map((id, i) => {
-                if (!id) return <div key={i} />;
-                const opt = PIN_OPTIONS.find(o => o.id === id);
-                const sel = (playerScore.pinPosition||[]).includes(id);
-                return (
-                  <button key={id}
-                    style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
-                    onClick={() => {
-                      const cur = playerScore.pinPosition||[];
-                      updateField('pinPosition', sel ? cur.filter(v=>v!==id) : [...cur, id]);
-                    }}>
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
+              value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
+              onChange={v => updateField('pinPosition', v)}
+            />
           </div>
 
 
@@ -1165,25 +1162,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
                 <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
               </div>
-              <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-                  <span style={fIcon}>〜</span><span style={fLbl}>라이</span><span style={{ fontSize:9, color:'#4d5a78', marginLeft:6 }}>복수 선택</span>
+              <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                  <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:5 }}>
-                  {[null,'uphill',null,'break-left','flat','break-right',null,'downhill',null].map((id, i) => {
-                    if (!id) return <div key={i} />;
-                    const labels = { flat:'평지', uphill:'오르막', downhill:'내리막', 'break-left':'슬라이스', 'break-right':'훅' };
-                    const cur = putt.lie || [];
-                    const sel = cur.includes(id);
-                    return (
-                      <button key={id}
-                        style={{ ...fChip, textAlign:'center', padding:'9px 4px', borderRadius:8, border:`1.5px solid ${sel?'#c9a228':'#252f4a'}`, background:sel?'rgba(201,162,40,0.18)':'#1a2235', color:sel?'#c9a228':'#8896b0', fontSize:12 }}
-                        onClick={() => updatePutt(puttIdx, 'lie', sel ? cur.filter(v=>v!==id) : [...cur, id])}>
-                        {labels[id]}
-                      </button>
-                    );
-                  })}
-                </div>
+                <RadialPicker centerId="flat" centerLabel="평지" dirs={PUTT_LIE_DIRS}
+                  value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
+                  onChange={v => updatePutt(puttIdx, 'lie', v)}
+                />
               </div>
             </React.Fragment>
           ))}

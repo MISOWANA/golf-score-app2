@@ -770,7 +770,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
-  useEffect(() => { setExpandedPutt(0); }, [puttDetails.length]);
+  useEffect(() => {
+    const prevLast = puttDetails[puttDetails.length - 2];
+    const prevHasData = prevLast != null && (
+      prevLast.distance != null || prevLast.aimDistance != null ||
+      (prevLast.lie != null && prevLast.lie !== '')
+    );
+    setExpandedPutt(puttDetails.length > 1 && prevHasData ? puttDetails.length - 1 : 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [puttDetails.length]);
 
   useEffect(() => { setShotPage(0); }, [holeIdx]);
 

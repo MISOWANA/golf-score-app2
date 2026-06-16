@@ -444,15 +444,13 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
 
 // ─── RadialPicker: press-and-slide cross selector (generic) ──────────────────
 const SliceIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 11 C4 10 10 7 11 2" />
-    <path d="M8.5 2 L11 2 L11 4.5" />
+  <svg width="14" height="12" viewBox="0 0 14 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 1 L1 11 L13 11 Z" />
   </svg>
 );
 const HookIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M11 11 C9 10 3 7 2 2" />
-    <path d="M4.5 2 L2 2 L2 4.5" />
+  <svg width="14" height="12" viewBox="0 0 14 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 11 L13 1 L13 11 Z" />
   </svg>
 );
 
@@ -538,7 +536,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
             color: isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.8)' : '#8896b0',
             boxShadow: isHov ? '0 0 14px rgba(201,162,40,0.45)' : 'none',
           }}>
-            {d.icon && d.icon}{d.label}
+            {d.label}{d.icon && d.icon}
           </div>
         );
       })}

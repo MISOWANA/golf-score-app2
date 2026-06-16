@@ -931,6 +931,21 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         )}
       </div>
 
+      {/* 총 타수 */}
+      <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
+          <button
+            style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
+            onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
+          <button
+            style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
+            onClick={()=>updateScore('strokes',playerScore.strokes+1)}>+</button>
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+            <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Player Tabs */}
       {round.players.length > 1 && (
         <div style={styles.playerTabs}>
@@ -969,24 +984,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </button>
 
         {teeExpanded && <>
-        {/* 총 타수 */}
-        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-            <span style={fIcon}>🏌️</span><span style={fLbl}>총 타수</span>
-          </div>
-          <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-            <button
-              style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
-              onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
-            <button
-              style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
-              onClick={()=>updateScore('strokes',playerScore.strokes+1)}>+</button>
-            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-              <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
-            </div>
-          </div>
-        </div>
-
         {/* 티샷 클럽 */}
         <ClubSelector
           icon="〽"

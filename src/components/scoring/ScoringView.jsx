@@ -1185,16 +1185,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             style={{ width:'100%', padding:'11px', borderRadius:9, border:'1.5px dashed #252f4a', background:'transparent', color:'#4d5a78', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'0.08em' }}
             onClick={addExtraShot}>+ 샷 추가</button>
         </div>
-        </>)}
-
-        </>}
-
-        {teeComplete && shotPage === 1 && <>
-        {/* ── 그린 ── */}
-        {secHdr('그 린')}
 
         {/* GIR */}
-        <div style={fRow}>
+        <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
           <div style={fLeft}>
             <span style={fIcon}>⚑</span>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -1203,10 +1196,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            <button style={{ ...fChipWide, ...(playerScore.gir===true?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>updateGir(true)}>✓ 온</button>
+            <button style={{ ...fChipWide, ...(playerScore.gir===true?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>{ updateGir(true); setShotPage(1); }}>✓ 온</button>
             <button style={{ ...fChipWide, ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>updateGir(false)}>✗ 오프</button>
           </div>
         </div>
+        </>)}
+
+        </>}
+
+        {teeComplete && shotPage === 1 && <>
+        {/* ── 그린 ── */}
+        {secHdr('그 린')}
 
         {/* 핀 위치 */}
         <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
@@ -1219,8 +1219,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           />
         </div>
 
+        {playerScore.pinPosition && (<>
         {/* 온그린 랜딩 (12-clock) */}
-        <div style={{ padding:'8px 16px 16px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ padding:'8px 16px 16px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
           <div style={{ ...fLeft, marginBottom:12 }}>
             <span style={fIcon}>⊙</span>
             <span style={fLbl}>온그린 랜딩</span>
@@ -1333,6 +1334,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           </div>
         </div>
+        </>)}
         </>}
 
       </div>

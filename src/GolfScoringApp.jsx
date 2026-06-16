@@ -262,6 +262,7 @@ export default function GolfScoringApp() {
           round={currentRound}
           onUpdate={updateRound}
           onFinish={finishRound}
+          onGoHome={() => setView('home')}
           onExit={async () => {
             await clearActiveRound(currentUser.userId);
             setCurrentRound(null);
@@ -316,10 +317,12 @@ export default function GolfScoringApp() {
         />
       )}
 
-      <BottomTabBar
-        current={view}
-        onChange={(tab) => setView(tab)}
-      />
+      {view !== 'scoring' && (
+        <BottomTabBar
+          current={view}
+          onChange={(tab) => setView(tab)}
+        />
+      )}
 
       {showResumeModal && currentRound && (
         <div style={{

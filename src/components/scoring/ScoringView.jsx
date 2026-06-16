@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Edit3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag } from 'lucide-react';
 import styles from '../../styles/styles';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -444,7 +444,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToSetup }) {
+export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExit, onGoToSetup }) {
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
   const [activePlayer, setActivePlayer] = useState(round.players[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -1127,18 +1127,68 @@ export default function ScoringView({ round, onUpdate, onFinish, onExit, onGoToS
 
       </div>
 
-      {/* Navigation */}
-      <div style={styles.scoringNav}>
-        <button style={{ ...styles.navBtn, opacity:holeIdx===0?0.3:1 }} onClick={()=>goToHole(holeIdx-1)} disabled={holeIdx===0}><ChevronLeft size={18} /> 이전</button>
-        {isLastHole ? (
-          <button style={styles.finishBtn} onClick={()=>{
-            const u={...round}; u.holes=[...round.holes];
-            const lh=u.holes[holeIdx]; const us={};
-            round.players.forEach(p=>{us[p]={...lh.scores[p],touched:true};}); u.holes[holeIdx]={...lh,scores:us}; onUpdate(u); setTimeout(()=>onFinish(),50);
-          }}>라운드 종료</button>
-        ) : (
-          <button style={styles.navBtn} onClick={()=>confirmAndGoToHole(holeIdx+1)}>다음 <ChevronRight size={18} /></button>
-        )}
+      {/* Scoring Bottom Bar */}
+      <div style={styles.tabBar}>
+        <div style={styles.tabBarInner}>
+
+          {/* 이전 홀 */}
+          <button
+            style={{ ...styles.tabBarBtn, color: holeIdx === 0 ? '#252f4a' : '#e8edf8' }}
+            onClick={() => goToHole(holeIdx - 1)}
+            disabled={holeIdx === 0}
+          >
+            <ChevronLeft size={20} strokeWidth={holeIdx === 0 ? 1.5 : 2} />
+            <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>이전</span>
+          </button>
+
+          {/* 공백 */}
+          <div />
+
+          {/* 홈 */}
+          <button
+            style={{ ...styles.tabBarBtn, ...styles.tabBarBtnHome, color: '#e8edf8' }}
+            onClick={onGoHome}
+          >
+            <Home size={24} strokeWidth={1.8} />
+          </button>
+
+          {/* 메모 */}
+          <button
+            style={{ ...styles.tabBarBtn, color: playerScore.memo ? '#c9a228' : '#4d5a78', position: 'relative' }}
+            onClick={() => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); }}
+          >
+            <Edit3 size={20} strokeWidth={1.8} />
+            <span style={{ ...styles.tabBarLabel, fontWeight: playerScore.memo ? '700' : '500' }}>메모</span>
+            {playerScore.memo && (
+              <div style={{ position: 'absolute', top: 8, right: 'calc(50% - 12px)', width: 5, height: 5, borderRadius: '50%', background: '#c9a228' }} />
+            )}
+          </button>
+
+          {/* 다음 홀 / 라운딩 완료 */}
+          {isLastHole ? (
+            <button
+              style={{ ...styles.tabBarBtn, color: '#c9a228' }}
+              onClick={() => {
+                const u = { ...round }; u.holes = [...round.holes];
+                const lh = u.holes[holeIdx]; const us = {};
+                round.players.forEach(p => { us[p] = { ...lh.scores[p], touched: true }; });
+                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+              }}
+            >
+              <Flag size={20} strokeWidth={2} />
+              <span style={{ ...styles.tabBarLabel, fontWeight: '700' }}>완료</span>
+            </button>
+          ) : (
+            <button
+              style={{ ...styles.tabBarBtn, color: '#e8edf8' }}
+              onClick={() => confirmAndGoToHole(holeIdx + 1)}
+            >
+              <ChevronRight size={20} strokeWidth={2} />
+              <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>다음</span>
+            </button>
+          )}
+
+        </div>
       </div>
 
       {/* Exit 확인 모달 */}

@@ -517,8 +517,9 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
             transition: open
               ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), opacity 0.14s ease, background 0.1s, box-shadow 0.1s'
               : 'transform 0.14s ease, opacity 0.1s ease',
-            padding:'9px 14px', borderRadius:8, fontSize:12, fontWeight:700,
-            pointerEvents:'none', whiteSpace:'nowrap', zIndex:8,
+            width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            pointerEvents:'none', zIndex:8,
             border:`1.5px solid ${isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.55)' : '#252f4a'}`,
             background: isHov ? 'rgba(201,162,40,0.28)' : isSel ? 'rgba(201,162,40,0.12)' : '#131d35',
             color: isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.8)' : '#8896b0',
@@ -533,7 +534,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
         ref={centerRef}
         style={{
           position:'relative', zIndex:10,
-          padding:'11px 28px', borderRadius:8, fontSize:13, fontWeight:700,
+          width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
           touchAction:'none', userSelect:'none', cursor:'pointer',
           border:`1.5px solid ${isCtrHov ? '#c9a228' : raw ? '#c9a228' : '#252f4a'}`,
           background: isCtrHov ? 'rgba(201,162,40,0.28)' : raw ? 'rgba(201,162,40,0.18)' : '#1a2235',

@@ -1193,7 +1193,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <span style={fIcon}>⚑</span>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span style={fLbl}>GIR</span>
-              {playerScore.girAuto && <span style={{ fontSize:9, color:'#c9a228', fontWeight:700, letterSpacing:'0.1em', background:'rgba(201,162,40,0.12)', border:'1px solid rgba(201,162,40,0.3)', borderRadius:3, padding:'1px 5px' }}>AUTO</span>}
             </div>
           </div>
           <div style={{ display:'flex', gap:8 }}>

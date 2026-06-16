@@ -444,10 +444,10 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
 
 // ─── RadialPicker: press-and-slide cross selector (generic) ──────────────────
 const RADIAL_POS = {
-  up:    { tx:  0,  ty: -54 },
-  down:  { tx:  0,  ty:  54 },
-  left:  { tx: -76, ty:   0 },
-  right: { tx:  76, ty:   0 },
+  up:    { tx:   0, ty: -56 },
+  down:  { tx:   0, ty:  56 },
+  left:  { tx: -96, ty:   0 },
+  right: { tx:  96, ty:   0 },
 };
 
 function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {

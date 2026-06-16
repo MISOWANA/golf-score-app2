@@ -1199,6 +1199,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         </div>
 
+        {/* 핀 위치 */}
+        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+            <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
+          </div>
+          <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
+            value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
+            onChange={v => updateField('pinPosition', v)}
+          />
+        </div>
+
         {/* 온그린 랜딩 (12-clock) */}
         <div style={{ padding:'8px 16px 16px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ ...fLeft, marginBottom:12 }}>
@@ -1229,19 +1240,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
 
         {playerScore.putts > 0 && (<>
-
-          {/* 핀 위치 */}
-          <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
-            </div>
-            <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
-              value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
-              onChange={v => updateField('pinPosition', v)}
-            />
-          </div>
-
-
 
           {/* 퍼팅별 상세 (아코디언) */}
           {puttDetails.map((putt, puttIdx) => {

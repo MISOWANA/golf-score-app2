@@ -999,7 +999,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
         {/* ── 페이지 네이션 ── */}
         <div style={{ display:'flex', margin:'8px 16px 0', borderRadius:10, overflow:'hidden', border:'1px solid #1b2238', background:'#0a0e1a' }}>
-          {[['세컨샷', 0], ['퍼팅', 1]].map(([label, pg]) => (
+          {[['필드샷', 0], ['퍼팅', 1]].map(([label, pg]) => (
             <button key={pg} onClick={() => setShotPage(pg)}
               style={{ flex:1, padding:'12px 0', border:'none', cursor:'pointer', background: shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: shotPage===pg ? '#c9a228' : '#4d5a78', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
             >{label}</button>

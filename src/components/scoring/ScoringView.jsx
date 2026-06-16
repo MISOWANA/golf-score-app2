@@ -811,7 +811,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   useEffect(() => { setShotPage(0); setTeeExpanded(true); }, [holeIdx]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (teeComplete) setTeeExpanded(false); }, [teeComplete]);
+  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(0); } }, [teeComplete]);
 
   return (
     <div style={styles.container}>
@@ -1057,13 +1057,18 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* ── 페이지 네이션 ── */}
         <div style={{ display:'flex', margin:'8px 16px 0', borderRadius:10, overflow:'hidden', border:'1px solid #1b2238', background:'#0a0e1a' }}>
           {[['필드샷', 0], ['퍼팅', 1]].map(([label, pg]) => (
-            <button key={pg} onClick={() => setShotPage(pg)}
-              style={{ flex:1, padding:'12px 0', border:'none', cursor:'pointer', background: shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: shotPage===pg ? '#c9a228' : '#4d5a78', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
+            <button key={pg} onClick={() => teeComplete && setShotPage(pg)}
+              style={{ flex:1, padding:'12px 0', border:'none', cursor: teeComplete ? 'pointer' : 'default', background: teeComplete && shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: !teeComplete ? '#1a2535' : shotPage===pg ? '#c9a228' : '#4d5a78', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${teeComplete && shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
             >{label}</button>
           ))}
         </div>
+        {!teeComplete && (
+          <div style={{ padding:'8px 16px', textAlign:'center' }}>
+            <span style={{ fontSize:10, color:'#1e2d3d', letterSpacing:'0.1em' }}>티샷 완료 후 입력 가능합니다</span>
+          </div>
+        )}
 
-        {shotPage === 0 && <>
+        {teeComplete && shotPage === 0 && <>
         {/* ── 세컨샷 ── */}
         {secHdr('세 컨 샷')}
 
@@ -1087,7 +1092,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         />
 
         {/* 세컨샷 라이 */}
-        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+        {playerScore.secondClub && (
+        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
             <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
           </div>
@@ -1096,9 +1102,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             onChange={v => updateField('terrainCondition', v)}
           />
         </div>
+        )}
 
-        {/* 바람 */}
-        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+        {/* 바람 + 추가샷 */}
+        {playerScore.terrainCondition && (<>
+        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
@@ -1177,10 +1185,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             style={{ width:'100%', padding:'11px', borderRadius:9, border:'1.5px dashed #252f4a', background:'transparent', color:'#4d5a78', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'0.08em' }}
             onClick={addExtraShot}>+ 샷 추가</button>
         </div>
+        </>)}
 
         </>}
 
-        {shotPage === 1 && <>
+        {teeComplete && shotPage === 1 && <>
         {/* ── 그린 ── */}
         {secHdr('그 린')}
 

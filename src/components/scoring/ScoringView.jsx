@@ -54,10 +54,11 @@ const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 62];
 
 const CLUB_SUBS = {
   driver: [],
-  wood:   [{ id: '3w', label: '3W' }, { id: '5w', label: '5W' }, { id: '7w', label: '7W' }, { id: '9w', label: '9W' }],
-  hybrid: [{ id: '2h', label: '2H' }, { id: '3h', label: '3H' }, { id: '4h', label: '4H' }, { id: '5h', label: '5H' }],
-  iron:   [{ id: '2i', label: '2i' }, { id: '3i', label: '3i' }, { id: '4i', label: '4i' }, { id: '5i', label: '5i' }, { id: '6i', label: '6i' }, { id: '7i', label: '7i' }, { id: '8i', label: '8i' }, { id: '9i', label: '9i' }],
+  wood:   [{ id: '3W', label: '3W' }, { id: '5W', label: '5W' }, { id: '7W', label: '7W' }, { id: '9W', label: '9W' }],
+  hybrid: [{ id: '2H', label: '2H' }, { id: '3H', label: '3H' }, { id: '4H', label: '4H' }, { id: '5H', label: '5H' }],
+  iron:   [{ id: '2I', label: '2I' }, { id: '3I', label: '3I' }, { id: '4I', label: '4I' }, { id: '5I', label: '5I' }, { id: '6I', label: '6I' }, { id: '7I', label: '7I' }, { id: '8I', label: '8I' }, { id: '9I', label: '9I' }],
   wedge:  [
+    
     { id: 'P',  label: 'P'   },
     { id: '48', label: '48°' },
     { id: '50', label: '50°' },

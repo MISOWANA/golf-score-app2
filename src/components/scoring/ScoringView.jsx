@@ -509,7 +509,9 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
     isDragging.current = false; hoveredRef.current = null; setHovered(null); setOpen(false);
   };
 
-  const selLabel = raw === centerId ? centerLabel : (dirs.find(d => d.id === raw)?.label ?? null);
+  const selDir = dirs.find(d => d.id === raw);
+  const selLabel = raw === centerId ? centerLabel : (selDir?.label ?? null);
+  const selIcon = selDir?.icon ?? null;
   const isCtrHov = open && hovered === centerId;
 
   return (
@@ -546,6 +548,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
         style={{
           position:'relative', zIndex:10,
           width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
+          display:'flex', alignItems:'center', justifyContent:'center', gap:4,
           touchAction:'none', userSelect:'none', cursor:'pointer',
           border:`1.5px solid ${isCtrHov ? '#c9a228' : raw ? '#c9a228' : '#252f4a'}`,
           background: isCtrHov ? 'rgba(201,162,40,0.28)' : raw ? 'rgba(201,162,40,0.18)' : '#1a2235',
@@ -554,7 +557,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
         }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
       >
-        {open ? centerLabel : (selLabel || centerLabel)}
+        {open ? centerLabel : <>{selLabel || centerLabel}{!open && selIcon && selIcon}</>}
       </button>
     </div>
   );

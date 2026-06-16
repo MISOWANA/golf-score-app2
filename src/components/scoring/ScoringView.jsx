@@ -942,27 +942,33 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           stacked
         />
 
-        {/* 티샷 구질 */}
-        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-            <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
+        {/* 티샷 구질 - 클럽 선택 후 등장 */}
+        {!playerScore.teeClub ? (
+          <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            <span style={{ fontSize:10, color:'#2e3d56', letterSpacing:'0.12em' }}>클럽을 선택하면 구질 입력이 나타납니다</span>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            {[['페이드','스트레이트','드로우'],['훅','풀','푸시','슬라이스']].map((row, ri) => (
-              <div key={ri} style={{ display:'flex', gap:6 }}>
-                {row.map(s => (
-                  <button key={s}
-                    style={{ ...fChip, flex:1, textAlign:'center', padding:'10px 6px', fontSize:13, borderRadius:8, ...(playerScore.shotShape===s?fChipOn:{}) }}
-                    onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
-                ))}
-              </div>
-            ))}
+        ) : (
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {[['페이드','스트레이트','드로우'],['훅','풀','푸시','슬라이스']].map((row, ri) => (
+                <div key={ri} style={{ display:'flex', gap:6 }}>
+                  {row.map(s => (
+                    <button key={s}
+                      style={{ ...fChip, flex:1, textAlign:'center', padding:'10px 6px', fontSize:13, borderRadius:8, ...(playerScore.shotShape===s?fChipOn:{}) }}
+                      onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* FAIRWAY HIT */}
-        {hole.par > 3 && (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+        {/* FAIRWAY HIT - 구질 선택 후 등장 */}
+        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
             </div>
@@ -973,9 +979,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         )}
 
-        {/* LANDING POINT (L/C/R) */}
-        {hole.par > 3 && (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+        {/* LANDING POINT (L/C/R) - 구질 선택 후 등장 */}
+        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
             </div>

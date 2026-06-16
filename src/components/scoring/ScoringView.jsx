@@ -592,6 +592,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [memoDraft, setMemoDraft] = useState('');
   const [showParEditModal, setShowParEditModal] = useState(false);
   const [parDraft, setParDraft] = useState([...round.pars]);
+  const [expandedPutt, setExpandedPutt] = useState(0);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -767,6 +768,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
+
+  useEffect(() => { setExpandedPutt(puttDetails.length - 1); }, [puttDetails.length]);
 
   return (
     <div style={styles.container}>
@@ -1161,33 +1164,59 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
 
 
-          {/* 퍼팅별 거리 */}
-          {puttDetails.map((putt, puttIdx) => (
-            <React.Fragment key={puttIdx}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 16px 4px' }}>
-                <div style={{ height:1, flex:1, background:'#151e32' }} />
-                <span style={{ fontSize:9, fontWeight:700, color:'#3d4d65', letterSpacing:'0.18em' }}>PUTT {puttIdx + 1}</span>
-                <div style={{ height:1, flex:1, background:'#151e32' }} />
-              </div>
-              <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-                <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
-              </div>
-              <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-                <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
-              </div>
-              <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                  <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
-                </div>
-                <RadialPicker centerId="flat" centerLabel="평지" dirs={PUTT_LIE_DIRS}
-                  value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
-                  onChange={v => updatePutt(puttIdx, 'lie', v)}
-                />
-              </div>
-            </React.Fragment>
-          ))}
+          {/* 퍼팅별 상세 (아코디언) */}
+          {puttDetails.map((putt, puttIdx) => {
+            const isOpen = expandedPutt === puttIdx;
+            const lieLabel = putt.lie
+              ? (putt.lie === 'flat' ? '평지' : PUTT_LIE_DIRS.find(d => d.id === putt.lie)?.label ?? putt.lie)
+              : null;
+            return (
+              <React.Fragment key={puttIdx}>
+                {/* 아코디언 헤더 */}
+                <button
+                  onClick={() => setExpandedPutt(isOpen ? -1 : puttIdx)}
+                  style={{
+                    width:'100%', display:'flex', alignItems:'center', gap:8,
+                    padding:'10px 16px', background:'none', border:'none', cursor:'pointer',
+                    borderBottom: isOpen ? 'none' : '1px solid #0e1320',
+                  }}
+                >
+                  <div style={{ height:1, flex:1, background:'#151e32' }} />
+                  <span style={{ fontSize:9, fontWeight:700, color: isOpen ? '#c9a228' : '#3d4d65', letterSpacing:'0.18em' }}>
+                    PUTT {puttIdx + 1}
+                  </span>
+                  {!isOpen && (
+                    <span style={{ fontSize:10, color:'#4d5a78', fontWeight:600 }}>
+                      {[putt.distance ? `↔${putt.distance}m` : null, lieLabel].filter(Boolean).join('  ')}
+                    </span>
+                  )}
+                  <div style={{ height:1, flex:1, background:'#151e32' }} />
+                  <span style={{ fontSize:10, color:'#3d4d65' }}>{isOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {/* 펼쳐진 내용 */}
+                {isOpen && (<>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
+                    <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
+                  </div>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
+                    <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+                  </div>
+                  <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                      <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
+                    </div>
+                    <RadialPicker centerId="flat" centerLabel="평지" dirs={PUTT_LIE_DIRS}
+                      value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
+                      onChange={v => updatePutt(puttIdx, 'lie', v)}
+                    />
+                  </div>
+                </>)}
+              </React.Fragment>
+            );
+          })}
 
         </>)}
 

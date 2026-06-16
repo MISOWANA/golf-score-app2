@@ -770,7 +770,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
-  useEffect(() => { setExpandedPutt(puttDetails.length - 1); }, [puttDetails.length]);
+  useEffect(() => { setExpandedPutt(0); }, [puttDetails.length]);
 
   useEffect(() => { setShotPage(0); }, [holeIdx]);
 

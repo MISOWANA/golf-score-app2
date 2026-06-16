@@ -1121,6 +1121,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             onClick={addExtraShot}>+ 샷 추가</button>
         </div>
 
+        </>}
+
+        {shotPage === 1 && <>
         {/* ── 그린 ── */}
         {secHdr('그 린')}
 
@@ -1151,9 +1154,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             12시=롱 · 6시=숏 · 9시=레프트 · 3시=라이트 (핀 기준)
           </div>
         </div>
-        </>}
 
-        {shotPage === 1 && <>
         {/* ── 퍼팅 ── */}
         {secHdr('퍼 팅')}
 

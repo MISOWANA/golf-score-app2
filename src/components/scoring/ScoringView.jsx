@@ -1181,24 +1181,22 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </React.Fragment>
         ))}
 
-        <div style={{ padding:'8px 16px 10px', borderBottom:'1px solid #0e1320' }}>
-          <button
-            style={{ width:'100%', padding:'11px', borderRadius:9, border:'1.5px dashed #252f4a', background:'transparent', color:'#4d5a78', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'0.08em' }}
-            onClick={addExtraShot}>+ 샷 추가</button>
-        </div>
-
         {/* GIR */}
         <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
           <div style={fLeft}>
             <span style={fIcon}>⚑</span>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={fLbl}>GIR</span>
-            </div>
+            <span style={fLbl}>GIR</span>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            <button style={{ ...fChipWide, ...(playerScore.gir===true?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>{ updateGir(true); setShotPage(1); }}>✓ 온</button>
-            <button style={{ ...fChipWide, ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>updateGir(false)}>✗ 오프</button>
+            <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
+            <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>{ updateGir(false); if (extraShots.length === 0) addExtraShot(); }}>실패</button>
           </div>
+        </div>
+
+        <div style={{ padding:'8px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+          <button
+            style={{ width:'100%', padding:'11px', borderRadius:9, border:'1.5px dashed #252f4a', background:'transparent', color:'#4d5a78', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'0.08em' }}
+            onClick={addExtraShot}>+ 샷 추가</button>
         </div>
         </>)}
 

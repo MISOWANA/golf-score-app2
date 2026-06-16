@@ -1136,10 +1136,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* ── 퍼팅 ── */}
         {secHdr('퍼 팅')}
 
-        {/* 퍼팅 횟수 */}
+        {/* 퍼팅 */}
         <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-            <span style={fIcon}>○</span><span style={fLbl}>퍼팅 횟수</span>
+            <span style={fIcon}>○</span><span style={fLbl}>퍼팅</span>
           </div>
           <div style={{ display:'flex', gap:6 }}>
             {[0,1,2,3,4].map(n => (

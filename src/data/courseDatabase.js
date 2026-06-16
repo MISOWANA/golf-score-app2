@@ -1291,12 +1291,11 @@ export const COURSES = [
     ],
   },
   {
-    name: '경주신라', location: '경북',
+    name: '신라', location: '경북',
     courses: [
-      { name: 'A아웃', pars: PH },
-      { name: 'A인',   pars: PA },
-      { name: 'B아웃', pars: PB },
-      { name: 'B인',   pars: PC },
+      { name: '서코스', pars: [5,4,4,4,3,4,4,3,5] },
+      { name: '남코스', pars: [4,5,4,4,3,4,5,3,4] },
+      { name: '동코스', pars: [4,4,5,3,4,4,3,5,4] },
     ],
   },
   {

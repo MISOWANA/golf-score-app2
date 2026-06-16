@@ -1117,8 +1117,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
         )}
 
-        {/* 바람 + 추가샷 */}
-        {playerScore.terrainCondition && (<>
+        {/* 바람 */}
+        {playerScore.terrainCondition && (
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -1134,7 +1134,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <WindInput direction={playerScore.windDirection} strength={playerScore.windStrength}
             onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)} />
         </div>
+        )}
+        </>}
 
+        {/* ── 추가 샷 + GIR + 샷 추가 ── */}
+        {playerScore.terrainCondition && (<>
         {/* ── 추가 샷 ── */}
         {extraShots.map((shot, idx) => (
           <React.Fragment key={idx}>
@@ -1211,7 +1215,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             onClick={addExtraShot}>+ 샷 추가</button>
         </div>
         </>)}
-        </>}
 
         </>}
 

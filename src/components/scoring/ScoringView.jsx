@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag } from 'lucide-react';
 import styles from '../../styles/styles';
 

@@ -618,6 +618,14 @@ export const COURSES = [
     ],
   },
   {
+    name: '필로스', location: '경기',
+    courses: [
+      { name: '이스트', pars: [4,5,3,4,4,3,4,5,4] },
+      { name: '웨스트', pars: [4,3,5,4,3,4,5,4,4] },
+      { name: '사우스', pars: [4,4,5,3,4,5,4,3,4] },
+    ],
+  },
+  {
     name: '해솔리아', location: '경기',
     courses: [
       { name: '해코스', pars: [4,5,4,4,3,5,4,3,4] },

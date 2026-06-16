@@ -1142,7 +1142,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* ── 추가 샷 ── */}
         {extraShots.map((shot, idx) => (
           <React.Fragment key={idx}>
-            {secHdr(`${idx + 3}번 째 샷`, () => removeExtraShot(idx))}
+            {secHdr(`${idx + 3}번 째 샷`, () => { removeExtraShot(idx); if (idx === extraShots.length - 1) setSecondShotExpanded(true); })}
 
             {/* 남은 거리 */}
             <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>

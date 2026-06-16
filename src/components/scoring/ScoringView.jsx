@@ -1097,32 +1097,24 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
         </>)}
 
-        {/* 페널티 + 메모 */}
+        {/* 페널티 */}
         <div style={{ display:'flex', gap:8, padding:'12px 16px', marginBottom:4 }}>
           <div style={fPenBox}>
             <span style={fPenLbl}>OB</span>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
               <button style={fMiniBtn} onClick={()=>{ const c=playerScore.ob||0; if(c>0) updateScore('ob',c-1); }}>−</button>
-              <span style={{ fontSize:18, fontWeight:800, color:(playerScore.ob||0)>0?'#ef5350':'#e8edf8', minWidth:20, textAlign:'center' }}>{playerScore.ob||0}</span>
+              <span style={{ fontSize:22, fontWeight:800, color:(playerScore.ob||0)>0?'#ef5350':'#e8edf8', minWidth:24, textAlign:'center' }}>{playerScore.ob||0}</span>
               <button style={fMiniBtn} onClick={()=>updateScore('ob',Math.min(5,(playerScore.ob||0)+1))}>+</button>
             </div>
           </div>
           <div style={fPenBox}>
             <span style={fPenLbl}>해저드</span>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
               <button style={fMiniBtn} onClick={()=>{ const c=playerScore.hazard||0; if(c>0) updateScore('hazard',c-1); }}>−</button>
-              <span style={{ fontSize:18, fontWeight:800, color:(playerScore.hazard||0)>0?'#c9a228':'#e8edf8', minWidth:20, textAlign:'center' }}>{playerScore.hazard||0}</span>
+              <span style={{ fontSize:22, fontWeight:800, color:(playerScore.hazard||0)>0?'#c9a228':'#e8edf8', minWidth:24, textAlign:'center' }}>{playerScore.hazard||0}</span>
               <button style={fMiniBtn} onClick={()=>updateScore('hazard',Math.min(5,(playerScore.hazard||0)+1))}>+</button>
             </div>
           </div>
-          <button
-            style={{ flex:1, minHeight:64, borderRadius:10, border:`1px solid ${playerScore.memo?'#c9a228':'#252f4a'}`, background:playerScore.memo?'rgba(201,162,40,0.1)':'#1a2235', color:playerScore.memo?'#c9a228':'#8896b0', fontSize:11, fontWeight:600, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3 }}
-            onClick={()=>{ setMemoDraft(playerScore.memo||''); setShowMemoModal(true); }}
-          >
-            <Edit3 size={16} strokeWidth={2} />
-            <span style={{ letterSpacing:'0.12em' }}>메모</span>
-            {playerScore.memo && <div style={{ width:5, height:5, borderRadius:'50%', background:'#c9a228' }} />}
-          </button>
         </div>
 
       </div>

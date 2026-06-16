@@ -598,6 +598,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [expandedPutt, setExpandedPutt] = useState(0);
   const [shotPage, setShotPage] = useState(0);
   const [teeClubInteracting, setTeeClubInteracting] = useState(false);
+  const [teeExpanded, setTeeExpanded] = useState(true);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -727,6 +728,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
+  const teeComplete = !!(playerScore.teeClub && playerScore.shotShape &&
+    (hole.par <= 3 || playerScore.fairwayHit != null));
+  const teeShotSummary = [
+    `${playerScore.strokes}타`,
+    playerScore.teeClub
+      ? (playerScore.teeClubSub
+          ? `${playerScore.teeClub.toUpperCase()} ${playerScore.teeClubSub}`
+          : playerScore.teeClub.toUpperCase())
+      : null,
+    playerScore.shotShape,
+    hole.par > 3 ? (playerScore.fairway === true ? 'FW·O' : playerScore.fairway === false ? 'FW·X' : null) : null,
+    hole.par > 3 && playerScore.fairwayHit ? playerScore.fairwayHit : null,
+  ].filter(Boolean).join('  ');
+
   const isLastHole = holeIdx === 17;
   const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
   const isPar5 = hole.par === 5;
@@ -782,7 +797,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puttDetails.length]);
 
-  useEffect(() => { setShotPage(0); }, [holeIdx]);
+  useEffect(() => { setShotPage(0); setTeeExpanded(true); }, [holeIdx]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (teeComplete) setTeeExpanded(false); }, [teeComplete]);
 
   return (
     <div style={styles.container}>
@@ -919,9 +937,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       {/* ── Score Input Form ── */}
       <div style={{ paddingBottom: 8 }}>
 
-        {/* ── 티샷 ── */}
-        {secHdr('티 샷')}
+        {/* ── 티샷 아코디언 ── */}
+        <button
+          onClick={() => setTeeExpanded(v => !v)}
+          style={{
+            width:'100%', display:'flex', alignItems:'center', gap:8,
+            padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer',
+            borderBottom: teeExpanded ? 'none' : '1px solid #0e1320',
+          }}
+        >
+          <div style={{ height:1, flex: teeExpanded ? 1 : 0, width: teeExpanded ? undefined : 20, background:'#1b2238' }} />
+          <span style={{ fontSize:10, fontWeight:700, color: teeComplete && !teeExpanded ? '#c9a228' : '#4d5a78', letterSpacing:'0.22em', flexShrink:0 }}>티 샷</span>
+          {!teeExpanded && teeComplete && (
+            <span style={{ fontSize:11, color:'#8896b0', fontWeight:600, letterSpacing:'0.04em', flex:1, textAlign:'left', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+              {teeShotSummary}
+            </span>
+          )}
+          <div style={{ height:1, flex:1, background:'#1b2238' }} />
+          <span style={{ fontSize:10, color:'#3d4d65', flexShrink:0 }}>{teeExpanded ? '▲' : '▼'}</span>
+        </button>
 
+        {teeExpanded && <>
         {/* 총 타수 */}
         <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
@@ -1008,6 +1044,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           </div>
         )}
+        </>}
 
         {/* ── 페이지 네이션 ── */}
         <div style={{ display:'flex', margin:'8px 16px 0', borderRadius:10, overflow:'hidden', border:'1px solid #1b2238', background:'#0a0e1a' }}>

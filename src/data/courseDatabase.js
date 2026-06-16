@@ -1291,6 +1291,13 @@ export const COURSES = [
     ],
   },
   {
+    name: '경주신라', location: '경북',
+    courses: [
+      { name: '천마', pars: [4,5,3,4,4,5,3,4,4] },
+      { name: '화랑', pars: [4,4,3,5,4,3,5,4,4] },
+    ],
+  },
+  {
     name: '신라', location: '경북',
     courses: [
       { name: '서코스', pars: [5,4,4,4,3,4,4,3,5] },

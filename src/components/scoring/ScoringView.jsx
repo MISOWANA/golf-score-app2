@@ -600,6 +600,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [shotPage, setShotPage] = useState(0);
   const [teeClubInteracting, setTeeClubInteracting] = useState(false);
   const [teeExpanded, setTeeExpanded] = useState(true);
+  const [secondShotExpanded, setSecondShotExpanded] = useState(true);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -809,7 +810,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puttDetails.length]);
 
-  useEffect(() => { setShotPage(0); setTeeExpanded(true); }, [holeIdx]);
+  useEffect(() => { setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); }, [holeIdx]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(0); } }, [teeComplete]);
@@ -1070,9 +1071,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         )}
 
         {teeComplete && shotPage === 0 && <>
-        {/* ── 세컨샷 ── */}
-        {secHdr('세 컨 샷')}
+        {/* ── 세컨샷 아코디언 헤더 ── */}
+        <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
+          <div style={{ height:1, flex:1, background:'#1b2238' }} />
+          <span style={{ fontSize:10, fontWeight:700, color:'#4d5a78', letterSpacing:'0.22em', flexShrink:0 }}>세 컨 샷</span>
+          {!secondShotExpanded && playerScore.secondClub && (
+            <span style={{ fontSize:11, color:'#8896b0', fontWeight:600, maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {[playerScore.remainingDistance ? `${playerScore.remainingDistance}m` : null, playerScore.secondClub?.toUpperCase(), playerScore.secondClubSub].filter(Boolean).join('  ')}
+            </span>
+          )}
+          <div style={{ height:1, flex:1, background:'#1b2238' }} />
+          <span style={{ fontSize:10, color:'#3d4d65', flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
+        </button>
 
+        {secondShotExpanded && <>
         {/* 남은 거리 */}
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
@@ -1189,7 +1201,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
-            <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>{ updateGir(false); if (extraShots.length === 0) addExtraShot(); }}>실패</button>
+            <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>{ updateGir(false); setSecondShotExpanded(false); if (extraShots.length === 0) addExtraShot(); }}>실패</button>
           </div>
         </div>
 
@@ -1199,6 +1211,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             onClick={addExtraShot}>+ 샷 추가</button>
         </div>
         </>)}
+        </>}
 
         </>}
 

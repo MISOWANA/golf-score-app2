@@ -1307,6 +1307,14 @@ export const COURSES = [
     ],
   },
   {
+    name: '김천포도', location: '경북',
+    courses: [
+      { name: '사인',  pars: [5,4,4,3,4,4,5,3,4] },
+      { name: '포도',  pars: [4,4,3,5,4,3,5,4,4] },
+      { name: '자두',  pars: [5,4,3,4,4,5,4,3,4] },
+    ],
+  },
+  {
     name: '구니', location: '경북',
     courses: [
       { name: '아웃', pars: PF },

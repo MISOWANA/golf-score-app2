@@ -277,7 +277,7 @@ function MultiChips({ options, value = [], onChange }) {
   );
 }
 
-function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked }) {
+function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, onInteractStart, onInteractEnd }) {
   const [openId, setOpenId] = useState(null);
   const [hoveredSub, setHoveredSub] = useState(null);
   const isDragging = useRef(false);
@@ -299,6 +299,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
       setOpenId(null);
       return;
     }
+    onInteractStart?.();
     onCategory(c.id);
     setOpenId(c.id);
     hoveredSubRef.current = null;
@@ -327,6 +328,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
     hoveredSubRef.current = null;
     setHoveredSub(null);
     setOpenId(null);
+    onInteractEnd?.();
     if (sub) onSub(sub === subValue ? null : sub);
   };
 
@@ -335,6 +337,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
     hoveredSubRef.current = null;
     setHoveredSub(null);
     setOpenId(null);
+    onInteractEnd?.();
   };
 
   const buttons = (
@@ -594,6 +597,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [parDraft, setParDraft] = useState([...round.pars]);
   const [expandedPutt, setExpandedPutt] = useState(0);
   const [shotPage, setShotPage] = useState(0);
+  const [teeClubInteracting, setTeeClubInteracting] = useState(false);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -946,14 +950,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onCategory={v => updateFields({ teeClub: v, teeClubSub: null })}
           onSub={v => updateField('teeClubSub', v)}
           stacked
+          onInteractStart={() => setTeeClubInteracting(true)}
+          onInteractEnd={() => setTeeClubInteracting(false)}
         />
 
-        {/* 티샷 구질 - 클럽 선택 후 등장 */}
-        {!playerScore.teeClub ? (
+        {/* 티샷 구질 - 클럽 선택 완료 후 등장 */}
+        {(!playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
             <span style={{ fontSize:10, color:'#2e3d56', letterSpacing:'0.12em' }}>클럽을 선택하면 구질 입력이 나타납니다</span>
           </div>
-        ) : (
+        ) : (playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
@@ -970,7 +976,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* FAIRWAY HIT - 구질 선택 후 등장 */}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (

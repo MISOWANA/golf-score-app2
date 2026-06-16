@@ -1196,14 +1196,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
                 {/* 펼쳐진 내용 */}
                 {isOpen && (<>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
-                  </div>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
-                  </div>
                   <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
                       <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
@@ -1212,6 +1204,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
                       onChange={v => updatePutt(puttIdx, 'lie', v)}
                     />
+                  </div>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
+                    <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
+                  </div>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
+                    <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
                   </div>
                 </>)}
               </React.Fragment>

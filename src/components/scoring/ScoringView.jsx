@@ -1061,9 +1061,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
             <div style={{ display:'flex', gap:8 }}>
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
-                onClick={()=>updateGir(true)}>성공</button>
+                onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
-                onClick={()=>updateGir(false)}>실패</button>
+                onClick={()=>{ updateGir(false); setSecondShotExpanded(true); setShotPage(0); }}>실패</button>
             </div>
           </div>
         )}

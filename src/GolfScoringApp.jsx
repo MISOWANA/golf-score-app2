@@ -254,6 +254,7 @@ export default function GolfScoringApp() {
         <SetupView
           onStart={startNewRound}
           onBack={() => setView('home')}
+          currentUser={currentUser}
         />
       )}
 

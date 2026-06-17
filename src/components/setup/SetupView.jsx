@@ -3,11 +3,11 @@ import { ChevronLeft, Plus, X } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
 
-export default function SetupView({ onStart, onBack }) {
+export default function SetupView({ onStart, onBack, currentUser }) {
   const [courseName, setCourseName] = useState('');
   const [outCourseName, setOutCourseName] = useState('');
   const [inCourseName, setInCourseName] = useState('');
-  const [players, setPlayers] = useState(['']);
+  const [players, setPlayers] = useState([currentUser?.userName || '']);
   const [pars, setPars] = useState(Array(18).fill(4));
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);

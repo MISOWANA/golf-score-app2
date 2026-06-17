@@ -659,6 +659,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
   };
 
+  // teeClub + 퍼팅 홀인 성공까지 완료된 경우에만 auto-calc, 미완료 시 수동 스코어 유지
+  const finalizeScore = (s, par) => {
+    const puttComplete = Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success');
+    if (!s.teeClub || !puttComplete) return { ...s, touched: true };
+    const autoStrokes = calcAutoStrokes(s, par);
+    const autoGir = (autoStrokes - (s.putts || 0)) <= par - 2;
+    return { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
+  };
+
   // updateScore handles strokes/putts with auto-inference; other fields use updateField
   const updateScore = (field, value) => {
     const updated = { ...round };
@@ -728,12 +737,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];
     const us = {};
-    round.players.forEach(p => {
-      const s = ch.scores[p];
-      const autoStrokes = calcAutoStrokes(s, ch.par);
-      const autoGir = (autoStrokes - (s.putts || 0)) <= ch.par - 2;
-      us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
-    });
+    round.players.forEach(p => { us[p] = finalizeScore(ch.scores[p], ch.par); });
     updated.holes[holeIdx] = { ...ch, scores: us };
     updated.currentHole = idx; setHoleIdx(idx); onUpdate(updated);
   };
@@ -1487,12 +1491,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                             if (isLastHole) {
                               const u = { ...round }; u.holes = [...round.holes];
                               const lh = u.holes[holeIdx]; const us = {};
-                              round.players.forEach(p => {
-                                const s = lh.scores[p];
-                                const autoStrokes = calcAutoStrokes(s, lh.par);
-                                const autoGir = (autoStrokes - (s.putts || 0)) <= lh.par - 2;
-                                us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
-                              });
+                              round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
                               u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
                             } else {
                               confirmAndGoToHole(holeIdx + 1);
@@ -1597,12 +1596,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               onClick={() => {
                 const u = { ...round }; u.holes = [...round.holes];
                 const lh = u.holes[holeIdx]; const us = {};
-                round.players.forEach(p => {
-                  const s = lh.scores[p];
-                  const autoStrokes = calcAutoStrokes(s, lh.par);
-                  const autoGir = (autoStrokes - (s.putts || 0)) <= lh.par - 2;
-                  us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
-                });
+                round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
                 u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
               }}
             >

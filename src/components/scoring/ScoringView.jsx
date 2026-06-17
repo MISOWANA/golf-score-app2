@@ -976,7 +976,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         <div>
           <div style={styles.holeLabel}>HOLE {holeIdx+1}</div>
           <div style={{ ...styles.holePar, color: isPar5?'#3db87a':styles.holePar.color }}>PAR {hole.par}</div>
-          {isPar5 && <div style={{ display:'inline-block', marginTop:6, fontSize:10, fontWeight:700, color:'#3db87a', background:'rgba(61,184,122,0.12)', border:'1px solid rgba(61,184,122,0.4)', padding:'3px 10px', borderRadius:3, letterSpacing:'0.08em' }}>찬스홀</div>}
         </div>
         {scoreName && (
           <div style={{ ...styles.scoreName, color: isPar3AtPar?'#fff':(scoreName.isHoleInOne?'#fff':scoreName.color), borderColor: isPar3AtPar?'#c04a10':scoreName.color, background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':scoreName.isHoleInOne?'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)':'transparent', boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':scoreName.isHoleInOne?'0 2px 12px rgba(201,162,40,0.5)':'none', fontWeight:(isPar3AtPar||scoreName.isHoleInOne)?'800':'600', opacity:playerScore.touched?1:0.35, animation:scoreName.isHoleInOne&&playerScore.touched?'holeInOnePulse 2s ease-in-out infinite':'none' }}>

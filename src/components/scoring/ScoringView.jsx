@@ -752,9 +752,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
   const teeComplete = !!(playerScore.teeClub && playerScore.shotShape &&
-    (hole.par <= 3 || playerScore.fairwayHit != null));
+    (hole.par === 3 ? !playerScore.girAuto : playerScore.fairwayHit != null));
   const teeShotSummary = [
     `${playerScore.strokes}타`,
+    hole.par === 3 && playerScore.teeDistance ? `${playerScore.teeDistance}m` : null,
     playerScore.teeClub
       ? (playerScore.teeClubSub
           ? `${playerScore.teeClub.toUpperCase()} ${playerScore.teeClubSub}`
@@ -831,7 +832,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   }, [extraShots.length]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(0); } }, [teeComplete]);
+  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(hole.par === 3 && playerScore.gir === true ? 1 : 0); } }, [teeComplete]);
 
   return (
     <div style={styles.container}>
@@ -1004,6 +1005,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </button>
 
         {teeExpanded && <>
+        {/* PAR3 전용: 티샷 거리 */}
+        {hole.par === 3 && (
+          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>거리</span></div>
+            <SwipeDistance value={playerScore.teeDistance||150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
+            <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
+          </div>
+        )}
+
         {/* 티샷 클럽 */}
         <ClubSelector
           icon="〽"
@@ -1041,6 +1051,22 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           </div>
         ) : null}
+
+        {/* PAR3 전용: GIR - 구질 선택 후 등장 */}
+        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && (
+          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+            <div style={fLeft}>
+              <span style={fIcon}>⚑</span>
+              <span style={fLbl}>GIR</span>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+                onClick={()=>updateGir(true)}>성공</button>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+                onClick={()=>updateGir(false)}>실패</button>
+            </div>
+          </div>
+        )}
 
         {/* FAIRWAY HIT - 구질 선택 후 등장 */}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
@@ -1217,7 +1243,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         ))}
 
         {/* GIR / 온그린 */}
-        {extraShots.length === 0 ? (
+        {extraShots.length === 0 && hole.par > 3 ? (
         <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
           <div style={fLeft}>
             <span style={fIcon}>⚑</span>

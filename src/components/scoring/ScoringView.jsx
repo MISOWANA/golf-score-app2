@@ -771,7 +771,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const isPar5 = hole.par === 5;
 
   const clubs = hole.par === 3
-    ? [{ id: 'iron', label: 'IRON' }, { id: 'hybrid', label: 'HYBRID' }]
+    ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
     : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
 
   const secHdr = (label, onDelete) => (

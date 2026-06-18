@@ -278,146 +278,80 @@ function MultiChips({ options, value = [], onChange }) {
   );
 }
 
-function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, onInteractStart, onInteractEnd }) {
-  const [openId, setOpenId] = useState(null);
-  const [hoveredSub, setHoveredSub] = useState(null);
-  const isDragging = useRef(false);
-  const hoveredSubRef = useRef(null);
+function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked }) {
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => { if (!value) setExpandedId(null); }, [value]);
 
   const btnChip = stacked
     ? { ...fChip, padding:'10px 8px', fontSize:13, borderRadius:8, width:'100%', textAlign:'center' }
     : { ...fChip, width:'100%', textAlign:'center' };
 
-  const handlePointerDown = (e, c) => {
+  const handleCategory = (c) => {
     const subs = CLUB_SUBS[c.id] || [];
     if (subs.length === 0) {
       onCategory(value === c.id ? null : c.id);
       return;
     }
-    e.preventDefault();
-    if (value === c.id && openId === c.id) {
-      onCategory(null);
-      setOpenId(null);
-      return;
-    }
-    onInteractStart?.();
-    onCategory(c.id);
-    setOpenId(c.id);
-    hoveredSubRef.current = null;
-    setHoveredSub(null);
-    isDragging.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isDragging.current) return;
-    const els = document.elementsFromPoint(e.clientX, e.clientY);
-    let found = null;
-    for (const el of els) {
-      if (el.dataset && el.dataset.subId) { found = el.dataset.subId; break; }
-    }
-    if (found !== hoveredSubRef.current) {
-      hoveredSubRef.current = found;
-      setHoveredSub(found);
+    if (value === c.id) {
+      setExpandedId(prev => prev === c.id ? null : c.id);
+    } else {
+      onCategory(c.id);
+      setExpandedId(c.id);
     }
   };
 
-  const handlePointerUp = (e) => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    const sub = hoveredSubRef.current;
-    hoveredSubRef.current = null;
-    setHoveredSub(null);
-    setOpenId(null);
-    onInteractEnd?.();
-    if (sub) onSub(sub === subValue ? null : sub);
+  const handleSub = (subId) => {
+    onSub(subId === subValue ? null : subId);
+    setExpandedId(null);
   };
 
-  const handlePointerCancel = () => {
-    isDragging.current = false;
-    hoveredSubRef.current = null;
-    setHoveredSub(null);
-    setOpenId(null);
-    onInteractEnd?.();
-  };
+  const expandedSubs = expandedId ? (CLUB_SUBS[expandedId] || []) : [];
 
-  const buttons = (
+  const categoryRow = (
     <div style={{ display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
       {categories.map(c => {
         const isSelected = value === c.id;
         const subs = CLUB_SUBS[c.id] || [];
-        const isOpen = openId === c.id;
         const selectedSub = isSelected && subValue != null ? subs.find(s => s.id === subValue) : null;
         const displayLabel = selectedSub ? selectedSub.label : c.label;
         return (
-          <div key={c.id} style={{ position:'relative', flex:1 }}>
-            <button
-              style={{
-                ...btnChip,
-                touchAction: 'none',
-                userSelect: 'none',
-                ...(isSelected ? fChipOn : {}),
-                border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
-                ...(selectedSub ? {
-                  fontWeight: 900,
-                  fontSize: stacked ? 14 : 13,
-                  boxShadow: '0 0 8px rgba(201,162,40,0.45)',
-                  color: '#f0c93a',
-                } : {}),
-              }}
-              onPointerDown={(e) => handlePointerDown(e, c)}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerCancel}>
-              {displayLabel}
-            </button>
+          <button
+            key={c.id}
+            style={{
+              ...btnChip, flex:1,
+              ...(isSelected ? fChipOn : {}),
+              border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
+              ...(selectedSub ? { fontWeight:900, fontSize: stacked ? 14 : 13, boxShadow:'0 0 8px rgba(201,162,40,0.45)', color:'#f0c93a' } : {}),
+            }}
+            onClick={() => handleCategory(c)}
+          >
+            {displayLabel}
+          </button>
+        );
+      })}
+    </div>
+  );
 
-            {isSelected && isOpen && subs.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                right: 0,
-                zIndex: 200,
-                background: '#0d1425',
-                borderRadius: 10,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,162,40,0.28)',
-                padding: '5px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 3,
-                minWidth: '100%',
-                animation: 'slideUp 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
-              }}>
-                {subs.map((s, i) => {
-                  const isHov = hoveredSub === s.id;
-                  const isSel = subValue === s.id;
-                  return (
-                    <div
-                      key={s.id}
-                      data-sub-id={s.id}
-                      style={{
-                        ...fChip,
-                        width: '100%',
-                        textAlign: 'center',
-                        fontSize: 11,
-                        padding: '7px 4px',
-                        borderRadius: 7,
-                        border: `${isHov ? '2px' : '1.5px'} solid ${isHov ? '#f0c93a' : isSel ? '#c9a228' : '#252f4a'}`,
-                        background: isHov ? 'rgba(240,201,58,0.22)' : isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
-                        color: isHov ? '#f0c93a' : isSel ? '#c9a228' : '#e8edf8',
-                        fontWeight: isHov ? 800 : isSel ? 700 : 600,
-                        transform: isHov ? 'scale(1.04)' : 'scale(1)',
-                        transition: 'transform 0.07s, background 0.07s, border-color 0.07s',
-                        animation: `fadeIn 0.12s ease-out ${i * 0.025}s both`,
-                        cursor: 'default',
-                      }}>
-                      {s.label}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+  const subRow = expandedSubs.length > 0 && (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:8, animation:'fadeIn 0.15s ease-out' }}>
+      {expandedSubs.map(s => {
+        const isSel = subValue === s.id;
+        return (
+          <button
+            key={s.id}
+            onClick={() => handleSub(s.id)}
+            style={{
+              flex:1, minWidth:'calc(25% - 4px)',
+              padding:'9px 4px', borderRadius:7, textAlign:'center',
+              fontSize:12, fontWeight: isSel ? 700 : 500, cursor:'pointer',
+              border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
+              background: isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
+              color: isSel ? '#c9a228' : '#e8edf8',
+            }}
+          >
+            {s.label}
+          </button>
         );
       })}
     </div>
@@ -430,18 +364,22 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
           <span style={fIcon}>{icon}</span>
           <span style={fLbl}>{label}</span>
         </div>
-        {buttons}
+        {categoryRow}
+        {subRow}
       </div>
     );
   }
 
   return (
-    <div style={{ ...fRow, position:'relative' }}>
-      <div style={fLeft}>
-        <span style={fIcon}>{icon}</span>
-        <span style={fLbl}>{label}</span>
+    <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+        <div style={fLeft}>
+          <span style={fIcon}>{icon}</span>
+          <span style={fLbl}>{label}</span>
+        </div>
+        {categoryRow}
       </div>
-      {buttons}
+      {subRow}
     </div>
   );
 }
@@ -466,103 +404,75 @@ const RADIAL_POS = {
 };
 
 function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
-  // dirs: [{ id, label, pos: 'up'|'down'|'left'|'right' }]
   const raw = Array.isArray(value) ? value[0] || null : value || null;
   const [open, setOpen] = useState(false);
-  const [hovered, setHovered] = useState(null);
-  const isDragging = useRef(false);
-  const hoveredRef = useRef(null);
-  const centerRef = useRef(null);
 
-  const getHoverId = (clientX, clientY) => {
-    if (!centerRef.current) return centerId;
-    const r = centerRef.current.getBoundingClientRect();
-    const dx = clientX - (r.left + r.width / 2);
-    const dy = clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < 32) return centerId;
-    const a = Math.atan2(dy, dx) * 180 / Math.PI;
-    let pos;
-    if (a > -45  && a <= 45)  pos = 'right';
-    else if (a > 45 && a <= 135) pos = 'down';
-    else if (a > -135 && a <= -45) pos = 'up';
-    else pos = 'left';
-    return dirs.find(d => d.pos === pos)?.id ?? centerId;
-  };
-
-  const onDown = (e) => {
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isDragging.current = true;
-    hoveredRef.current = centerId;
-    setHovered(centerId);
-    setOpen(true);
-  };
-  const onMove = (e) => {
-    if (!isDragging.current) return;
-    const h = getHoverId(e.clientX, e.clientY);
-    if (h !== hoveredRef.current) { hoveredRef.current = h; setHovered(h); }
-  };
-  const onUp = () => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    const sel = hoveredRef.current;
-    hoveredRef.current = null; setHovered(null); setOpen(false);
-    onChange(sel === raw ? null : sel);
-  };
-  const onCancel = () => {
-    isDragging.current = false; hoveredRef.current = null; setHovered(null); setOpen(false);
-  };
+  useEffect(() => { setOpen(false); }, [value]);
 
   const selDir = dirs.find(d => d.id === raw);
   const selLabel = raw === centerId ? centerLabel : (selDir?.label ?? null);
   const selIcon = selDir?.icon ?? null;
-  const isCtrHov = open && hovered === centerId;
+  const hasSelection = raw != null;
+
+  const handleSelect = (id) => {
+    onChange(id === raw ? null : id);
+    setOpen(false);
+  };
+
+  const allOptions = [{ id: centerId, label: centerLabel, icon: null }, ...dirs];
 
   return (
-    <div style={{ position:'relative', height:130, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      {dirs.map(d => {
-        const { tx, ty } = RADIAL_POS[d.pos];
-        const isHov = hovered === d.id;
-        const isSel = raw === d.id;
+    <div style={{ width:'100%' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', justifyContent:'center',
+          gap:6, padding:'10px 16px', borderRadius:10, cursor:'pointer',
+          background: open ? 'rgba(201,162,40,0.07)' : hasSelection ? 'rgba(201,162,40,0.12)' : 'rgba(255,255,255,0.03)',
+          border:`1px solid ${open || hasSelection ? 'rgba(201,162,40,0.4)' : '#1b2238'}`,
+          transition:'background 0.15s, border-color 0.15s',
+        }}
+      >
+        <span style={{ fontSize:14, fontWeight:700, color: open || hasSelection ? '#c9a228' : '#8896b0' }}>
+          {selLabel || centerLabel}
+        </span>
+        {!open && selIcon && <span style={{ color:'#c9a228' }}>{selIcon}</span>}
+        <span style={{ fontSize:9, color: open || hasSelection ? '#c9a228' : '#4d5a78', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (() => {
+        const byPos = {};
+        dirs.forEach(d => { byPos[d.pos] = d; });
+        const optBtn = (opt) => {
+          if (!opt) return <div />;
+          const isSel = raw === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => handleSelect(opt.id)}
+              style={{
+                width:'100%', padding:'11px 6px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+                fontSize:13, fontWeight: isSel ? 700 : 500,
+                border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
+                background: isSel ? 'rgba(201,162,40,0.18)' : '#131d35',
+                color: isSel ? '#c9a228' : '#8896b0',
+                animation:'fadeIn 0.15s ease-out',
+              }}
+            >
+              {opt.label}{opt.icon && opt.icon}
+            </button>
+          );
+        };
+        const centerOpt = { id: centerId, label: centerLabel, icon: null };
         return (
-          <div key={d.id} style={{
-            position:'absolute', top:'50%', left:'50%',
-            transform: open
-              ? `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${isHov ? 1.1 : 1})`
-              : 'translate(-50%, -50%) scale(0)',
-            opacity: open ? 1 : 0,
-            transition: open
-              ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), opacity 0.14s ease, background 0.1s, box-shadow 0.1s'
-              : 'transform 0.14s ease, opacity 0.1s ease',
-            width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
-            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-            pointerEvents:'none', zIndex:8,
-            border:`1.5px solid ${isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.55)' : '#252f4a'}`,
-            background: isHov ? 'rgba(201,162,40,0.28)' : isSel ? 'rgba(201,162,40,0.12)' : '#131d35',
-            color: isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.8)' : '#8896b0',
-            boxShadow: isHov ? '0 0 14px rgba(201,162,40,0.45)' : 'none',
-          }}>
-            {d.label}{d.icon && d.icon}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginTop:8 }}>
+            <div />{optBtn(byPos['up'])}<div />
+            {optBtn(byPos['left'])}{optBtn(centerOpt)}{optBtn(byPos['right'])}
+            <div />{optBtn(byPos['down'])}<div />
           </div>
         );
-      })}
-
-      <button
-        ref={centerRef}
-        style={{
-          position:'relative', zIndex:10,
-          width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
-          display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-          touchAction:'none', userSelect:'none', cursor:'pointer',
-          border:`1.5px solid ${isCtrHov ? '#c9a228' : raw ? '#c9a228' : '#252f4a'}`,
-          background: isCtrHov ? 'rgba(201,162,40,0.28)' : raw ? 'rgba(201,162,40,0.18)' : '#1a2235',
-          color: (isCtrHov || raw) ? '#c9a228' : '#8896b0',
-          transition:'border-color 0.1s, background 0.1s, color 0.1s',
-        }}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
-      >
-        {open ? centerLabel : <>{selLabel || centerLabel}{!open && selIcon && selIcon}</>}
-      </button>
+      })()}
     </div>
   );
 }
@@ -729,30 +639,44 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const extraShotTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
 
+  const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
+
   const goToHole = (idx) => { if (idx >= 0 && idx < 18) { setHoleIdx(idx); onUpdate({ ...round, currentHole: idx }); } };
 
-  const confirmAndGoToHole = (idx) => {
+  // freshScore: 현재 플레이어의 최신 스코어 객체 (setState 배치 전 최신값을 직접 전달할 때 사용)
+  const confirmAndGoToHole = (idx, freshScore) => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     const updated = { ...round };
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];
     const us = {};
-    round.players.forEach(p => { us[p] = finalizeScore(ch.scores[p], ch.par); });
+    round.players.forEach(p => {
+      const s = (p === activePlayer && freshScore) ? freshScore : ch.scores[p];
+      us[p] = finalizeScore(s, ch.par);
+    });
     updated.holes[holeIdx] = { ...ch, scores: us };
     updated.currentHole = idx; setHoleIdx(idx); onUpdate(updated);
   };
 
   const getScoreName = (strokes, par) => {
     if (!strokes) return null;
-    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', isHoleInOne: true };
+    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', textColor: '#fff', bg: 'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)', shadow: '0 2px 12px rgba(201,162,40,0.5)', anim: 'holeInOnePulse 2s ease-in-out infinite', fw: '800' };
     const diff = strokes - par;
-    if (diff <= -3) return { name: 'Albatross', color: '#e8c84e' };
-    if (diff === -2) return { name: 'Eagle', color: '#c9a228' };
-    if (diff === -1) return { name: 'Birdie', color: '#3db87a' };
-    if (diff === 0)  return { name: 'Par', color: '#8896b0' };
-    if (diff === 1)  return { name: 'Bogey', color: '#6b7c9a' };
-    if (diff === 2)  return { name: 'Double', color: '#ef5350' };
-    return { name: `+${diff}`, color: '#c62828' };
+    if (diff <= -3) return { name: 'Albatross', color: '#e8c84e', bg: 'rgba(232,200,78,0.12)', shadow: '0 2px 16px rgba(232,200,78,0.4)', anim: 'albatrossGlow 1.8s ease-in-out infinite', fw: '800' };
+    if (diff === -2) return { name: 'Eagle',     color: '#c9a228', bg: 'rgba(201,162,40,0.1)',  shadow: '0 2px 10px rgba(201,162,40,0.35)', anim: 'eagleGlow 2.2s ease-in-out infinite',     fw: '700' };
+    if (diff === -1) return { name: 'Birdie',    color: '#3db87a', bg: 'rgba(61,184,122,0.08)', shadow: '0 2px 6px rgba(61,184,122,0.25)',   anim: 'birdieGlow 2.8s ease-in-out infinite',   fw: '600' };
+    if (diff === 0)  return { name: 'Par',        color: '#8896b0' };
+    if (diff === 1)  return { name: 'Bogey',      color: '#e57373', bg: 'rgba(239,83,80,0.06)',  shadow: '0 2px 5px rgba(239,83,80,0.2)',   anim: 'bogeyRed 3.5s ease-in-out infinite',  fw: '600' };
+    if (diff === 2)  return { name: 'Double',     color: '#ef5350', bg: 'rgba(239,83,80,0.09)',  shadow: '0 2px 8px rgba(239,83,80,0.3)',   anim: 'doubleRed 3s ease-in-out infinite',   fw: '700' };
+    if (diff === 3)  return { name: 'Triple',     color: '#e53935', bg: 'rgba(229,57,53,0.12)',  shadow: '0 2px 10px rgba(229,57,53,0.4)',  anim: 'tripleRed 2.5s ease-in-out infinite', fw: '700' };
+    if (diff === 4)  return { name: 'Quadruple',  color: '#c62828', bg: 'rgba(198,40,40,0.15)',  shadow: '0 2px 12px rgba(198,40,40,0.5)',  anim: 'quadRed 2s ease-in-out infinite',     fw: '800' };
+    if (diff === 5)  return { name: 'Quintuple',  color: '#b71c1c', bg: 'rgba(183,28,28,0.17)',  shadow: '0 2px 14px rgba(183,28,28,0.55)', anim: 'quadRed 1.9s ease-in-out infinite',   fw: '800' };
+    if (diff === 6)  return { name: 'Sextuple',   color: '#b71c1c', bg: 'rgba(183,28,28,0.18)',  shadow: '0 2px 15px rgba(183,28,28,0.58)', anim: 'quadRed 1.8s ease-in-out infinite',   fw: '800' };
+    if (diff === 7)  return { name: 'Septuple',   color: '#b71c1c', bg: 'rgba(183,28,28,0.19)',  shadow: '0 2px 16px rgba(183,28,28,0.62)', anim: 'quadRed 1.7s ease-in-out infinite',   fw: '800' };
+    if (diff === 8)  return { name: 'Octuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.20)',  shadow: '0 2px 17px rgba(183,28,28,0.65)', anim: 'quadRed 1.6s ease-in-out infinite',   fw: '800' };
+    if (diff === 9)  return { name: 'Nonuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.21)',  shadow: '0 2px 18px rgba(183,28,28,0.68)', anim: 'quadRed 1.5s ease-in-out infinite',   fw: '800' };
+    if (diff === 10) return { name: 'Decuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
+    return                   { name: `+${diff}`,  color: '#b71c1c', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
@@ -839,8 +763,19 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   })();
 
   const updatePuttsCount = (n) => {
+    const delta = n - (playerScore.putts || 2);
+    const newStrokes = Math.max(1, (playerScore.strokes || hole.par) + delta);
     const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    updateFields({ putts: n, puttDetails: newDetails });
+    const ag = calculateGir(newStrokes, n, hole.par);
+    const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
+    updateFields({ putts: n, puttDetails: newDetails, strokes: newStrokes, ...girFields });
+  };
+
+  const updatePenalty = (field, newVal) => {
+    const oldVal = playerScore[field] || 0;
+    const delta = newVal - oldVal;
+    const newStrokes = Math.max(1, (playerScore.strokes || hole.par) + delta);
+    updateFields({ [field]: newVal, strokes: newStrokes });
   };
 
   const updatePutt = (idx, key, val) =>
@@ -866,6 +801,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(hole.par === 3 && playerScore.gir === true ? 1 : 0); } }, [teeComplete]);
+
+  useEffect(() => { if (shotPage === 1) window.scrollTo({ top: 0, behavior: 'smooth' }); }, [shotPage]);
 
   return (
     <div style={styles.container}>
@@ -972,13 +909,47 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       </div>
 
       {/* Hole Header */}
-      <div style={styles.holeHeader}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 16px 16px', borderBottom:'1px solid #0e1320', background:'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%)' }}>
+        {/* 좌측: HOLE + PAR + 파대비 */}
         <div>
-          <div style={styles.holeLabel}>HOLE {holeIdx+1}</div>
-          <div style={{ ...styles.holePar, color: isPar5?'#3db87a':styles.holePar.color }}>PAR {hole.par}</div>
+          <div style={{ fontSize:10, fontWeight:700, color:'#c9a228', letterSpacing:'0.28em', marginBottom:5, textTransform:'uppercase' }}>HOLE {holeIdx+1}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ fontSize:32, fontWeight:900, lineHeight:1, letterSpacing:'-0.02em', color: isPar5?'#3db87a': hole.par===3?'#5b9cf6':'#e8edf8' }}>PAR {hole.par}</div>
+            {(() => {
+              const diff = playerScore.strokes - hole.par;
+              if (diff === 0 || !playerScore.touched) return null;
+              const under = diff < 0;
+              return (
+                <div style={{
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  height:28, padding:'0 10px',
+                  fontSize:13, fontWeight:800, letterSpacing:'0.04em',
+                  alignSelf:'center',
+                  color: under?'#3db87a':'#ef5350',
+                  background: under?'rgba(61,184,122,0.1)':'rgba(239,83,80,0.1)',
+                  border:`1px solid ${under?'rgba(61,184,122,0.3)':'rgba(239,83,80,0.3)'}`,
+                  borderRadius:6,
+                }}>
+                  {under ? diff : `+${diff}`}
+                </div>
+              );
+            })()}
+          </div>
         </div>
+
+        {/* 우측: 스코어명 */}
         {scoreName && (
-          <div style={{ ...styles.scoreName, color: isPar3AtPar?'#fff':(scoreName.isHoleInOne?'#fff':scoreName.color), borderColor: isPar3AtPar?'#c04a10':scoreName.color, background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':scoreName.isHoleInOne?'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)':'transparent', boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':scoreName.isHoleInOne?'0 2px 12px rgba(201,162,40,0.5)':'none', fontWeight:(isPar3AtPar||scoreName.isHoleInOne)?'800':'600', opacity:playerScore.touched?1:0.35, animation:scoreName.isHoleInOne&&playerScore.touched?'holeInOnePulse 2s ease-in-out infinite':'none' }}>
+          <div style={{
+            fontSize:11, fontWeight: isPar3AtPar?'800':(scoreName.fw||'700'),
+            letterSpacing:'0.14em', textTransform:'uppercase',
+            color: isPar3AtPar?'#fff':(scoreName.textColor||scoreName.color),
+            background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':(scoreName.bg||'transparent'),
+            border:`1.5px solid ${isPar3AtPar?'#c04a10':scoreName.color}`,
+            borderRadius:6, padding:'6px 12px',
+            boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':(playerScore.touched&&scoreName.shadow?scoreName.shadow:'none'),
+            opacity: playerScore.touched?1:0.3,
+            animation: playerScore.touched&&scoreName.anim?scoreName.anim:'none',
+          }}>
             {isPar3AtPar?'PAR 3 !':scoreName.name}
           </div>
         )}
@@ -1051,6 +1022,25 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       </div>
 
+      {/* 해저드 / OB */}
+      <div style={{ display:'flex', gap:8, padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
+        {[
+          { label:'해저드', val:playerScore.hazard||0, color:'#ef5350', onDec:()=>{ const c=playerScore.hazard||0; if(c>0) updatePenalty('hazard',c-1); }, onInc:()=>updatePenalty('hazard',Math.min(5,(playerScore.hazard||0)+1)) },
+          { label:'OB',    val:playerScore.ob||0,     color:'#ef5350', onDec:()=>{ const c=playerScore.ob||0;     if(c>0) updatePenalty('ob',c-1);     }, onInc:()=>updatePenalty('ob',    Math.min(5,(playerScore.ob||0)+1))   },
+        ].map(item => (
+          <div key={item.label} style={{ flex:1 }}>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'#4d5a78', textAlign:'center', marginBottom:4 }}>{item.label}</div>
+            <div style={{ position:'relative', display:'flex', height:42, borderRadius:10, overflow:'hidden', background:'#131c30', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
+              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
+              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
+              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                <span style={{ fontSize:20, fontWeight:900, color: item.val > 0 ? item.color : '#e8edf8', lineHeight:1 }}>{item.val}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Player Tabs */}
       {round.players.length > 1 && (
         <div style={styles.playerTabs}>
@@ -1092,7 +1082,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
             <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
               value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
-              onChange={v => updateField('pinPosition', v)}
+              onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
             />
           </div>
         )}
@@ -1114,7 +1104,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           categories={clubs}
           value={playerScore.teeClub}
           subValue={playerScore.teeClubSub}
-          onCategory={v => updateFields({ teeClub: v, teeClubSub: null })}
+          onCategory={v => { updateFields({ teeClub: v, teeClubSub: null }); if (v) scrollDown(); }}
           onSub={v => updateField('teeClubSub', v)}
           stacked
           onInteractStart={() => setTeeClubInteracting(true)}
@@ -1139,7 +1129,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   {row.map(s => (
                     <button key={s}
                       style={{ ...fChip, flex:1, textAlign:'center', padding:'10px 6px', fontSize:13, borderRadius:8, ...(playerScore.shotShape===s?fChipOn:{}) }}
-                      onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
+                      onClick={()=>{ const nv=playerScore.shotShape===s?null:s; updateField('shotShape',nv); if(nv) scrollDown(); }}>{s}</button>
                   ))}
                 </div>
               ))}
@@ -1159,7 +1149,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
                 onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
-                onClick={()=>{ updateGir(false); setSecondShotExpanded(true); setShotPage(0); }}>실패</button>
+                onClick={()=>{ updateGir(false); setSecondShotExpanded(true); setShotPage(0); scrollDown(); }}>실패</button>
             </div>
           </div>
         )}
@@ -1171,8 +1161,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
             </div>
             <div style={{ display:'flex', gap:8 }}>
-              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>updateScore('fairway',true)}>O</button>
-              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>updateScore('fairway',false)}>X</button>
+              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>{ updateScore('fairway',true); scrollDown(); }}>O</button>
+              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>{ updateScore('fairway',false); scrollDown(); }}>X</button>
             </div>
           </div>
         )}
@@ -1234,7 +1224,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           categories={SECOND_CLUBS}
           value={playerScore.secondClub}
           subValue={playerScore.secondClubSub}
-          onCategory={v => updateFields({ secondClub: v, secondClubSub: null })}
+          onCategory={v => { updateFields({ secondClub: v, secondClubSub: null }); if (v) scrollDown(); }}
           onSub={v => updateField('secondClubSub', v)}
           stacked
         />
@@ -1247,7 +1237,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
           <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
             value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
-            onChange={v => updateField('terrainCondition', v)}
+            onChange={v => { updateField('terrainCondition', v); if (v) scrollDown(); }}
           />
         </div>
         )}
@@ -1276,7 +1266,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {playerScore.terrainCondition && (<>
         <div ref={extraShotTopRef} />
 
-        {/* 세컨샷 GIR (추가 샷 없을 때) */}
+        {/* 세컨샷 GIR (추가 샷 없을 때, Par 4+) */}
         {extraShots.length === 0 && hole.par > 3 && (
           <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>GIR</span></div>
@@ -1285,6 +1275,19 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                 onClick={()=>{ updateGir(false); setSecondShotExpanded(false); addExtraShot(); }}>실패</button>
+            </div>
+          </div>
+        )}
+
+        {/* 세컨샷 온그린 (추가 샷 없을 때, Par 3) */}
+        {extraShots.length === 0 && hole.par === 3 && (
+          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+            <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                onClick={()=>{ updateOnGreen(true); setShotPage(1); }}>성공</button>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                onClick={()=>{ updateOnGreen(false); setSecondShotExpanded(false); addExtraShot(); }}>실패</button>
             </div>
           </div>
         )}
@@ -1320,7 +1323,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 <ClubSelector
                   icon="〽" label="클럽" categories={SECOND_CLUBS}
                   value={shot.club} subValue={shot.subClub}
-                  onCategory={v => updateExtraShot(idx, { club: v, subClub: null })}
+                  onCategory={v => { updateExtraShot(idx, { club: v, subClub: null }); if (v) scrollDown(); }}
                   onSub={v => updateExtraShot(idx, { subClub: v })}
                   stacked
                 />
@@ -1332,7 +1335,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   </div>
                   <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
                     value={Array.isArray(shot.lie) ? shot.lie[0] : shot.lie}
-                    onChange={v => updateExtraShot(idx, { lie: v })}
+                    onChange={v => { updateExtraShot(idx, { lie: v }); if (v) scrollDown(); }}
                   />
                 </div>
 
@@ -1401,7 +1404,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
           <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
             value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
-            onChange={v => updateField('pinPosition', v)}
+            onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
           />
         </div>
         )}
@@ -1414,7 +1417,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <span style={fLbl}>온그린 랜딩</span>
             {playerScore.onGreenLanding && <span style={{ fontSize:10, color:'#c9a228', marginLeft:6 }}>{playerScore.onGreenLanding}시 방향</span>}
           </div>
-          <ClockDial12 value={playerScore.onGreenLanding} onChange={v=>updateField('onGreenLanding',v)} />
+          <ClockDial12 value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) scrollDown(); }} />
           <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:10, lineHeight:1.6 }}>
             12시=롱 · 6시=숏 · 9시=레프트 · 3시=라이트 (핀 기준)
           </div>
@@ -1436,7 +1439,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <React.Fragment key={puttIdx}>
                 {/* 아코디언 헤더 */}
                 <button
-                  onClick={() => setExpandedPutt(isOpen ? -1 : puttIdx)}
+                  onClick={() => { const next = isOpen ? -1 : puttIdx; setExpandedPutt(next); if (next >= 0) scrollDown(); }}
                   style={{
                     width:'100%', display:'flex', alignItems:'center', gap:8,
                     padding:'10px 16px', background:'none', border:'none', cursor:'pointer',
@@ -1485,17 +1488,18 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                           const newDetails = Array.from({ length: newPutts }, (_, i) =>
                             i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
                           );
-                          updateFields({ putts: newPutts, puttDetails: newDetails });
-                          setTimeout(() => {
-                            if (isLastHole) {
-                              const u = { ...round }; u.holes = [...round.holes];
-                              const lh = u.holes[holeIdx]; const us = {};
-                              round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
-                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
-                            } else {
-                              confirmAndGoToHole(holeIdx + 1);
-                            }
-                          }, 50);
+                          const freshScore = { ...playerScore, putts: newPutts, puttDetails: newDetails, touched: true };
+                          if (isLastHole) {
+                            const u = { ...round }; u.holes = [...round.holes];
+                            const lh = u.holes[holeIdx]; const us = {};
+                            round.players.forEach(p => {
+                              const s = p === activePlayer ? freshScore : lh.scores[p];
+                              us[p] = finalizeScore(s, lh.par);
+                            });
+                            u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                          } else {
+                            confirmAndGoToHole(holeIdx + 1, freshScore);
+                          }
                         }}
                       >성공</button>
                       <button
@@ -1519,33 +1523,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </>)}
         </>)}
 
-        {/* 페널티 */}
-        <div style={{ display:'flex', gap:8, padding:'12px 16px', marginBottom:4 }}>
-          <div style={fPenBox}>
-            <span style={fPenLbl}>OB</span>
-            <div style={{ position:'relative', display:'flex', height:52, width:'100%', borderRadius:8, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>{ const c=playerScore.ob||0; if(c>0) updateScore('ob',c-1); }}>−</button>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>updateScore('ob',Math.min(5,(playerScore.ob||0)+1))}>+</button>
-              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <span style={{ fontSize:26, fontWeight:900, color:(playerScore.ob||0)>0?'#ef5350':'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.ob||0}</span>
-              </div>
-            </div>
-          </div>
-          <div style={fPenBox}>
-            <span style={fPenLbl}>해저드</span>
-            <div style={{ position:'relative', display:'flex', height:52, width:'100%', borderRadius:8, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>{ const c=playerScore.hazard||0; if(c>0) updateScore('hazard',c-1); }}>−</button>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>updateScore('hazard',Math.min(5,(playerScore.hazard||0)+1))}>+</button>
-              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <span style={{ fontSize:26, fontWeight:900, color:(playerScore.hazard||0)>0?'#c9a228':'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.hazard||0}</span>
-              </div>
-            </div>
-          </div>
-        </div>
         </>)}
         </>}
 

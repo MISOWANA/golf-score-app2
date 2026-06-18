@@ -403,7 +403,7 @@ const RADIAL_POS = {
   right: { tx:  96, ty:   0 },
 };
 
-function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
+function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen }) {
   const raw = Array.isArray(value) ? value[0] || null : value || null;
   const [open, setOpen] = useState(false);
 
@@ -424,7 +424,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
   return (
     <div style={{ width:'100%' }}>
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={() => { setOpen(v => { if (!v && onOpen) onOpen(); return !v; }); }}
         style={{
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center',
           gap:6, padding:'10px 16px', borderRadius:10, cursor:'pointer',
@@ -645,7 +645,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   // freshScore: 현재 플레이어의 최신 스코어 객체 (setState 배치 전 최신값을 직접 전달할 때 사용)
   const confirmAndGoToHole = (idx, freshScore) => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 120);
     const updated = { ...round };
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];
@@ -802,7 +802,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(hole.par === 3 && playerScore.gir === true ? 1 : 0); } }, [teeComplete]);
 
-  useEffect(() => { if (shotPage === 1) window.scrollTo({ top: 0, behavior: 'smooth' }); }, [shotPage]);
+  useEffect(() => { if (shotPage === 1) scrollDown(); }, [shotPage]);
 
   return (
     <div style={styles.container}>
@@ -1238,6 +1238,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
             value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
             onChange={v => { updateField('terrainCondition', v); if (v) scrollDown(); }}
+            onOpen={scrollDown}
           />
         </div>
         )}

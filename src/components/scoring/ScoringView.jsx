@@ -12,11 +12,15 @@ const CLOCK_HOURS = Array.from({ length: 12 }, (_, i) => {
 });
 
 const TERRAIN_OPTIONS = [
-  { id: 'flat',     label: '평지' },
-  { id: 'uphill',   label: '오르막' },
-  { id: 'downhill', label: '내리막' },
-  { id: 'hook',     label: '훅' },
-  { id: 'slice',    label: '슬라이스' },
+  { id: 'flat',           label: '평지' },
+  { id: 'uphill',         label: '오르막' },
+  { id: 'downhill',       label: '내리막' },
+  { id: 'hook',           label: '훅' },
+  { id: 'slice',          label: '슬라이스' },
+  { id: 'uphill-slice',   label: '오르막 슬라이스' },
+  { id: 'uphill-hook',    label: '오르막 훅' },
+  { id: 'downhill-slice', label: '내리막 슬라이스' },
+  { id: 'downhill-hook',  label: '내리막 훅' },
 ];
 
 const LIE_GRID = [
@@ -26,13 +30,15 @@ const LIE_GRID = [
 ];
 
 const PUTT_LIE_OPTIONS = [
-  { id: 'flat',         label: '평지' },
-  { id: 'uphill',       label: '오르막' },
-  { id: 'downhill',     label: '내리막' },
-  { id: 'break-left',   label: '슬라이스' },
-  { id: 'break-right',  label: '훅' },
-  { id: 'grain-with',   label: '순결' },
-  { id: 'grain-against',label: '역결' },
+  { id: 'flat',           label: '평지' },
+  { id: 'uphill',         label: '오르막' },
+  { id: 'downhill',       label: '내리막' },
+  { id: 'hook',           label: '훅' },
+  { id: 'slice',          label: '슬라이스' },
+  { id: 'uphill-slice',   label: '오르막 슬라이스' },
+  { id: 'uphill-hook',    label: '오르막 훅' },
+  { id: 'downhill-slice', label: '내리막 슬라이스' },
+  { id: 'downhill-hook',  label: '내리막 훅' },
 ];
 
 const PIN_OPTIONS = [
@@ -40,8 +46,13 @@ const PIN_OPTIONS = [
   { id: 'back',   label: '백' },
   { id: 'center', label: '센터' },
   { id: 'left',   label: '레프트' },
-  { id: 'right',  label: '라이트' },
+  { id: 'right',   label: '라이트' },
+  { id: 'back left',  label: '백 레프트' },
+  { id: 'front left',  label: '프론트 레프트' },
+  { id: 'back right',  label: '백 라이트' },
+  { id: 'front right',  label: '프론트 라이트' },
 ];
+
 
 const SECOND_CLUBS = [
   { id: 'wood',   label: 'WOOD' },
@@ -305,7 +316,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
     setExpandedId(null);
   };
 
-  const expandedSubs = expandedId ? (CLUB_SUBS[expandedId] || []) : [];
+  const expandedSubs = (expandedId && expandedId === value) ? (CLUB_SUBS[expandedId] || []) : [];
 
   const categoryRow = (
     <div style={{ display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
@@ -445,30 +456,32 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen }) 
         const optBtn = (opt) => {
           if (!opt) return <div />;
           const isSel = raw === opt.id;
+          const isCompound = opt.label && opt.label.includes('\n');
           return (
             <button
               key={opt.id}
               onClick={() => handleSelect(opt.id)}
               style={{
-                width:'100%', padding:'11px 6px', borderRadius:8, cursor:'pointer',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-                fontSize:13, fontWeight: isSel ? 700 : 500,
+                width:'100%', padding: isCompound ? '7px 4px' : '11px 6px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:2,
+                fontSize: isCompound ? 10 : 13, fontWeight: isSel ? 700 : 500, lineHeight: isCompound ? 1.3 : 1,
                 border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
                 background: isSel ? 'rgba(201,162,40,0.18)' : '#131d35',
                 color: isSel ? '#c9a228' : '#8896b0',
                 animation:'fadeIn 0.15s ease-out',
+                textAlign:'center', whiteSpace:'pre-line',
               }}
             >
-              {opt.label}{opt.icon && opt.icon}
+              {opt.label}{!isCompound && opt.icon && opt.icon}
             </button>
           );
         };
         const centerOpt = { id: centerId, label: centerLabel, icon: null };
         return (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginTop:8 }}>
-            <div />{optBtn(byPos['up'])}<div />
+            {optBtn(byPos['ul'])}{optBtn(byPos['up'])}{optBtn(byPos['ur'])}
             {optBtn(byPos['left'])}{optBtn(centerOpt)}{optBtn(byPos['right'])}
-            <div />{optBtn(byPos['down'])}<div />
+            {optBtn(byPos['dl'])}{optBtn(byPos['down'])}{optBtn(byPos['dr'])}
           </div>
         );
       })()}
@@ -477,22 +490,34 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen }) 
 }
 
 const LIE_DIRS = [
-  { id:'uphill',   label:'오르막',   pos:'up'    },
-  { id:'slice',    label:'슬라이스', pos:'left',  icon: <SliceIcon /> },
-  { id:'downhill', label:'내리막',   pos:'down'  },
-  { id:'hook',     label:'훅',       pos:'right', icon: <HookIcon /> },
+  { id:'uphill',          label:'오르막',        pos:'up'    },
+  { id:'slice',           label:'슬라이스',      pos:'left',  icon: <SliceIcon /> },
+  { id:'downhill',        label:'내리막',        pos:'down'  },
+  { id:'hook',            label:'훅',            pos:'right', icon: <HookIcon /> },
+  { id:'uphill-slice',    label:'오르막\n슬라이스', pos:'ul'  },
+  { id:'uphill-hook',     label:'오르막\n훅',    pos:'ur'    },
+  { id:'downhill-slice',  label:'내리막\n슬라이스', pos:'dl'  },
+  { id:'downhill-hook',   label:'내리막\n훅',    pos:'dr'    },
 ];
 const PIN_DIRS = [
-  { id:'back',  label:'백',    pos:'up'    },
-  { id:'left',  label:'레프트', pos:'left'  },
-  { id:'front', label:'프론트', pos:'down'  },
-  { id:'right', label:'라이트', pos:'right' },
+  { id:'back',         label:'백',           pos:'up'    },
+  { id:'left',         label:'레프트',       pos:'left'  },
+  { id:'front',        label:'프론트',       pos:'down'  },
+  { id:'right',        label:'라이트',       pos:'right' },
+  { id:'back-left',    label:'백\n레프트',   pos:'ul'    },
+  { id:'back-right',   label:'백\n라이트',   pos:'ur'    },
+  { id:'front-left',   label:'프론트\n레프트', pos:'dl'  },
+  { id:'front-right',  label:'프론트\n라이트', pos:'dr'  },
 ];
 const PUTT_LIE_DIRS = [
-  { id:'uphill',      label:'오르막',   pos:'up'    },
-  { id:'break-left',  label:'슬라이스', pos:'left',  icon: <SliceIcon /> },
-  { id:'downhill',    label:'내리막',   pos:'down'  },
-  { id:'break-right', label:'훅',       pos:'right', icon: <HookIcon /> },
+  { id:'uphill',             label:'오르막',          pos:'up'    },
+  { id:'break-left',         label:'슬라이스',        pos:'left',  icon: <SliceIcon /> },
+  { id:'downhill',           label:'내리막',          pos:'down'  },
+  { id:'break-right',        label:'훅',              pos:'right', icon: <HookIcon /> },
+  { id:'uphill-break-left',  label:'오르막\n슬라이스', pos:'ul'   },
+  { id:'uphill-break-right', label:'오르막\n훅',      pos:'ur'    },
+  { id:'downhill-break-left',label:'내리막\n슬라이스', pos:'dl'   },
+  { id:'downhill-break-right',label:'내리막\n훅',     pos:'dr'    },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -1503,8 +1528,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                         style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='success'?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
                         onClick={() => {
                           const puttsUsed = puttIdx + 1;
-                          const puttDelta = puttsUsed - (playerScore.putts || 2);
-                          const freshStrokes = Math.max(1, (playerScore.strokes || hole.par) + puttDelta);
+                          const freshStrokes = calcAutoStrokes({ ...playerScore, putts: puttsUsed }, hole.par);
                           const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
                             i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
                           );

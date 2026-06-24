@@ -594,7 +594,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const calcAutoStrokes = (score, par) => {
     const hasPenalty = (score.ob || 0) > 0 || (score.hazard || 0) > 0;
     const effectiveTeeGIR = score.teeGIR && !hasPenalty;
-    const field = effectiveTeeGIR ? 0 : (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
+    const minField = hasPenalty ? 1 : (par > 3 ? 1 : 0);
+    const field = effectiveTeeGIR ? 0 : minField + (score.extraShots?.length || 0);
     return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
   };
 
@@ -1330,26 +1331,46 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         )}
 
         {/* PAR3 전용: GIR - 구질 선택 후 등장 */}
-        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && (
-          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
-            <div style={fLeft}>
-              <span style={fIcon}>⚑</span>
-              <span style={fLbl}>GIR</span>
+        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && (() => {
+          const hioSelected = playerScore.putts===0 && playerScore.girAuto===false && (playerScore.puttDetails?.length||0)===0 && playerScore.touched;
+          return (
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>⚑</span><span style={fLbl}>GIR</span>
             </div>
-            <div style={{ display:'flex', gap:6 }}>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+            {/* 성공 / 실패 */}
+            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
                 onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
                 onClick={()=>{ updateGir(false); setSecondShotExpanded(true); setShotPage(0); scrollDown(); }}>실패</button>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.putts===0 && playerScore.girAuto===false && playerScore.puttDetails?.length===0 ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
-                onClick={() => {
-                  const freshStrokes = calcAutoStrokes({ ...playerScore, putts: 0 }, hole.par);
-                  const freshScore = { ...playerScore, gir: true, girAuto: false, putts: 0, strokes: freshStrokes, puttDetails: [], touched: true };
-                  triggerChipIn(freshScore);
-                }}>홀인원</button>
             </div>
+            {/* 홀인원 풀와이드 */}
+            <button
+              style={{
+                width:'100%', padding:'13px 16px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                border: hioSelected ? '2px solid #c9a228' : '1.5px solid #252f4a',
+                background: hioSelected
+                  ? 'linear-gradient(135deg, rgba(201,162,40,0.28) 0%, rgba(201,162,40,0.08) 100%)'
+                  : '#1a2235',
+                color: hioSelected ? '#c9a228' : '#8896b0',
+                fontWeight: 700, fontSize: 13, letterSpacing:'0.08em',
+                animation: hioSelected ? 'holeInOnePulse 1.6s ease-in-out infinite' : 'none',
+                boxShadow: hioSelected ? '0 0 20px rgba(201,162,40,0.35)' : 'none',
+                transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
+              }}
+              onClick={() => {
+                const freshStrokes = calcAutoStrokes({ ...playerScore, putts: 0 }, hole.par);
+                const freshScore = { ...playerScore, gir: true, girAuto: false, putts: 0, strokes: freshStrokes, puttDetails: [], touched: true };
+                triggerChipIn(freshScore);
+              }}>
+              {hioSelected && <span style={{ fontSize:16 }}>⭐</span>}
+              <span>홀인원</span>
+              {hioSelected && <span style={{ fontSize:16 }}>⭐</span>}
+            </button>
           </div>
-        )}
+        );})()}
 
         {/* FAIRWAY HIT - 구질 선택 후 등장 */}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (

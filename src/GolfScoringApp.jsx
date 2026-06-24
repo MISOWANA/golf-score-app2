@@ -98,13 +98,14 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars, outCourseName, inCourseName) => {
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox) => {
     const newRound = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       courseName,
       outCourseName: outCourseName || 'OUT',
       inCourseName: inCourseName || 'IN',
+      teeBox: teeBox || null,
       players,
       pars,
       holes: Array.from({ length: 18 }, (_, i) => ({
@@ -299,14 +300,14 @@ export default function GolfScoringApp() {
 
       {view === 'stats' && (
         <StatsView
-          rounds={rounds}
+          rounds={rounds.filter(r => r.players.length === 1)}
           onBack={() => setView('home')}
         />
       )}
 
       {view === 'insights' && (
         <InsightsView
-          rounds={rounds}
+          rounds={rounds.filter(r => r.players.length === 1)}
           onBack={() => setView('home')}
         />
       )}

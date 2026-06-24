@@ -9,6 +9,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [inCourseName, setInCourseName] = useState('');
   const [players, setPlayers] = useState([currentUser?.userName || '']);
   const [pars, setPars] = useState(Array(18).fill(4));
+  const [teeBox, setTeeBox] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -112,7 +113,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
 
   const needsPairSelect = !!(selectedClub?.pairs);
   const needsCourseSelect = selectedClub && !selectedClub.pairs && selectedClub.courses.length > 2;
-  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim());
+  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim()) && teeBox;
 
   const chipStyle = (active) => ({
     flex: 1, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
@@ -315,6 +316,38 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         ))}
       </div>
 
+      {/* TEE BOX */}
+      <div style={styles.formSection}>
+        <label style={styles.formLabel}>TEE BOX</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { id: '레드티',    color: '#ef5350', bg: 'rgba(239,83,80,0.15)',   border: '#ef5350'  },
+            { id: '옐로우티',  color: '#f5c842', bg: 'rgba(245,200,66,0.15)',  border: '#f5c842'  },
+            { id: '화이트티',  color: '#e8edf8', bg: 'rgba(232,237,248,0.12)', border: '#8896b0'  },
+            { id: '블루티',    color: '#42a5f5', bg: 'rgba(66,165,245,0.15)',  border: '#42a5f5'  },
+            { id: '블랙티',    color: '#111418', activeText: '#e8edf8', bg: 'rgba(17,20,24,0.6)',    border: '#e8edf8', dotBorder: '1.5px solid #e8edf8' },
+          ].map(({ id, color, activeText, bg, border, dotBorder }) => {
+            const active = teeBox === id;
+            return (
+              <button key={id}
+                style={{
+                  flex: 1, padding: '10px 4px', borderRadius: 8, textAlign: 'center', cursor: 'pointer',
+                  border: `1.5px solid ${active ? border : '#252f4a'}`,
+                  background: active ? bg : '#1a2235',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                }}
+                onClick={() => setTeeBox(active ? null : id)}
+              >
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: color, boxShadow: active ? `0 0 6px ${border}` : 'none', border: dotBorder || 'none' }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: active ? (activeText || color) : '#4d5a78', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                  {id.replace('티', '')}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 파 설정 */}
       <div style={styles.formSection}>
         <label style={styles.formLabel}>파 설정</label>
@@ -390,7 +423,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim())}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox)}
       >
         라운드 시작하기
       </button>

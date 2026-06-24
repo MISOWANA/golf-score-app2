@@ -592,7 +592,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const calcAutoStrokes = (score, par) => {
-    const field = (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
+    const field = score.teeGIR ? 0 : (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
     return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
   };
 
@@ -685,6 +685,31 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updated.currentHole = idx; setHoleIdx(idx); onUpdate(updated);
   };
 
+  const triggerChipIn = (freshScore) => {
+    holeInCbRef.current = () => {
+      if (isLastHole) {
+        const u = { ...round }; u.holes = [...round.holes];
+        const lh = u.holes[holeIdx]; const us = {};
+        round.players.forEach(p => {
+          const s = p === activePlayer ? freshScore : lh.scores[p];
+          us[p] = finalizeScore(s, lh.par);
+        });
+        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+      } else {
+        confirmAndGoToHole(holeIdx + 1, freshScore);
+      }
+    };
+    setHoleInModalData({
+      isLastHole,
+      scoreName: getScoreName(freshScore.strokes, hole.par),
+      strokes: freshScore.strokes,
+      putts: 0,
+      onCount: freshScore.strokes,
+    });
+    setShowHoleInModal(true);
+    setTimeout(() => { setShowHoleInModal(false); holeInCbRef.current?.(); }, 2500);
+  };
+
   const getScoreName = (strokes, par) => {
     if (!strokes) return null;
     if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', textColor: '#fff', bg: 'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)', shadow: '0 2px 12px rgba(201,162,40,0.5)', anim: 'holeInOnePulse 2s ease-in-out infinite', fw: '800' };
@@ -708,7 +733,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
   const teeComplete = !!(playerScore.teeClub && playerScore.shotShape &&
-    (hole.par === 3 ? !playerScore.girAuto : playerScore.fairwayHit != null));
+    (hole.par === 3 ? !playerScore.girAuto : (playerScore.fairwayHit != null || playerScore.teeGIR)));
   const teeShotSummary = [
     `${playerScore.strokes}타`,
     hole.par === 3 && playerScore.teeDistance ? `${playerScore.teeDistance}m` : null,
@@ -725,6 +750,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const isLastHole = holeIdx === 17;
   const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
   const isPar5 = hole.par === 5;
+  const isSimpleMode = round.players.length > 1;
 
   const clubs = hole.par === 3
     ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
@@ -794,8 +820,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   })();
 
   const updatePuttsCount = (n) => {
-    const delta = n - (playerScore.putts || 2);
-    const newStrokes = Math.max(1, (playerScore.strokes || hole.par) + delta);
+    const newScore = { ...playerScore, putts: n };
+    const newStrokes = calcAutoStrokes(newScore, hole.par);
     const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
     const ag = calculateGir(newStrokes, n, hole.par);
     const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
@@ -803,14 +829,22 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const updatePenalty = (field, newVal) => {
-    const oldVal = playerScore[field] || 0;
-    const delta = newVal - oldVal;
-    const newStrokes = Math.max(1, (playerScore.strokes || hole.par) + delta);
+    const newScore = { ...playerScore, [field]: newVal };
+    const newStrokes = calcAutoStrokes(newScore, hole.par);
     updateFields({ [field]: newVal, strokes: newStrokes });
   };
 
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
+
+  const updatePlayerStrokes = (player, newStrokes) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    const ps = hole.scores[player];
+    const inf = inferStatsFromStrokes(newStrokes, hole.par);
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [player]: { ...ps, strokes: newStrokes, putts: inf.putts, gir: inf.gir, girAuto: true, touched: true } } };
+    onUpdate(updated);
+  };
 
   useEffect(() => {
     const firstEmpty = puttDetails.findIndex(p =>
@@ -831,7 +865,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   }, [extraShots.length]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage(hole.par === 3 && playerScore.gir === true ? 1 : 0); } }, [teeComplete]);
+  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage((hole.par === 3 && playerScore.gir === true) || playerScore.teeGIR ? 1 : 0); } }, [teeComplete]);
 
   useEffect(() => { if (shotPage === 1) scrollDown(); }, [shotPage]);
 
@@ -986,7 +1020,35 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         )}
       </div>
 
-      {/* 총 타수 */}
+      {/* ── 멀티플레이어 간편 스코어 ── */}
+      {isSimpleMode && (
+        <div style={{ padding:'8px 16px 4px' }}>
+          {round.players.map((player, pi) => {
+            const ps = hole.scores[player];
+            const sn = getScoreName(ps.strokes, hole.par);
+            const diff = ps.strokes - hole.par;
+            const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
+            return (
+              <div key={player} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8, padding:'6px 10px', borderRadius:10, background:'#0d1525', border:'1px solid #1b2744' }}>
+                <div style={{ width:26, height:26, borderRadius:'50%', background:'#1b2a45', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <span style={{ fontSize:11, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
+                </div>
+                <span style={{ flex:1, fontSize:13, fontWeight:600, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                <span style={{ fontSize:10, fontWeight:700, color: sn?.color||'#4d5a78', minWidth:24, textAlign:'center' }}>{diffLabel}</span>
+                <div style={{ display:'flex', alignItems:'center', background:'#131c30', borderRadius:8, overflow:'hidden', height:38 }}>
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'rgba(61,184,122,0.55)', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                    onClick={() => updatePlayerStrokes(player, Math.max(1, ps.strokes - 1))}>−</button>
+                  <span style={{ width:34, textAlign:'center', fontSize:20, fontWeight:900, color: sn?.color||'#e8edf8', lineHeight:1 }}>{ps.strokes}</span>
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'rgba(239,83,80,0.55)', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                    onClick={() => updatePlayerStrokes(player, Math.min(20, ps.strokes + 1))}>+</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!isSimpleMode && <>
       {/* 스코어 */}
       <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
         <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
@@ -1053,41 +1115,41 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       </div>
 
-      {/* 해저드 / OB */}
-      <div style={{ display:'flex', gap:8, padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
-        {[
-          { label:'해저드', val:playerScore.hazard||0, color:'#ef5350', onDec:()=>{ const c=playerScore.hazard||0; if(c>0) updatePenalty('hazard',c-1); }, onInc:()=>updatePenalty('hazard',Math.min(5,(playerScore.hazard||0)+1)) },
-          { label:'OB',    val:playerScore.ob||0,     color:'#ef5350', onDec:()=>{ const c=playerScore.ob||0;     if(c>0) updatePenalty('ob',c-1);     }, onInc:()=>updatePenalty('ob',    Math.min(5,(playerScore.ob||0)+1))   },
-        ].map(item => (
-          <div key={item.label} style={{ flex:1 }}>
-            <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'#4d5a78', textAlign:'center', marginBottom:4 }}>{item.label}</div>
-            <div style={{ position:'relative', display:'flex', height:42, borderRadius:10, overflow:'hidden', background:'#131c30', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
-              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <span style={{ fontSize:20, fontWeight:900, color: item.val > 0 ? item.color : '#e8edf8', lineHeight:1 }}>{item.val}</span>
+      {/* 패널티 */}
+      <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
+          <div style={{ flex:1 }} />
+          <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>패널티</span>
+          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
+            {((playerScore.ob||0) > 0 || (playerScore.hazard||0) > 0) && (
+              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+                onClick={()=>{ updateFields({ ob:0, hazard:0, strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0}, hole.par) }); }}>초기화</button>
+            )}
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          {[
+            { label:'해저드', val:playerScore.hazard||0, onDec:()=>{ const c=playerScore.hazard||0; if(c>0) updatePenalty('hazard',c-1); }, onInc:()=>updatePenalty('hazard',Math.min(5,(playerScore.hazard||0)+1)) },
+            { label:'OB',    val:playerScore.ob||0,     onDec:()=>{ const c=playerScore.ob||0;     if(c>0) updatePenalty('ob',c-1);     }, onInc:()=>updatePenalty('ob',    Math.min(5,(playerScore.ob||0)+1))   },
+          ].map(item => (
+            <div key={item.label} style={{ flex:1 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'#4d5a78', textAlign:'center', marginBottom:4 }}>{item.label}</div>
+              <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'#131c30', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
+                <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
+                <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
+                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                  <span style={{ fontSize:22, fontWeight:900, color: item.val > 0 ? '#ef5350' : '#2e3d56', lineHeight:1 }}>{item.val}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Player Tabs */}
-      {round.players.length > 1 && (
-        <div style={styles.playerTabs}>
-          {round.players.map(p => {
-            const psc=hole.scores[p];
-            return (
-              <button key={p} style={{ ...styles.playerTab, background: activePlayer===p?'#c9a228':'transparent', color: activePlayer===p?'#0b0e18':'#8896b0', borderColor: activePlayer===p?'#c9a228':'#252f4a' }} onClick={()=>setActivePlayer(p)}>
-                {p}<span style={{ ...styles.playerTabScore, background: psc.touched?'#0b0e18':'#252f4a', opacity: psc.touched?1:0.7 }}>{psc.strokes}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      </>}
 
       {/* ── Score Input Form ── */}
-      <div style={{ paddingBottom: 8 }}>
+      {!isSimpleMode && <div style={{ paddingBottom: 8 }}>
 
         {/* ── 티샷 아코디언 ── */}
         <button
@@ -1177,11 +1239,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <span style={fIcon}>⚑</span>
               <span style={fLbl}>GIR</span>
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+            <div style={{ display:'flex', gap:6 }}>
+              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
                 onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
-              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
                 onClick={()=>{ updateGir(false); setSecondShotExpanded(true); setShotPage(0); scrollDown(); }}>실패</button>
+              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.putts===0 && playerScore.girAuto===false && playerScore.puttDetails?.length===0 ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+                onClick={() => {
+                  const freshStrokes = calcAutoStrokes({ ...playerScore, putts: 0 }, hole.par);
+                  const freshScore = { ...playerScore, gir: true, girAuto: false, putts: 0, strokes: freshStrokes, puttDetails: [], touched: true };
+                  triggerChipIn(freshScore);
+                }}>홀인원</button>
             </div>
           </div>
         )}
@@ -1199,7 +1267,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         )}
 
-        {/* LANDING POINT (L/C/R) - 페어웨이 힛 선택 후 등장 */}
+        {/* LANDING POINT (L/C/R/그린) - 페어웨이 힛 선택 후 등장 */}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && playerScore.fairway != null && (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
@@ -1207,12 +1275,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
             <div style={{ display:'flex', gap:8 }}>
               {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
-                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${playerScore.fairwayHit===id?col:'#252f4a'}`, background:playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
-                  onClick={()=>updateLandingPoint(playerScore.fairwayHit===id?null:id)}>
+                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#252f4a'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
+                  onClick={()=>{ updateFields({ teeGIR: false }); updateLandingPoint(playerScore.fairwayHit===id?null:id); }}>
                   <div style={{ fontSize:12, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:10, marginTop:2 }}>{label}</div>
                 </button>
               ))}
+              <button style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${playerScore.teeGIR?'#c9a228':'#252f4a'}`, background:playerScore.teeGIR?'rgba(201,162,40,0.15)':'#1a2235', color:playerScore.teeGIR?'#c9a228':'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
+                onClick={()=>{
+                  if (playerScore.teeGIR) { updateFields({ teeGIR: false }); setShotPage(0); }
+                  else { updateFields({ teeGIR: true, fairwayHit: null }); setShotPage(1); }
+                }}>
+                <div style={{ fontSize:12, fontWeight:800 }}>G</div>
+                <div style={{ fontSize:10, marginTop:2 }}>그린(1온)</div>
+              </button>
             </div>
           </div>
         )}
@@ -1232,7 +1308,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         )}
 
-        {teeComplete && shotPage === 0 && <>
+        {teeComplete && shotPage === 0 && !playerScore.teeGIR && <>
         {/* ── 세컨샷 아코디언 헤더 ── */}
         <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
           <div style={{ height:1, flex:1, background: !secondShotExpanded && playerScore.secondClub ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
@@ -1401,18 +1477,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 {shot.club && (
                 <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
                   <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
-                  <div style={{ display:'flex', gap:8 }}>
+                  <div style={{ display:'flex', gap:6 }}>
                     <button
-                      style={{ ...fChipWide, padding:'10px 24px', ...(shot.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
                       onClick={() => { updateExtraShot(idx, { onGreen: true }); setShotPage(1); }}>성공</button>
                     <button
-                      style={{ ...fChipWide, padding:'10px 24px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                       onClick={() => {
                         const updated = extraShots.map((s, i) => i === idx ? { ...s, onGreen: false } : s);
                         const newShot = { club:null, subClub:null, lie:[], remainingDistance: Math.ceil((shot.remainingDistance||150) / 2), windDirection:null, windStrength:null, onGreen:null };
                         updateField('extraShots', [...updated, newShot]);
                         setExpandedExtraShot(extraShots.length);
                       }}>실패</button>
+                    <button
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+                      onClick={() => {
+                        const updatedShots = extraShots.map((s, i) => i === idx ? { ...s, onGreen: 'chip-in' } : s);
+                        const freshPlayerScore = { ...playerScore, extraShots: updatedShots, putts: 0 };
+                        const freshStrokes = calcAutoStrokes(freshPlayerScore, hole.par);
+                        const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], touched: true };
+                        triggerChipIn(freshScore);
+                      }}>칩인</button>
                   </div>
                 </div>
                 )}
@@ -1583,7 +1668,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </>)}
         </>}
 
-      </div>
+      </div>}
 
       {/* Scoring Bottom Bar */}
       <div style={styles.tabBar}>

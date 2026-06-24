@@ -592,11 +592,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const calcAutoStrokes = (score, par) => {
-    const hasPenalty = (score.ob || 0) > 0 || (score.hazard || 0) > 0;
+    const penaltyCount = (score.ob || 0) + (score.hazard || 0);
+    const hasPenalty = penaltyCount > 0;
     const effectiveTeeGIR = score.teeGIR && !hasPenalty;
-    const minField = hasPenalty ? 1 : (par > 3 ? 1 : 0);
-    const field = effectiveTeeGIR ? 0 : minField + (score.extraShots?.length || 0);
-    return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
+    const baseField = par > 3 ? 1 : 0;
+    // 패널티 수가 baseField를 초과하는 만큼 추가 재샷 발생
+    const extraReHits = Math.max(0, penaltyCount - baseField);
+    const field = effectiveTeeGIR ? 0 : baseField + extraReHits + (score.extraShots?.length || 0);
+    return 1 + field + (score.putts || 0) + penaltyCount;
   };
 
   // teeClub + 퍼팅 홀인 성공까지 완료된 경우에만 auto-calc, 미완료 시 수동 스코어 유지

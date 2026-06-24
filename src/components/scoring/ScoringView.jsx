@@ -58,8 +58,6 @@ const CLUB_SUBS = {
   hybrid: [{ id: '2H', label: '2H' }, { id: '3H', label: '3H' }, { id: '4H', label: '4H' }, { id: '5H', label: '5H' }],
   iron:   [{ id: '2I', label: '2I' }, { id: '3I', label: '3I' }, { id: '4I', label: '4I' }, { id: '5I', label: '5I' }, { id: '6I', label: '6I' }, { id: '7I', label: '7I' }, { id: '8I', label: '8I' }, { id: '9I', label: '9I' }],
   wedge:  [
-    
-    { id: 'P',  label: 'P'   },
     { id: '48', label: '48°' },
     { id: '50', label: '50°' },
     { id: '52', label: '52°' },
@@ -68,6 +66,7 @@ const CLUB_SUBS = {
     { id: '58', label: '58°' },
     { id: '60', label: '60°' },
     { id: '62', label: '62°' },
+    { id: 'P',  label: 'P'   },
   ],
 };
 
@@ -512,6 +511,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [teeClubInteracting, setTeeClubInteracting] = useState(false);
   const [teeExpanded, setTeeExpanded] = useState(true);
   const [secondShotExpanded, setSecondShotExpanded] = useState(true);
+  const [showHoleInModal, setShowHoleInModal] = useState(false);
+  const [holeInModalData, setHoleInModalData] = useState(null);
+  const holeInCbRef = useRef(null);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -527,7 +529,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         const ps = h.scores[p];
         if (!ps.touched) {
           const inf = inferStatsFromStrokes(newPar, newPar);
-          updatedScores[p] = { ...ps, strokes: newPar, putts: inf.putts, fairway: newPar > 3 ? true : null, gir: inf.gir };
+          updatedScores[p] = { ...ps, strokes: newPar, putts: inf.putts, fairway: null, gir: inf.gir };
         } else {
           updatedScores[p] = { ...ps };
         }
@@ -552,16 +554,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const inferStatsFromStrokes = (strokes, par) => {
-    if (strokes === 1) return { putts: 0, fairway: par > 3 ? true : null, gir: true };
-    if (strokes === par - 2) return { putts: 0, fairway: par > 3 ? true : null, gir: true };
+    if (strokes === 1) return { putts: 0, fairway: null, gir: true };
+    if (strokes === par - 2) return { putts: 0, fairway: null, gir: true };
     const diff = strokes - par;
-    let putts, fairway, gir;
-    if (diff <= -1) { putts = 1; fairway = par > 3 ? true : null; gir = true; }
-    else if (diff === 0) { putts = 2; fairway = par > 3 ? true : null; gir = true; }
-    else if (diff === 1) { putts = 2; fairway = par > 3 ? true : null; gir = false; }
-    else { putts = 2; fairway = par > 3 ? false : null; gir = false; }
+    let putts, gir;
+    if (diff <= -1) { putts = 1; gir = true; }
+    else if (diff === 0) { putts = 2; gir = true; }
+    else if (diff === 1) { putts = 2; gir = false; }
+    else { putts = 2; gir = false; }
     if (putts >= strokes) putts = Math.max(0, strokes - 1);
-    return { putts, fairway, gir };
+    return { putts, fairway: null, gir };
   };
 
   const calcAutoStrokes = (score, par) => {
@@ -740,7 +742,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const addExtraShot = () => {
     const newIdx = extraShots.length;
-    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: 150, windDirection: null, windStrength: null, onGreen: null }]);
+    const prevDist = newIdx === 0
+      ? (playerScore.remainingDistance || 150)
+      : (extraShots[newIdx - 1].remainingDistance || 150);
+    const initDist = Math.ceil(prevDist / 2);
+    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: initDist, windDirection: null, windStrength: null, onGreen: null }]);
     setExpandedExtraShot(newIdx);
   };
 
@@ -1083,6 +1089,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
               value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
               onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
+              onOpen={scrollDown}
             />
           </div>
         )}
@@ -1167,8 +1174,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         )}
 
-        {/* LANDING POINT (L/C/R) - 구질 선택 후 등장 */}
-        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
+        {/* LANDING POINT (L/C/R) - 페어웨이 힛 선택 후 등장 */}
+        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && playerScore.fairway != null && (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
@@ -1217,7 +1224,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
         </div>
 
+        {/* 세컨샷 라이 */}
+        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
+          </div>
+          <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
+            value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
+            onChange={v => { updateField('terrainCondition', v); if (v) scrollDown(); }}
+            onOpen={scrollDown}
+          />
+        </div>
+
         {/* 세컨샷 클럽 */}
+        {playerScore.terrainCondition && (
         <ClubSelector
           icon="〽"
           label="세컨샷 클럽"
@@ -1228,19 +1248,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onSub={v => updateField('secondClubSub', v)}
           stacked
         />
-
-        {/* 세컨샷 라이 */}
-        {playerScore.secondClub && (
-        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
-          </div>
-          <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
-            value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
-            onChange={v => { updateField('terrainCondition', v); if (v) scrollDown(); }}
-            onOpen={scrollDown}
-          />
-        </div>
         )}
 
         {/* 바람 */}
@@ -1320,15 +1327,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
                 </div>
 
-                {/* 클럽 */}
-                <ClubSelector
-                  icon="〽" label="클럽" categories={SECOND_CLUBS}
-                  value={shot.club} subValue={shot.subClub}
-                  onCategory={v => { updateExtraShot(idx, { club: v, subClub: null }); if (v) scrollDown(); }}
-                  onSub={v => updateExtraShot(idx, { subClub: v })}
-                  stacked
-                />
-
                 {/* 라이 */}
                 <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
@@ -1337,11 +1335,24 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
                     value={Array.isArray(shot.lie) ? shot.lie[0] : shot.lie}
                     onChange={v => { updateExtraShot(idx, { lie: v }); if (v) scrollDown(); }}
+                    onOpen={scrollDown}
                   />
                 </div>
 
-                {/* 바람 */}
-                <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+                {/* 클럽 — 라이 선택 후 노출 */}
+                {shot.lie && (Array.isArray(shot.lie) ? shot.lie.length > 0 : true) && (
+                <ClubSelector
+                  icon="〽" label="클럽" categories={SECOND_CLUBS}
+                  value={shot.club} subValue={shot.subClub}
+                  onCategory={v => { updateExtraShot(idx, { club: v, subClub: null }); if (v) scrollDown(); }}
+                  onSub={v => updateExtraShot(idx, { subClub: v })}
+                  stacked
+                />
+                )}
+
+                {/* 바람 — 클럽 선택 후 노출 */}
+                {shot.club && (
+                <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
@@ -1359,9 +1370,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                     onStrength={v => updateExtraShot(idx, { windStrength: v })}
                   />
                 </div>
+                )}
 
-                {/* 온그린 성공 / 실패 */}
-                <div style={{ ...fRow }}>
+                {/* 온그린 성공 / 실패 — 클럽 선택 후 노출 */}
+                {shot.club && (
+                <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
                   <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
                   <div style={{ display:'flex', gap:8 }}>
                     <button
@@ -1371,12 +1384,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       style={{ ...fChipWide, padding:'10px 24px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                       onClick={() => {
                         const updated = extraShots.map((s, i) => i === idx ? { ...s, onGreen: false } : s);
-                        const newShot = { club:null, subClub:null, lie:[], remainingDistance:150, windDirection:null, windStrength:null, onGreen:null };
+                        const newShot = { club:null, subClub:null, lie:[], remainingDistance: Math.ceil((shot.remainingDistance||150) / 2), windDirection:null, windStrength:null, onGreen:null };
                         updateField('extraShots', [...updated, newShot]);
                         setExpandedExtraShot(extraShots.length);
                       }}>실패</button>
                   </div>
                 </div>
+                )}
 
                 {/* 삭제 */}
                 <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
@@ -1406,6 +1420,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
             value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
             onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
+            onOpen={scrollDown}
           />
         </div>
         )}
@@ -1465,46 +1480,62 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                     </div>
                     <RadialPicker centerId="flat" centerLabel="평지" dirs={PUTT_LIE_DIRS}
                       value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
-                      onChange={v => updatePutt(puttIdx, 'lie', v)}
+                      onChange={v => { updatePutt(puttIdx, 'lie', v); if (v) scrollDown(); }}
+                      onOpen={scrollDown}
                     />
                   </div>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  {putt.lie && (Array.isArray(putt.lie) ? putt.lie.length > 0 : true) && (<>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
+                    <SwipeDistance value={putt.distance||5} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
                   </div>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+                    <SwipeDistance value={putt.aimDistance||5} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
                   </div>
                   {/* 홀인 */}
-                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:8 }}>
                       <span style={fIcon}>⛳</span><span style={fLbl}>홀인</span>
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
                       <button
-                        style={{ ...fChipWide, padding:'10px 24px', ...(putt.holein==='success'?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='success'?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
                         onClick={() => {
-                          const newPutts = puttIdx + 1;
-                          const newDetails = Array.from({ length: newPutts }, (_, i) =>
+                          const puttsUsed = puttIdx + 1;
+                          const puttDelta = puttsUsed - (playerScore.putts || 2);
+                          const freshStrokes = Math.max(1, (playerScore.strokes || hole.par) + puttDelta);
+                          const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
                             i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
                           );
-                          const freshScore = { ...playerScore, putts: newPutts, puttDetails: newDetails, touched: true };
-                          if (isLastHole) {
-                            const u = { ...round }; u.holes = [...round.holes];
-                            const lh = u.holes[holeIdx]; const us = {};
-                            round.players.forEach(p => {
-                              const s = p === activePlayer ? freshScore : lh.scores[p];
-                              us[p] = finalizeScore(s, lh.par);
-                            });
-                            u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
-                          } else {
-                            confirmAndGoToHole(holeIdx + 1, freshScore);
-                          }
+                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, touched: true };
+                          holeInCbRef.current = () => {
+                            if (isLastHole) {
+                              const u = { ...round }; u.holes = [...round.holes];
+                              const lh = u.holes[holeIdx]; const us = {};
+                              round.players.forEach(p => {
+                                const s = p === activePlayer ? freshScore : lh.scores[p];
+                                us[p] = finalizeScore(s, lh.par);
+                              });
+                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                            } else {
+                              confirmAndGoToHole(holeIdx + 1, freshScore);
+                            }
+                          };
+                          const onCount = freshStrokes - puttsUsed;
+                          setHoleInModalData({
+                            isLastHole,
+                            scoreName: getScoreName(freshStrokes, hole.par),
+                            strokes: freshStrokes,
+                            putts: puttsUsed,
+                            onCount,
+                          });
+                          setShowHoleInModal(true);
+                          setTimeout(() => { setShowHoleInModal(false); holeInCbRef.current?.(); }, 2500);
                         }}
                       >성공</button>
                       <button
-                        style={{ ...fChipWide, padding:'10px 24px', ...(putt.holein==='fail'?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='fail'?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
                         onClick={() => {
                           const newPutts = Math.max(playerScore.putts || 0, puttIdx + 2);
                           const newDetails = Array.from({ length: newPutts }, (_, i) =>
@@ -1516,6 +1547,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       >실패</button>
                     </div>
                   </div>
+                  </>)}
                 </>)}
               </React.Fragment>
             );
@@ -1604,6 +1636,26 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 하기</button>
               <button style={styles.modalBtnPrimary} onClick={()=>{ setShowExitConfirm(false); onGoToSetup(); }}>세팅 다시하기</button>
               <button style={styles.modalBtnConfirm} onClick={()=>{ setShowExitConfirm(false); onExit(); }}>홈으로 나가기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 홀인 성공 모달 */}
+      {showHoleInModal && holeInModalData && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.78)', animation:'modalFadeIn 0.25s ease-out' }}>
+          <div style={{ animation:'modalSlideUp 0.38s cubic-bezier(0.16,1,0.3,1)', display:'flex', flexDirection:'column', alignItems:'center', gap:14, padding:'36px 44px', borderRadius:20, background:'rgba(8,14,26,0.97)', border:`1.5px solid ${holeInModalData.scoreName?.color ? holeInModalData.scoreName.color + '55' : 'rgba(201,162,40,0.35)'}`, boxShadow:'0 8px 48px rgba(0,0,0,0.65)', minWidth:220, textAlign:'center' }}>
+            <div style={{ fontSize:32 }}>⛳</div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#8896b0', letterSpacing:'0.2em', textTransform:'uppercase' }}>홀인 성공</div>
+            <div style={{ fontSize:26, fontWeight:900, color: holeInModalData.scoreName?.color || '#c9a228', letterSpacing:'0.04em' }}>
+              {holeInModalData.scoreName?.name || `${holeInModalData.strokes}타`}
+            </div>
+            <div style={{ width:40, height:1, background:'rgba(255,255,255,0.1)' }} />
+            <div style={{ fontSize:14, fontWeight:600, color:'#c4cfe0', letterSpacing:'0.08em' }}>
+              {holeInModalData.onCount} 온 &nbsp;/&nbsp; {holeInModalData.putts} 펏
+            </div>
+            <div style={{ fontSize:11, color:'#4d5a78', letterSpacing:'0.12em', marginTop:4 }}>
+              {holeInModalData.isLastHole ? '라운드 완료!' : '다음 홀로 이동합니다.'}
             </div>
           </div>
         </div>

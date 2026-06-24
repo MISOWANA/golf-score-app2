@@ -114,7 +114,7 @@ export default function GolfScoringApp() {
           acc[p] = {
             strokes: pars[i],
             putts: 2,
-            fairway: pars[i] > 3 ? true : null,
+            fairway: null,
             fairwayHit: null,
             shotShape: null,
             ob: 0,

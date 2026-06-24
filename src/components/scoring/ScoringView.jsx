@@ -413,7 +413,7 @@ const RADIAL_POS = {
   right: { tx:  96, ty:   0 },
 };
 
-function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen }) {
+function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder }) {
   const raw = Array.isArray(value) ? value[0] || null : value || null;
   const [open, setOpen] = useState(false);
 
@@ -439,12 +439,12 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen }) 
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center',
           gap:6, padding:'10px 16px', borderRadius:10, cursor:'pointer',
           background: open ? 'rgba(201,162,40,0.07)' : hasSelection ? 'rgba(201,162,40,0.12)' : 'rgba(255,255,255,0.03)',
-          border:`1px solid ${open || hasSelection ? 'rgba(201,162,40,0.4)' : '#1b2238'}`,
+          border:`1.5px solid ${open || hasSelection ? 'rgba(201,162,40,0.4)' : '#3a4e72'}`,
           transition:'background 0.15s, border-color 0.15s',
         }}
       >
         <span style={{ fontSize:14, fontWeight:700, color: open || hasSelection ? '#c9a228' : '#8896b0' }}>
-          {selLabel || centerLabel}
+          {hasSelection ? (selLabel || centerLabel) : (placeholder || centerLabel)}
         </span>
         {!open && selIcon && <span style={{ color:'#c9a228' }}>{selIcon}</span>}
         <span style={{ fontSize:9, color: open || hasSelection ? '#c9a228' : '#4d5a78', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
@@ -592,7 +592,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const calcAutoStrokes = (score, par) => {
-    const field = score.teeGIR ? 0 : (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
+    const hasPenalty = (score.ob || 0) > 0 || (score.hazard || 0) > 0;
+    const effectiveTeeGIR = score.teeGIR && !hasPenalty;
+    const field = effectiveTeeGIR ? 0 : (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
     return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
   };
 
@@ -830,8 +832,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const updatePenalty = (field, newVal) => {
     const newScore = { ...playerScore, [field]: newVal };
-    const newStrokes = calcAutoStrokes(newScore, hole.par);
-    updateFields({ [field]: newVal, strokes: newStrokes });
+    const hasPenalty = (newScore.ob || 0) > 0 || (newScore.hazard || 0) > 0;
+    const extra = hasPenalty && playerScore.teeGIR ? { teeGIR: false } : {};
+    const newStrokes = calcAutoStrokes({ ...newScore, ...extra }, hole.par);
+    updateFields({ [field]: newVal, ...extra, strokes: newStrokes });
   };
 
   const updatePutt = (idx, key, val) =>
@@ -892,7 +896,47 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       })()}
 
       {/* Running Score */}
-      {(() => {
+      {isSimpleMode ? (() => {
+        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
+        const fmtC=(d,has)=>!has?'#4d5a78':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
+        return (
+          <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
+            {round.players.map((player, pi) => {
+              const th = round.holes.filter(h => h.scores[player]?.touched);
+              const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
+              const pp = th.reduce((s,h) => s+h.par, 0);
+              const pd = ps-pp;
+              const ft = round.holes.slice(0,9).filter(h=>h.scores[player]?.touched);
+              const bt = round.holes.slice(9).filter(h=>h.scores[player]?.touched);
+              const fd = ft.reduce((s,h)=>s+h.scores[player].strokes,0)-ft.reduce((s,h)=>s+h.par,0);
+              const bd = bt.reduce((s,h)=>s+h.scores[player].strokes,0)-bt.reduce((s,h)=>s+h.par,0);
+              const isLast = pi === round.players.length - 1;
+              return (
+                <div key={player} style={{ display:'flex', alignItems:'center', gap:8, paddingTop:6, paddingBottom:6, borderBottom: isLast?'none':'1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ width:20, height:20, borderRadius:'50%', background:'#1b2a45', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <span style={{ fontSize:10, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
+                  </div>
+                  <span style={{ flex:1, fontSize:12, fontWeight:700, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ textAlign:'center', minWidth:28 }}>
+                      <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', color:'#4d5a78', marginBottom:1 }}>{round.outCourseName||'OUT'}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color: fmtC(fd,ft.length>0) }}>{fmt(fd,ft.length>0)}</div>
+                    </div>
+                    <div style={{ textAlign:'center', minWidth:28 }}>
+                      <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', color:'#4d5a78', marginBottom:1 }}>{round.inCourseName||'IN'}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color: fmtC(bd,bt.length>0) }}>{fmt(bd,bt.length>0)}</div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'baseline', gap:5, minWidth:60, justifyContent:'flex-end' }}>
+                      <span style={{ fontSize:22, fontWeight:900, color:'#e8edf8', lineHeight:1 }}>{ps||0}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color: fmtC(pd,th.length>0), lineHeight:1 }}>{fmt(pd,th.length>0)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })() : (() => {
         const th = round.holes.filter(h => h.scores[activePlayer]?.touched);
         const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
         const pp = th.reduce((s,h) => s+h.par, 0);
@@ -907,7 +951,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         return (
           <div style={styles.runningScore}>
             <div style={styles.runningScoreMain}>
-              <div style={styles.runningScoreLabel}>{round.players.length>1?activePlayer:'SCORE'}</div>
+              <div style={styles.runningScoreLabel}>SCORE</div>
               <div style={styles.runningScoreValues}>
                 <span style={styles.runningScoreNumber}>{ps}</span>
                 <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,th.length>0) }}>{fmt(pd,th.length>0)}</span>
@@ -951,6 +995,30 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#ff8844':'#c96820'):h.par===5?(ic?'#5dd49a':'#2ea868'):(ic?'#c9a228':'#8896b0'); const pb=ic?(h.par===3?'rgba(200,80,20,0.22)':h.par===5?'rgba(61,184,122,0.18)':'#1a2235'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
               </div>
             </div>
+            {isSimpleMode ? round.players.map((player, pi) => {
+              const isLastPlayer = pi === round.players.length - 1;
+              const shortName = player.length > 4 ? player.slice(0,4) : player;
+              return (
+                <div key={player} style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize:9, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
+                  <div style={styles.holeNavTableCells}>
+                    {holes.map((h,li) => {
+                      const i=offset+li; const done=h.scores[player]?.touched; const ic=i===holeIdx;
+                      const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
+                      let ms={};
+                      if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
+                      return (
+                        <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
+                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
+                            {hio&&<span style={styles.holeInOneStar}>★</span>}{psc.strokes}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }) : (
             <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }}>
               <div style={styles.holeNavRowLabel}>SCORE</div>
               <div style={styles.holeNavTableCells}>
@@ -969,6 +1037,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 })}
               </div>
             </div>
+            )}
           </div>
         ))}
       </div>
@@ -1045,6 +1114,34 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               </div>
             );
           })}
+
+          {/* 이전/다음 홀 네비게이션 */}
+          <div style={{ display:'flex', gap:8, marginTop:4 }}>
+            <button
+              disabled={holeIdx === 0}
+              style={{ flex:1, height:46, borderRadius:10, border:'1px solid #1b2744', background:'transparent', color: holeIdx===0?'#252f4a':'#c4cfe0', fontSize:14, fontWeight:700, cursor: holeIdx===0?'default':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+              onClick={() => goToHole(holeIdx - 1)}>
+              ‹ 이전
+            </button>
+            {isLastHole ? (
+              <button
+                style={{ flex:1, height:46, borderRadius:10, border:'none', background:'#c9a228', color:'#0b0e18', fontSize:14, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+                onClick={() => {
+                  const u = { ...round }; u.holes = [...round.holes];
+                  const lh = u.holes[holeIdx]; const us = {};
+                  round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
+                  u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                }}>
+                🏁 라운드 완료
+              </button>
+            ) : (
+              <button
+                style={{ flex:1, height:46, borderRadius:10, border:'none', background:'#1b2a45', color:'#e8edf8', fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+                onClick={() => goToHole(holeIdx + 1)}>
+                다음 홀 ›
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1173,7 +1270,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
               <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
             </div>
-            <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
+            <RadialPicker centerId="center" centerLabel="센터" placeholder="선택" dirs={PIN_DIRS}
               value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
               onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
               onOpen={scrollDown}
@@ -1273,7 +1370,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
             </div>
-            <div style={{ display:'flex', gap:8 }}>
+            {/* L / C / R 3분할 */}
+            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
                 <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#252f4a'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
                   onClick={()=>{ updateFields({ teeGIR: false }); updateLandingPoint(playerScore.fairwayHit===id?null:id); }}>
@@ -1281,15 +1379,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   <div style={{ fontSize:10, marginTop:2 }}>{label}</div>
                 </button>
               ))}
-              <button style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${playerScore.teeGIR?'#c9a228':'#252f4a'}`, background:playerScore.teeGIR?'rgba(201,162,40,0.15)':'#1a2235', color:playerScore.teeGIR?'#c9a228':'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>{
-                  if (playerScore.teeGIR) { updateFields({ teeGIR: false }); setShotPage(0); }
-                  else { updateFields({ teeGIR: true, fairwayHit: null }); setShotPage(1); }
-                }}>
-                <div style={{ fontSize:12, fontWeight:800 }}>G</div>
-                <div style={{ fontSize:10, marginTop:2 }}>그린(1온)</div>
-              </button>
             </div>
+            {/* G 그린(1온) 풀와이드 버튼 */}
+            <button
+              style={{
+                width:'100%', padding:'13px 16px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                border: playerScore.teeGIR ? '1.5px solid #c9a228' : '1.5px solid #252f4a',
+                background: playerScore.teeGIR ? 'linear-gradient(135deg, rgba(201,162,40,0.22) 0%, rgba(201,162,40,0.08) 100%)' : '#1a2235',
+                color: playerScore.teeGIR ? '#c9a228' : '#8896b0',
+                animation: playerScore.teeGIR ? 'goldPulse 1.8s ease-in-out infinite' : 'none',
+                boxShadow: playerScore.teeGIR ? '0 0 18px rgba(201,162,40,0.28)' : 'none',
+                transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
+              }}
+              onClick={()=>{
+                if (playerScore.teeGIR) { updateFields({ teeGIR: false }); setShotPage(0); }
+                else { updateFields({ teeGIR: true, fairwayHit: null }); setTimeout(() => setShotPage(1), 2000); }
+              }}>
+              <span style={{ fontSize:15, fontWeight:900 }}>G</span>
+              <span style={{ fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>그린  (1온)</span>
+              {playerScore.teeGIR && <span style={{ fontSize:14, marginLeft:4 }}>⛳</span>}
+            </button>
           </div>
         )}
         </>}

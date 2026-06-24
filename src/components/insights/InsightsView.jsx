@@ -25,8 +25,8 @@ export default function InsightsView({ rounds, onBack }) {
         </header>
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>⚡</div>
-          <div style={styles.emptyTitle}>분석할 데이터가 부족합니다</div>
-          <div style={styles.emptySub}>라운드를 3회 이상 기록하면<br/>스타일 분석이 가능해요</div>
+          <div style={styles.emptyTitle}>분석할 데이터가 없습니다</div>
+          <div style={styles.emptySub}>1인 라운드를 완료하면<br/>스타일 분석이 가능해요</div>
         </div>
       </div>
     );

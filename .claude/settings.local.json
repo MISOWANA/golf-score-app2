@@ -1,8 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Get-ChildItem -Path \"d:\\\\APP\\\\golf-score-app2\" -Recurse -File -Filter \"*.jsx\" -ErrorAction SilentlyContinue)",
-      "Bash(Select-Object FullName)"
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "WebFetch(domain:www.seolhaeone.com)",
+      "WebSearch",
+      "WebFetch(domain:www.letsgrip.com)",
+      "WebFetch(domain:ipark-golf.com)",
+      "WebFetch(domain:kimcaddie.com)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

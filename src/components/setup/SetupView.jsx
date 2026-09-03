@@ -153,29 +153,30 @@ export default function SetupView({ onStart, onBack, currentUser }) {
 
   return (
     <div style={styles.container}>
-      <header style={{ ...styles.pageHeader, position: 'relative' }}>
+      <header style={styles.pageHeader}>
         <button style={styles.iconBack} onClick={onBack}>
           <ChevronLeft size={22} />
         </button>
-        {/* 헤더 폭이 좌/우 아이템 크기에 따라 밀리지 않도록, 제목은 절대 배치로
-            항상 화면 정중앙에 고정한다 (좌우 아이템은 space-between으로 양끝 배치). */}
-        <div style={{ ...styles.pageTitle, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>New Round</div>
-        <input
-          type="date"
-          value={roundDate}
-          max={todayLocalDateStr()}
-          onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
-          style={{
-            width: '104px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '8px',
-            color: '#e8edf8', fontSize: '11px', fontWeight: '700', padding: '6px 6px',
-            colorScheme: 'dark',
-          }}
-        />
+        <div style={styles.pageTitle}>New Round</div>
+        <div style={{ width: 40 }} />
       </header>
 
       {/* 골프장 검색 */}
       <div style={styles.formSection}>
-        <label style={styles.formLabel}>골프장 이름</label>
+        <div style={styles.formLabelRow}>
+          <label style={styles.formLabel}>골프장 이름</label>
+          <input
+            type="date"
+            value={roundDate}
+            max={todayLocalDateStr()}
+            onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
+            style={{
+              width: '104px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '8px',
+              color: '#e8edf8', fontSize: '11px', fontWeight: '700', padding: '6px 6px',
+              colorScheme: 'dark',
+            }}
+          />
+        </div>
         <div ref={searchRef} style={{ position: 'relative' }}>
           <input
             style={styles.formInput}

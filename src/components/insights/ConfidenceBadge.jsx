@@ -3,10 +3,11 @@ import styles from '../../styles/styles';
 import { TIER_LABEL } from '../../engine/stats.js';
 
 // §7-3: 신뢰도 낮음/중간도 숨기지 않고 항상 배지로 노출한다.
-export default function ConfidenceBadge({ tier, n }) {
+// 표본 수(n=)는 사용자에게 의미 없는 원자료라 배지 라벨만 보여준다.
+export default function ConfidenceBadge({ tier }) {
   return (
     <span style={{ ...styles.riConfBadge, ...(tier === 'high' ? styles.riConfBadgeHigh : {}) }}>
-      {TIER_LABEL[tier] ?? '낮음'}{n != null && <span style={{ opacity: 0.7, marginLeft: 3 }}>· n={n}</span>}
+      {TIER_LABEL[tier] ?? '낮음'}
     </span>
   );
 }

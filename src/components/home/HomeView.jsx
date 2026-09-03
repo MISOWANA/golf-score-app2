@@ -7,9 +7,32 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [hardRefreshing, setHardRefreshing] = useState(false);
   const fileInputRef = useRef(null);
+  const logoClickRef = useRef({ count: 0, lastAt: 0 });
   const recentRound = rounds[0];
   const totalRounds = rounds.length;
+
+  // 로고 3연속 클릭(700ms 이내) → 강력 새로고침. 배포 후 폰 브라우저가 이전
+  // 번들을 그대로 들고 있을 때(캐시) 사용자가 스스로 최신 버전을 받게 하는 탈출구.
+  const handleLogoClick = async () => {
+    const now = Date.now();
+    const prev = logoClickRef.current;
+    logoClickRef.current = { count: now - prev.lastAt < 700 ? prev.count + 1 : 1, lastAt: now };
+    if (logoClickRef.current.count < 3) return;
+    logoClickRef.current = { count: 0, lastAt: 0 };
+
+    setHardRefreshing(true);
+    try {
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch (e) { /* 캐시 API 미지원 환경은 무시 */ }
+    const url = new URL(window.location.href);
+    url.searchParams.set('_r', now.toString());
+    window.location.replace(url.toString());
+  };
 
   const avgScore = rounds.length > 0
     ? (rounds.reduce((sum, r) => {
@@ -26,7 +49,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
       <header style={styles.header}>
         <div style={styles.headerTop}>
           <div style={styles.logo}>
-            <div style={styles.logoMark}>⛳</div>
+            <div style={{ ...styles.logoMark, cursor: 'pointer' }} onClick={handleLogoClick} title="3번 연속 클릭하면 강력 새로고침">⛳</div>
             <div>
               <div style={styles.brandName}>Birdie</div>
               <div style={styles.brandTagline}>Buddy</div>
@@ -171,6 +194,13 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
                 onClick={() => { setShowImportConfirm(false); fileInputRef.current?.click(); }}>파일 선택</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {hardRefreshing && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(11,14,24,0.92)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, zIndex:10000 }}>
+          <div style={{ fontSize:32 }}>⛳</div>
+          <div style={{ fontSize:14, color:'#c9a228', fontWeight:700 }}>강력 새로고침 중...</div>
         </div>
       )}
 

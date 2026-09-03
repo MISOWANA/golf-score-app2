@@ -174,13 +174,19 @@ export default function InsightsView({ rounds, onBack }) {
     styleIcon = '⚖️'; styleColor = '#e8edf8';
   }
 
-  // ── 커리어 패턴 인사이트 (룰 엔진) ──────────────────────────────────────────
+  // ── 패턴 인사이트 (룰 엔진) — 이번 라운드는 최신 라운드만, 누적은 전체 라운드 합산 ──
+  const latestRoundHoleInputs = latestRound.holes.map(h => toHoleInput(h, player));
+  const roundMetrics = buildRoundMetrics(latestRoundHoleInputs);
+  const roundInsights = roundMetrics ? matchRoundInsightRules(roundMetrics, ROUND_RULES) : [];
+
   const allHoleInputs = rounds.flatMap(r => {
     const p = r.players[0];
     return r.holes.map(h => toHoleInput(h, p));
   });
   const careerMetrics = buildRoundMetrics(allHoleInputs);
   const careerInsights = careerMetrics ? matchRoundInsightRules(careerMetrics, careerRules) : [];
+
+  const patternInsights = isCareerMode ? careerInsights : roundInsights;
 
   const frontHoles = allHoles.filter((_, idx) => idx % 18 < 9);
   const backHoles = allHoles.filter((_, idx) => idx % 18 >= 9);
@@ -235,7 +241,7 @@ export default function InsightsView({ rounds, onBack }) {
           <button
             style={{ ...styles.riToggleBtn, ...(mode === 'career' ? styles.riToggleBtnActive : {}) }}
             onClick={() => setMode('career')}
-          >누적 ({rounds.length}R)</button>
+          >{rounds.length}라운드 누적</button>
         </div>
       )}
 
@@ -487,12 +493,14 @@ export default function InsightsView({ rounds, onBack }) {
         );
       })()}
 
-      {/* ── 반복 패턴 (룰 엔진) ──────────────────────────────────────────── */}
-      {careerInsights.length > 0 && (
+      {/* ── 반복 패턴 (룰 엔진) — 이번 라운드/누적 토글에 연동 ─────────────────── */}
+      {patternInsights.length > 0 && (
         <div style={styles.section}>
-          <div style={styles.sectionTitle}>PATTERN INSIGHTS · 반복 패턴 분석</div>
+          <div style={styles.sectionTitle}>
+            PATTERN INSIGHTS · {isCareerMode ? `${rounds.length}라운드 누적 반복 패턴 분석` : '이번 라운드 반복 패턴 분석'}
+          </div>
           <div style={styles.insightCards}>
-            {careerInsights.map((ins, i) => {
+            {patternInsights.map((ins, i) => {
               const color = SEVERITY_COLOR[ins.severity] ?? '#8896b0';
               const bg    = SEVERITY_BG[ins.severity]    ?? 'rgba(136,150,176,0.10)';
               const badge = SEVERITY_BADGE[ins.severity] ?? '·';

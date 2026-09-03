@@ -237,14 +237,14 @@ export default function StatsView({ rounds, onBack }) {
       {/* ── 퍼팅 ─────────────────────────────────────────────────────────── */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>PUTTING · 퍼팅</div>
-        <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
-          <div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          <div style={{ flex: 1, textAlign: 'center', padding: '12px 6px', background: '#111827', border: '1px solid #1b2238', borderRadius: 6 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#e8edf8' }}>{threePuttRatePct.toFixed(0)}%</div>
-            <div style={{ fontSize: 11, color: '#8896b0', marginTop: 2 }}>3퍼트율 ({threePuttCount}/{totalHoles})</div>
+            <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>3퍼트율 ({threePuttCount}/{totalHoles})</div>
           </div>
-          <div>
+          <div style={{ flex: 1, textAlign: 'center', padding: '12px 6px', background: '#111827', border: '1px solid #1b2238', borderRadius: 6 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#e8edf8' }}>{avgPuttsPerHole.toFixed(2)}</div>
-            <div style={{ fontSize: 11, color: '#8896b0', marginTop: 2 }}>라운드당 퍼팅</div>
+            <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>라운드당 퍼팅</div>
           </div>
         </div>
         {puttingStats.byDistance.filter(b => b.total > 0).map(b => (

@@ -98,10 +98,10 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox) => {
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate) => {
     const newRound = {
       id: Date.now().toString(),
-      date: new Date().toISOString(),
+      date: roundDate || new Date().toISOString(),
       courseName,
       outCourseName: outCourseName || 'OUT',
       inCourseName: inCourseName || 'IN',

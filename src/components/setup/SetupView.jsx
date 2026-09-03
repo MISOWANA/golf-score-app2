@@ -3,8 +3,19 @@ import { ChevronLeft, Plus, X } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
 
+// 로컬 타임존 기준 YYYY-MM-DD (input type="date"가 요구하는 형식). toISOString()은
+// UTC 기준이라 자정 근처에서 하루 밀리는 문제가 있어 로컬 필드로 직접 조립한다.
+function todayLocalDateStr() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function SetupView({ onStart, onBack, currentUser }) {
   const [courseName, setCourseName] = useState('');
+  const [roundDate, setRoundDate] = useState(todayLocalDateStr);
   const [outCourseName, setOutCourseName] = useState('');
   const [inCourseName, setInCourseName] = useState('');
   const [players, setPlayers] = useState([currentUser?.userName || '']);
@@ -149,6 +160,18 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         <div style={styles.pageTitle}>New Round</div>
         <div style={{ width: 40 }} />
       </header>
+
+      {/* 라운드 날짜 */}
+      <div style={styles.formSection}>
+        <label style={styles.formLabel}>라운드 날짜</label>
+        <input
+          type="date"
+          style={styles.formInput}
+          value={roundDate}
+          max={todayLocalDateStr()}
+          onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
+        />
+      </div>
 
       {/* 골프장 검색 */}
       <div style={styles.formSection}>
@@ -449,7 +472,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox)}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString())}
       >
         라운드 시작하기
       </button>

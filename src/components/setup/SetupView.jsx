@@ -158,20 +158,18 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           <ChevronLeft size={22} />
         </button>
         <div style={styles.pageTitle}>New Round</div>
-        <div style={{ width: 40 }} />
-      </header>
-
-      {/* 라운드 날짜 */}
-      <div style={styles.formSection}>
-        <label style={styles.formLabel}>라운드 날짜</label>
         <input
           type="date"
-          style={styles.formInput}
           value={roundDate}
           max={todayLocalDateStr()}
           onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
+          style={{
+            width: '108px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '8px',
+            color: '#e8edf8', fontSize: '11px', fontWeight: '700', padding: '6px 6px',
+            colorScheme: 'dark',
+          }}
         />
-      </div>
+      </header>
 
       {/* 골프장 검색 */}
       <div style={styles.formSection}>

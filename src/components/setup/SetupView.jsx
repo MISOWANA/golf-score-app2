@@ -441,7 +441,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
                 {pars.slice(start, end).map((p, localIdx) => {
                   const holeIdx = start + localIdx;
                   const canDecrease = p > 3;
-                  const canIncrease = p < 6;
+                  const canIncrease = p < 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
                   return (
                     <div key={holeIdx} style={styles.parTableParCell}>
                       <div style={{

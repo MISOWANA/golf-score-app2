@@ -15,7 +15,13 @@ export function extractClubShots(hole, player) {
 
   const chain = [];
   if (s.secondClub && s.remainingDistance != null) {
-    chain.push({ club: s.secondClub, subClub: s.secondClubSub ?? null, fromDistance: s.remainingDistance, lie: s.terrainCondition ?? null });
+    // 이 샷 뒤에 extraShots가 더 있으면 그린에 도달하지 못했다는 뜻이고,
+    // 없으면 이 샷이 체인의 마지막이므로 GIR 여부로 그린 도달을 판단한다.
+    chain.push({
+      club: s.secondClub, subClub: s.secondClubSub ?? null, fromDistance: s.remainingDistance,
+      lie: s.terrainCondition ?? null,
+      onGreen: (s.extraShots?.length ?? 0) > 0 ? false : s.gir === true,
+    });
   }
   (s.extraShots || []).forEach(shot => {
     if (shot.club && shot.remainingDistance != null) {
@@ -24,6 +30,7 @@ export function extractClubShots(hole, player) {
         subClub: shot.subClub ?? null,
         fromDistance: shot.remainingDistance,
         lie: Array.isArray(shot.lie) ? (shot.lie[0] ?? null) : (shot.lie ?? null),
+        onGreen: shot.onGreen === true,
       });
     }
   });

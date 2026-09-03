@@ -30,8 +30,7 @@ export default function GolfScoringApp() {
         const user = await getCurrentUser();
         if (user) {
           setCurrentUserState(user);
-          await loadUserRounds(user.userId);
-          const active = await loadActiveRound(user.userId);
+          const [, active] = await Promise.all([loadUserRounds(user.userId), loadActiveRound(user.userId)]);
           if (active) {
             setCurrentRound(active);
           }
@@ -144,8 +143,12 @@ export default function GolfScoringApp() {
     }
   };
 
-  const finishRound = async () => {
-    const finished = { ...currentRound, completed: true, finishedAt: new Date().toISOString() };
+  // finalRound: ScoringView가 마지막 홀 스코어를 반영한 라운드 객체를 직접 넘겨준다.
+  // currentRound state에만 의존하면 onUpdate(setCurrentRound) 직후 예약된 setTimeout
+  // 콜백이 리렌더 이전 시점의 stale currentRound를 참조해 마지막 홀 데이터가 유실될 수 있다.
+  const finishRound = async (finalRound) => {
+    const source = finalRound || currentRound;
+    const finished = { ...source, completed: true, finishedAt: new Date().toISOString() };
     await saveRound(finished, currentUser.userId);
     await clearActiveRound(currentUser.userId);
     const updated = [finished, ...rounds];

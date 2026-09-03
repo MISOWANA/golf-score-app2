@@ -207,8 +207,7 @@ export const exportUserData = async (userId) => {
   if (!db) await initDB();
 
   try {
-    const rounds = await loadRoundsByUser(userId);
-    const clubs = await loadClubsByUser(userId);
+    const [rounds, clubs] = await Promise.all([loadRoundsByUser(userId), loadClubsByUser(userId)]);
 
     return {
       version: '1.0',

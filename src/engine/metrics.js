@@ -9,7 +9,9 @@ export function getHasPenalty(h) {
 }
 
 export function getTotalPenaltyStrokes(h) {
-  return (h.obCount ?? 0) + (h.hazardCount ?? 0);
+  // OB/해저드 1회 = 페널티 1타 + 재샷 1타로 항상 2타씩 계산한다
+  // (ScoringView.calcAutoStrokes / scoreBreakdown.js와 동일한 모델).
+  return ((h.obCount ?? 0) + (h.hazardCount ?? 0)) * 2;
 }
 
 export function getPuttCategory(h) {
@@ -41,7 +43,7 @@ export function getTeeMissCategory(h) {
   if (fairwayHit === false) {
     if (landingPoint === 'L') return 'miss_left';
     if (landingPoint === 'R') return 'miss_right';
-    return 'miss_left';
+    return 'miss_unknown';
   }
   return 'fairway';
 }
@@ -70,7 +72,7 @@ export function getDamageCategory(h) {
   const penalty = getTotalPenaltyStrokes(h);
   if (diff <= 0 && penalty === 0) return 'clean';
   if (diff <= 1 && penalty <= 1)  return 'minor';
-  if (diff <= 2 || penalty <= 2)  return 'major';
+  if (diff <= 2 && penalty <= 2)  return 'major';
   return 'catastrophic';
 }
 

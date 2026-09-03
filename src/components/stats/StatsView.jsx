@@ -64,7 +64,9 @@ export default function StatsView({ rounds, onBack }) {
   let totalHoles = 0, girHoleCount = 0, girPuttsSum = 0, threePuttCount = 0;
   let birdieOrBetterCount = 0, parCount = 0, bogeyCount = 0, doublePlusCount = 0;
   let totalPenalties = 0;
-  const parTypeHoles = { 3: [], 4: [], 5: [] };
+  // 파 3/4/5로 고정하면 파6·파7 홀(예: 코스 DB의 김제/정읍)이 조용히 집계에서
+  // 빠지므로, 실제 등장하는 파 종류를 그대로 키로 쓴다.
+  const parTypeHoles = {};
   rounds.forEach(r => {
     const p = r.players[0];
     r.holes.forEach(h => {
@@ -79,7 +81,7 @@ export default function StatsView({ rounds, onBack }) {
       totalPenalties += (s.ob ?? 0) + (s.hazard ?? 0);
       if ((s.putts ?? 2) >= 3) threePuttCount++;
       if (s.gir === true) { girHoleCount++; girPuttsSum += s.putts ?? 2; }
-      if (parTypeHoles[h.par]) parTypeHoles[h.par].push(diff);
+      (parTypeHoles[h.par] ??= []).push(diff);
     });
   });
   const puttsPerGir = girHoleCount > 0 ? girPuttsSum / girHoleCount : null;
@@ -87,12 +89,11 @@ export default function StatsView({ rounds, onBack }) {
   const threePuttRatePct = totalHoles > 0 ? (threePuttCount / totalHoles) * 100 : 0;
   const penaltyPerRound = totalPenalties / rounds.length;
 
-  const parTypeBreakdown = [3, 4, 5].map(parNum => {
+  const parTypeBreakdown = Object.keys(parTypeHoles).map(Number).sort((a, b) => a - b).map(parNum => {
     const diffs = parTypeHoles[parNum];
-    if (!diffs || diffs.length === 0) return null;
     const avgDiff = diffs.reduce((a, b) => a + b, 0) / diffs.length;
     return { par: parNum, count: diffs.length, avgDiff };
-  }).filter(Boolean);
+  });
   const worstParNum = parTypeBreakdown.length > 0
     ? parTypeBreakdown.reduce((w, c) => (c.avgDiff > w.avgDiff ? c : w)).par
     : null;

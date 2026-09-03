@@ -540,6 +540,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [holeInModalData, setHoleInModalData] = useState(null);
   const [showPuttsDropdown, setShowPuttsDropdown] = useState(false);
   const holeInCbRef = useRef(null);
+  // 홀인/칩인 모달이 화면에 그려지기 전 빠른 연속 탭으로 완료 콜백이 두 번
+  // 실행(저장/이동 중복)되는 것을 막는 가드.
+  const holeInModalPendingRef = useRef(false);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -617,22 +620,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const updated = { ...round };
     updated.holes = [...round.holes];
     let np = { ...playerScore, [field]: value, touched: true };
+    // GIR을 사용자가 직접 선택(girAuto:false)한 뒤에는 스코어/퍼팅 수 보정이
+    // 그 선택을 조용히 덮어쓰지 않는다 — girAuto일 때만 자동 재계산한다.
+    const girIsAuto = playerScore.girAuto !== false;
     if (field === 'strokes') {
       if (playerScore.puttsManual) {
         // 퍼팅 수를 사용자가 직접 지정한 뒤라면 스코어 변경이 그 값을 덮어쓰지 않는다.
         // 유효 범위(퍼팅 < 스코어)를 벗어날 때만 클램프한다.
         const maxPutts = Math.max(0, value - 1);
         if ((playerScore.putts || 0) > maxPutts) np.putts = maxPutts;
-        const ag = calculateGir(value, np.putts, hole.par);
-        if (ag !== null) { np.gir = ag; np.girAuto = true; }
+        if (girIsAuto) {
+          const ag = calculateGir(value, np.putts, hole.par);
+          if (ag !== null) { np.gir = ag; np.girAuto = true; }
+        }
       } else {
         const inf = inferStatsFromStrokes(value, hole.par);
         np.putts = inf.putts;
         if (hole.par > 3 && !playerScore.touched) np.fairway = inf.fairway;
-        np.gir = inf.gir; np.girAuto = true;
+        if (girIsAuto) { np.gir = inf.gir; np.girAuto = true; }
       }
     }
-    if (field === 'putts') {
+    if (field === 'putts' && girIsAuto) {
       const ag = calculateGir(np.strokes, value, hole.par);
       if (ag !== null) { np.gir = ag; np.girAuto = true; }
     }
@@ -671,6 +679,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const extraShotTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
+  const shotPageTimeoutRef = useRef(null);
 
   const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
 
@@ -692,6 +701,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const triggerChipIn = (freshScore) => {
+    if (holeInModalPendingRef.current) return;
+    holeInModalPendingRef.current = true;
     holeInCbRef.current = () => {
       if (isLastHole) {
         const u = { ...round }; u.holes = [...round.holes];
@@ -700,7 +711,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           const s = p === activePlayer ? freshScore : lh.scores[p];
           us[p] = finalizeScore(s, lh.par);
         });
-        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
       } else {
         confirmAndGoToHole(holeIdx + 1, freshScore);
       }
@@ -713,7 +724,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       onCount: freshScore.strokes,
     });
     setShowHoleInModal(true);
-    setTimeout(() => { setShowHoleInModal(false); holeInCbRef.current?.(); }, 2500);
+    setTimeout(() => { setShowHoleInModal(false); holeInModalPendingRef.current = false; holeInCbRef.current?.(); }, 2500);
   };
 
   const getScoreName = (strokes, par) => {
@@ -836,7 +847,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
     const clamped = Math.min(n, maxPutts);
     const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    const ag = calculateGir(playerScore.strokes, clamped, hole.par);
+    // GIR을 사용자가 직접 선택한 뒤에는(girAuto:false) 퍼팅 수 변경이 그 선택을 덮어쓰지 않는다.
+    const ag = playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par) : null;
     const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
     updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, ...girFields });
   };
@@ -867,9 +879,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     );
     setExpandedPutt(firstEmpty >= 0 ? firstEmpty : 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [puttDetails.length]);
+  }, [holeIdx, puttDetails.length]);
 
-  useEffect(() => { setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false); }, [holeIdx]);
+  useEffect(() => {
+    clearTimeout(shotPageTimeoutRef.current);
+    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false);
+  }, [holeIdx]);
 
   useEffect(() => {
     if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current) {
@@ -1141,7 +1156,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   const u = { ...round }; u.holes = [...round.holes];
                   const lh = u.holes[holeIdx]; const us = {};
                   round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
-                  u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                  u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
                 }}>
                 🏁 라운드 완료
               </button>
@@ -1460,7 +1475,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               }}
               onClick={()=>{
                 if (playerScore.teeGIR) { updateFields({ teeGIR: false }); setShotPage(0); }
-                else { updateFields({ teeGIR: true, fairwayHit: null }); setTimeout(() => setShotPage(1), 2000); }
+                else {
+                  updateFields({ teeGIR: true, fairwayHit: null });
+                  clearTimeout(shotPageTimeoutRef.current);
+                  shotPageTimeoutRef.current = setTimeout(() => setShotPage(1), 2000);
+                }
               }}>
               <span style={{ fontSize:15, fontWeight:900 }}>G</span>
               <span style={{ fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>그린  (1온)</span>
@@ -1788,6 +1807,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       <button
                         style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='success'?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
                         onClick={() => {
+                          if (holeInModalPendingRef.current) return;
+                          holeInModalPendingRef.current = true;
                           const puttsUsed = puttIdx + 1;
                           const freshStrokes = calcAutoStrokes({ ...playerScore, putts: puttsUsed }, hole.par);
                           const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
@@ -1802,7 +1823,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                                 const s = p === activePlayer ? freshScore : lh.scores[p];
                                 us[p] = finalizeScore(s, lh.par);
                               });
-                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
                             } else {
                               confirmAndGoToHole(holeIdx + 1, freshScore);
                             }
@@ -1816,7 +1837,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                             onCount,
                           });
                           setShowHoleInModal(true);
-                          setTimeout(() => { setShowHoleInModal(false); holeInCbRef.current?.(); }, 2500);
+                          setTimeout(() => { setShowHoleInModal(false); holeInModalPendingRef.current = false; holeInCbRef.current?.(); }, 2500);
                         }}
                       >성공</button>
                       <button
@@ -1891,7 +1912,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 const u = { ...round }; u.holes = [...round.holes];
                 const lh = u.holes[holeIdx]; const us = {};
                 round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
-                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
               }}
             >
               <Flag size={20} strokeWidth={2} />
@@ -1979,7 +2000,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                         <div key={hi} style={styles.parTableParCell}>
                           <div style={{ ...styles.parTableParValue, background:p===3?'rgba(61,184,122,0.15)':p===4?'#0e1c14':p===5?'#c9a228':'#ef5350', color:p===3?'#3db87a':p===4?'#e8edf8':'#0b0e18', outline:hi===holeIdx?'2px solid #c9a228':'none', outlineOffset:1 }}>{p}</div>
                           <button style={{ ...styles.parTapZone, left:0, opacity:p>3?1:0.3 }} onClick={()=>p>3&&updateParDraft(hi,p-1)} />
-                          <button style={{ ...styles.parTapZone, right:0, opacity:p<6?1:0.3 }} onClick={()=>p<6&&updateParDraft(hi,p+1)} />
+                          <button style={{ ...styles.parTapZone, right:0, opacity:p<7?1:0.3 }} onClick={()=>p<7&&updateParDraft(hi,p+1)} />
                         </div>
                       );
                     })}

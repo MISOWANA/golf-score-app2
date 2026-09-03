@@ -169,7 +169,10 @@ export default function InsightsView({ rounds, onBack }) {
     }));
   });
 
-  const parBreakdown = [3, 4, 5].map(parNum => {
+  // 3/4/5로 고정하면 파6·파7 홀(예: 코스 DB의 김제/정읍)이 조용히 표에서 빠지므로
+  // 실제 라운드에 존재하는 파 종류를 그대로 뽑아 쓴다.
+  const parTypesPresent = [...new Set(allHoles.map(h => h.par))].sort((a, b) => a - b);
+  const parBreakdown = parTypesPresent.map(parNum => {
     const holes = allHoles.filter(h => h.par === parNum);
     if (holes.length === 0) return null;
     const avgStrokes = (holes.reduce((s, h) => s + h.strokes, 0) / holes.length).toFixed(2);

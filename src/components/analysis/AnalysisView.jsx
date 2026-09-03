@@ -401,7 +401,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
                       {editDraft.pars.slice(start, end).map((p, localIdx) => {
                         const holeI = start + localIdx;
                         const canDec = p > 3;
-                        const canInc = p < 6;
+                        const canInc = p < 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
                         return (
                           <div key={holeI} style={styles.parTableParCell}>
                             <div style={{

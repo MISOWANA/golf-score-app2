@@ -49,11 +49,9 @@ export function buildApproachProximity(rounds, windowSize = 20) {
       const chain = extractClubShots(h, p);
       if (chain.length === 0) return;
       const last = chain[chain.length - 1];
-      // 마지막 샷이 그린에 도달했을 때만 근접도 유효 (그 다음이 곧 PUTT1)
-      const reachedGreen = s.extraShots?.length
-        ? s.extraShots[s.extraShots.length - 1]?.onGreen === true
-        : s.gir === true; // secondClub이 마지막 체인이었던 경우
-      if (!reachedGreen) return;
+      // 마지막 "유효한"(거리 필터 통과) 샷이 그린에 도달했을 때만 근접도 유효
+      // (extractClubShots가 이미 각 체인 항목에 onGreen을 실어준다).
+      if (last.onGreen !== true) return;
       const puttDistance = s.puttDetails?.[0]?.distance;
       if (puttDistance == null) return;
       const bucket = samples.find(b => last.fromDistance >= b.min && last.fromDistance < b.max);
@@ -170,7 +168,7 @@ export function buildLieGirStats(rounds) {
       extractClubShots(h, p).forEach((shot, i, chain) => {
         if (!shot.lie) return;
         const isLast = i === chain.length - 1;
-        const reached = isLast && (s.extraShots?.length ? s.extraShots[s.extraShots.length - 1]?.onGreen === true : s.gir === true);
+        const reached = isLast && shot.onGreen === true;
         const key = shot.lie;
         if (!byLie[key]) byLie[key] = { made: 0, total: 0 };
         byLie[key].total++;

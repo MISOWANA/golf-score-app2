@@ -49,13 +49,19 @@ export default function MyBagView({ currentUser, onBack }) {
   const clubsRef = useRef(clubs);
   const touchDragRef = useRef({ id: null, lastOverId: null });
   const saveClubsRef = useRef(null);
+  // 로드가 끝나기 전에 사용자가 이미 편집했거나(같은 마운트) 화면을 벗어났으면
+  // (다른 마운트) 뒤늦게 도착한 로드 결과가 그 편집을 덮어쓰지 않게 막는 가드.
+  const userEditedRef = useRef(false);
 
   useEffect(() => { clubsRef.current = clubs; }, [clubs]);
 
   useEffect(() => {
+    let cancelled = false;
+    userEditedRef.current = false;
     const load = async () => {
       try {
         const savedClubs = await loadClubsByUser(currentUser.userId);
+        if (cancelled || userEditedRef.current) return;
         if (savedClubs && Array.isArray(savedClubs)) {
           const migrated = savedClubs.map(c => {
             if (c.type === 'Putter') {
@@ -74,14 +80,17 @@ export default function MyBagView({ currentUser, onBack }) {
           setClubs(DEFAULT_CLUBS);
         }
       } catch (e) {
+        if (cancelled || userEditedRef.current) return;
         console.error('Load clubs failed', e);
         setClubs(DEFAULT_CLUBS);
       }
     };
     load();
+    return () => { cancelled = true; };
   }, [currentUser.userId]);
 
   const saveClubs = async (updated) => {
+    userEditedRef.current = true;
     setClubs(updated);
     try {
       await saveClubsForUser(currentUser.userId, updated);
@@ -358,7 +367,7 @@ export default function MyBagView({ currentUser, onBack }) {
         );
       })}
 
-      {clubs.filter(c => c.type !== 'Putter' && c.carry && c.total).length > 0 && (
+      {clubs.filter(c => c.type !== 'Putter' && c.carry != null && c.total != null).length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>DISTANCE CHART · 거리 분포</div>
           <div style={styles.distanceChartLegend}>
@@ -373,10 +382,10 @@ export default function MyBagView({ currentUser, onBack }) {
           </div>
           <div style={styles.distanceChart}>
             {clubs
-              .filter(c => c.type !== 'Putter' && c.carry && c.total)
+              .filter(c => c.type !== 'Putter' && c.carry != null && c.total != null)
               .sort((a, b) => b.total - a.total)
               .map(club => {
-                const maxDist = Math.max(...clubs.filter(c => c.type !== 'Putter' && c.total).map(c => c.total));
+                const maxDist = Math.max(1, ...clubs.filter(c => c.type !== 'Putter' && c.total != null).map(c => c.total));
                 const totalPct = (club.total / maxDist) * 100;
                 const carryPct = (club.carry / maxDist) * 100;
                 return (

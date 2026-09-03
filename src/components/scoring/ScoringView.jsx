@@ -597,9 +597,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const hasPenalty = penaltyCount > 0;
     const effectiveTeeGIR = score.teeGIR && !hasPenalty;
     const baseField = par > 3 ? 1 : 0;
-    // 패널티 수가 baseField를 초과하는 만큼 추가 재샷 발생
-    const extraReHits = Math.max(0, penaltyCount - baseField);
-    const field = effectiveTeeGIR ? 0 : baseField + extraReHits + (score.extraShots?.length || 0);
+    // 패널티 1회당 잃어버린 샷을 대체할 재샷이 1개씩 반드시 늘어난다
+    // (OB/해저드 1회 = 페널티 1타 + 재샷 1타로 최소 2타 손실).
+    const field = effectiveTeeGIR ? 0 : baseField + penaltyCount + (score.extraShots?.length || 0);
     return 1 + field + (score.putts || 0) + penaltyCount;
   };
 

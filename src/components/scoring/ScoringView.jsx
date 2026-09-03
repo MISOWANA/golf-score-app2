@@ -538,6 +538,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [secondShotExpanded, setSecondShotExpanded] = useState(true);
   const [showHoleInModal, setShowHoleInModal] = useState(false);
   const [holeInModalData, setHoleInModalData] = useState(null);
+  const [showPuttsDropdown, setShowPuttsDropdown] = useState(false);
   const holeInCbRef = useRef(null);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
@@ -617,10 +618,19 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updated.holes = [...round.holes];
     let np = { ...playerScore, [field]: value, touched: true };
     if (field === 'strokes') {
-      const inf = inferStatsFromStrokes(value, hole.par);
-      np.putts = inf.putts;
-      if (hole.par > 3 && !playerScore.touched) np.fairway = inf.fairway;
-      np.gir = inf.gir; np.girAuto = true;
+      if (playerScore.puttsManual) {
+        // 퍼팅 수를 사용자가 직접 지정한 뒤라면 스코어 변경이 그 값을 덮어쓰지 않는다.
+        // 유효 범위(퍼팅 < 스코어)를 벗어날 때만 클램프한다.
+        const maxPutts = Math.max(0, value - 1);
+        if ((playerScore.putts || 0) > maxPutts) np.putts = maxPutts;
+        const ag = calculateGir(value, np.putts, hole.par);
+        if (ag !== null) { np.gir = ag; np.girAuto = true; }
+      } else {
+        const inf = inferStatsFromStrokes(value, hole.par);
+        np.putts = inf.putts;
+        if (hole.par > 3 && !playerScore.touched) np.fairway = inf.fairway;
+        np.gir = inf.gir; np.girAuto = true;
+      }
     }
     if (field === 'putts') {
       const ag = calculateGir(np.strokes, value, hole.par);
@@ -642,16 +652,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const updated = { ...round };
     updated.holes = [...round.holes];
     updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, ...fields, touched: true } } };
-    onUpdate(updated);
-  };
-
-  const updateLandingPoint = (side) => {
-    const updated = { ...round };
-    updated.holes = [...round.holes];
-    updated.holes[holeIdx] = {
-      ...hole,
-      scores: { ...hole.scores, [activePlayer]: { ...playerScore, fairwayHit: side, touched: true } },
-    };
     onUpdate(updated);
   };
 
@@ -797,13 +797,18 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   ];
   const extraShotName = (idx) => EXTRA_SHOT_NAMES[idx] ?? `${idx + 3}번째 샷`;
 
-  const addExtraShot = () => {
+  // extraFields: 같은 클릭 안에서 함께 반영할 다른 필드(예: gir/onGreen).
+  // updateField를 별도로 또 호출하면 이전 playerScore를 다시 읽어와 그 값을 덮어써 버리므로 한 번에 합쳐서 반영한다.
+  const addExtraShot = (extraFields = {}) => {
     const newIdx = extraShots.length;
     const prevDist = newIdx === 0
       ? (playerScore.remainingDistance || 150)
       : (extraShots[newIdx - 1].remainingDistance || 150);
     const initDist = Math.ceil(prevDist / 2);
-    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: initDist, windDirection: null, windStrength: null, onGreen: null }]);
+    updateFields({
+      extraShots: [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: initDist, windDirection: null, windStrength: null, onGreen: null }],
+      ...extraFields,
+    });
     setExpandedExtraShot(newIdx);
   };
 
@@ -825,13 +830,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     );
   })();
 
+  // 스코어(총 타수)가 우선값: 퍼팅 개수 변경이 이미 정해진 스코어를 바꾸지 않는다.
+  // 퍼팅 수는 스코어를 넘어설 수 없으므로 필요 시 퍼팅 수만 클램프한다.
   const updatePuttsCount = (n) => {
-    const newScore = { ...playerScore, putts: n };
-    const newStrokes = calcAutoStrokes(newScore, hole.par);
-    const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    const ag = calculateGir(newStrokes, n, hole.par);
+    const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
+    const clamped = Math.min(n, maxPutts);
+    const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
+    const ag = calculateGir(playerScore.strokes, clamped, hole.par);
     const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
-    updateFields({ putts: n, puttDetails: newDetails, strokes: newStrokes, ...girFields });
+    updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, ...girFields });
   };
 
   const updatePenalty = (field, newVal) => {
@@ -862,7 +869,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puttDetails.length]);
 
-  useEffect(() => { setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); prevExtraShotsLenRef.current = 0; }, [holeIdx]);
+  useEffect(() => { setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false); }, [holeIdx]);
 
   useEffect(() => {
     if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current) {
@@ -1180,7 +1187,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>퍼팅</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
-              onClick={()=>updatePuttsCount(2)}>초기화</button>
+              onClick={()=>{ updatePuttsCount(2); setShowPuttsDropdown(false); }}>초기화</button>
           </div>
         </div>
         <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.22), rgba(239,83,80,0.22))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
@@ -1191,29 +1198,64 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             const b = Math.round(122 + (80-122)*t);
             const sel = n === 4 ? playerScore.putts >= 4 : playerScore.putts === n;
             const curVal = playerScore.putts;
+            const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
+            const disabled = n > maxPutts;
             const label = n === 4
-              ? (curVal < 4 ? '4' : curVal >= 10 ? '10' : `${curVal}+`)
+              ? (curVal < 4 ? '4' : `${curVal}+`)
               : String(n);
             return (
               <button key={n}
+                disabled={disabled}
                 style={{
                   flex:1, background: sel ? `rgba(${r},${g},${b},0.32)` : 'transparent',
                   border:'none', borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
                   color: sel ? `rgb(${r},${g},${b})` : 'rgba(232,237,248,0.45)',
-                  fontSize: n === 4 && curVal >= 10 ? 14 : 18, fontWeight:900, cursor:'pointer',
+                  fontSize: 18, fontWeight:900,
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.35 : 1,
                   boxShadow: sel ? `inset 0 0 0 2px rgba(${r},${g},${b},0.7)` : 'none',
                 }}
                 onClick={() => {
                   if (n === 4) {
-                    if (curVal < 4) updatePuttsCount(4);
-                    else if (curVal < 10) updatePuttsCount(curVal + 1);
+                    if (curVal < 4) { updatePuttsCount(4); setShowPuttsDropdown(false); }
+                    else { setShowPuttsDropdown(v => !v); }
                   } else {
                     updatePuttsCount(n);
+                    setShowPuttsDropdown(false);
                   }
                 }}>{label}</button>
             );
           })}
         </div>
+
+        {showPuttsDropdown && (() => {
+          const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
+          // 스코어가 높아 퍼팅 8개를 넘어야 하는 경우도 선택 가능하도록 상한까지 확장
+          const upper = Math.max(8, Math.min(maxPutts, 15));
+          const options = Array.from({ length: Math.max(0, upper - 4) }, (_, i) => i + 5);
+          return (
+            <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap' }}>
+              {options.map(n => {
+                const disabled = n > maxPutts;
+                const sel = playerScore.putts === n;
+                return (
+                  <button key={n}
+                    disabled={disabled}
+                    style={{
+                      flex:1, height:38, borderRadius:8,
+                      border: `2px solid ${sel ? '#ef5350' : '#1b2238'}`,
+                      background: sel ? 'rgba(239,83,80,0.18)' : '#161c2c',
+                      color: sel ? '#ef5350' : 'rgba(232,237,248,0.7)',
+                      fontSize:16, fontWeight:800,
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.35 : 1,
+                    }}
+                    onClick={() => { updatePuttsCount(n); setShowPuttsDropdown(false); }}>{n}</button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* 패널티 */}
@@ -1398,7 +1440,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
                 <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#252f4a'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
-                  onClick={()=>{ updateFields({ teeGIR: false }); updateLandingPoint(playerScore.fairwayHit===id?null:id); }}>
+                  onClick={()=>{ updateFields({ teeGIR: false, fairwayHit: playerScore.fairwayHit===id?null:id }); }}>
                   <div style={{ fontSize:12, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:10, marginTop:2 }}>{label}</div>
                 </button>
@@ -1517,7 +1559,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
                 onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
-                onClick={()=>{ updateGir(false); setSecondShotExpanded(false); addExtraShot(); }}>실패</button>
+                onClick={()=>{ setSecondShotExpanded(false); addExtraShot({ gir: false, girAuto: false }); }}>실패</button>
             </div>
           </div>
         )}
@@ -1530,7 +1572,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
                 onClick={()=>{ updateOnGreen(true); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
-                onClick={()=>{ updateOnGreen(false); setSecondShotExpanded(false); addExtraShot(); }}>실패</button>
+                onClick={()=>{ setSecondShotExpanded(false); addExtraShot({ onGreen: false }); }}>실패</button>
             </div>
           </div>
         )}

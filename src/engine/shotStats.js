@@ -144,6 +144,21 @@ export function buildScrambling(rounds) {
   return { attempts, saves, ratePct: attempts > 0 ? (saves / attempts) * 100 : null, tier: rateTier(saves, attempts) };
 }
 
+// ─── GIR 성공 후 버디 이상 전환율 (스크램블링의 대응 지표, GIR 성공 홀이 분모) ──
+export function buildGirConversion(rounds) {
+  let attempts = 0, made = 0;
+  rounds.forEach(r => {
+    const p = r.players[0];
+    r.holes.forEach(h => {
+      const s = h.scores?.[p];
+      if (!s || !s.touched || s.gir !== true) return;
+      attempts++;
+      if ((s.strokes ?? h.par) - h.par <= -1) made++;
+    });
+  });
+  return { attempts, made, ratePct: attempts > 0 ? (made / attempts) * 100 : null, tier: rateTier(made, attempts) };
+}
+
 // ─── 어프로치 라이별 GIR 도달률 (§3-6 계열, 9분면 라이 단순화) ─────────────────
 export function buildLieGirStats(rounds) {
   const byLie = {};

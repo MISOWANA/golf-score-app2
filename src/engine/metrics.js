@@ -109,9 +109,10 @@ export function buildRoundMetrics(holes) {
   const doubleCount     = metrics.filter(x => x.m.scoreCategory === 'double').length;
   const triplePlusCount = metrics.filter(x => x.m.scoreCategory === 'triple_plus').length;
 
-  const girCount        = holes.filter(h => h.gir === true).length;
-  const fairwayHoles    = holes.filter(h => h.par >= 4);
-  const fairwayHitCount = fairwayHoles.filter(h => h.fairwayHit === true).length;
+  const girCount          = holes.filter(h => h.gir === true).length;
+  const fairwayHoles      = holes.filter(h => h.par >= 4);
+  const fairwayRecorded   = fairwayHoles.filter(h => h.fairwayHit != null);
+  const fairwayHitCount   = fairwayRecorded.filter(h => h.fairwayHit === true).length;
 
   const totalPutts      = holes.reduce((s, h) => s + (h.putts ?? 2), 0);
   const onePuttCount    = metrics.filter(x => x.m.puttCategory === 'one_putt').length;
@@ -157,7 +158,8 @@ export function buildRoundMetrics(holes) {
     doubleOrWorseRate: safe(doubleCount + triplePlusCount, holeCount),
     girCount, girRate: safe(girCount, holeCount),
     fairwayHoleCount: fairwayHoles.length,
-    fairwayHitCount,  fairwayHitRate: safe(fairwayHitCount, fairwayHoles.length),
+    fairwayRecordedCount: fairwayRecorded.length,
+    fairwayHitCount,  fairwayHitRate: safe(fairwayHitCount, fairwayRecorded.length),
     totalPutts, avgPutts: safe(totalPutts, holeCount),
     onePuttCount, threePuttCount, threePuttRate: safe(threePuttCount, holeCount),
     totalOB, totalHazard, totalPenalties: totalOB + totalHazard,

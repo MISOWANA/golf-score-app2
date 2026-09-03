@@ -113,6 +113,49 @@ export default function InsightsView({ rounds, onBack }) {
     return { ob, hazard, threePutt, onePutt };
   })();
 
+  // ── 누적 전용: 홀 결과 분포 + 이벤트 (전체 라운드 합산), 라운드별 스코어 추이 ──
+  const careerScoreDistribution = (() => {
+    const buckets = { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
+    rounds.forEach(r => {
+      const p = r.players[0];
+      r.holes.forEach(h => {
+        const d = (h.scores[p]?.strokes || 0) - h.par;
+        if (d <= -2) buckets.eagle++;
+        else if (d === -1) buckets.birdie++;
+        else if (d === 0) buckets.par++;
+        else if (d === 1) buckets.bogey++;
+        else buckets.doublePlus++;
+      });
+    });
+    return buckets;
+  })();
+  const careerEvents = (() => {
+    let ob = 0, hazard = 0, threePutt = 0, onePutt = 0;
+    rounds.forEach(r => {
+      const p = r.players[0];
+      r.holes.forEach(h => {
+        const s = h.scores?.[p];
+        if (!s) return;
+        ob += s.ob ?? 0;
+        hazard += s.hazard ?? 0;
+        if ((s.putts ?? 2) >= 3) threePutt++;
+        if ((s.putts ?? 2) === 1) onePutt++;
+      });
+    });
+    return { ob, hazard, threePutt, onePutt };
+  })();
+  const roundTrend = [...rounds].reverse().map((r, idx) => {
+    const p = r.players[0];
+    const par = r.pars.reduce((a, b) => a + b, 0);
+    const score = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
+    return {
+      id: r.id, roundNo: idx + 1, date: r.date,
+      dateLabel: new Date(r.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }),
+      score, par, diff: score - par,
+    };
+  });
+  const roundTrendMaxAbsDiff = Math.max(1, ...roundTrend.map(r => Math.abs(r.diff)));
+
   // ── 전체 관찰 지표 (모든 라운드 합산 — career 화면과 동일 로직 유지) ─────────
   const allHoles = rounds.flatMap(r => {
     const p = r.players[0];
@@ -315,16 +358,18 @@ export default function InsightsView({ rounds, onBack }) {
         </div>
       )}
 
-      {/* ── 홀 결과 분포 + 이벤트 하이라이트 ─────────────────────────────────── */}
+      {/* ── 홀 결과 분포 + 이벤트 하이라이트 (이번 라운드 / 누적 분리) ──────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>HOLE RESULTS · 이번 라운드 홀 결과</div>
+        <div style={styles.sectionTitle}>
+          HOLE RESULTS · {isCareerMode ? `${rounds.length}라운드 누적 홀 결과` : '이번 라운드 홀 결과'}
+        </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {[
-            ['이글+', scoreDistribution.eagle, '#c9a228'],
-            ['버디', scoreDistribution.birdie, '#3db87a'],
-            ['파', scoreDistribution.par, '#8896b0'],
-            ['보기', scoreDistribution.bogey, '#e57373'],
-            ['더블+', scoreDistribution.doublePlus, '#ef5350'],
+            ['이글+', (isCareerMode ? careerScoreDistribution : scoreDistribution).eagle, '#c9a228'],
+            ['버디', (isCareerMode ? careerScoreDistribution : scoreDistribution).birdie, '#3db87a'],
+            ['파', (isCareerMode ? careerScoreDistribution : scoreDistribution).par, '#8896b0'],
+            ['보기', (isCareerMode ? careerScoreDistribution : scoreDistribution).bogey, '#e57373'],
+            ['더블+', (isCareerMode ? careerScoreDistribution : scoreDistribution).doublePlus, '#ef5350'],
           ].map(([label, count, color]) => (
             <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#111827', border: '1px solid #1b2238', borderRadius: 6 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
@@ -333,25 +378,47 @@ export default function InsightsView({ rounds, onBack }) {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {events.ob > 0 && <span style={styles.riSubTabBtn}>OB {events.ob}회</span>}
-          {events.hazard > 0 && <span style={styles.riSubTabBtn}>해저드 {events.hazard}회</span>}
-          {events.threePutt > 0 && <span style={styles.riSubTabBtn}>3퍼트+ {events.threePutt}회</span>}
-          {events.onePutt > 0 && <span style={styles.riSubTabBtn}>1퍼트 {events.onePutt}회</span>}
+          {(isCareerMode ? careerEvents : events).ob > 0 && <span style={styles.riSubTabBtn}>OB {(isCareerMode ? careerEvents : events).ob}회</span>}
+          {(isCareerMode ? careerEvents : events).hazard > 0 && <span style={styles.riSubTabBtn}>해저드 {(isCareerMode ? careerEvents : events).hazard}회</span>}
+          {(isCareerMode ? careerEvents : events).threePutt > 0 && <span style={styles.riSubTabBtn}>3퍼트+ {(isCareerMode ? careerEvents : events).threePutt}회</span>}
+          {(isCareerMode ? careerEvents : events).onePutt > 0 && <span style={styles.riSubTabBtn}>1퍼트 {(isCareerMode ? careerEvents : events).onePutt}회</span>}
         </div>
       </div>
 
-      {/* ── 홀 타임라인 (§6) ──────────────────────────────────────────────── */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>HOLE TIMELINE · 홀별 원인</div>
-        <div style={styles.riTimelineWrap}>
-          {timelineHoles.map(h => (
-            <div key={h.holeNumber} style={{ ...styles.riTimelineCell, borderTopColor: h.primaryCause ? CATEGORY_COLOR[h.primaryCause] : '#1b2238' }}>
-              <div style={styles.riTimelineHole}>{h.holeNumber}</div>
-              <div style={styles.riTimelineScore}>{h.score}</div>
+      {/* ── 이번 라운드: 홀 타임라인 / 누적: 라운드별 스코어 추이 ────────────── */}
+      {isCareerMode ? (
+        <div style={styles.section}>
+          <div style={styles.sectionTitle}>ROUND TREND · 라운드별 스코어 추이</div>
+          {roundTrend.map(r => (
+            <div key={r.id} style={styles.riStatRow}>
+              <div style={styles.riStatRowLabel}>{r.dateLabel}</div>
+              <div style={styles.riStatRowBarTrack}>
+                <div
+                  style={{
+                    ...styles.riStatRowBarFill,
+                    width: `${(Math.abs(r.diff) / roundTrendMaxAbsDiff) * 100}%`,
+                    marginLeft: r.diff < 0 ? 'auto' : 0,
+                    background: r.diff > 0 ? '#ef5350' : r.diff < 0 ? '#3db87a' : '#8896b0',
+                  }}
+                />
+              </div>
+              <div style={styles.riStatRowValue}>{r.score} <span style={{ color: r.diff > 0 ? '#ef5350' : r.diff < 0 ? '#3db87a' : '#8896b0' }}>{r.diff === 0 ? 'E' : fmtSigned(r.diff, 0)}</span></div>
             </div>
           ))}
         </div>
-      </div>
+      ) : (
+        <div style={styles.section}>
+          <div style={styles.sectionTitle}>HOLE TIMELINE · 홀별 원인</div>
+          <div style={styles.riTimelineWrap}>
+            {timelineHoles.map(h => (
+              <div key={h.holeNumber} style={{ ...styles.riTimelineCell, borderTopColor: h.primaryCause ? CATEGORY_COLOR[h.primaryCause] : '#1b2238' }}>
+                <div style={styles.riTimelineHole}>{h.holeNumber}</div>
+                <div style={styles.riTimelineScore}>{h.score}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── MY STYLE ─────────────────────────────────────────────────────── */}
       <div style={styles.section}>

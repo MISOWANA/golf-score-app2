@@ -21,6 +21,9 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [pairReversed, setPairReversed] = useState(false);
 
   const searchRef = useRef(null);
+  // swapOutIn에서 OUT/IN을 바꿀 때는 파를 직접 스왑하므로, 아래 파 자동계산 effect가
+  // 원본 DB 파 값으로 다시 덮어써서 그 결과(혹은 사용자가 수동 수정한 파)를 지우지 않도록 스킵 신호로 쓴다.
+  const skipParsSyncRef = useRef(false);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -37,7 +40,11 @@ export default function SetupView({ onStart, onBack, currentUser }) {
     if (selectedOut) setOutCourseName(selectedOut.name);
     if (selectedIn)  setInCourseName(selectedIn.name);
     if (selectedOut && selectedIn) {
-      setPars([...selectedOut.pars, ...selectedIn.pars]);
+      if (skipParsSyncRef.current) {
+        skipParsSyncRef.current = false;
+      } else {
+        setPars([...selectedOut.pars, ...selectedIn.pars]);
+      }
     }
   }, [selectedOut, selectedIn]);
 
@@ -86,6 +93,16 @@ export default function SetupView({ onStart, onBack, currentUser }) {
     setPairReversed(rev);
     setSelectedOut(rev ? courseB : courseA);
     setSelectedIn(rev ? courseA : courseB);
+  };
+
+  const swapOutIn = () => {
+    setOutCourseName(inCourseName);
+    setInCourseName(outCourseName);
+    if (selectedOut && selectedIn) skipParsSyncRef.current = true;
+    setSelectedOut(selectedIn);
+    setSelectedIn(selectedOut);
+    setPars(prev => [...prev.slice(9), ...prev.slice(0, 9)]);
+    if (selectedPairIdx !== null) setPairReversed(r => !r);
   };
 
   const getPairLabel = (pair) => {
@@ -262,7 +279,16 @@ export default function SetupView({ onStart, onBack, currentUser }) {
 
       {/* 코스 이름 */}
       <div style={styles.formSection}>
-        <label style={styles.formLabel}>코스 이름</label>
+        <div style={styles.formLabelRow}>
+          <label style={styles.formLabel}>코스 이름</label>
+          <button
+            style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            onClick={swapOutIn}
+            title="OUT/IN 순서 바꾸기"
+          >
+            ⇄ OUT/IN 순서 변경
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '10px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>OUT (1~9홀)</div>

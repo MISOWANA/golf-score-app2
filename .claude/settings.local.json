@@ -11,7 +11,13 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git diff *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "PowerShell(git fetch --all --prune)",
+      "Bash(git log *)",
+      "Bash(npx vite *)",
+      "Bash(git commit -m '@ *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

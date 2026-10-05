@@ -873,10 +873,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     onUpdate(updated);
   };
 
+  // lie 미입력은 세 가지 형태로 들어온다: 새로 만든 퍼팅 슬롯은 [], 라디얼에서
+  // 선택을 해제하면 null, 과거 데이터는 ''. 빈 배열을 입력된 값으로 오판하면
+  // 새로 늘어난 퍼팅이 "미입력"으로 잡히지 않아 자동으로 펼쳐지지 않는다.
+  const isPuttEmpty = (p) =>
+    p.distance == null && p.aimDistance == null &&
+    (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
+
   useEffect(() => {
-    const firstEmpty = puttDetails.findIndex(p =>
-      p.distance == null && p.aimDistance == null && (p.lie == null || p.lie === '')
-    );
+    const firstEmpty = puttDetails.findIndex(isPuttEmpty);
     setExpandedPutt(firstEmpty >= 0 ? firstEmpty : 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [holeIdx, puttDetails.length]);

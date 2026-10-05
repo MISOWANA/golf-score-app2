@@ -415,9 +415,12 @@ const RADIAL_POS = {
 
 function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder }) {
   const raw = Array.isArray(value) ? value[0] || null : value || null;
-  const [open, setOpen] = useState(false);
+  // 아직 선택이 없으면 펼친 상태로 시작한다 — 필드에서 입력 차례마다 "열기"를
+  // 한 번 더 누르지 않게 하려는 것. 선택이 끝나면 접혀서 결과만 남고, 사용자가
+  // 직접 접은 경우에는(값 변화가 없으므로) 그대로 접힌 채 유지된다.
+  const [open, setOpen] = useState(raw == null);
 
-  useEffect(() => { setOpen(false); }, [value]);
+  useEffect(() => { setOpen(raw == null); }, [raw]);
 
   const selDir = dirs.find(d => d.id === raw);
   const selLabel = raw === centerId ? centerLabel : (selDir?.label ?? null);
@@ -1854,6 +1857,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                           );
                           updateFields({ putts: newPutts, puttDetails: newDetails });
                           setExpandedPutt(puttIdx + 1);
+                          scrollDown();
                         }}
                       >실패</button>
                     </div>

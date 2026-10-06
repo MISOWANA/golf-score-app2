@@ -13,6 +13,8 @@ const m = (v) => (v == null ? '—' : `${Math.round(v)}m`);
 const m1 = (v) => (v == null ? '—' : `${Number(v).toFixed(1)}m`);
 
 const TONE = { great: C.goldBright, good: C.green, bad: C.red };
+// C.dim(#8896b0)은 작은 글씨에서 대비가 부족해 라벨용 밝은 회색을 따로 쓴다.
+const LABEL = '#a8b6cc';
 
 const scoreTone = (diff) => {
   if (diff == null) return C.dim;
@@ -119,24 +121,24 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
         gap: 10, padding: '12px 14px', borderBottom: '1px solid #1b2238',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, minWidth: 0 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.gold, letterSpacing: '0.2em' }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.gold, letterSpacing: '0.18em' }}>
             HOLE {review.holeNo}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: C.line }}>PAR {review.par}</span>
+          <span style={{ fontSize: 17, fontWeight: 800, color: C.line }}>PAR {review.par}</span>
           {review.holeLength != null && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.dim }}>{m(review.holeLength)}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: LABEL }}>{m(review.holeLength)}</span>
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: C.line, lineHeight: 1 }}>
+          <span style={{ fontSize: 30, fontWeight: 900, color: C.line, lineHeight: 1 }}>
             {review.strokes ?? '—'}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: scoreTone(review.diff) }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: scoreTone(review.diff) }}>
             {scoreText(review.diff)}
           </span>
           <button onClick={onClose} style={{
-            width: 34, height: 34, borderRadius: 8, border: 'none',
-            background: 'transparent', color: C.dim, fontSize: 18, cursor: 'pointer',
+            width: 38, height: 38, borderRadius: 8, border: 'none',
+            background: 'transparent', color: LABEL, fontSize: 22, cursor: 'pointer',
           }}>✕</button>
         </div>
       </div>
@@ -149,14 +151,14 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
               <div style={{
                 position: 'absolute', top: 8, left: 10, right: 10, zIndex: 500,
                 padding: '7px 10px', borderRadius: 7, background: 'rgba(239,83,80,0.9)',
-                color: '#fff', fontSize: 10, lineHeight: 1.5,
+                color: '#fff', fontSize: 13, lineHeight: 1.6, fontWeight: 600,
               }}>위성 타일을 불러오지 못했습니다. 인증키가 만료됐을 수 있습니다.</div>
             )}
           </div>
         ) : (
           <div style={{
             margin: '12px 14px', padding: '18px 14px', borderRadius: 9, textAlign: 'center',
-            border: '1px dashed #252f4a', color: '#4d5a78', fontSize: 11, lineHeight: 1.7,
+            border: '1px dashed #252f4a', color: LABEL, fontSize: 13, lineHeight: 1.8,
           }}>
             {review.gps.hasAny
               ? '지도를 보려면 VWorld 인증키가 필요합니다.'
@@ -175,12 +177,12 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
                 cursor: rendering ? 'default' : 'pointer',
                 border: `1.5px solid ${rendering ? 'rgba(201,162,40,0.4)' : '#3a4e72'}`,
                 background: rendering ? 'rgba(201,162,40,0.08)' : 'transparent',
-                color: rendering ? C.gold : '#c4cfe0', fontSize: 13, fontWeight: 700,
+                color: rendering ? C.gold : '#d6dfec', fontSize: 15, fontWeight: 700,
               }}
             >{rendering ? '이미지 만드는 중…' : shownImage ? '↻ 이미지 다시 만들기' : '🖼 이미지로 보기'}</button>
 
             {shownError && (
-              <div style={{ marginTop: 7, fontSize: 10, lineHeight: 1.6, color: C.red }}>{shownError}</div>
+              <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.6, color: C.red }}>{shownError}</div>
             )}
 
             {shownImage && (
@@ -198,10 +200,10 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
                   style={{
                     display: 'block', marginTop: 7, padding: '10px', borderRadius: 9,
                     textAlign: 'center', textDecoration: 'none',
-                    border: '1px solid #3a4e72', color: '#c4cfe0', fontSize: 12, fontWeight: 700,
+                    border: '1px solid #3a4e72', color: '#d6dfec', fontSize: 14, fontWeight: 700,
                   }}
                 >이미지 저장</a>
-                <div style={{ marginTop: 5, fontSize: 9, color: '#4d5a78', textAlign: 'center' }}>
+                <div style={{ marginTop: 6, fontSize: 11, color: LABEL, textAlign: 'center' }}>
                   저장이 안 되면 위 이미지를 길게 눌러 저장하세요
                 </div>
               </div>
@@ -213,14 +215,14 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
         <div style={{ display: 'flex', gap: 7, padding: '12px 14px 4px' }}>
           {tiles.map(([label, value, color]) => (
             <div key={label} style={{
-              flex: 1, padding: '8px 6px', borderRadius: 8, textAlign: 'center',
+              flex: 1, padding: '11px 6px', borderRadius: 9, textAlign: 'center',
               background: '#131d35', border: '1px solid #1b2238',
             }}>
               <div style={{
-                fontSize: 9, fontWeight: 700, color: C.dim,
-                letterSpacing: '0.1em', marginBottom: 3,
+                fontSize: 12, fontWeight: 700, color: LABEL,
+                letterSpacing: '0.06em', marginBottom: 5,
               }}>{label}</div>
-              <div style={{ fontSize: 15, fontWeight: 900, color }}>{value}</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color }}>{value}</div>
             </div>
           ))}
         </div>
@@ -228,37 +230,37 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
         {/* 샷 기록 — 복기의 본체 */}
         <div style={{ padding: '10px 14px 4px' }}>
           <div style={{
-            fontSize: 10, fontWeight: 700, color: C.gold,
-            letterSpacing: '0.2em', marginBottom: 7,
+            fontSize: 15, fontWeight: 800, color: C.gold,
+            letterSpacing: '0.08em', marginBottom: 9,
           }}>샷 기록</div>
           {review.shots.map((s) => (
             <div key={s.slot} style={{
-              padding: '9px 11px', borderRadius: 8, marginBottom: 6,
+              padding: '12px 13px', borderRadius: 9, marginBottom: 8,
               background: '#131d35', border: '1px solid #1b2238',
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
                 <span style={{
-                  fontSize: 10, fontWeight: 800, color: C.gold,
-                  letterSpacing: '0.08em', minWidth: 46,
+                  fontSize: 13, fontWeight: 800, color: C.gold,
+                  letterSpacing: '0.04em', minWidth: 58,
                 }}>{s.name}</span>
                 <span style={{
-                  flex: 1, fontSize: 13, fontWeight: 800,
-                  color: s.club ? C.line : '#3a4e72',
+                  flex: 1, fontSize: 17, fontWeight: 800,
+                  color: s.club ? C.line : '#5a6a88',
                 }}>{s.club ?? '클럽 미입력'}</span>
                 {s.result && (
-                  <span style={{ fontSize: 11, fontWeight: 800, color: TONE[s.result.tone] ?? C.dim }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: TONE[s.result.tone] ?? LABEL }}>
                     {s.result.text}
                   </span>
                 )}
               </div>
               <div style={{
-                display: 'flex', flexWrap: 'wrap', gap: '2px 12px',
-                fontSize: 11, color: C.dim,
+                display: 'flex', flexWrap: 'wrap', gap: '4px 14px',
+                fontSize: 14, color: LABEL,
               }}>
                 {s.from && (
                   <span>
                     남은거리 <b style={{ color: C.line, fontWeight: 700 }}>{m(s.from.value)}</b>
-                    {!s.from.measured && <span style={{ fontSize: 9, marginLeft: 2 }}>(입력)</span>}
+                    {!s.from.measured && <span style={{ fontSize: 11, marginLeft: 3 }}>(입력)</span>}
                   </span>
                 )}
                 {s.distance != null && (
@@ -276,10 +278,10 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
           <div style={{ padding: '6px 14px 4px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 7 }}>
               <span style={{
-                fontSize: 10, fontWeight: 700, color: C.gold, letterSpacing: '0.2em',
+                fontSize: 15, fontWeight: 800, color: C.gold, letterSpacing: '0.08em',
               }}>퍼팅</span>
               {review.approachProximity != null && (
-                <span style={{ fontSize: 10, color: C.dim }}>
+                <span style={{ fontSize: 13, color: LABEL }}>
                   그린 도착 시 핀까지 {m1(review.approachProximity)}
                 </span>
               )}
@@ -287,17 +289,17 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
             {review.putts.map((p) => (
               <div key={p.no} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '6px 11px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                padding: '9px 11px', borderBottom: '1px solid rgba(255,255,255,0.05)',
               }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: C.dim, minWidth: 46 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: LABEL, minWidth: 58 }}>
                   PUTT {p.no}
                 </span>
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: C.line }}>
+                <span style={{ flex: 1, fontSize: 16, fontWeight: 800, color: C.line }}>
                   {m1(p.distance)}
                 </span>
-                {p.lie && <span style={{ fontSize: 11, color: C.dim }}>{p.lie}</span>}
+                {p.lie && <span style={{ fontSize: 13, color: LABEL }}>{p.lie}</span>}
                 <span style={{
-                  fontSize: 11, fontWeight: 800,
+                  fontSize: 14, fontWeight: 800,
                   color: p.holein === 'success' ? C.green : p.holein === 'fail' ? C.red : '#3a4e72',
                 }}>
                   {p.holein === 'success' ? '홀인' : p.holein === 'fail' ? '실패' : '—'}
@@ -310,13 +312,13 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
         {review.memo && (
           <div style={{ padding: '10px 14px 4px' }}>
             <div style={{
-              fontSize: 10, fontWeight: 700, color: C.gold,
-              letterSpacing: '0.2em', marginBottom: 6,
+              fontSize: 15, fontWeight: 800, color: C.gold,
+              letterSpacing: '0.08em', marginBottom: 8,
             }}>메모</div>
             <div style={{
               padding: '10px 12px', borderRadius: 8, background: '#131d35',
-              border: '1px solid #1b2238', fontSize: 12, lineHeight: 1.7,
-              color: '#c4cfe0', whiteSpace: 'pre-wrap',
+              border: '1px solid #1b2238', fontSize: 15, lineHeight: 1.8,
+              color: '#d6dfec', whiteSpace: 'pre-wrap',
             }}>{review.memo}</div>
           </div>
         )}
@@ -333,18 +335,18 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
           onClick={() => canPrev && onNav(holeIdx - 1)}
           disabled={!canPrev}
           style={{
-            flex: 1, padding: '12px', borderRadius: 9, cursor: canPrev ? 'pointer' : 'default',
+            flex: 1, padding: '14px', borderRadius: 9, cursor: canPrev ? 'pointer' : 'default',
             border: '1px solid #252f4a', background: 'transparent',
-            color: canPrev ? '#c4cfe0' : '#252f4a', fontSize: 13, fontWeight: 700,
+            color: canPrev ? '#d6dfec' : '#2a3650', fontSize: 15, fontWeight: 700,
           }}
         >← {holeIdx} 홀</button>
         <button
           onClick={() => canNext && onNav(holeIdx + 1)}
           disabled={!canNext}
           style={{
-            flex: 1, padding: '12px', borderRadius: 9, cursor: canNext ? 'pointer' : 'default',
+            flex: 1, padding: '14px', borderRadius: 9, cursor: canNext ? 'pointer' : 'default',
             border: '1px solid #252f4a', background: 'transparent',
-            color: canNext ? '#c4cfe0' : '#252f4a', fontSize: 13, fontWeight: 700,
+            color: canNext ? '#d6dfec' : '#2a3650', fontSize: 15, fontWeight: 700,
           }}
         >{holeIdx + 2} 홀 →</button>
       </div>

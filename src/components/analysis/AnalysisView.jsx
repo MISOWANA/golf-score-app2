@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, Home, BookOpen, Edit3, X, Calendar, MapPin, User } from 'lucide-react';
 import styles from '../../styles/styles';
 import StatTile from './StatTile';
@@ -6,6 +6,7 @@ import BreakdownBar from './BreakdownBar';
 import ScorecardTable from './ScorecardTable';
 import Insights from './Insights';
 import HoleReview from './HoleReview';
+import HoleReviewGrid from './HoleReviewGrid';
 
 export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
@@ -178,6 +179,10 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       </div>
 
       <div style={styles.section}>
+        <HoleReviewGrid round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
+      </div>
+
+      <div style={styles.section}>
         <div style={styles.sectionTitle}>KEY STATS</div>
         <div style={styles.keyStatsGrid}>
           <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/18 holes`} />
@@ -200,9 +205,6 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>HOLE BY HOLE</div>
-        <div style={{ fontSize: 10, color: '#4d5a78', padding: '0 0 6px', letterSpacing: '0.04em' }}>
-          홀 번호를 누르면 그 홀의 지도와 샷 기록을 볼 수 있습니다
-        </div>
         <ScorecardTable round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
       </div>
 

@@ -2,8 +2,18 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="description" content="골프 스코어 기록과 라운드 분석" />
+    <meta name="theme-color" content="#0b0e18" />
+    <!-- 홈 화면에서 주소창 없이 실행. iOS 16.4 미만은 manifest의 display를 읽지 못해
+         apple- 접두사 메타가 여전히 필요하다. 상태바는 black(불투명) — 앱이 상단
+         safe-area inset을 처리하지 않아 black-translucent면 헤더가 가려진다. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Birdie" />
     <title>Birdie Buddy</title>
   </head>
   <body>

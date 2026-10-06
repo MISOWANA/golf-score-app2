@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 
 import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
-import { fieldShotCount as countFieldShots, isHoledOut } from '../../engine/geo.js';
+import { fieldShotCount as countFieldShots, isHoledOut, pinDistances } from '../../engine/geo.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -827,12 +827,43 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   // 위치 기록은 스코어 입력이 아니므로 touched를 세우지 않는다. updateField를
   // 쓰면 티에서 위치만 찍어도 홀이 '입력 완료'로 잡혀 진행률이 먼저 올라간다.
-  const updateGpsField = (field, value) => {
+  const updateGpsField = (field, value) => updateGpsFields({ [field]: value });
+
+  const updateGpsFields = (fields) => {
     const updated = { ...round };
     updated.holes = [...round.holes];
-    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, [field]: value } } };
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, ...fields } } };
     onUpdate(updated);
   };
+
+  // ─── 잔여거리 자동 반영 ──────────────────────────────────────────────────────
+  // measuredRemaining[i] = (i+1)번째 샷을 치는 자리에서 핀까지 실측 거리.
+  // 슬라이더 값은 눈대중 추정치라, 핀과 그 샷 지점을 모두 찍었으면 실측값이
+  // 언제나 더 정확하다. 측정값이 생기거나 바뀌면 슬라이더에 덮어쓴다.
+  const measuredRemaining = pinDistances(gpsPoints, gpsPin, fieldShots);
+  const roundM = (d) => (d != null && d > 0 ? Math.round(d) : null);
+  // 세컨샷은 슬롯 1, 익스트라샷 k는 슬롯 k+2 가 '치기 전' 자리다.
+  const measuredSecond = roundM(measuredRemaining[1]);
+  const measuredExtra = (k) => roundM(measuredRemaining[k + 2]);
+
+  // 측정값이 생기거나 바뀔 때만 저장값에 덮어쓴다. 사용자가 그 뒤 슬라이더를
+  // 직접 돌리면 measuredKey가 그대로라 effect가 다시 돌지 않아 그 값이 남는다.
+  const measuredKey = [holeIdx, activePlayer, ...measuredRemaining.map((d) => roundM(d) ?? '')].join('|');
+  useEffect(() => {
+    const patch = {};
+    if (measuredSecond != null && measuredSecond !== playerScore.remainingDistance) {
+      patch.remainingDistance = measuredSecond;
+    }
+    let extrasChanged = false;
+    const nextExtras = extraShots.map((shot, k) => {
+      const d = measuredExtra(k);
+      if (d != null && d !== shot.remainingDistance) { extrasChanged = true; return { ...shot, remainingDistance: d }; }
+      return shot;
+    });
+    if (extrasChanged) patch.extraShots = nextExtras;
+    if (Object.keys(patch).length > 0) updateGpsFields(patch);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measuredKey]);
 
   const setGpsPoint = (slot, fix) => {
     const next = [...gpsPoints];
@@ -1621,7 +1652,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
         {/* 남은 거리 */}
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
+          <div style={{ ...fLeft, marginBottom:10 }}>
+            <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
+            {measuredSecond != null && <span style={{ fontSize:9, fontWeight:800, color:'#3db87a', marginLeft:6, padding:'1px 5px', borderRadius:4, border:'1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>}
+          </div>
           <SwipeDistance value={playerScore.remainingDistance||150} min={1} max={300} onChange={v=>updateField('remainingDistance',v)} />
           <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
         </div>
@@ -1737,7 +1771,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
                 {/* 남은 거리 */}
                 <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-                  <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
+                  <div style={{ ...fLeft, marginBottom:10 }}>
+                    <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
+                    {measuredExtra(idx) != null && <span style={{ fontSize:9, fontWeight:800, color:'#3db87a', marginLeft:6, padding:'1px 5px', borderRadius:4, border:'1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>}
+                  </div>
                   <SwipeDistance value={shot.remainingDistance||150} min={1} max={300} onChange={v => updateExtraShot(idx, { remainingDistance: v })} />
                   <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
                 </div>

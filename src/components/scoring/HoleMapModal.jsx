@@ -172,6 +172,7 @@ export default function HoleMapModal({
     return slotId > 0 ? shotLabel(slotId - 1) : null;
   };
   const prerequisiteLabel = prevLabelOf(selected);
+  const draftPrevPoint = prevPointOf(selected);
 
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -182,6 +183,10 @@ export default function HoleMapModal({
   const selectedRef = useRef(selected);
   const commitRef = useRef(null);
   const draftRef = useRef(null);
+  const draftLineRef = useRef(null);
+  // 드래그 중에는 Leaflet이 마커 위치의 주인이다. 그 사이 setLatLng을 다시
+  // 걸면 손가락과 마커가 어긋나므로 동기화를 건너뛴다.
+  const draggingRef = useRef(false);
 
   const commitPoint = (slotId, fix) => {
     if (slotId === PIN_SLOT) onSetPin(fix);
@@ -228,6 +233,7 @@ export default function HoleMapModal({
     tiles.addTo(map);
 
     overlayRef.current = L.layerGroup().addTo(map);
+    draftLineRef.current = L.layerGroup().addTo(map);
     meRef.current = L.layerGroup().addTo(map);
 
     // 지도에서 지정 모드: 탭한 곳을 선택된 지점으로 기록한다.
@@ -243,7 +249,10 @@ export default function HoleMapModal({
     // 모달이 그려진 직후엔 컨테이너 크기가 0일 수 있다.
     setTimeout(() => map.invalidateSize(), 60);
 
-    return () => { map.remove(); mapRef.current = null; draftRef.current = null; };
+    return () => {
+      map.remove();
+      mapRef.current = null; draftRef.current = null; draftLineRef.current = null;
+    };
   }, [apiKey]);
 
   // ── 확정 전 임시 마커 (드래그 가능) ─────────────────────────────────────────
@@ -253,23 +262,57 @@ export default function HoleMapModal({
 
     if (!draft) {
       if (draftRef.current) { map.removeLayer(draftRef.current); draftRef.current = null; }
+      draggingRef.current = false;
       return;
     }
     if (!draftRef.current) {
       const marker = L.marker([draft.lat, draft.lng], {
         draggable: true, autoPan: true, icon: draftIcon(), zIndexOffset: 1000,
       });
-      marker.on('dragend', () => {
+      const sync = () => {
         const ll = marker.getLatLng();
         setDraft({ lat: ll.lat, lng: ll.lng });
-      });
+      };
+      marker.on('dragstart', () => { draggingRef.current = true; });
+      // 'drag'는 끄는 동안 계속 발생한다 — 거리를 실시간으로 갱신하려면
+      // dragend만으로는 부족하다.
+      marker.on('drag', sync);
+      marker.on('dragend', () => { draggingRef.current = false; sync(); });
       marker.addTo(map);
       draftRef.current = marker;
-    } else {
-      // 드래그로 들어온 변경이면 이미 그 자리라 setLatLng은 무해하다.
+    } else if (!draggingRef.current) {
       draftRef.current.setLatLng([draft.lat, draft.lng]);
     }
   }, [draft]);
+
+  // ── 확정 전 미리보기 선 ─────────────────────────────────────────────────────
+  // 직전 지점 → 임시 위치 → 핀. 선 객체를 유지하고 좌표만 갈아끼운다 —
+  // 드래그 프레임마다 레이어를 지웠다 다시 만들면 끊겨 보인다.
+  useEffect(() => {
+    const group = draftLineRef.current;
+    if (!group) return;
+
+    if (!draft) { group.clearLayers(); return; }
+
+    const want = [];
+    if (draftPrevPoint) {
+      want.push([[draftPrevPoint.lat, draftPrevPoint.lng], [draft.lat, draft.lng], COLOR.gold, '6 5']);
+    }
+    if (gpsPin && selected !== PIN_SLOT) {
+      want.push([[draft.lat, draft.lng], [gpsPin.lat, gpsPin.lng], '#ef5350', '3 5']);
+    }
+
+    const lines = group.getLayers();
+    want.forEach(([from, to, color, dash], i) => {
+      if (lines[i]) {
+        lines[i].setLatLngs([from, to]);
+        lines[i].setStyle({ color, dashArray: dash });
+      } else {
+        L.polyline([from, to], { color, weight: 2.5, opacity: 0.9, dashArray: dash }).addTo(group);
+      }
+    });
+    lines.slice(want.length).forEach((l) => group.removeLayer(l));
+  }, [draft, draftPrevPoint, gpsPin, selected]);
 
   // ── 현재 위치 추적 ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -387,8 +430,13 @@ export default function HoleMapModal({
 
   const cancelDraft = () => { setDraft(null); setPlaceMode(false); };
 
-  // 확정 전 미리보기 거리 — 확정하면 얼마로 기록될지 먼저 보여준다.
-  const draftDistance = haversine(prevPointOf(selected), draft);
+  // 확정 전 미리보기 거리 — 드래그하는 동안 실시간으로 갱신된다.
+  //   draftDistance : 직전 지점 → 임시 위치 (그 샷이 날아간 거리)
+  //   draftToPin    : 임시 위치 → 핀 (거기서 남는 거리)
+  // 핀 자리를 잡는 중이면 "임시 위치 → 핀"이 성립하지 않으므로, 대신 티박스
+  // 기준 거리 하나(= 그날 홀 전장)만 보여준다.
+  const draftDistance = haversine(draftPrevPoint, draft);
+  const draftToPin = selected === PIN_SLOT ? null : haversine(draft, gpsPin);
 
   const quality = gpsQuality(pos?.acc);
   const liveDistance = haversine(pos, selectedSlot?.point);
@@ -646,19 +694,38 @@ export default function HoleMapModal({
         {draft ? (
           /* 확정 대기 — 마커를 끌어 맞춘 뒤 눌러 기록한다 */
           <div style={{ padding: '0 14px 12px' }}>
+            {/* 끄는 동안 양쪽 거리가 같이 움직인다 — 어디에 놓을지 이 숫자로 정한다 */}
             <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '6px 10px', borderRadius: 7, marginBottom: 7,
+              padding: '8px 12px', borderRadius: 8, marginBottom: 7,
               background: 'rgba(142,192,255,0.1)', border: '1px solid rgba(142,192,255,0.3)',
             }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#8ec0ff' }}>
-                {selectedSlot?.label} 미확정
-              </span>
-              {draftDistance != null && prerequisiteLabel && (
-                <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
-                  · {prerequisiteLabel} {Math.round(draftDistance)}m
-                </span>
-              )}
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: '#8ec0ff',
+                letterSpacing: '0.1em', marginBottom: 5, textAlign: 'center',
+              }}>
+                {selectedSlot?.label} 위치 조정 중
+              </div>
+              <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
+                    {prerequisiteLabel ?? '직전 지점'}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: COLOR.line, lineHeight: 1 }}>
+                    {draftDistance != null ? Math.round(draftDistance) : '—'}
+                    <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
+                  </div>
+                </div>
+                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
+                    ⛳ 핀까지
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: COLOR.gold, lineHeight: 1 }}>
+                    {draftToPin != null ? Math.round(draftToPin) : '—'}
+                    <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 7 }}>
               <button

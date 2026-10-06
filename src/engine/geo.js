@@ -46,6 +46,11 @@ export function shotDistances(gpsPoints, gpsGreen, fieldShotCount) {
   return out;
 }
 
+// GPS 오측(튄 fix)으로 터무니없는 값이 들어오는 것을 막는 상한 — 핀까지 남은
+// 거리(파5 티박스 기준). 실측 잔여거리를 쓰는 곳은 모두 이 필터를 거친다.
+export const SANE_REMAIN_M = 700;
+export const saneRemaining = (d) => (d != null && d > 0 && d < SANE_REMAIN_M ? d : null);
+
 // 각 샷 지점에서 핀까지의 직선거리.
 // out[0] = 티박스 → 핀 = 그날 실제로 플레이한 홀 전장.
 // out[i] = (i+1)번째 샷을 치는 자리에서 핀까지 남은 거리.

@@ -12,14 +12,13 @@
 // 체인으로는 역산이 불가능하기 때문(extractTeeShot).
 
 import { median, iqr, distanceTier } from './stats.js';
-import { shotDistances, pinDistances, fieldShotCount } from './geo.js';
+import { shotDistances, pinDistances, fieldShotCount, saneRemaining } from './geo.js';
 
-// GPS 오측(튄 fix)으로 터무니없는 값이 들어오는 것을 막는 상한.
-const SANE_MAX_M = 300;        // 한 샷이 날아간 거리
-const SANE_REMAIN_M = 700;     // 핀까지 남은 거리 (파5 티박스 기준)
+// GPS 오측(튄 fix)으로 터무니없는 값이 들어오는 것을 막는 상한 — 한 샷이
+// 날아간 거리. 핀까지 남은 거리 상한은 geo.js 의 saneRemaining.
+const SANE_MAX_M = 300;
 
 const saneDistance = (d) => (d != null && d > 0 && d < SANE_MAX_M ? d : null);
-const saneRemaining = (d) => (d != null && d > 0 && d < SANE_REMAIN_M ? d : null);
 
 // gpsDist[n-1] = n번째 샷의 실측 거리(m).
 const gpsDistancesFor = (hole, s) =>

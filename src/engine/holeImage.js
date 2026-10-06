@@ -7,7 +7,7 @@
 // VWorld 타일이 Access-Control-Allow-Origin: * 를 주기 때문에
 // crossOrigin='anonymous' 로 받으면 canvas가 오염되지 않아 toDataURL이 된다.
 
-import { haversine, shotDistances, pinDistances } from './geo.js';
+import { haversine, shotDistances, pinDistances, saneRemaining } from './geo.js';
 import { satelliteTileUrl, TILE_MAX_ZOOM } from './mapTiles.js';
 
 const TILE = 256;
@@ -40,7 +40,12 @@ function loadTile(url) {
   });
 }
 
-// 모든 지점이 들어가면서 타일 수가 상한을 넘지 않는 가장 큰 줌을 고른다.
+// 지도 영역(mapSize 정사각형)을 덮는 타일 수는 줌과 무관하게 mapSize로만
+// 정해진다(축마다 최대 ceil(mapSize/TILE)+1장). 그래서 줌이 아니라 mapSize를
+// 검사한다 — 상한을 넘으면 타일을 일부만 받아 지도에 구멍이 나므로 아예 막는다.
+const tilesFor = (mapSize) => (Math.ceil(mapSize / TILE) + 1) ** 2;
+
+// 모든 지점이 들어가는 가장 큰 줌을 고른다.
 function pickZoom(points, mapSize) {
   const lats = points.map((p) => p.lat);
   const lngs = points.map((p) => p.lng);
@@ -48,10 +53,7 @@ function pickZoom(points, mapSize) {
   for (let z = TILE_MAX_ZOOM; z >= 12; z--) {
     const w = (Math.max(...lngs.map((v) => lng2px(v, z))) - Math.min(...lngs.map((v) => lng2px(v, z)))) * pad;
     const h = (Math.max(...lats.map((v) => lat2px(v, z))) - Math.min(...lats.map((v) => lat2px(v, z)))) * pad;
-    if (w <= mapSize && h <= mapSize) {
-      const tiles = Math.ceil(mapSize / TILE + 1) ** 2;
-      if (tiles <= MAX_TILES) return z;
-    }
+    if (w <= mapSize && h <= mapSize) return z;
   }
   return 12;
 }
@@ -121,6 +123,9 @@ const fmtM = (v) => (v == null ? null : `${Math.round(v)}m`);
 // 반환   : { dataUrl, width, height } 또는 points 가 없으면 null
 export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
   if (!review) return null;
+  if (tilesFor(mapSize) > MAX_TILES) {
+    throw new Error(`mapSize ${mapSize}px는 타일 ${tilesFor(mapSize)}장이 필요해 상한(${MAX_TILES})을 넘는다`);
+  }
 
   const pts = [];
   review.shots.forEach((s) => {
@@ -133,7 +138,7 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
   if (all.length === 0) return null;
 
   // 각 샷 지점에서 핀까지 남은 거리 (사용자 요청의 핵심 표기)
-  const toPin = pinDistances(review.gps.points, pin, review.gps.fieldShots);
+  const toPin = pinDistances(review.gps.points, pin, review.gps.fieldShots).map(saneRemaining);
   const shotDist = shotDistances(review.gps.points, review.gps.green, review.gps.fieldShots);
 
   const rows = review.shots.map((s, i) => ({
@@ -185,8 +190,12 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
 
   // ── 지도 ──
   const z = pickZoom(all, mapSize);
-  const cx = all.reduce((a, p) => a + lng2px(p.lng, z), 0) / all.length;
-  const cy = all.reduce((a, p) => a + lat2px(p.lat, z), 0) / all.length;
+  // 중심은 지점들을 감싸는 사각형의 중심이다. 평균으로 잡으면 그린 근처에
+  // 지점(그린·핀·어프로치)이 몰릴 때 중심이 그쪽으로 쏠려 티 지점이 잘린다.
+  const xs = all.map((p) => lng2px(p.lng, z));
+  const ys = all.map((p) => lat2px(p.lat, z));
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
   const originX = cx - mapSize / 2;
   const originY = cy - mapSize / 2;
   const toXY = (p) => ({ x: lng2px(p.lng, z) - originX, y: lat2px(p.lat, z) - originY + headH });
@@ -206,7 +215,7 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
         jobs.push({ tx, ty, url: satelliteTileUrl(apiKey).replace('{z}', z).replace('{y}', ty).replace('{x}', tx) });
       }
     }
-    const imgs = await Promise.all(jobs.slice(0, MAX_TILES).map((j) => loadTile(j.url)));
+    const imgs = await Promise.all(jobs.map((j) => loadTile(j.url)));
     imgs.forEach((img, i) => {
       if (!img) return;
       const { tx, ty } = jobs[i];

@@ -4,7 +4,7 @@
 // clubDistance.js 의 extractClubShots 는 통계용이라 거리를 못 구한 샷을 버리지만,
 // 복기에서는 클럽만 입력된 샷도 그대로 보여야 하므로 별도로 조립한다.
 
-import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut } from './geo.js';
+import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining } from './geo.js';
 
 const CLUB_LABEL = { driver: 'DRIVER', wood: 'WOOD', hybrid: 'HYBRID', iron: 'IRON', wedge: 'WEDGE' };
 
@@ -69,7 +69,7 @@ export function buildHoleReview(hole, player, holeIdx) {
   const par = hole.par;
   const n = fieldShotCount(s, par);
   const gpsDist = shotDistances(s.gpsPoints, s.gpsGreen, n);
-  const toPin = pinDistances(s.gpsPoints, s.gpsPin, n);
+  const toPin = pinDistances(s.gpsPoints, s.gpsPin, n).map(saneRemaining);
   const holeLength = toPin[0] ?? null;          // 티박스 → 핀 = 그날 실제 전장
 
   const clubFor = (slot) => {
@@ -125,8 +125,10 @@ export function buildHoleReview(hole, player, holeIdx) {
     penalty,
     memo: s.memo || '',
     holeLength,
-    // 그린 도착점에서 핀까지 = 첫 퍼팅 거리(실측). 없으면 입력값으로 대체.
-    approachProximity: haversine(s.gpsGreen, s.gpsPin) ?? firstPuttDistance(s),
+    // 그린 도착 시 핀까지 = 첫 퍼팅 거리. 사용자가 입력한 값을 우선한다 —
+    // 퍼팅 거리는 몇 m 단위라 두 GPS 점의 합성 오차(±7m 안팎)가 값 자체보다
+    // 커질 수 있다. 입력이 없을 때만 그린 도착점↔핀 실측으로 대체.
+    approachProximity: firstPuttDistance(s) ?? haversine(s.gpsGreen, s.gpsPin),
     holedOut: isHoledOut(s),
     shots,
     putts,

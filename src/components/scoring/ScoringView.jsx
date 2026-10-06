@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag } from 'lucide-react';
 import styles from '../../styles/styles';
+import GpsShotPoint from './GpsShotPoint';
+import { fieldShotCount as countFieldShots } from '../../engine/geo.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -811,6 +813,35 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   ];
   const extraShotName = (idx) => EXTRA_SHOT_NAMES[idx] ?? `${idx + 3}번째 샷`;
 
+  // ─── GPS 샷 지점 ────────────────────────────────────────────────────────────
+  // gpsPoints[slot] = (slot+1)번째 샷을 친 지점, gpsGreen = 그린 도착 지점.
+  // 샷 거리만 측정하므로 핀·티박스 좌표는 따로 저장하지 않는다.
+  const gpsPoints = playerScore.gpsPoints || [];
+  const gpsGreen = playerScore.gpsGreen || null;
+  const fieldShots = countFieldShots(playerScore, hole.par);
+
+  // 위치 기록은 스코어 입력이 아니므로 touched를 세우지 않는다. updateField를
+  // 쓰면 티에서 위치만 찍어도 홀이 '입력 완료'로 잡혀 진행률이 먼저 올라간다.
+  const updateGpsField = (field, value) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, [field]: value } } };
+    onUpdate(updated);
+  };
+
+  const setGpsPoint = (slot, fix) => {
+    const next = [...gpsPoints];
+    while (next.length <= slot) next.push(null);
+    next[slot] = fix;
+    updateGpsField('gpsPoints', next);
+  };
+
+  // 0=티샷, 1=세컨샷, 2 이상은 익스트라샷 이름에서 괄호 표기를 뗀 것.
+  const shotLabel = (slot) =>
+    slot === 0 ? '티샷'
+      : slot === 1 ? '세컨샷'
+        : (EXTRA_SHOT_NAMES[slot - 2]?.replace(/\s*\(.*\)\s*$/, '') ?? `${slot + 1}번째 샷`);
+
   // extraFields: 같은 클릭 안에서 함께 반영할 다른 필드(예: gir/onGreen).
   // updateField를 별도로 또 호출하면 이전 playerScore를 다시 읽어와 그 값을 덮어써 버리므로 한 번에 합쳐서 반영한다.
   const addExtraShot = (extraFields = {}) => {
@@ -1333,6 +1364,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </button>
 
         {teeExpanded && <>
+        {/* 티박스 위치 — 여기서 찍어야 티샷 거리가 측정된다 */}
+        <GpsShotPoint
+          label="티샷 지점"
+          point={gpsPoints[0] || null}
+          onCapture={fix => setGpsPoint(0, fix)}
+          onClear={() => setGpsPoint(0, null)}
+        />
+
         {/* PAR3 전용: 핀 위치 */}
         {hole.par === 3 && (
           <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
@@ -1521,6 +1560,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </button>
 
         {secondShotExpanded && <>
+        {/* 세컨샷 지점 — 티샷한 볼 앞. 티 지점과의 거리가 곧 티샷 거리다 */}
+        <GpsShotPoint
+          label="세컨샷 지점"
+          point={gpsPoints[1] || null}
+          prevPoint={gpsPoints[0] || null}
+          prevLabel={shotLabel(0)}
+          onCapture={fix => setGpsPoint(1, fix)}
+          onClear={() => setGpsPoint(1, null)}
+        />
+
         {/* 남은 거리 */}
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
@@ -1624,6 +1673,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               </button>
 
               {isExtraOpen && (<>
+                {/* 이 샷을 치는 지점 — 직전 지점과의 거리가 직전 샷의 거리다 */}
+                <GpsShotPoint
+                  label={`${extraShotName(idx)} 지점`}
+                  point={gpsPoints[idx + 2] || null}
+                  prevPoint={gpsPoints[idx + 1] || null}
+                  prevLabel={shotLabel(idx + 1)}
+                  onCapture={fix => setGpsPoint(idx + 2, fix)}
+                  onClear={() => setGpsPoint(idx + 2, null)}
+                />
+
                 {/* 남은 거리 */}
                 <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
                   <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
@@ -1723,6 +1782,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
         {/* ── 그린 ── */}
         {secHdr('그 린')}
+
+        {/* 그린 도착 지점 — 마지막 필드샷의 거리가 여기서 확정된다.
+            퍼팅 거리는 GPS 오차(두 점 합성 ±5~10m)보다 짧아 측정 대상이 아니다. */}
+        <GpsShotPoint
+          label="그린 도착 지점"
+          point={gpsGreen}
+          prevPoint={gpsPoints[fieldShots - 1] || null}
+          prevLabel={shotLabel(fieldShots - 1)}
+          onCapture={fix => updateGpsField('gpsGreen', fix)}
+          onClear={() => updateGpsField('gpsGreen', null)}
+        />
 
         {/* 핀 위치 - PAR4+ 전용 (PAR3는 티샷에서 입력) */}
         {hole.par > 3 && (

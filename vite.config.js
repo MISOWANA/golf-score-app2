@@ -53,6 +53,18 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          {
+            // VWorld 위성 타일. 한 번 본 홀은 데이터가 끊겨도 다시 보인다.
+            // 위성영상은 자주 바뀌지 않으므로 30일 보관, 홀당 수십 장 단위라
+            // 한 라운드(18홀)를 여유 있게 담도록 800장까지 둔다.
+            urlPattern: /^https:\/\/api\.vworld\.kr\/req\/wmts\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'bb-map-tiles',
+              expiration: { maxEntries: 800, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       devOptions: {

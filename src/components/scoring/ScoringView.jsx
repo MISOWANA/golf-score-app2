@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 'lucide-react';
 import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
+import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots } from '../../engine/geo.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -544,6 +545,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [showHoleInModal, setShowHoleInModal] = useState(false);
   const [holeInModalData, setHoleInModalData] = useState(null);
   const [showPuttsDropdown, setShowPuttsDropdown] = useState(false);
+  const [showHoleMap, setShowHoleMap] = useState(false);
   const holeInCbRef = useRef(null);
   // 홀인/칩인 모달이 화면에 그려지기 전 빠른 연속 탭으로 완료 콜백이 두 번
   // 실행(저장/이동 중복)되는 것을 막는 가드.
@@ -858,7 +860,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const removeExtraShot = (fromIdx) => {
-    updateField('extraShots', extraShots.slice(0, fromIdx));
+    // 삭제한 샷의 GPS 지점도 함께 버린다. 남겨두면 나중에 같은 자리에 샷을 다시
+    // 추가했을 때 지웠던 좌표가 "✓ 기록됨" 상태로 되살아난다.
+    // (슬롯 0=티샷, 1=세컨샷이므로 익스트라샷 idx의 슬롯은 idx+2)
+    updateFields({
+      extraShots: extraShots.slice(0, fromIdx),
+      gpsPoints: gpsPoints.slice(0, fromIdx + 2),
+    });
     setExpandedExtraShot(Math.max(0, fromIdx - 1));
     if (fromIdx === 0) setSecondShotExpanded(true);
   };
@@ -1747,6 +1755,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                       onClick={() => {
                         const updated = extraShots.map((s, i) => i === idx ? { ...s, onGreen: false } : s);
+                        // 뒤에 이미 샷이 기록돼 있으면 그게 곧 이 샷의 후속타다.
+                        // 여기서 또 만들면 항상 맨 뒤에 붙어서, 써드샷 실패를 눌렀는데
+                        // 여섯 번째 샷이 생기는 식으로 샷 순번이 어긋난다.
+                        if (idx < extraShots.length - 1) {
+                          updateField('extraShots', updated);
+                          setExpandedExtraShot(idx + 1);
+                          return;
+                        }
                         const newShot = { club:null, subClub:null, lie:[], remainingDistance: Math.ceil((shot.remainingDistance||150) / 2), windDirection:null, windStrength:null, onGreen:null };
                         updateField('extraShots', [...updated, newShot]);
                         setExpandedExtraShot(extraShots.length);
@@ -1960,8 +1976,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>이전</span>
           </button>
 
-          {/* 공백 */}
-          <div />
+          {/* 홀 지도 */}
+          <button
+            style={{ ...styles.tabBarBtn, color: (gpsPoints.some(Boolean) || gpsGreen) ? '#c9a228' : '#4d5a78' }}
+            onClick={() => setShowHoleMap(true)}
+          >
+            <MapIcon size={20} strokeWidth={1.8} />
+            <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>지도</span>
+          </button>
 
           {/* 홈 */}
           <button
@@ -2098,6 +2120,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       )}
 
       {/* 메모 모달 */}
+      {showHoleMap && (
+        <HoleMapModal
+          holeNo={holeIdx + 1}
+          par={hole.par}
+          gpsPoints={gpsPoints}
+          gpsGreen={gpsGreen}
+          fieldShots={fieldShots}
+          shotLabel={shotLabel}
+          onSetPoint={setGpsPoint}
+          onSetGreen={fix => updateGpsField('gpsGreen', fix)}
+          onClose={() => setShowHoleMap(false)}
+        />
+      )}
+
       {showMemoModal && (
         <div style={styles.modalOverlay} onClick={()=>setShowMemoModal(false)}>
           <div style={styles.memoModalCard} onClick={e=>e.stopPropagation()}>

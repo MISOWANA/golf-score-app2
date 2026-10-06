@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 
 import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
-import { fieldShotCount as countFieldShots } from '../../engine/geo.js';
+import { fieldShotCount as countFieldShots, isHoledOut } from '../../engine/geo.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -820,6 +820,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 샷 거리만 측정하므로 핀·티박스 좌표는 따로 저장하지 않는다.
   const gpsPoints = playerScore.gpsPoints || [];
   const gpsGreen = playerScore.gpsGreen || null;
+  // gpsPin: 그날의 핀 자리. 지도에서 그린을 보고 찍거나 홀 옆에 서서 찍는다.
+  // 각 샷 지점에서 핀까지 남은 거리와, 티박스→핀 = 그날의 홀 전장이 나온다.
+  const gpsPin = playerScore.gpsPin || null;
   const fieldShots = countFieldShots(playerScore, hole.par);
 
   // 위치 기록은 스코어 입력이 아니므로 touched를 세우지 않는다. updateField를
@@ -843,6 +846,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     slot === 0 ? '티샷'
       : slot === 1 ? '세컨샷'
         : (EXTRA_SHOT_NAMES[slot - 2]?.replace(/\s*\(.*\)\s*$/, '') ?? `${slot + 1}번째 샷`);
+
+  // 마지막 지점 이름: 홀인원·칩인은 볼이 그린에 멈추지 않고 홀에 들어간다.
+  const finalPointLabel = isHoledOut(playerScore) ? '홀인 지점' : '그린 도착 지점';
+
+  // 지점은 순서대로만 찍는다. 직전 지점이 없으면 거리가 계산되지 않아 기록해도
+  // 의미가 없다. 원온(파3 GIR·파4/5 teeGIR)과 홀인원이면 fieldShots가 1이라
+  // 그린(=마지막) 지점의 직전이 곧 티샷이 되어, 세컨샷을 거치지 않고 바로 열린다.
+  const gpsLocked = (slot) => slot > 0 && !gpsPoints[slot - 1];
+  const gpsLockHint = (slot) => `${shotLabel(slot - 1)} 지점을 먼저 찍어주세요`;
 
   // extraFields: 같은 클릭 안에서 함께 반영할 다른 필드(예: gir/onGreen).
   // updateField를 별도로 또 호출하면 이전 playerScore를 다시 읽어와 그 값을 덮어써 버리므로 한 번에 합쳐서 반영한다.
@@ -1376,6 +1388,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         <GpsShotPoint
           label="티샷 지점"
           point={gpsPoints[0] || null}
+          pinPoint={gpsPin}
           onCapture={fix => setGpsPoint(0, fix)}
           onClear={() => setGpsPoint(0, null)}
         />
@@ -1574,6 +1587,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           point={gpsPoints[1] || null}
           prevPoint={gpsPoints[0] || null}
           prevLabel={shotLabel(0)}
+          locked={gpsLocked(1)}
+          lockedHint={gpsLockHint(1)}
+          pinPoint={gpsPin}
           onCapture={fix => setGpsPoint(1, fix)}
           onClear={() => setGpsPoint(1, null)}
         />
@@ -1687,6 +1703,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   point={gpsPoints[idx + 2] || null}
                   prevPoint={gpsPoints[idx + 1] || null}
                   prevLabel={shotLabel(idx + 1)}
+                  locked={gpsLocked(idx + 2)}
+                  lockedHint={gpsLockHint(idx + 2)}
+                  pinPoint={gpsPin}
                   onCapture={fix => setGpsPoint(idx + 2, fix)}
                   onClear={() => setGpsPoint(idx + 2, null)}
                 />
@@ -1802,10 +1821,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* 그린 도착 지점 — 마지막 필드샷의 거리가 여기서 확정된다.
             퍼팅 거리는 GPS 오차(두 점 합성 ±5~10m)보다 짧아 측정 대상이 아니다. */}
         <GpsShotPoint
-          label="그린 도착 지점"
+          label={finalPointLabel}
           point={gpsGreen}
           prevPoint={gpsPoints[fieldShots - 1] || null}
           prevLabel={shotLabel(fieldShots - 1)}
+          locked={gpsLocked(fieldShots)}
+          lockedHint={gpsLockHint(fieldShots)}
+          pinPoint={gpsPin}
           onCapture={fix => updateGpsField('gpsGreen', fix)}
           onClear={() => updateGpsField('gpsGreen', null)}
         />
@@ -2126,10 +2148,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           par={hole.par}
           gpsPoints={gpsPoints}
           gpsGreen={gpsGreen}
+          gpsPin={gpsPin}
           fieldShots={fieldShots}
           shotLabel={shotLabel}
+          finalLabel={isHoledOut(playerScore) ? '홀' : '그린'}
           onSetPoint={setGpsPoint}
           onSetGreen={fix => updateGpsField('gpsGreen', fix)}
+          onSetPin={fix => updateGpsField('gpsPin', fix)}
           onClose={() => setShowHoleMap(false)}
         />
       )}

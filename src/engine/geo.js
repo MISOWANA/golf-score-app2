@@ -46,13 +46,47 @@ export function shotDistances(gpsPoints, gpsGreen, fieldShotCount) {
   return out;
 }
 
+// 각 샷 지점에서 핀까지의 직선거리.
+// out[0] = 티박스 → 핀 = 그날 실제로 플레이한 홀 전장.
+// out[i] = (i+1)번째 샷을 치는 자리에서 핀까지 남은 거리.
+//
+// 핀 좌표는 라운드마다 새로 찍는다. 핀 위치와 티박스는 매일 바뀌므로 골프장별
+// 고정 전장거리를 들고 있어 봐야 실제와 맞지 않기 때문 — 그래서 코스 DB가
+// 아니라 그 홀의 그날 기록으로만 둔다.
+export function pinDistances(gpsPoints, gpsPin, fieldShotCount) {
+  const out = [];
+  for (let i = 0; i < fieldShotCount; i++) {
+    out.push(haversine(gpsPoints?.[i] ?? null, gpsPin ?? null));
+  }
+  return out;
+}
+
 // 한 홀에서 실제로 친 "필드샷"(퍼팅 제외) 개수.
-// 1온(파4·5의 teeGIR, 파3의 GIR)이면 1타, 아니면 티샷+세컨샷+익스트라샷.
+//
+//   홀인원(파3·파4 모두)        → 1 (티샷 하나로 끝)
+//   원온: 파4·5 teeGIR, 파3 GIR → 1 (티샷 → 그린)
+//   투온                        → 2 (티샷 → 세컨샷 → 그린)
+//   쓰리온 이상                 → 2 + 익스트라샷 수
+//
+// OB·해저드 재샷은 세지 않는다. 벌타와 재샷은 strokes에 반영되지만 치는
+// 위치가 사실상 같은 자리라 GPS 지점을 따로 둘 이유가 없고, 클럽 거리
+// 통계에 필요한 건 성공한 샷의 거리다.
 export function fieldShotCount(score, par) {
   if (!score) return 0;
+  if (score.strokes === 1) return 1;
   const onGreenInOne = score.teeGIR === true || (par === 3 && score.gir === true);
   if (onGreenInOne) return 1;
   return 2 + (score.extraShots?.length ?? 0);
+}
+
+// 마지막 지점이 "그린 도착"이 아니라 "홀인 지점"인 경우.
+// 홀인원과 칩인은 볼이 그린에 멈추지 않고 홀에 들어가므로, 찍는 위치가
+// 그린 위 볼 자리가 아니라 홀 자리다.
+export function isHoledOut(score) {
+  if (!score) return false;
+  if (score.strokes === 1) return true;
+  if (score.onGreen === 'chip-in') return true;
+  return (score.extraShots ?? []).some((s) => s?.onGreen === 'chip-in');
 }
 
 // 측위 품질 — 오차 반경(m) 기준.

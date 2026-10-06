@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { haversine, combinedAccuracy, gpsQuality } from '../../engine/geo.js';
+import { haversine, combinedAccuracy, gpsQuality, shotDistances, pinDistances } from '../../engine/geo.js';
 import {
   getVWorldKey, setVWorldKey, satelliteTileUrl,
   TILE_MIN_ZOOM, TILE_MAX_ZOOM, TILE_ATTRIBUTION, VWORLD_SIGNUP_URL,
@@ -10,6 +10,7 @@ import {
 // 라운드 중에 쓰는 화면이라 기본 줌은 한 홀이 거의 다 들어오는 수준으로 잡는다.
 const INITIAL_ZOOM = 17;
 const GREEN_SLOT = 'green';
+const PIN_SLOT = 'pin';
 
 const COLOR = {
   gold: '#c9a228', green: '#3db87a', red: '#ef5350',
@@ -20,31 +21,94 @@ const fmtAcc = (acc) => (acc == null ? '' : `±${Math.round(acc)}m`);
 
 // ─── Leaflet 아이콘 (이미지 에셋 없이 divIcon으로만 구성) ──────────────────────
 
-const pointIcon = (label, done) => L.divIcon({
+// 샷 지점은 "어디쯤"이 아니라 "정확히 이 자리"가 중요하다. 라벨 알약으로 점을
+// 덮어버리지 않도록, 중심을 비운 십자 조준선으로 지점을 찍고 라벨은 옆으로 뺀다.
+// 위성영상은 밝기가 제각각이라 모든 선에 어두운 테두리를 깔아 대비를 만든다.
+const pointIcon = (label) => L.divIcon({
   className: '',
-  html: `<div style="
-      transform:translate(-50%,-50%);
-      display:flex;align-items:center;gap:5px;
-      padding:3px 8px 3px 4px;border-radius:999px;white-space:nowrap;
-      background:${done ? 'rgba(201,162,40,0.92)' : 'rgba(11,14,24,0.78)'};
-      border:1.5px solid ${done ? '#f0c93a' : '#3a4e72'};
-      color:${done ? '#0b0e18' : '#8896b0'};
-      font-size:11px;font-weight:800;letter-spacing:0.02em;
-      box-shadow:0 1px 6px rgba(0,0,0,0.5);
-    ">
-      <span style="width:9px;height:9px;border-radius:50%;background:${done ? '#0b0e18' : '#3a4e72'}"></span>
-      ${label}
+  html: `<div style="position:relative;width:0;height:0">
+      <svg width="38" height="38" viewBox="0 0 38 38" style="position:absolute;left:-19px;top:-19px">
+        <g stroke="#06080f" stroke-width="3.5" stroke-linecap="round" opacity="0.85">
+          <line x1="19" y1="1" x2="19" y2="11"/><line x1="19" y1="27" x2="19" y2="37"/>
+          <line x1="1" y1="19" x2="11" y2="19"/><line x1="27" y1="19" x2="37" y2="19"/>
+          <circle cx="19" cy="19" r="7" fill="none"/>
+        </g>
+        <g stroke="#f0c93a" stroke-width="1.6" stroke-linecap="round">
+          <line x1="19" y1="1" x2="19" y2="11"/><line x1="19" y1="27" x2="19" y2="37"/>
+          <line x1="1" y1="19" x2="11" y2="19"/><line x1="27" y1="19" x2="37" y2="19"/>
+          <circle cx="19" cy="19" r="7" fill="none"/>
+        </g>
+        <circle cx="19" cy="19" r="2.6" fill="#06080f"/>
+        <circle cx="19" cy="19" r="1.5" fill="#f0c93a"/>
+      </svg>
+      <div style="
+        position:absolute;left:14px;top:-22px;white-space:nowrap;
+        padding:2px 7px;border-radius:4px;
+        background:rgba(6,8,15,0.82);border:1px solid rgba(240,201,58,0.55);
+        color:#f0c93a;font-size:10px;font-weight:800;letter-spacing:0.04em;
+      ">${label}</div>
     </div>`,
   iconSize: [0, 0],
   iconAnchor: [0, 0],
+});
+
+// 핀은 샷 지점과 성격이 달라 모양을 완전히 다르게 둔다 — 깃대 밑동이 홀 자리다.
+const pinIcon = () => L.divIcon({
+  className: '',
+  html: `<div style="position:relative;width:0;height:0">
+      <svg width="36" height="44" viewBox="0 0 36 44" style="position:absolute;left:-8px;top:-40px">
+        <g stroke="#06080f" stroke-width="4" stroke-linecap="round" opacity="0.85" fill="none">
+          <line x1="8" y1="6" x2="8" y2="38"/>
+          <path d="M8 6 L30 13 L8 20 Z"/>
+          <ellipse cx="8" cy="39" rx="6" ry="2.4"/>
+        </g>
+        <line x1="8" y1="6" x2="8" y2="38" stroke="#e8edf8" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 6 L30 13 L8 20 Z" fill="#ef5350" stroke="#ef5350" stroke-width="1"/>
+        <ellipse cx="8" cy="39" rx="6" ry="2.4" fill="#06080f" stroke="#e8edf8" stroke-width="1.2"/>
+      </svg>
+      <div style="
+        position:absolute;left:18px;top:-44px;white-space:nowrap;
+        padding:2px 7px;border-radius:4px;
+        background:rgba(6,8,15,0.82);border:1px solid rgba(239,83,80,0.6);
+        color:#ff8a87;font-size:10px;font-weight:800;letter-spacing:0.04em;
+      ">핀</div>
+    </div>`,
+  iconSize: [0, 0],
+  iconAnchor: [0, 0],
+});
+
+// 확정 전 임시 마커. 손가락으로 끌어야 하므로 실제 크기(44px)를 주어 터치
+// 영역을 만든다 — 다른 마커처럼 iconSize를 0으로 두면 잡을 데가 없다.
+const draftIcon = () => L.divIcon({
+  className: '',
+  html: `<div style="width:44px;height:44px;position:relative;cursor:grab">
+      <svg width="44" height="44" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="16" fill="rgba(91,156,246,0.16)"
+                stroke="#06080f" stroke-width="3.5" stroke-dasharray="3 4"/>
+        <circle cx="22" cy="22" r="16" fill="none"
+                stroke="#8ec0ff" stroke-width="1.4" stroke-dasharray="3 4"/>
+        <g stroke="#06080f" stroke-width="4" stroke-linecap="round">
+          <line x1="22" y1="4" x2="22" y2="13"/><line x1="22" y1="31" x2="22" y2="40"/>
+          <line x1="4" y1="22" x2="13" y2="22"/><line x1="31" y1="22" x2="40" y2="22"/>
+        </g>
+        <g stroke="#8ec0ff" stroke-width="1.8" stroke-linecap="round">
+          <line x1="22" y1="4" x2="22" y2="13"/><line x1="22" y1="31" x2="22" y2="40"/>
+          <line x1="4" y1="22" x2="13" y2="22"/><line x1="31" y1="22" x2="40" y2="22"/>
+        </g>
+        <circle cx="22" cy="22" r="3" fill="#06080f"/>
+        <circle cx="22" cy="22" r="1.8" fill="#8ec0ff"/>
+      </svg>
+    </div>`,
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
 });
 
 const distanceIcon = (meters) => L.divIcon({
   className: '',
   html: `<div style="
       transform:translate(-50%,-50%);
-      padding:2px 7px;border-radius:999px;white-space:nowrap;
-      background:rgba(11,14,24,0.86);border:1px solid rgba(201,162,40,0.5);
+      padding:2px 7px;border-radius:4px;white-space:nowrap;
+      background:rgba(6,8,15,0.86);border:1px solid rgba(240,201,58,0.5);
       color:#f0c93a;font-size:11px;font-weight:800;
     ">${Math.round(meters)}m</div>`,
   iconSize: [0, 0],
@@ -54,8 +118,8 @@ const distanceIcon = (meters) => L.divIcon({
 // ─── 본체 ─────────────────────────────────────────────────────────────────────
 
 export default function HoleMapModal({
-  holeNo, par, gpsPoints, gpsGreen, fieldShots, shotLabel,
-  onSetPoint, onSetGreen, onClose,
+  holeNo, par, gpsPoints, gpsGreen, gpsPin, fieldShots, shotLabel, finalLabel = '그린',
+  onSetPoint, onSetGreen, onSetPin, onClose,
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);
   const [keyDraft, setKeyDraft] = useState('');
@@ -68,16 +132,46 @@ export default function HoleMapModal({
   );
   const [placeMode, setPlaceMode] = useState(false);
   const [tileError, setTileError] = useState(false);
+  // draft: 지도에서 놓았지만 아직 확정하지 않은 위치. 드래그로 미세조정한 뒤
+  // "위치 확정"을 눌러야 기록된다 — 한 번 탭으로 바로 들어가면 손가락이
+  // 빗나갔을 때 되돌리기가 번거롭다.
+  const [draft, setDraft] = useState(null);
 
+  // 지점은 순서대로만 찍는다 — 직전 지점이 없으면 거리가 나오지 않아 기록해도
+  // 의미가 없다. 원온(파3 GIR·파4/5 teeGIR)과 홀인원은 fieldShots가 1이라
+  // 마지막 지점의 직전이 곧 티샷이 되어, 세컨샷을 거치지 않고 바로 열린다.
   const slots = [
     ...Array.from({ length: fieldShots }, (_, i) => ({
       id: i, label: shotLabel(i), point: gpsPoints[i] || null,
+      locked: i > 0 && !gpsPoints[i - 1],
     })),
-    { id: GREEN_SLOT, label: '그린', point: gpsGreen },
+    {
+      id: GREEN_SLOT, label: finalLabel, point: gpsGreen,
+      locked: !gpsPoints[fieldShots - 1],
+    },
+    // 핀은 샷 순서와 무관하다. 티에서 그린을 보고 미리 찍어야 홀 전장과
+    // 잔여거리가 나오므로 순차 잠금에서 뺀다.
+    { id: PIN_SLOT, label: '핀', point: gpsPin || null, locked: false },
   ];
-  const firstEmpty = slots.find((s) => !s.point);
-  const [selected, setSelected] = useState(firstEmpty ? firstEmpty.id : 0);
+  const firstOpen = slots.find((s) => !s.point && !s.locked);
+  const [selected, setSelected] = useState(firstOpen ? firstOpen.id : 0);
   const selectedSlot = slots.find((s) => s.id === selected) ?? slots[0];
+
+  // 선택된 지점이 아직 차례가 아님 — 찍기 버튼을 막는다.
+  const blockedSlot = !!selectedSlot?.locked && !selectedSlot?.point;
+
+  // 거리를 재는 기준이 되는 직전 지점. 핀은 티박스 기준이라 그 거리가 홀 전장이다.
+  const prevPointOf = (slotId) => {
+    if (slotId === PIN_SLOT) return gpsPoints[0] || null;
+    if (slotId === GREEN_SLOT) return gpsPoints[fieldShots - 1] || null;
+    return slotId > 0 ? (gpsPoints[slotId - 1] || null) : null;
+  };
+  const prevLabelOf = (slotId) => {
+    if (slotId === PIN_SLOT) return '홀 전장';
+    if (slotId === GREEN_SLOT) return shotLabel(fieldShots - 1);
+    return slotId > 0 ? shotLabel(slotId - 1) : null;
+  };
+  const prerequisiteLabel = prevLabelOf(selected);
 
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -87,17 +181,21 @@ export default function HoleMapModal({
   const placeModeRef = useRef(placeMode);
   const selectedRef = useRef(selected);
   const commitRef = useRef(null);
+  const draftRef = useRef(null);
 
   const commitPoint = (slotId, fix) => {
-    if (slotId === GREEN_SLOT) onSetGreen(fix);
+    if (slotId === PIN_SLOT) onSetPin(fix);
+    else if (slotId === GREEN_SLOT) onSetGreen(fix);
     else onSetPoint(slotId, fix);
   };
 
-  // 기록 후에는 아직 안 찍은 다음 지점으로 넘어간다 (티 → 세컨 → 그린 순서로
-  // 버튼만 누르면 되도록). 지우는 경우엔 그 자리에 머문다.
+  // 새로 찍은 경우에만 다음 빈 지점으로 넘어간다 (티 → 세컨 → 그린 순서로
+  // 버튼만 누르면 되도록). 이미 찍힌 지점을 고쳐 찍는 중이거나 지우는 중이면
+  // 그 자리에 머물러야 한다 — 수정하자마자 다른 지점으로 튀면 안 된다.
   const commitAndAdvance = (slotId, fix) => {
+    const wasEmpty = !slots.find((s) => s.id === slotId)?.point;
     commitPoint(slotId, fix);
-    if (!fix) return;
+    if (!fix || !wasEmpty) return;
     const from = slots.findIndex((s) => s.id === slotId);
     const next = slots.slice(from + 1).find((s) => !s.point);
     if (next) setSelected(next.id);
@@ -135,20 +233,43 @@ export default function HoleMapModal({
     // 지도에서 지정 모드: 탭한 곳을 선택된 지점으로 기록한다.
     // GPS 측위가 나쁘거나 찍는 걸 깜빡했을 때 위성영상 보고 직접 지정하는 용도라
     // acc는 null로 둔다 (측정값이 아니라는 표시).
+    // 탭은 임시 위치를 놓기만 한다. 확정은 아래 "위치 확정" 버튼에서.
     map.on('click', (e) => {
       if (!placeModeRef.current) return;
-      commitRef.current?.(selectedRef.current, {
-        lat: e.latlng.lat, lng: e.latlng.lng, acc: null, t: Date.now(), manual: true,
-      });
-      setPlaceMode(false);
+      setDraft({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
 
     mapRef.current = map;
     // 모달이 그려진 직후엔 컨테이너 크기가 0일 수 있다.
     setTimeout(() => map.invalidateSize(), 60);
 
-    return () => { map.remove(); mapRef.current = null; };
+    return () => { map.remove(); mapRef.current = null; draftRef.current = null; };
   }, [apiKey]);
+
+  // ── 확정 전 임시 마커 (드래그 가능) ─────────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (!draft) {
+      if (draftRef.current) { map.removeLayer(draftRef.current); draftRef.current = null; }
+      return;
+    }
+    if (!draftRef.current) {
+      const marker = L.marker([draft.lat, draft.lng], {
+        draggable: true, autoPan: true, icon: draftIcon(), zIndexOffset: 1000,
+      });
+      marker.on('dragend', () => {
+        const ll = marker.getLatLng();
+        setDraft({ lat: ll.lat, lng: ll.lng });
+      });
+      marker.addTo(map);
+      draftRef.current = marker;
+    } else {
+      // 드래그로 들어온 변경이면 이미 그 자리라 setLatLng은 무해하다.
+      draftRef.current.setLatLng([draft.lat, draft.lng]);
+    }
+  }, [draft]);
 
   // ── 현재 위치 추적 ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -174,15 +295,31 @@ export default function HoleMapModal({
     if (!layer) return;
     layer.clearLayers();
 
-    const marked = slots.filter((s) => s.point);
+    // 핀은 샷 궤적 체인에 들어가지 않는다 — 샷이 지나간 자리가 아니라 목표다.
+    const shotSlots = slots.filter((s) => s.id !== PIN_SLOT);
+    const marked = shotSlots.filter((s) => s.point);
+
     marked.forEach((s) => {
-      L.marker([s.point.lat, s.point.lng], { icon: pointIcon(s.label, true) }).addTo(layer);
+      L.marker([s.point.lat, s.point.lng], { icon: pointIcon(s.label) }).addTo(layer);
     });
+    if (gpsPin) {
+      L.marker([gpsPin.lat, gpsPin.lng], { icon: pinIcon() }).addTo(layer);
+    }
+
+    // 각 샷 지점에서 핀까지 — 남은 거리를 눈으로 보도록 가는 실선으로 잇는다.
+    if (gpsPin) {
+      marked.forEach((s) => {
+        if (s.id === GREEN_SLOT) return; // 그린 도착점은 핀과 거의 겹친다
+        L.polyline([[s.point.lat, s.point.lng], [gpsPin.lat, gpsPin.lng]], {
+          color: '#ef5350', weight: 1.2, opacity: 0.45, dashArray: '2 6',
+        }).addTo(layer);
+      });
+    }
 
     // 연속으로 기록된 구간만 선으로 잇는다 (중간이 비면 거리가 성립하지 않는다).
-    for (let i = 0; i < slots.length - 1; i++) {
-      const from = slots[i].point;
-      const to = slots[i + 1].point;
+    for (let i = 0; i < shotSlots.length - 1; i++) {
+      const from = shotSlots[i].point;
+      const to = shotSlots[i + 1].point;
       if (!from || !to) continue;
       L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
         color: COLOR.gold, weight: 3, opacity: 0.85, dashArray: '6 5',
@@ -194,13 +331,14 @@ export default function HoleMapModal({
     }
 
     const map = mapRef.current;
-    if (map && marked.length > 0 && !didCenterRef.current) {
+    const focus = gpsPin ? [...marked.map((s) => s.point), gpsPin] : marked.map((s) => s.point);
+    if (map && focus.length > 0 && !didCenterRef.current) {
       didCenterRef.current = true;
-      if (marked.length === 1) map.setView([marked[0].point.lat, marked[0].point.lng], INITIAL_ZOOM);
-      else map.fitBounds(L.latLngBounds(marked.map((s) => [s.point.lat, s.point.lng])), { padding: [60, 60] });
+      if (focus.length === 1) map.setView([focus[0].lat, focus[0].lng], INITIAL_ZOOM);
+      else map.fitBounds(L.latLngBounds(focus.map((p) => [p.lat, p.lng])), { padding: [60, 60] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gpsPoints, gpsGreen, fieldShots, apiKey]);
+  }, [gpsPoints, gpsGreen, gpsPin, fieldShots, apiKey]);
 
   // ── 현재 위치 표시 ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -234,12 +372,43 @@ export default function HoleMapModal({
 
   const markHere = () => {
     if (!pos) return;
+    setDraft(null);
+    setPlaceMode(false);
     commitAndAdvance(selected, { ...pos, t: Date.now() });
   };
+
+  const confirmDraft = () => {
+    if (!draft) return;
+    // acc를 null로 둔다 — 측정값이 아니라 지도에서 지정한 위치라는 표시.
+    commitAndAdvance(selected, { lat: draft.lat, lng: draft.lng, acc: null, t: Date.now(), manual: true });
+    setDraft(null);
+    setPlaceMode(false);
+  };
+
+  const cancelDraft = () => { setDraft(null); setPlaceMode(false); };
+
+  // 확정 전 미리보기 거리 — 확정하면 얼마로 기록될지 먼저 보여준다.
+  const draftDistance = haversine(prevPointOf(selected), draft);
 
   const quality = gpsQuality(pos?.acc);
   const liveDistance = haversine(pos, selectedSlot?.point);
   const liveDistanceAcc = combinedAccuracy(pos, selectedSlot?.point);
+  const liveToPin = haversine(pos, gpsPin);
+
+  // 거리 요약.
+  //   shotDist[i]  = (i+1)번째 샷이 날아간 거리
+  //   toPinArr[i]  = (i+1)번째 샷을 치는 자리에서 핀까지 남은 거리
+  // 따라서 샷 n의 "볼이 멈춘 자리에서 핀까지"는 toPinArr[n]이고, 마지막 샷은
+  // 볼이 그린에 있으므로 그린 도착점 → 핀이 된다(= 첫 퍼팅 거리).
+  const shotDist = shotDistances(gpsPoints, gpsGreen, fieldShots);
+  const toPinArr = pinDistances(gpsPoints, gpsPin, fieldShots);
+  const holeLength = toPinArr[0] ?? null;   // 티박스 → 핀 = 그날의 홀 전장
+
+  const summaryRows = Array.from({ length: fieldShots }, (_, i) => ({
+    label: shotLabel(i),
+    shot: shotDist[i] ?? null,
+    toPin: i + 1 < fieldShots ? (toPinArr[i + 1] ?? null) : haversine(gpsGreen, gpsPin),
+  })).filter((r) => r.shot != null || r.toPin != null);
 
   // ── 키 입력 화면 (탈출구) ───────────────────────────────────────────────────
   if (!apiKey || showKeyForm) {
@@ -329,11 +498,13 @@ export default function HoleMapModal({
         {placeMode && (
           <div style={{
             position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 500, padding: '7px 14px', borderRadius: 999,
-            background: 'rgba(201,162,40,0.94)', color: COLOR.ink,
-            fontSize: 12, fontWeight: 800, pointerEvents: 'none',
+            zIndex: 500, padding: '7px 14px', borderRadius: 999, whiteSpace: 'nowrap',
+            background: draft ? 'rgba(142,192,255,0.95)' : 'rgba(201,162,40,0.94)',
+            color: COLOR.ink, fontSize: 12, fontWeight: 800, pointerEvents: 'none',
           }}>
-            {selectedSlot?.label} 위치를 지도에서 탭하세요
+            {draft
+              ? '마커를 끌어 맞춘 뒤 아래에서 확정하세요'
+              : `${selectedSlot?.label} 위치를 지도에서 탭하세요`}
           </div>
         )}
 
@@ -370,6 +541,7 @@ export default function HoleMapModal({
 
       {/* 하단 조작부 */}
       <div style={{ flexShrink: 0, borderTop: '1px solid #1b2238', background: '#0d1220' }}>
+        {/* 현재 위치 → 핀: 라운드 중 가장 자주 보는 숫자라 제일 크게 */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 10, padding: '9px 14px 7px',
@@ -377,7 +549,15 @@ export default function HoleMapModal({
           <span style={{ fontSize: 11, fontWeight: 700, color: quality?.color ?? '#4d5a78' }}>
             {posError ? '측위 불가' : pos ? `내 위치 ${fmtAcc(pos.acc)} ${quality?.label ?? ''}` : '측위 중…'}
           </span>
-          {liveDistance != null && (
+          {liveToPin != null ? (
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>⛳ 핀까지</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: COLOR.gold, lineHeight: 1 }}>
+                {Math.round(liveToPin)}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>m</span>
+            </span>
+          ) : liveDistance != null ? (
             <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
               {selectedSlot.label}까지 {Math.round(liveDistance)}m
               {liveDistanceAcc != null && (
@@ -386,63 +566,158 @@ export default function HoleMapModal({
                 </span>
               )}
             </span>
-          )}
+          ) : null}
         </div>
 
         {posError && (
           <div style={{ padding: '0 14px 7px', fontSize: 10, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
         )}
 
+        {/* 거리 요약 — 홀 전장과 샷별 거리/잔여거리 */}
+        {summaryRows.length > 0 && (
+          <div style={{ padding: '0 14px 8px' }}>
+            {holeLength != null && (
+              <div style={{
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                padding: '5px 9px', borderRadius: 6, marginBottom: 4,
+                background: 'rgba(201,162,40,0.1)', border: '1px solid rgba(201,162,40,0.28)',
+              }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: COLOR.gold, letterSpacing: '0.1em' }}>
+                  홀 전장 (티 → 핀)
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: COLOR.gold }}>
+                  {Math.round(holeLength)}m
+                </span>
+              </div>
+            )}
+            {summaryRows.map((r) => (
+              <div key={r.label} style={{
+                display: 'flex', alignItems: 'baseline', gap: 8,
+                padding: '3px 9px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+              }}>
+                <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: COLOR.dim }}>{r.label}</span>
+                {r.shot != null && (
+                  <span style={{ fontSize: 13, fontWeight: 800, color: COLOR.line }}>
+                    {Math.round(r.shot)}m
+                  </span>
+                )}
+                {r.toPin != null && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.gold, minWidth: 74, textAlign: 'right' }}>
+                    핀까지 {Math.round(r.toPin)}m
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* 지점 선택 */}
         <div style={{ display: 'flex', gap: 6, padding: '0 14px 9px', overflowX: 'auto' }}>
           {slots.map((s) => {
             const on = s.id === selected;
+            // 아직 차례가 아닌 지점은 고를 수 없다. 이미 찍힌 지점은 언제든
+            // 다시 고를 수 있어야 한다 — 지나온 샷도 고쳐 찍을 수 있도록.
+            const blocked = s.locked && !s.point;
             return (
               <button
                 key={String(s.id)}
-                onClick={() => setSelected(s.id)}
+                onClick={() => {
+                  if (blocked) return;
+                  setSelected(s.id);
+                  // 임시 위치는 그 지점에 속한 것이라 지점을 바꾸면 버린다.
+                  setDraft(null);
+                  setPlaceMode(false);
+                }}
+                disabled={blocked}
                 style={{
-                  flexShrink: 0, padding: '7px 11px', borderRadius: 8, cursor: 'pointer',
+                  flexShrink: 0, padding: '7px 11px', borderRadius: 8,
+                  cursor: blocked ? 'default' : 'pointer',
+                  opacity: blocked ? 0.4 : 1,
                   border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#252f4a'}`,
                   background: on ? 'rgba(201,162,40,0.18)' : '#1a2235',
                   color: on ? COLOR.gold : s.point ? COLOR.green : COLOR.dim,
                   fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
                 }}
-              >{s.point ? '✓ ' : ''}{s.label}</button>
+              >{s.point ? '✓ ' : blocked ? '🔒 ' : ''}{s.label}</button>
             );
           })}
         </div>
 
-        <div style={{ display: 'flex', gap: 7, padding: '0 14px 12px' }}>
-          <button
-            onClick={markHere}
-            disabled={!pos}
-            style={{
-              flex: 2, padding: '14px 10px', borderRadius: 10, cursor: pos ? 'pointer' : 'default',
-              border: 'none', background: pos ? COLOR.gold : '#252f4a',
-              color: pos ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
-            }}
-          >📍 {selectedSlot?.label} 여기로 찍기</button>
-          <button
-            onClick={() => setPlaceMode((v) => !v)}
-            style={{
-              flex: 1, padding: '14px 8px', borderRadius: 10, cursor: 'pointer',
-              border: `1.5px solid ${placeMode ? COLOR.gold : '#3a4e72'}`,
-              background: placeMode ? 'rgba(201,162,40,0.18)' : 'transparent',
-              color: placeMode ? COLOR.gold : '#c4cfe0', fontSize: 12, fontWeight: 700,
-            }}
-          >{placeMode ? '취소' : '지도에서'}</button>
-          {selectedSlot?.point && (
+        {draft ? (
+          /* 확정 대기 — 마커를 끌어 맞춘 뒤 눌러 기록한다 */
+          <div style={{ padding: '0 14px 12px' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '6px 10px', borderRadius: 7, marginBottom: 7,
+              background: 'rgba(142,192,255,0.1)', border: '1px solid rgba(142,192,255,0.3)',
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#8ec0ff' }}>
+                {selectedSlot?.label} 미확정
+              </span>
+              {draftDistance != null && prerequisiteLabel && (
+                <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
+                  · {prerequisiteLabel} {Math.round(draftDistance)}m
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 7 }}>
+              <button
+                onClick={confirmDraft}
+                style={{
+                  flex: 2, padding: '14px 10px', borderRadius: 10, cursor: 'pointer',
+                  border: 'none', background: COLOR.gold, color: COLOR.ink,
+                  fontSize: 14, fontWeight: 800,
+                }}
+              >✓ 이 위치로 확정</button>
+              <button
+                onClick={cancelDraft}
+                style={{
+                  flex: 1, padding: '14px 8px', borderRadius: 10, cursor: 'pointer',
+                  border: '1.5px solid #3a4e72', background: 'transparent',
+                  color: '#c4cfe0', fontSize: 12, fontWeight: 700,
+                }}
+              >취소</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 7, padding: '0 14px 12px' }}>
             <button
-              onClick={() => commitPoint(selected, null)}
+              onClick={markHere}
+              disabled={!pos || blockedSlot}
               style={{
-                width: 48, borderRadius: 10, cursor: 'pointer',
-                border: '1px solid rgba(239,83,80,0.35)', background: 'transparent',
-                color: 'rgba(239,83,80,0.75)', fontSize: 13, fontWeight: 700,
+                flex: 2, padding: '14px 10px', borderRadius: 10,
+                cursor: pos && !blockedSlot ? 'pointer' : 'default',
+                border: 'none', background: pos && !blockedSlot ? COLOR.gold : '#252f4a',
+                color: pos && !blockedSlot ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
               }}
-            >✕</button>
-          )}
-        </div>
+            >
+              {blockedSlot
+                ? `${prerequisiteLabel} 지점을 먼저 찍어주세요`
+                : `📍 ${selectedSlot?.label} ${selectedSlot?.point ? '다시 찍기' : '여기로 찍기'}`}
+            </button>
+            <button
+              onClick={() => setPlaceMode((v) => !v)}
+              disabled={blockedSlot}
+              style={{
+                flex: 1, padding: '14px 8px', borderRadius: 10,
+                cursor: blockedSlot ? 'default' : 'pointer', opacity: blockedSlot ? 0.4 : 1,
+                border: `1.5px solid ${placeMode ? COLOR.gold : '#3a4e72'}`,
+                background: placeMode ? 'rgba(201,162,40,0.18)' : 'transparent',
+                color: placeMode ? COLOR.gold : '#c4cfe0', fontSize: 12, fontWeight: 700,
+              }}
+            >{placeMode ? '취소' : '지도에서'}</button>
+            {selectedSlot?.point && (
+              <button
+                onClick={() => commitPoint(selected, null)}
+                style={{
+                  width: 48, borderRadius: 10, cursor: 'pointer',
+                  border: '1px solid rgba(239,83,80,0.35)', background: 'transparent',
+                  color: 'rgba(239,83,80,0.75)', fontSize: 13, fontWeight: 700,
+                }}
+              >✕</button>
+            )}
+          </div>
+        )}
       </div>
     </Shell>
   );

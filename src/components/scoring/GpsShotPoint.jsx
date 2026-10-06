@@ -77,7 +77,15 @@ const fmtAcc = (acc) => acc == null ? '' : `±${Math.round(acc)}m`;
 // 곧 그 샷의 거리이므로 같이 보여준다 (사용자가 볼 앞에 서서 방금 친 샷이
 // 몇 m 갔는지 바로 확인하는 흐름).
 
-export default function GpsShotPoint({ label, point, prevPoint, prevLabel, onCapture, onClear }) {
+export default function GpsShotPoint({
+  label, point, prevPoint, prevLabel, onCapture, onClear,
+  // locked: 직전 지점이 아직 안 찍힌 상태. 그 상태로 기록해 봐야 거리가
+  // 계산되지 않으므로 순서대로만 찍게 막는다.
+  locked = false, lockedHint,
+  // pinPoint: 지도에서 찍은 그날의 핀 위치. 있으면 이 지점에서 핀까지
+  // 남은 거리를 함께 보여준다.
+  pinPoint = null,
+}) {
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(null);
   const [error, setError] = useState(null);
@@ -101,6 +109,7 @@ export default function GpsShotPoint({ label, point, prevPoint, prevLabel, onCap
   const quality = gpsQuality(point?.acc);
   const distance = haversine(prevPoint, point);
   const distanceAcc = combinedAccuracy(prevPoint, point);
+  const toPin = haversine(point, pinPoint);
 
   return (
     <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid #0e1320' }}>
@@ -115,32 +124,65 @@ export default function GpsShotPoint({ label, point, prevPoint, prevLabel, onCap
       </div>
 
       {point ? (
-        <div style={{ display: 'flex', gap: 6 }}>
+        <>
           <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '11px 12px', borderRadius: 9,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '11px 12px', borderRadius: 9, marginBottom: 6,
             border: '1.5px solid rgba(61,184,122,0.45)', background: 'rgba(61,184,122,0.1)',
           }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#3db87a' }}>✓ 기록됨</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#3db87a' }}>✓</span>
             {distance != null && (
               <span style={{ fontSize: 13, fontWeight: 800, color: '#e8edf8' }}>
                 {prevLabel} {Math.round(distance)}m
                 {distanceAcc != null && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: '#8896b0', marginLeft: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#8896b0', marginLeft: 3 }}>
                     {fmtAcc(distanceAcc)}
                   </span>
                 )}
               </span>
             )}
+            {toPin != null && (
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#c9a228' }}>
+                ⛳ {Math.round(toPin)}m
+              </span>
+            )}
+            {distance == null && toPin == null && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#8896b0' }}>기록됨</span>
+            )}
           </div>
-          <button
-            onClick={onClear}
-            style={{
-              width: 44, borderRadius: 9, cursor: 'pointer',
-              border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
-              color: 'rgba(239,83,80,0.65)', fontSize: 13, fontWeight: 700,
-            }}
-          >✕</button>
+          {/* 이미 지나온 샷이라도 다시 찍을 수 있어야 한다 — 측위가 나빴거나
+              엉뚱한 자리에서 눌렀을 때 지우고 다시 하지 않아도 되도록. */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={run}
+              disabled={busy}
+              style={{
+                flex: 1, padding: '10px', borderRadius: 9,
+                cursor: busy ? 'default' : 'pointer',
+                border: `1px solid ${busy ? 'rgba(201,162,40,0.45)' : '#3a4e72'}`,
+                background: busy ? 'rgba(201,162,40,0.08)' : 'transparent',
+                color: busy ? '#c9a228' : '#c4cfe0', fontSize: 12, fontWeight: 700,
+              }}
+            >
+              {busy ? `측위 중… ${live?.acc != null ? fmtAcc(live.acc) : ''}` : '↻ 다시 찍기'}
+            </button>
+            <button
+              onClick={onClear}
+              style={{
+                width: 44, borderRadius: 9, cursor: 'pointer',
+                border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
+                color: 'rgba(239,83,80,0.65)', fontSize: 13, fontWeight: 700,
+              }}
+            >✕</button>
+          </div>
+        </>
+      ) : locked ? (
+        <div style={{
+          padding: '12px 16px', borderRadius: 9, textAlign: 'center',
+          border: '1px dashed #252f4a', background: 'transparent',
+          color: '#4d5a78', fontSize: 11, fontWeight: 600, lineHeight: 1.5,
+        }}>
+          {lockedHint}
         </div>
       ) : (
         <button

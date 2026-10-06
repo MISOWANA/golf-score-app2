@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { buildHoleReview } from '../../engine/holeReview.js';
 import { getVWorldKey } from '../../engine/mapTiles.js';
+import { renderHoleImage } from '../../engine/holeImage.js';
 import { createSatelliteMap, drawHoleOverlay, MAP_COLOR as C } from '../map/holeMapLayers.js';
 
 // 라운드 후 홀별 복기. "어떤 거리에서 어떤 채를 쓰고 어떤 결과였나"를
@@ -30,6 +31,12 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
   const mapRef = useRef(null);
   const overlayRef = useRef(null);
   const [tileError, setTileError] = useState(false);
+  // 이미지 저장 — 캔버스에 타일을 직접 그려 PNG로 만든다.
+  // 어느 홀의 결과인지 함께 들고 다녀서, 홀을 넘기면 자연히 사라지게 한다
+  // (effect로 초기화하면 불필요한 연쇄 렌더가 생긴다).
+  const [image, setImage] = useState(null);       // { holeIdx, dataUrl, ... }
+  const [rendering, setRendering] = useState(false);
+  const [imageError, setImageError] = useState(null); // { holeIdx, text }
 
   const hasMap = !!apiKey && !!review?.gps.hasAny;
 
@@ -63,6 +70,26 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
     }
     setTimeout(() => map.invalidateSize(), 60);
   }, [review, holeIdx]);
+
+  const makeImage = async () => {
+    setRendering(true); setImageError(null);
+    try {
+      const out = await renderHoleImage(review, { apiKey });
+      if (!out) {
+        setImageError({ holeIdx, text: '이 홀은 기록된 GPS 지점이 없어 이미지를 만들 수 없습니다.' });
+        return;
+      }
+      setImage({ holeIdx, ...out });
+    } catch (e) {
+      setImageError({ holeIdx, text: `이미지를 만들지 못했습니다. ${e?.message ?? ''}` });
+    } finally {
+      setRendering(false);
+    }
+  };
+
+  // 지금 보고 있는 홀의 결과만 쓴다.
+  const shownImage = image?.holeIdx === holeIdx ? image : null;
+  const shownError = imageError?.holeIdx === holeIdx ? imageError.text : null;
 
   if (!review) return null;
 
@@ -134,6 +161,51 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
             {review.gps.hasAny
               ? '지도를 보려면 VWorld 인증키가 필요합니다.'
               : '이 홀은 GPS 지점을 기록하지 않아 지도가 없습니다.'}
+          </div>
+        )}
+
+        {/* 이미지 — GPS 지점·핀·남은거리를 한 장으로 */}
+        {review.gps.hasAny && (
+          <div style={{ padding: '10px 14px 0' }}>
+            <button
+              onClick={makeImage}
+              disabled={rendering}
+              style={{
+                width: '100%', padding: '11px', borderRadius: 9,
+                cursor: rendering ? 'default' : 'pointer',
+                border: `1.5px solid ${rendering ? 'rgba(201,162,40,0.4)' : '#3a4e72'}`,
+                background: rendering ? 'rgba(201,162,40,0.08)' : 'transparent',
+                color: rendering ? C.gold : '#c4cfe0', fontSize: 13, fontWeight: 700,
+              }}
+            >{rendering ? '이미지 만드는 중…' : shownImage ? '↻ 이미지 다시 만들기' : '🖼 이미지로 보기'}</button>
+
+            {shownError && (
+              <div style={{ marginTop: 7, fontSize: 10, lineHeight: 1.6, color: C.red }}>{shownError}</div>
+            )}
+
+            {shownImage && (
+              <div style={{ marginTop: 10 }}>
+                <img
+                  src={shownImage.dataUrl}
+                  alt={`HOLE ${review.holeNo} 샷 기록`}
+                  style={{ width: '100%', borderRadius: 9, border: '1px solid #1b2238', display: 'block' }}
+                />
+                {/* iOS 사파리는 data URL 다운로드가 막히는 경우가 있어, 위 이미지를
+                    길게 눌러 저장하는 길도 함께 열어 둔다. */}
+                <a
+                  href={shownImage.dataUrl}
+                  download={`hole-${review.holeNo}.png`}
+                  style={{
+                    display: 'block', marginTop: 7, padding: '10px', borderRadius: 9,
+                    textAlign: 'center', textDecoration: 'none',
+                    border: '1px solid #3a4e72', color: '#c4cfe0', fontSize: 12, fontWeight: 700,
+                  }}
+                >이미지 저장</a>
+                <div style={{ marginTop: 5, fontSize: 9, color: '#4d5a78', textAlign: 'center' }}>
+                  저장이 안 되면 위 이미지를 길게 눌러 저장하세요
+                </div>
+              </div>
+            )}
           </div>
         )}
 

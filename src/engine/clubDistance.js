@@ -12,47 +12,67 @@
 // 체인으로는 역산이 불가능하기 때문(extractTeeShot).
 
 import { median, iqr, distanceTier } from './stats.js';
-import { shotDistances, fieldShotCount } from './geo.js';
+import { shotDistances, pinDistances, fieldShotCount } from './geo.js';
 
-// GPS 오측(튄 fix)으로 터무니없는 거리가 들어오는 것을 막는 상한.
-const SANE_MAX_M = 300;
+// GPS 오측(튄 fix)으로 터무니없는 값이 들어오는 것을 막는 상한.
+const SANE_MAX_M = 300;        // 한 샷이 날아간 거리
+const SANE_REMAIN_M = 700;     // 핀까지 남은 거리 (파5 티박스 기준)
 
 const saneDistance = (d) => (d != null && d > 0 && d < SANE_MAX_M ? d : null);
+const saneRemaining = (d) => (d != null && d > 0 && d < SANE_REMAIN_M ? d : null);
 
 // gpsDist[n-1] = n번째 샷의 실측 거리(m).
 const gpsDistancesFor = (hole, s) =>
   shotDistances(s.gpsPoints, s.gpsGreen, fieldShotCount(s, hole.par));
+
+// pinDist[n-1] = n번째 샷을 치는 자리에서 핀까지 남은 실측 거리(m).
+const pinDistancesFor = (hole, s) =>
+  pinDistances(s.gpsPoints, s.gpsPin, fieldShotCount(s, hole.par));
 
 export function extractClubShots(hole, player) {
   const s = hole.scores?.[player];
   if (!s) return [];
 
   const gpsDist = gpsDistancesFor(hole, s);
+  const pinDist = pinDistancesFor(hole, s);
+
+  // 잔여거리는 원래 사용자가 슬라이더로 눈대중 입력한 추정값이다. 핀을 찍어 둔
+  // 홀에서는 실측값으로 대체한다 — "어떤 거리에서 어떤 클럽을 썼고 결과가
+  // 어땠나"가 복기의 핵심이라 이 값의 정확도가 분석 품질을 그대로 좌우한다.
+  const remainingFor = (shotNo, manual) => {
+    const measured = saneRemaining(pinDist[shotNo - 1]);
+    if (measured != null) return { value: measured, measured: true };
+    if (manual != null) return { value: manual, measured: false };
+    return null;
+  };
 
   // shotNo를 함께 들고 간다. 클럽이 비어 건너뛴 샷이 있으면 체인 인덱스와
   // 실제 샷 순번이 어긋나서, 인덱스로 GPS 거리를 찾으면 엉뚱한 샷에 붙는다.
   const chain = [];
-  if (s.secondClub && s.remainingDistance != null) {
+  const secondFrom = s.secondClub ? remainingFor(2, s.remainingDistance) : null;
+  if (secondFrom) {
     // 이 샷 뒤에 extraShots가 더 있으면 그린에 도달하지 못했다는 뜻이고,
     // 없으면 이 샷이 체인의 마지막이므로 GIR 여부로 그린 도달을 판단한다.
     chain.push({
       shotNo: 2,
-      club: s.secondClub, subClub: s.secondClubSub ?? null, fromDistance: s.remainingDistance,
+      club: s.secondClub, subClub: s.secondClubSub ?? null,
+      fromDistance: secondFrom.value, fromMeasured: secondFrom.measured,
       lie: s.terrainCondition ?? null,
       onGreen: (s.extraShots?.length ?? 0) > 0 ? false : s.gir === true,
     });
   }
   (s.extraShots || []).forEach((shot, k) => {
-    if (shot.club && shot.remainingDistance != null) {
-      chain.push({
-        shotNo: 3 + k,
-        club: shot.club,
-        subClub: shot.subClub ?? null,
-        fromDistance: shot.remainingDistance,
-        lie: Array.isArray(shot.lie) ? (shot.lie[0] ?? null) : (shot.lie ?? null),
-        onGreen: shot.onGreen === true,
-      });
-    }
+    if (!shot.club) return;
+    const from = remainingFor(3 + k, shot.remainingDistance);
+    if (!from) return;
+    chain.push({
+      shotNo: 3 + k,
+      club: shot.club,
+      subClub: shot.subClub ?? null,
+      fromDistance: from.value, fromMeasured: from.measured,
+      lie: Array.isArray(shot.lie) ? (shot.lie[0] ?? null) : (shot.lie ?? null),
+      onGreen: shot.onGreen === true,
+    });
   });
 
   const puttDistance = s.puttDetails?.[0]?.distance ?? null;

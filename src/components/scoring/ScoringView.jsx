@@ -886,6 +886,31 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const updateExtraShot = (idx, patch) =>
     updateField('extraShots', extraShots.map((s, i) => i === idx ? { ...s, ...patch } : s));
 
+  // 지도에서 "샷 추가" — 스코어 폼의 온그린 실패와 같은 뜻이다. 지도만 보고
+  // 라운드할 수 있어야 하는데, 그린을 못 올렸을 때 폼으로 돌아가야만 샷이
+  // 늘어나던 것을 지도 안에서도 되게 한다.
+  const addShotFromMap = () => {
+    if (extraShots.length === 0) {
+      addExtraShot(hole.par > 3 ? { gir: false, girAuto: false } : { onGreen: false });
+      return;
+    }
+    const lastIdx = extraShots.length - 1;
+    const prev = extraShots[lastIdx];
+    updateField('extraShots', [
+      ...extraShots.map((s, i) => i === lastIdx ? { ...s, onGreen: false } : s),
+      { club: null, subClub: null, lie: [], remainingDistance: Math.ceil((prev.remainingDistance || 150) / 2),
+        windDirection: null, windStrength: null, onGreen: null },
+    ]);
+    setExpandedExtraShot(extraShots.length);
+  };
+
+  // 잘못 눌렀을 때를 위한 되돌리기. 아무것도 입력되지 않은 마지막 샷만 지운다.
+  const lastShotIsEmpty = extraShots.length > 0 && (() => {
+    const last = extraShots[extraShots.length - 1];
+    return !last.club && last.onGreen == null && !gpsPoints[extraShots.length + 1];
+  })();
+  const undoLastShotFromMap = () => removeExtraShot(extraShots.length - 1);
+
   const puttDetails = (() => {
     const raw = playerScore.puttDetails;
     return Array.from({ length: playerScore.putts || 0 }, (_, i) =>
@@ -2155,6 +2180,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onSetPoint={setGpsPoint}
           onSetGreen={fix => updateGpsField('gpsGreen', fix)}
           onSetPin={fix => updateGpsField('gpsPin', fix)}
+          onAddShot={addShotFromMap}
+          onUndoShot={lastShotIsEmpty ? undoLastShotFromMap : null}
           onClose={() => setShowHoleMap(false)}
         />
       )}

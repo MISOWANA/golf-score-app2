@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { haversine, combinedAccuracy, gpsQuality, shotDistances, pinDistances } from '../../engine/geo.js';
@@ -119,7 +119,7 @@ const distanceIcon = (meters) => L.divIcon({
 
 export default function HoleMapModal({
   holeNo, par, gpsPoints, gpsGreen, gpsPin, fieldShots, shotLabel, finalLabel = '그린',
-  onSetPoint, onSetGreen, onSetPin, onClose,
+  onSetPoint, onSetGreen, onSetPin, onAddShot, onUndoShot, onClose,
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);
   const [keyDraft, setKeyDraft] = useState('');
@@ -201,9 +201,25 @@ export default function HoleMapModal({
     const wasEmpty = !slots.find((s) => s.id === slotId)?.point;
     commitPoint(slotId, fix);
     if (!fix || !wasEmpty) return;
+
+    // 핀은 샷 순서 밖이다. 핀을 막 찍었다면 샷 흐름의 첫 미기록 지점으로
+    // 되돌려 준다 — 안 그러면 핀에 머물러 다음 샷을 찍으러 한 번 더 눌러야 한다.
+    if (slotId === PIN_SLOT) {
+      const back = slots.find((s) => s.id !== PIN_SLOT && !s.point && !s.locked);
+      if (back) setSelected(back.id);
+      return;
+    }
     const from = slots.findIndex((s) => s.id === slotId);
-    const next = slots.slice(from + 1).find((s) => !s.point);
+    const next = slots.slice(from + 1).find((s) => s.id !== PIN_SLOT && !s.point);
     if (next) setSelected(next.id);
+  };
+
+  // 샷 추가: 그린을 못 올렸을 때. 새로 생긴 샷 칸을 바로 선택해 둔다.
+  const addShot = () => {
+    setDraft(null);
+    setPlaceMode(false);
+    onAddShot?.();
+    setSelected(fieldShots); // 지금의 그린 자리가 곧 새 샷의 자리가 된다
   };
 
   // Leaflet의 click 핸들러는 지도 생성 시 한 번만 등록되므로 그 클로저가 첫
@@ -667,26 +683,52 @@ export default function HoleMapModal({
             // 다시 고를 수 있어야 한다 — 지나온 샷도 고쳐 찍을 수 있도록.
             const blocked = s.locked && !s.point;
             return (
-              <button
-                key={String(s.id)}
-                onClick={() => {
-                  if (blocked) return;
-                  setSelected(s.id);
-                  // 임시 위치는 그 지점에 속한 것이라 지점을 바꾸면 버린다.
-                  setDraft(null);
-                  setPlaceMode(false);
-                }}
-                disabled={blocked}
-                style={{
-                  flexShrink: 0, padding: '7px 11px', borderRadius: 8,
-                  cursor: blocked ? 'default' : 'pointer',
-                  opacity: blocked ? 0.4 : 1,
-                  border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#252f4a'}`,
-                  background: on ? 'rgba(201,162,40,0.18)' : '#1a2235',
-                  color: on ? COLOR.gold : s.point ? COLOR.green : COLOR.dim,
-                  fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                }}
-              >{s.point ? '✓ ' : blocked ? '🔒 ' : ''}{s.label}</button>
+              <Fragment key={String(s.id)}>
+                <button
+                  onClick={() => {
+                    if (blocked) return;
+                    setSelected(s.id);
+                    // 임시 위치는 그 지점에 속한 것이라 지점을 바꾸면 버린다.
+                    setDraft(null);
+                    // 핀은 티박스에서 GPS로 찍을 수 없어 거의 항상 지도를 보고
+                    // 찍는다. 아직 안 찍혔으면 바로 지정 모드로 들어가 한 탭 아낀다.
+                    setPlaceMode(s.id === PIN_SLOT && !s.point);
+                  }}
+                  disabled={blocked}
+                  style={{
+                    flexShrink: 0, padding: '7px 11px', borderRadius: 8,
+                    cursor: blocked ? 'default' : 'pointer',
+                    opacity: blocked ? 0.4 : 1,
+                    border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#252f4a'}`,
+                    background: on ? 'rgba(201,162,40,0.18)' : '#1a2235',
+                    color: on ? COLOR.gold : s.point ? COLOR.green : COLOR.dim,
+                    fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                  }}
+                >{s.point ? '✓ ' : blocked ? '🔒 ' : ''}{s.label}</button>
+
+                {/* 마지막 샷 칸 바로 뒤에 "샷 추가" — 그린을 못 올렸을 때
+                    폼으로 돌아가지 않고 여기서 샷을 늘린다. */}
+                {s.id === fieldShots - 1 && onAddShot && (
+                  <button
+                    onClick={addShot}
+                    style={{
+                      flexShrink: 0, padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+                      border: '1.5px dashed #3a4e72', background: 'transparent',
+                      color: '#8ec0ff', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    }}
+                  >＋ 샷</button>
+                )}
+                {s.id === fieldShots - 1 && onUndoShot && (
+                  <button
+                    onClick={() => { setDraft(null); setPlaceMode(false); onUndoShot(); }}
+                    style={{
+                      flexShrink: 0, padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+                      border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
+                      color: 'rgba(239,83,80,0.7)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    }}
+                  >− 취소</button>
+                )}
+              </Fragment>
             );
           })}
         </div>

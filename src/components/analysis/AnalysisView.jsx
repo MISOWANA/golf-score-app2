@@ -5,12 +5,15 @@ import StatTile from './StatTile';
 import BreakdownBar from './BreakdownBar';
 import ScorecardTable from './ScorecardTable';
 import Insights from './Insights';
+import HoleReview from './HoleReview';
 
 export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
   const [activePlayer, setActivePlayer] = useState(initialRound?.players[0]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
+  // 홀별 복기 — 스코어카드에서 홀 번호를 누르면 열린다.
+  const [reviewHoleIdx, setReviewHoleIdx] = useState(null);
 
   if (!round) return null;
 
@@ -197,7 +200,10 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>HOLE BY HOLE</div>
-        <ScorecardTable round={round} player={activePlayer} />
+        <div style={{ fontSize: 10, color: '#4d5a78', padding: '0 0 6px', letterSpacing: '0.04em' }}>
+          홀 번호를 누르면 그 홀의 지도와 샷 기록을 볼 수 있습니다
+        </div>
+        <ScorecardTable round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
       </div>
 
       <div style={styles.section}>
@@ -250,6 +256,17 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
           </button>
         </div>
       </div>
+
+      {/* 홀별 복기 */}
+      {reviewHoleIdx != null && (
+        <HoleReview
+          round={round}
+          player={activePlayer}
+          holeIdx={reviewHoleIdx}
+          onNav={setReviewHoleIdx}
+          onClose={() => setReviewHoleIdx(null)}
+        />
+      )}
 
       {/* 라운드 정보 수정 모달 */}
       {showEditModal && editDraft && (

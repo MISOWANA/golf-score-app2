@@ -59,6 +59,9 @@ export default function HoleMapModal({
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);
   const [keyDraft, setKeyDraft] = useState('');
+  // 평소엔 빌드에 주입된 키로 바로 열린다. 이 폼은 키가 아예 없거나(로컬 개발,
+  // 시크릿 미설정) 키가 막혔을 때 재배포 없이 끼워 넣는 탈출구다.
+  const [showKeyForm, setShowKeyForm] = useState(false);
   const [pos, setPos] = useState(null);          // 실시간 현재 위치
   const [posError, setPosError] = useState(
     () => (navigator.geolocation ? null : '이 브라우저는 위치 기능을 지원하지 않습니다.'),
@@ -238,8 +241,8 @@ export default function HoleMapModal({
   const liveDistance = haversine(pos, selectedSlot?.point);
   const liveDistanceAcc = combinedAccuracy(pos, selectedSlot?.point);
 
-  // ── 키 미입력 화면 ──────────────────────────────────────────────────────────
-  if (!apiKey) {
+  // ── 키 입력 화면 (탈출구) ───────────────────────────────────────────────────
+  if (!apiKey || showKeyForm) {
     return (
       <Shell holeNo={holeNo} par={par} onClose={onClose}>
         <div style={{ padding: '28px 20px', overflowY: 'auto' }}>
@@ -285,6 +288,8 @@ export default function HoleMapModal({
               if (!v) return;
               if (!setVWorldKey(v)) { setPosError('이 브라우저에서는 키를 저장할 수 없습니다.'); return; }
               setApiKey(v);
+              setShowKeyForm(false);
+              setTileError(false);
             }}
             disabled={!keyDraft.trim()}
             style={{
@@ -294,9 +299,21 @@ export default function HoleMapModal({
             }}
           >저장하고 지도 열기</button>
 
+          {apiKey && (
+            <button
+              onClick={() => { setShowKeyForm(false); setKeyDraft(''); }}
+              style={{
+                width: '100%', marginTop: 8, padding: '11px', borderRadius: 9, cursor: 'pointer',
+                border: '1px solid #3a4e72', background: 'transparent',
+                color: COLOR.dim, fontSize: 13, fontWeight: 700,
+              }}
+            >취소하고 지도로 돌아가기</button>
+          )}
+
           <div style={{ marginTop: 14, fontSize: 10, lineHeight: 1.7, color: '#4d5a78' }}>
-            키는 이 기기에만 저장되고 서버로 전송되지 않습니다. 발급 시 등록한
-            도메인에서만 동작하므로 노출돼도 다른 곳에서 쓸 수 없습니다.
+            여기서 넣은 키는 이 기기에만 저장되고 서버로 전송되지 않습니다.
+            배포본에 키를 넣어두면 이 화면 없이 바로 지도가 열립니다
+            (저장소 시크릿 VITE_VWORLD_KEY).
           </div>
         </div>
       </Shell>
@@ -326,9 +343,10 @@ export default function HoleMapModal({
             padding: '9px 12px', borderRadius: 9, background: 'rgba(239,83,80,0.92)',
             color: '#fff', fontSize: 11, lineHeight: 1.6, fontWeight: 600,
           }}>
-            타일을 불러오지 못했습니다. 인증키가 이 도메인에 등록됐는지 확인해 주세요.
+            타일을 불러오지 못했습니다. 인증키가 만료됐거나, 현재 위치가 국내가
+            아닐 수 있습니다 (VWorld 위성영상은 대한민국만 제공합니다).
             <button
-              onClick={() => { setVWorldKey(''); setApiKey(''); setKeyDraft(''); }}
+              onClick={() => setShowKeyForm(true)}
               style={{
                 display: 'block', marginTop: 6, padding: '4px 10px', borderRadius: 6,
                 border: '1px solid rgba(255,255,255,0.6)', background: 'transparent',

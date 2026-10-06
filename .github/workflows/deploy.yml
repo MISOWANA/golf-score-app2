@@ -30,7 +30,12 @@ jobs:
 
       - run: npm ci
 
+      # VWorld 지도 인증키. 저장소 Settings → Secrets and variables → Actions 에
+      # VITE_VWORLD_KEY 를 등록해 두면 빌드에 주입돼, 사용자는 키를 입력하지
+      # 않고 바로 지도를 쓸 수 있다. 비워두면 지도 화면에서만 키 입력을 요청한다.
       - run: npm run build
+        env:
+          VITE_VWORLD_KEY: ${{ secrets.VITE_VWORLD_KEY }}
 
       - uses: actions/configure-pages@v4
         with:

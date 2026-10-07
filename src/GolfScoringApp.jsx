@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { initDB, loadRoundsByUser, saveRound, deleteRound, getCurrentUser, setCurrentUser, exportUserData, importUserData, saveActiveRound, loadActiveRound, clearActiveRound } from './db.js';
+import {
+  initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
+  saveActiveRound, loadActiveRound, clearActiveRound,
+  migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf, deleteProfile,
+  requestPersistentStorage,
+} from './db.js';
+import { isValidRound } from './engine/roundValidation.js';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import globalCSS from './styles/globalCSS';
 import styles from './styles/styles';
 
@@ -22,21 +29,25 @@ export default function GolfScoringApp() {
   const [selectedRoundId, setSelectedRoundId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showResumeModal, setShowResumeModal] = useState(false);
+  const [profiles, setProfiles] = useState([]);   // 이 기기에 기록이 있는 사용자들 (로그인 화면용)
 
   useEffect(() => {
     const initApp = async () => {
       try {
         await initDB();
-        const user = await getCurrentUser();
+        requestPersistentStorage();
+        // 예전 로그인 흔적(userId)들을 이름별 프로필로 묶는다. 실패해도 앱은 뜬다.
+        try { await migrateProfiles(); } catch (e) { console.error('Profile migration failed', e); }
+        const user = await getCurrentProfile();
         if (user) {
           setCurrentUserState(user);
-          await loadUserRounds(user.userId);
-          const active = await loadActiveRound(user.userId);
+          const [, active] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user))]);
           if (active) {
             setCurrentRound(active);
           }
           setView('home');
         } else {
+          setProfiles(await listProfiles());
           setView('login');
         }
       } catch (e) {
@@ -48,26 +59,37 @@ export default function GolfScoringApp() {
     initApp();
   }, []);
 
-  const loadUserRounds = async (userId) => {
+  // 형식이 깨진 라운드는 화면에 넘기지 않는다 (DB에서는 지우지 않음).
+  const loadUserRounds = async (user) => {
     try {
-      const userRounds = await loadRoundsByUser(userId);
-      setRounds(userRounds);
+      const userRounds = await loadRoundsByUser(userIdsOf(user));
+      const valid = userRounds.filter(isValidRound);
+      if (valid.length < userRounds.length) {
+        console.warn(`형식이 맞지 않는 라운드 ${userRounds.length - valid.length}개를 제외했습니다`);
+      }
+      setRounds(valid);
     } catch (e) {
       console.error('Load rounds failed', e);
     }
   };
 
+  // 같은 이름이면 기존 프로필로 들어간다 — 로그아웃했다 다시 들어와도 기록이 그대로다.
   const handleUserLogin = async (userName) => {
     try {
-      const userId = `user_${Date.now()}`;
-      const newUser = { userId, userName };
-      await setCurrentUser(userId, userName);
-      setCurrentUserState(newUser);
-      await loadUserRounds(userId);
+      const user = await loginByName(userName);
+      setCurrentUserState(user);
+      const [, active] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user))]);
+      setCurrentRound(active || null);
       setView('home');
     } catch (e) {
       console.error('Login failed', e);
     }
+  };
+
+  // 로그인 화면에서 사용자 삭제 — 그 사용자의 기록을 이 기기에서 모두 지운다.
+  const handleDeleteProfile = async (profile) => {
+    await deleteProfile(profile);
+    setProfiles(await listProfiles());
   };
 
   const handleResumeRound = () => {
@@ -77,7 +99,7 @@ export default function GolfScoringApp() {
 
   const handleDiscardAndSetup = async () => {
     setShowResumeModal(false);
-    await clearActiveRound(currentUser.userId);
+    await clearActiveRound(userIdsOf(currentUser));
     setCurrentRound(null);
     setView('setup');
   };
@@ -90,7 +112,11 @@ export default function GolfScoringApp() {
     }
   };
 
-  const handleSwitchUser = () => {
+  // 로그아웃 — 기록과 진행 중인 라운드는 지우지 않는다. 같은 이름으로 다시
+  // 들어오면 그대로 이어진다.
+  const handleSwitchUser = async () => {
+    try { await clearCurrentUser(); } catch (e) { console.error('Logout failed', e); }
+    try { setProfiles(await listProfiles()); } catch { setProfiles([]); }
     setCurrentUserState(null);
     setRounds([]);
     setCurrentRound(null);
@@ -98,13 +124,14 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars, outCourseName, inCourseName) => {
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate) => {
     const newRound = {
       id: Date.now().toString(),
-      date: new Date().toISOString(),
+      date: roundDate || new Date().toISOString(),
       courseName,
       outCourseName: outCourseName || 'OUT',
       inCourseName: inCourseName || 'IN',
+      teeBox: teeBox || null,
       players,
       pars,
       holes: Array.from({ length: 18 }, (_, i) => ({
@@ -114,7 +141,7 @@ export default function GolfScoringApp() {
           acc[p] = {
             strokes: pars[i],
             putts: 2,
-            fairway: pars[i] > 3 ? true : null,
+            fairway: null,
             fairwayHit: null,
             shotShape: null,
             ob: 0,
@@ -143,11 +170,21 @@ export default function GolfScoringApp() {
     }
   };
 
-  const finishRound = async () => {
-    const finished = { ...currentRound, completed: true, finishedAt: new Date().toISOString() };
-    await saveRound(finished, currentUser.userId);
-    await clearActiveRound(currentUser.userId);
-    const updated = [finished, ...rounds];
+  // finalRound: ScoringView가 마지막 홀 스코어를 반영한 라운드 객체를 직접 넘겨준다.
+  // currentRound state에만 의존하면 onUpdate(setCurrentRound) 직후 예약된 setTimeout
+  // 콜백이 리렌더 이전 시점의 stale currentRound를 참조해 마지막 홀 데이터가 유실될 수 있다.
+  const finishRound = async (finalRound) => {
+    const source = finalRound || currentRound;
+    const finished = { ...source, completed: true, finishedAt: new Date().toISOString() };
+    try {
+      await saveRound(finished, currentUser.userId);
+    } catch (e) {
+      // 진행 중 라운드는 그대로 남아 있으므로 다시 완료를 누르면 된다.
+      alert(`라운드를 저장하지 못했어요. 다시 시도해 주세요.\n${e?.message || ''}`);
+      throw e;
+    }
+    await clearActiveRound(userIdsOf(currentUser));
+    const updated = [finished, ...rounds.filter(r => r.id !== finished.id)];
     setRounds(updated);
     setCurrentRound(null);
     setSelectedRoundId(finished.id);
@@ -167,7 +204,7 @@ export default function GolfScoringApp() {
 
   const handleExportData = async () => {
     try {
-      const exportedData = await exportUserData(currentUser.userId);
+      const exportedData = await exportUserData(currentUser);
       const jsonStr = JSON.stringify(exportedData, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -200,23 +237,18 @@ export default function GolfScoringApp() {
         throw new Error('유효하지 않은 파일 형식입니다');
       }
 
-      const validRounds = importedData.data.rounds.filter(r =>
-        r &&
-        typeof r.id === 'string' &&
-        typeof r.date === 'string' &&
-        Array.isArray(r.holes) &&
-        Array.isArray(r.players) &&
-        r.players.length > 0
-      );
+      const validRounds = importedData.data.rounds.filter(isValidRound);
+      const skipped = importedData.data.rounds.length - validRounds.length;
 
       const sanitized = {
         ...importedData,
         data: { ...importedData.data, rounds: validRounds },
       };
 
-      await importUserData(currentUser.userId, sanitized, false);
-      await loadUserRounds(currentUser.userId);
-      alert(`데이터를 성공적으로 복원했습니다! (${validRounds.length}개 라운드)`);
+      await importUserData(currentUser.userId, sanitized);
+      await loadUserRounds(currentUser);
+      alert(`데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
+        + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : ''));
     } catch (e) {
       console.error('Import failed', e);
       alert('데이터 가져오기 실패: ' + e.message);
@@ -227,10 +259,15 @@ export default function GolfScoringApp() {
     <div style={styles.app}>
       <style>{globalCSS}</style>
 
+      {/* 화면 하나가 오류를 내도 앱 전체가 멈추지 않게. 화면을 바꾸면 초기화된다. */}
+      <ErrorBoundary key={view} onHome={currentUser ? () => setView('home') : null}>
+
       {view === 'login' && (
         <LoginView
           onLogin={handleUserLogin}
+          onDeleteProfile={handleDeleteProfile}
           loading={loading}
+          profiles={profiles}
         />
       )}
 
@@ -254,6 +291,7 @@ export default function GolfScoringApp() {
         <SetupView
           onStart={startNewRound}
           onBack={() => setView('home')}
+          currentUser={currentUser}
         />
       )}
 
@@ -264,12 +302,12 @@ export default function GolfScoringApp() {
           onFinish={finishRound}
           onGoHome={() => setView('home')}
           onExit={async () => {
-            await clearActiveRound(currentUser.userId);
+            await clearActiveRound(userIdsOf(currentUser));
             setCurrentRound(null);
             setView('home');
           }}
           onGoToSetup={async () => {
-            await clearActiveRound(currentUser.userId);
+            await clearActiveRound(userIdsOf(currentUser));
             setCurrentRound(null);
             setView('setup');
           }}
@@ -290,6 +328,7 @@ export default function GolfScoringApp() {
       {view === 'history' && (
         <HistoryView
           rounds={rounds}
+          userName={currentUser?.userName}
           onBack={() => setView('home')}
           onSelect={(id) => { setSelectedRoundId(id); setView('analysis'); }}
           onDelete={handleDeleteRound}
@@ -298,14 +337,16 @@ export default function GolfScoringApp() {
 
       {view === 'stats' && (
         <StatsView
-          rounds={rounds}
+          rounds={rounds.filter(r => r.players.length === 1)}
+          excludedCount={rounds.filter(r => r.players.length > 1).length}
           onBack={() => setView('home')}
         />
       )}
 
       {view === 'insights' && (
         <InsightsView
-          rounds={rounds}
+          rounds={rounds.filter(r => r.players.length === 1)}
+          excludedCount={rounds.filter(r => r.players.length > 1).length}
           onBack={() => setView('home')}
         />
       )}
@@ -317,7 +358,9 @@ export default function GolfScoringApp() {
         />
       )}
 
-      {view !== 'scoring' && (
+      </ErrorBoundary>
+
+      {view !== 'scoring' && view !== 'login' && (
         <BottomTabBar
           current={view}
           onChange={(tab) => setView(tab)}
@@ -325,30 +368,37 @@ export default function GolfScoringApp() {
       )}
 
       {showResumeModal && currentRound && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, padding: '24px'
-        }}>
-          <div style={{
-            background: '#fff', borderRadius: '16px', padding: '28px 24px',
-            width: '100%', maxWidth: '340px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
-          }}>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a2e1a', marginBottom: '8px' }}>
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '24px'
+          }}
+          onClick={() => setShowResumeModal(false)}
+        >
+          <div
+            style={{
+              background: '#0f1825', borderRadius: 16, padding: '28px 22px', textAlign: 'center',
+              width: '100%', maxWidth: 320, border: '1px solid #1b2744', boxShadow: '0 8px 40px rgba(0,0,0,0.6)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 26, marginBottom: 12 }}>⛳</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
               진행 중인 라운드가 있어요
             </div>
-            <div style={{ fontSize: '14px', color: '#5a6a5a', marginBottom: '6px' }}>
+            <div style={{ fontSize: 14, color: '#c9a228', fontWeight: 700, marginBottom: 4 }}>
               {currentRound.courseName}
             </div>
-            <div style={{ fontSize: '13px', color: '#8a9a8a', marginBottom: '24px' }}>
+            <div style={{ fontSize: 13, color: '#8896b0', marginBottom: 20 }}>
               {currentRound.currentHole + 1}홀 진행 중 · {currentRound.players.join(', ')}
             </div>
             <button
               onClick={handleResumeRound}
               style={{
-                width: '100%', padding: '14px', marginBottom: '10px',
-                background: '#1f5e3a', color: '#fff', border: 'none',
-                borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer'
+                width: '100%', padding: '13px', marginBottom: 8,
+                background: '#c9a228', color: '#0b0e18', border: 'none',
+                borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer'
               }}
             >
               이어서 기록하기
@@ -356,13 +406,13 @@ export default function GolfScoringApp() {
             <button
               onClick={handleDiscardAndSetup}
               style={{
-                width: '100%', padding: '14px',
-                background: 'transparent', color: '#c04a3e',
-                border: '1.5px solid #c04a3e', borderRadius: '10px',
-                fontSize: '15px', fontWeight: 600, cursor: 'pointer'
+                width: '100%', padding: '13px',
+                background: 'transparent', color: '#ef5350',
+                border: '1.5px solid rgba(239,83,80,0.5)', borderRadius: 10,
+                fontSize: 14, fontWeight: 700, cursor: 'pointer'
               }}
             >
-              새 라운딩 시작
+              기존 기록 삭제하고 새 라운드
             </button>
           </div>
         </div>

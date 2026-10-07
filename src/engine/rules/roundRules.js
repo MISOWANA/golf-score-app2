@@ -71,26 +71,48 @@ export const ROUND_RULES = [
   },
 
   // ═══ 페어웨이 ══════════════════════════════════════════════════════════════
+  // fairwayHitRate는 "기록된" 홀 대비 적중률(fairwayRecordedCount 분모)이라, 기록 자체가
+  // 없으면 표본 부족으로 R007/R008이 뜨지 않게 최소 표본(3홀)을 요구한다.
   {
     id: 'R007', scope: 'round', priority: 35, enabled: true, careerApplicable: true,
-    conditions: [{ field: 'fairwayHitRate', operator: 'gte', value: 0.6 }],
+    conditions: [
+      { field: 'fairwayHitRate', operator: 'gte', value: 0.6 },
+      { field: 'fairwayRecordedCount', operator: 'gte', value: 3 },
+    ],
     result: {
       insightType: 'fairway_consistent', severity: 'positive',
       title: '티샷 일관성 우수',
-      summaryTemplate: '페어웨이 적중률 {fairwayHitRatePct}% — 드라이버 방향성이 좋습니다.',
+      summaryTemplate: '페어웨이 적중률 {fairwayHitRatePct}% ({fairwayRecordedCount}홀 기록) — 드라이버 방향성이 좋습니다.',
       recommendationTemplate: '현재 티샷 루틴을 유지하세요.',
       tags: ['tee_shot', 'fairway'],
     },
   },
   {
     id: 'R008', scope: 'round', priority: 40, enabled: true, careerApplicable: true,
-    conditions: [{ field: 'fairwayHitRate', operator: 'lt', value: 0.3 }],
+    conditions: [
+      { field: 'fairwayHitRate', operator: 'lt', value: 0.3 },
+      { field: 'fairwayRecordedCount', operator: 'gte', value: 3 },
+    ],
     result: {
       insightType: 'fairway_poor', severity: 'warning',
       title: '티샷 방향성 불안정',
-      summaryTemplate: '페어웨이 적중률 {fairwayHitRatePct}% — 드라이버 정확도 개선이 필요합니다.',
+      summaryTemplate: '페어웨이 적중률 {fairwayHitRatePct}% ({fairwayRecordedCount}홀 기록) — 드라이버 정확도 개선이 필요합니다.',
       recommendationTemplate: '클럽 속도를 10% 줄이고 정확도를 높이는 것이 스코어에 더 도움이 됩니다.',
       tags: ['tee_shot', 'improvement'],
+    },
+  },
+  {
+    id: 'R008B', scope: 'round', priority: 39, enabled: true, careerApplicable: false,
+    conditions: [
+      { field: 'fairwayHoleCount', operator: 'gte', value: 3 },
+      { field: 'fairwayRecordedCount', operator: 'lt', value: 3 },
+    ],
+    result: {
+      insightType: 'fairway_no_data', severity: 'neutral',
+      title: '티샷 방향 기록 부족',
+      summaryTemplate: '드라이버 홀 {fairwayHoleCount}개 중 페어웨이 적중 기록이 {fairwayRecordedCount}개뿐입니다.',
+      recommendationTemplate: '티샷 방향이나 세부 설정이 없는 경우에는 티샷 상세 기록이 필요합니다.',
+      tags: ['tee_shot', 'data'],
     },
   },
 

@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 'lucide-react';
 import styles from '../../styles/styles';
+import GpsShotPoint from './GpsShotPoint';
+import HoleMapModal from './HoleMapModal';
+import { fieldShotCount as countFieldShots, isHoledOut, pinDistances, saneRemaining, SANE_REMAIN_M } from '../../engine/geo.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -12,11 +15,15 @@ const CLOCK_HOURS = Array.from({ length: 12 }, (_, i) => {
 });
 
 const TERRAIN_OPTIONS = [
-  { id: 'flat',     label: '평지' },
-  { id: 'uphill',   label: '오르막' },
-  { id: 'downhill', label: '내리막' },
-  { id: 'hook',     label: '훅' },
-  { id: 'slice',    label: '슬라이스' },
+  { id: 'flat',           label: '평지' },
+  { id: 'uphill',         label: '오르막' },
+  { id: 'downhill',       label: '내리막' },
+  { id: 'hook',           label: '훅' },
+  { id: 'slice',          label: '슬라이스' },
+  { id: 'uphill-slice',   label: '오르막 슬라이스' },
+  { id: 'uphill-hook',    label: '오르막 훅' },
+  { id: 'downhill-slice', label: '내리막 슬라이스' },
+  { id: 'downhill-hook',  label: '내리막 훅' },
 ];
 
 const LIE_GRID = [
@@ -26,13 +33,15 @@ const LIE_GRID = [
 ];
 
 const PUTT_LIE_OPTIONS = [
-  { id: 'flat',         label: '평지' },
-  { id: 'uphill',       label: '오르막' },
-  { id: 'downhill',     label: '내리막' },
-  { id: 'break-left',   label: '슬라이스' },
-  { id: 'break-right',  label: '훅' },
-  { id: 'grain-with',   label: '순결' },
-  { id: 'grain-against',label: '역결' },
+  { id: 'flat',           label: '평지' },
+  { id: 'uphill',         label: '오르막' },
+  { id: 'downhill',       label: '내리막' },
+  { id: 'hook',           label: '훅' },
+  { id: 'slice',          label: '슬라이스' },
+  { id: 'uphill-slice',   label: '오르막 슬라이스' },
+  { id: 'uphill-hook',    label: '오르막 훅' },
+  { id: 'downhill-slice', label: '내리막 슬라이스' },
+  { id: 'downhill-hook',  label: '내리막 훅' },
 ];
 
 const PIN_OPTIONS = [
@@ -40,8 +49,13 @@ const PIN_OPTIONS = [
   { id: 'back',   label: '백' },
   { id: 'center', label: '센터' },
   { id: 'left',   label: '레프트' },
-  { id: 'right',  label: '라이트' },
+  { id: 'right',   label: '라이트' },
+  { id: 'back left',  label: '백 레프트' },
+  { id: 'front left',  label: '프론트 레프트' },
+  { id: 'back right',  label: '백 라이트' },
+  { id: 'front right',  label: '프론트 라이트' },
 ];
+
 
 const SECOND_CLUBS = [
   { id: 'wood',   label: 'WOOD' },
@@ -54,11 +68,10 @@ const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 62];
 
 const CLUB_SUBS = {
   driver: [],
-  wood:   [{ id: '3w', label: '3W' }, { id: '5w', label: '5W' }, { id: '7w', label: '7W' }, { id: '9w', label: '9W' }],
-  hybrid: [{ id: '2h', label: '2H' }, { id: '3h', label: '3H' }, { id: '4h', label: '4H' }, { id: '5h', label: '5H' }],
-  iron:   [{ id: '2i', label: '2i' }, { id: '3i', label: '3i' }, { id: '4i', label: '4i' }, { id: '5i', label: '5i' }, { id: '6i', label: '6i' }, { id: '7i', label: '7i' }, { id: '8i', label: '8i' }, { id: '9i', label: '9i' }],
+  wood:   [{ id: '3W', label: '3W' }, { id: '5W', label: '5W' }, { id: '7W', label: '7W' }, { id: '9W', label: '9W' }],
+  hybrid: [{ id: '2H', label: '2H' }, { id: '3H', label: '3H' }, { id: '4H', label: '4H' }, { id: '5H', label: '5H' }],
+  iron:   [{ id: '2I', label: '2I' }, { id: '3I', label: '3I' }, { id: '4I', label: '4I' }, { id: '5I', label: '5I' }, { id: '6I', label: '6I' }, { id: '7I', label: '7I' }, { id: '8I', label: '8I' }, { id: '9I', label: '9I' }],
   wedge:  [
-    { id: 'P',  label: 'P'   },
     { id: '48', label: '48°' },
     { id: '50', label: '50°' },
     { id: '52', label: '52°' },
@@ -67,6 +80,7 @@ const CLUB_SUBS = {
     { id: '58', label: '58°' },
     { id: '60', label: '60°' },
     { id: '62', label: '62°' },
+    { id: 'P',  label: 'P'   },
   ],
 };
 
@@ -242,6 +256,87 @@ function WindInput({ direction, strength, onDir, onStrength }) {
   );
 }
 
+// 선택 입력 섹션 (라이·바람) — 쓰는 사람이 적어 기본은 접어 둔다. 클럽을 고르기
+// 전에는 회색으로 두되 눌러서 펼칠 수는 있다(막지 않는다). 클럽을 고르면 금색
+// 테두리로 바뀌어 "이제 이것도 입력할 수 있다"를 알린다. 입력한 값은 접힌
+// 상태에서도 헤더에 요약한다.
+// children(close) — 선택이 끝나면 섹션을 접을 수 있도록 close를 넘긴다.
+function OptionalSection({ icon, label, enabled, summary, children }) {
+  const [open, setOpen] = useState(false);
+  const hasValue = !!summary;
+  const accent = enabled ? '#c9a228' : '#4d5a78';
+  return (
+    <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', gap:8, padding:'10px 12px', borderRadius:9,
+          cursor:'pointer', textAlign:'left',
+          border:`1.5px solid ${enabled ? '#c9a228' : '#252f4a'}`,
+          background: enabled ? (open || hasValue ? 'rgba(201,162,40,0.12)' : 'rgba(201,162,40,0.05)') : 'transparent',
+        }}
+      >
+        <span style={{ ...fIcon, color: accent }}>{icon}</span>
+        <span style={{ ...fLbl, color: enabled ? '#e8c45a' : '#4d5a78' }}>{label}</span>
+        <span style={{ flex:1, minWidth:0, fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {hasValue ? summary
+            : <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
+                {enabled ? '선택 입력' : '클럽 선택 후 입력'}
+              </span>}
+        </span>
+        <span style={{ fontSize:12, fontWeight:800, color: accent }}>{open ? '접기 ▴' : '펼치기 ▾'}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop:12, paddingBottom:6, animation:'fadeIn 0.18s ease-out' }}>
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WindSection({ enabled, direction, strength, onDir, onStrength, onReset }) {
+  const summary = [
+    direction != null && `${toCompassLabel(direction)} ${direction}°`,
+    strength > 0 && `${Number(strength).toFixed(1)}m/s`,
+  ].filter(Boolean).join(' · ');
+  return (
+    <OptionalSection icon="💨" label="바람" enabled={enabled} summary={summary}>
+      {() => (<>
+        {direction != null && (
+          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
+            <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+              onClick={onReset}>방향 초기화</button>
+          </div>
+        )}
+        <WindInput direction={direction} strength={strength} onDir={onDir} onStrength={onStrength} />
+      </>)}
+    </OptionalSection>
+  );
+}
+
+// 라이 값은 문자열 또는 [문자열] (과거 데이터) 로 들어온다.
+const lieValue = (lie) => (Array.isArray(lie) ? lie[0] || null : lie || null);
+const lieText = (lie) => {
+  const v = lieValue(lie);
+  if (!v) return '';
+  if (v === 'flat') return '평지';
+  return (LIE_DIRS.find(d => d.id === v)?.label ?? v).replace('\n', ' ');
+};
+
+function LieSection({ label = '라이', enabled, value, onChange }) {
+  return (
+    <OptionalSection icon="▲" label={label} enabled={enabled} summary={lieText(value)}>
+      {(close) => (
+        <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS} alwaysOpen
+          value={lieValue(value)}
+          onChange={v => { onChange(v); if (v) close(); }}
+        />
+      )}
+    </OptionalSection>
+  );
+}
+
 function ClockDial12({ value, onChange }) {
   return (
     <div style={{ position: 'relative', width: '100%', paddingTop: '90%', maxWidth: 280, margin: '0 auto' }}>
@@ -277,146 +372,80 @@ function MultiChips({ options, value = [], onChange }) {
   );
 }
 
-function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, onInteractStart, onInteractEnd }) {
-  const [openId, setOpenId] = useState(null);
-  const [hoveredSub, setHoveredSub] = useState(null);
-  const isDragging = useRef(false);
-  const hoveredSubRef = useRef(null);
+function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked }) {
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => { if (!value) setExpandedId(null); }, [value]);
 
   const btnChip = stacked
     ? { ...fChip, padding:'10px 8px', fontSize:13, borderRadius:8, width:'100%', textAlign:'center' }
     : { ...fChip, width:'100%', textAlign:'center' };
 
-  const handlePointerDown = (e, c) => {
+  const handleCategory = (c) => {
     const subs = CLUB_SUBS[c.id] || [];
     if (subs.length === 0) {
       onCategory(value === c.id ? null : c.id);
       return;
     }
-    e.preventDefault();
-    if (value === c.id && openId === c.id) {
-      onCategory(null);
-      setOpenId(null);
-      return;
-    }
-    onInteractStart?.();
-    onCategory(c.id);
-    setOpenId(c.id);
-    hoveredSubRef.current = null;
-    setHoveredSub(null);
-    isDragging.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isDragging.current) return;
-    const els = document.elementsFromPoint(e.clientX, e.clientY);
-    let found = null;
-    for (const el of els) {
-      if (el.dataset && el.dataset.subId) { found = el.dataset.subId; break; }
-    }
-    if (found !== hoveredSubRef.current) {
-      hoveredSubRef.current = found;
-      setHoveredSub(found);
+    if (value === c.id) {
+      setExpandedId(prev => prev === c.id ? null : c.id);
+    } else {
+      onCategory(c.id);
+      setExpandedId(c.id);
     }
   };
 
-  const handlePointerUp = (e) => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    const sub = hoveredSubRef.current;
-    hoveredSubRef.current = null;
-    setHoveredSub(null);
-    setOpenId(null);
-    onInteractEnd?.();
-    if (sub) onSub(sub === subValue ? null : sub);
+  const handleSub = (subId) => {
+    onSub(subId === subValue ? null : subId);
+    setExpandedId(null);
   };
 
-  const handlePointerCancel = () => {
-    isDragging.current = false;
-    hoveredSubRef.current = null;
-    setHoveredSub(null);
-    setOpenId(null);
-    onInteractEnd?.();
-  };
+  const expandedSubs = (expandedId && expandedId === value) ? (CLUB_SUBS[expandedId] || []) : [];
 
-  const buttons = (
+  const categoryRow = (
     <div style={{ display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
       {categories.map(c => {
         const isSelected = value === c.id;
         const subs = CLUB_SUBS[c.id] || [];
-        const isOpen = openId === c.id;
         const selectedSub = isSelected && subValue != null ? subs.find(s => s.id === subValue) : null;
         const displayLabel = selectedSub ? selectedSub.label : c.label;
         return (
-          <div key={c.id} style={{ position:'relative', flex:1 }}>
-            <button
-              style={{
-                ...btnChip,
-                touchAction: 'none',
-                userSelect: 'none',
-                ...(isSelected ? fChipOn : {}),
-                border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
-                ...(selectedSub ? {
-                  fontWeight: 900,
-                  fontSize: stacked ? 14 : 13,
-                  boxShadow: '0 0 8px rgba(201,162,40,0.45)',
-                  color: '#f0c93a',
-                } : {}),
-              }}
-              onPointerDown={(e) => handlePointerDown(e, c)}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerCancel}>
-              {displayLabel}
-            </button>
+          <button
+            key={c.id}
+            style={{
+              ...btnChip, flex:1,
+              ...(isSelected ? fChipOn : {}),
+              border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
+              ...(selectedSub ? { fontWeight:900, fontSize: stacked ? 14 : 13, boxShadow:'0 0 8px rgba(201,162,40,0.45)', color:'#f0c93a' } : {}),
+            }}
+            onClick={() => handleCategory(c)}
+          >
+            {displayLabel}
+          </button>
+        );
+      })}
+    </div>
+  );
 
-            {isSelected && isOpen && subs.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                right: 0,
-                zIndex: 200,
-                background: '#0d1425',
-                borderRadius: 10,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.65), 0 0 0 1px rgba(201,162,40,0.28)',
-                padding: '5px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 3,
-                minWidth: '100%',
-                animation: 'slideUp 0.18s cubic-bezier(0.34,1.56,0.64,1) both',
-              }}>
-                {subs.map((s, i) => {
-                  const isHov = hoveredSub === s.id;
-                  const isSel = subValue === s.id;
-                  return (
-                    <div
-                      key={s.id}
-                      data-sub-id={s.id}
-                      style={{
-                        ...fChip,
-                        width: '100%',
-                        textAlign: 'center',
-                        fontSize: 11,
-                        padding: '7px 4px',
-                        borderRadius: 7,
-                        border: `${isHov ? '2px' : '1.5px'} solid ${isHov ? '#f0c93a' : isSel ? '#c9a228' : '#252f4a'}`,
-                        background: isHov ? 'rgba(240,201,58,0.22)' : isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
-                        color: isHov ? '#f0c93a' : isSel ? '#c9a228' : '#e8edf8',
-                        fontWeight: isHov ? 800 : isSel ? 700 : 600,
-                        transform: isHov ? 'scale(1.04)' : 'scale(1)',
-                        transition: 'transform 0.07s, background 0.07s, border-color 0.07s',
-                        animation: `fadeIn 0.12s ease-out ${i * 0.025}s both`,
-                        cursor: 'default',
-                      }}>
-                      {s.label}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+  const subRow = expandedSubs.length > 0 && (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:8, animation:'fadeIn 0.15s ease-out' }}>
+      {expandedSubs.map(s => {
+        const isSel = subValue === s.id;
+        return (
+          <button
+            key={s.id}
+            onClick={() => handleSub(s.id)}
+            style={{
+              flex:1, minWidth:'calc(25% - 4px)',
+              padding:'9px 4px', borderRadius:7, textAlign:'center',
+              fontSize:12, fontWeight: isSel ? 700 : 500, cursor:'pointer',
+              border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
+              background: isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
+              color: isSel ? '#c9a228' : '#e8edf8',
+            }}
+          >
+            {s.label}
+          </button>
         );
       })}
     </div>
@@ -429,18 +458,22 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
           <span style={fIcon}>{icon}</span>
           <span style={fLbl}>{label}</span>
         </div>
-        {buttons}
+        {categoryRow}
+        {subRow}
       </div>
     );
   }
 
   return (
-    <div style={{ ...fRow, position:'relative' }}>
-      <div style={fLeft}>
-        <span style={fIcon}>{icon}</span>
-        <span style={fLbl}>{label}</span>
+    <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+        <div style={fLeft}>
+          <span style={fIcon}>{icon}</span>
+          <span style={fLbl}>{label}</span>
+        </div>
+        {categoryRow}
       </div>
-      {buttons}
+      {subRow}
     </div>
   );
 }
@@ -464,125 +497,116 @@ const RADIAL_POS = {
   right: { tx:  96, ty:   0 },
 };
 
-function RadialPicker({ centerId, centerLabel, dirs, value, onChange }) {
-  // dirs: [{ id, label, pos: 'up'|'down'|'left'|'right' }]
+// alwaysOpen: 접기 버튼 없이 선택지만 보인다 (바깥 섹션이 접기를 맡을 때).
+function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder, alwaysOpen }) {
   const raw = Array.isArray(value) ? value[0] || null : value || null;
-  const [open, setOpen] = useState(false);
-  const [hovered, setHovered] = useState(null);
-  const isDragging = useRef(false);
-  const hoveredRef = useRef(null);
-  const centerRef = useRef(null);
+  // 아직 선택이 없으면 펼친 상태로 시작한다 — 필드에서 입력 차례마다 "열기"를
+  // 한 번 더 누르지 않게 하려는 것. 선택이 끝나면 접혀서 결과만 남고, 사용자가
+  // 직접 접은 경우에는(값 변화가 없으므로) 그대로 접힌 채 유지된다.
+  const [openState, setOpen] = useState(raw == null);
+  const open = alwaysOpen || openState;
 
-  const getHoverId = (clientX, clientY) => {
-    if (!centerRef.current) return centerId;
-    const r = centerRef.current.getBoundingClientRect();
-    const dx = clientX - (r.left + r.width / 2);
-    const dy = clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < 32) return centerId;
-    const a = Math.atan2(dy, dx) * 180 / Math.PI;
-    let pos;
-    if (a > -45  && a <= 45)  pos = 'right';
-    else if (a > 45 && a <= 135) pos = 'down';
-    else if (a > -135 && a <= -45) pos = 'up';
-    else pos = 'left';
-    return dirs.find(d => d.pos === pos)?.id ?? centerId;
-  };
-
-  const onDown = (e) => {
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    isDragging.current = true;
-    hoveredRef.current = centerId;
-    setHovered(centerId);
-    setOpen(true);
-  };
-  const onMove = (e) => {
-    if (!isDragging.current) return;
-    const h = getHoverId(e.clientX, e.clientY);
-    if (h !== hoveredRef.current) { hoveredRef.current = h; setHovered(h); }
-  };
-  const onUp = () => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    const sel = hoveredRef.current;
-    hoveredRef.current = null; setHovered(null); setOpen(false);
-    onChange(sel === raw ? null : sel);
-  };
-  const onCancel = () => {
-    isDragging.current = false; hoveredRef.current = null; setHovered(null); setOpen(false);
-  };
+  useEffect(() => { setOpen(raw == null); }, [raw]);
 
   const selDir = dirs.find(d => d.id === raw);
   const selLabel = raw === centerId ? centerLabel : (selDir?.label ?? null);
   const selIcon = selDir?.icon ?? null;
-  const isCtrHov = open && hovered === centerId;
+  const hasSelection = raw != null;
+
+  const handleSelect = (id) => {
+    onChange(id === raw ? null : id);
+    setOpen(false);
+  };
+
+  const allOptions = [{ id: centerId, label: centerLabel, icon: null }, ...dirs];
 
   return (
-    <div style={{ position:'relative', height:130, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      {dirs.map(d => {
-        const { tx, ty } = RADIAL_POS[d.pos];
-        const isHov = hovered === d.id;
-        const isSel = raw === d.id;
+    <div style={{ width:'100%' }}>
+      {!alwaysOpen && <button
+        onClick={() => { setOpen(v => { if (!v && onOpen) onOpen(); return !v; }); }}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', justifyContent:'center',
+          gap:6, padding:'10px 16px', borderRadius:10, cursor:'pointer',
+          background: open ? 'rgba(201,162,40,0.07)' : hasSelection ? 'rgba(201,162,40,0.12)' : 'rgba(255,255,255,0.03)',
+          border:`1.5px solid ${open || hasSelection ? 'rgba(201,162,40,0.4)' : '#3a4e72'}`,
+          transition:'background 0.15s, border-color 0.15s',
+        }}
+      >
+        <span style={{ fontSize:14, fontWeight:700, color: open || hasSelection ? '#c9a228' : '#8896b0' }}>
+          {hasSelection ? (selLabel || centerLabel) : (placeholder || centerLabel)}
+        </span>
+        {!open && selIcon && <span style={{ color:'#c9a228' }}>{selIcon}</span>}
+        <span style={{ fontSize:9, color: open || hasSelection ? '#c9a228' : '#4d5a78', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
+      </button>}
+
+      {open && (() => {
+        const byPos = {};
+        dirs.forEach(d => { byPos[d.pos] = d; });
+        const optBtn = (opt) => {
+          if (!opt) return <div />;
+          const isSel = raw === opt.id;
+          const isCompound = opt.label && opt.label.includes('\n');
+          return (
+            <button
+              key={opt.id}
+              onClick={() => handleSelect(opt.id)}
+              style={{
+                width:'100%', padding: isCompound ? '7px 4px' : '11px 6px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:2,
+                fontSize: isCompound ? 10 : 13, fontWeight: isSel ? 700 : 500, lineHeight: isCompound ? 1.3 : 1,
+                border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
+                background: isSel ? 'rgba(201,162,40,0.18)' : '#131d35',
+                color: isSel ? '#c9a228' : '#8896b0',
+                animation:'fadeIn 0.15s ease-out',
+                textAlign:'center', whiteSpace:'pre-line',
+              }}
+            >
+              {opt.label}{!isCompound && opt.icon && opt.icon}
+            </button>
+          );
+        };
+        const centerOpt = { id: centerId, label: centerLabel, icon: null };
         return (
-          <div key={d.id} style={{
-            position:'absolute', top:'50%', left:'50%',
-            transform: open
-              ? `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${isHov ? 1.1 : 1})`
-              : 'translate(-50%, -50%) scale(0)',
-            opacity: open ? 1 : 0,
-            transition: open
-              ? 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), opacity 0.14s ease, background 0.1s, box-shadow 0.1s'
-              : 'transform 0.14s ease, opacity 0.1s ease',
-            width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
-            display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-            pointerEvents:'none', zIndex:8,
-            border:`1.5px solid ${isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.55)' : '#252f4a'}`,
-            background: isHov ? 'rgba(201,162,40,0.28)' : isSel ? 'rgba(201,162,40,0.12)' : '#131d35',
-            color: isHov ? '#c9a228' : isSel ? 'rgba(201,162,40,0.8)' : '#8896b0',
-            boxShadow: isHov ? '0 0 14px rgba(201,162,40,0.45)' : 'none',
-          }}>
-            {d.label}{d.icon && d.icon}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginTop: alwaysOpen ? 0 : 8 }}>
+            {optBtn(byPos['ul'])}{optBtn(byPos['up'])}{optBtn(byPos['ur'])}
+            {optBtn(byPos['left'])}{optBtn(centerOpt)}{optBtn(byPos['right'])}
+            {optBtn(byPos['dl'])}{optBtn(byPos['down'])}{optBtn(byPos['dr'])}
           </div>
         );
-      })}
-
-      <button
-        ref={centerRef}
-        style={{
-          position:'relative', zIndex:10,
-          width:82, height:36, padding:0, borderRadius:8, fontSize:12, fontWeight:700,
-          display:'flex', alignItems:'center', justifyContent:'center', gap:4,
-          touchAction:'none', userSelect:'none', cursor:'pointer',
-          border:`1.5px solid ${isCtrHov ? '#c9a228' : raw ? '#c9a228' : '#252f4a'}`,
-          background: isCtrHov ? 'rgba(201,162,40,0.28)' : raw ? 'rgba(201,162,40,0.18)' : '#1a2235',
-          color: (isCtrHov || raw) ? '#c9a228' : '#8896b0',
-          transition:'border-color 0.1s, background 0.1s, color 0.1s',
-        }}
-        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
-      >
-        {open ? centerLabel : <>{selLabel || centerLabel}{!open && selIcon && selIcon}</>}
-      </button>
+      })()}
     </div>
   );
 }
 
 const LIE_DIRS = [
-  { id:'uphill',   label:'오르막',   pos:'up'    },
-  { id:'slice',    label:'슬라이스', pos:'left',  icon: <SliceIcon /> },
-  { id:'downhill', label:'내리막',   pos:'down'  },
-  { id:'hook',     label:'훅',       pos:'right', icon: <HookIcon /> },
+  { id:'uphill',          label:'오르막',        pos:'up'    },
+  { id:'slice',           label:'슬라이스',      pos:'left',  icon: <SliceIcon /> },
+  { id:'downhill',        label:'내리막',        pos:'down'  },
+  { id:'hook',            label:'훅',            pos:'right', icon: <HookIcon /> },
+  { id:'uphill-slice',    label:'오르막\n슬라이스', pos:'ul'  },
+  { id:'uphill-hook',     label:'오르막\n훅',    pos:'ur'    },
+  { id:'downhill-slice',  label:'내리막\n슬라이스', pos:'dl'  },
+  { id:'downhill-hook',   label:'내리막\n훅',    pos:'dr'    },
 ];
 const PIN_DIRS = [
-  { id:'back',  label:'백',    pos:'up'    },
-  { id:'left',  label:'레프트', pos:'left'  },
-  { id:'front', label:'프론트', pos:'down'  },
-  { id:'right', label:'라이트', pos:'right' },
+  { id:'back',         label:'백',           pos:'up'    },
+  { id:'left',         label:'레프트',       pos:'left'  },
+  { id:'front',        label:'프론트',       pos:'down'  },
+  { id:'right',        label:'라이트',       pos:'right' },
+  { id:'back-left',    label:'백\n레프트',   pos:'ul'    },
+  { id:'back-right',   label:'백\n라이트',   pos:'ur'    },
+  { id:'front-left',   label:'프론트\n레프트', pos:'dl'  },
+  { id:'front-right',  label:'프론트\n라이트', pos:'dr'  },
 ];
 const PUTT_LIE_DIRS = [
-  { id:'uphill',      label:'오르막',   pos:'up'    },
-  { id:'break-left',  label:'슬라이스', pos:'left',  icon: <SliceIcon /> },
-  { id:'downhill',    label:'내리막',   pos:'down'  },
-  { id:'break-right', label:'훅',       pos:'right', icon: <HookIcon /> },
+  { id:'uphill',             label:'오르막',          pos:'up'    },
+  { id:'break-left',         label:'슬라이스',        pos:'left',  icon: <SliceIcon /> },
+  { id:'downhill',           label:'내리막',          pos:'down'  },
+  { id:'break-right',        label:'훅',              pos:'right', icon: <HookIcon /> },
+  { id:'uphill-break-left',  label:'오르막\n슬라이스', pos:'ul'   },
+  { id:'uphill-break-right', label:'오르막\n훅',      pos:'ur'    },
+  { id:'downhill-break-left',label:'내리막\n슬라이스', pos:'dl'   },
+  { id:'downhill-break-right',label:'내리막\n훅',     pos:'dr'    },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -591,14 +615,26 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
   const [activePlayer, setActivePlayer] = useState(round.players[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
+  const finishingRef = useRef(false);                          // 완료 버튼 연타 방지
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoDraft, setMemoDraft] = useState('');
   const [showParEditModal, setShowParEditModal] = useState(false);
   const [parDraft, setParDraft] = useState([...round.pars]);
   const [expandedPutt, setExpandedPutt] = useState(0);
+  const [expandedExtraShot, setExpandedExtraShot] = useState(0);
   const [shotPage, setShotPage] = useState(0);
   const [teeClubInteracting, setTeeClubInteracting] = useState(false);
   const [teeExpanded, setTeeExpanded] = useState(true);
+  const [secondShotExpanded, setSecondShotExpanded] = useState(true);
+  const [showHoleInModal, setShowHoleInModal] = useState(false);
+  const [holeInModalData, setHoleInModalData] = useState(null);
+  const [showPuttsDropdown, setShowPuttsDropdown] = useState(false);
+  const [showHoleMap, setShowHoleMap] = useState(false);
+  const holeInCbRef = useRef(null);
+  // 홀인/칩인 모달이 화면에 그려지기 전 빠른 연속 탭으로 완료 콜백이 두 번
+  // 실행(저장/이동 중복)되는 것을 막는 가드.
+  const holeInModalPendingRef = useRef(false);
 
   const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
 
@@ -614,7 +650,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         const ps = h.scores[p];
         if (!ps.touched) {
           const inf = inferStatsFromStrokes(newPar, newPar);
-          updatedScores[p] = { ...ps, strokes: newPar, putts: inf.putts, fairway: newPar > 3 ? true : null, gir: inf.gir };
+          updatedScores[p] = { ...ps, strokes: newPar, putts: inf.putts, fairway: null, gir: inf.gir };
         } else {
           updatedScores[p] = { ...ps };
         }
@@ -639,21 +675,36 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const inferStatsFromStrokes = (strokes, par) => {
-    if (strokes === 1) return { putts: 0, fairway: par > 3 ? true : null, gir: true };
-    if (strokes === par - 2) return { putts: 0, fairway: par > 3 ? true : null, gir: true };
+    if (strokes === 1) return { putts: 0, fairway: null, gir: true };
+    if (strokes === par - 2) return { putts: 0, fairway: null, gir: true };
     const diff = strokes - par;
-    let putts, fairway, gir;
-    if (diff <= -1) { putts = 1; fairway = par > 3 ? true : null; gir = true; }
-    else if (diff === 0) { putts = 2; fairway = par > 3 ? true : null; gir = true; }
-    else if (diff === 1) { putts = 2; fairway = par > 3 ? true : null; gir = false; }
-    else { putts = 2; fairway = par > 3 ? false : null; gir = false; }
+    let putts, gir;
+    if (diff <= -1) { putts = 1; gir = true; }
+    else if (diff === 0) { putts = 2; gir = true; }
+    else if (diff === 1) { putts = 2; gir = false; }
+    else { putts = 2; gir = false; }
     if (putts >= strokes) putts = Math.max(0, strokes - 1);
-    return { putts, fairway, gir };
+    return { putts, fairway: null, gir };
   };
 
   const calcAutoStrokes = (score, par) => {
-    const field = (par > 3 ? 1 : 0) + (score.extraShots?.length || 0);
-    return 1 + field + (score.putts || 0) + (score.ob || 0) + (score.hazard || 0);
+    const penaltyCount = (score.ob || 0) + (score.hazard || 0);
+    const hasPenalty = penaltyCount > 0;
+    const effectiveTeeGIR = score.teeGIR && !hasPenalty;
+    const baseField = par > 3 ? 1 : 0;
+    // 패널티 1회당 잃어버린 샷을 대체할 재샷이 1개씩 반드시 늘어난다
+    // (OB/해저드 1회 = 페널티 1타 + 재샷 1타로 최소 2타 손실).
+    const field = effectiveTeeGIR ? 0 : baseField + penaltyCount + (score.extraShots?.length || 0);
+    return 1 + field + (score.putts || 0) + penaltyCount;
+  };
+
+  // teeClub + 퍼팅 홀인 성공까지 완료된 경우에만 auto-calc, 미완료 시 수동 스코어 유지
+  const finalizeScore = (s, par) => {
+    const puttComplete = Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success');
+    if (!s.teeClub || !puttComplete) return { ...s, touched: true };
+    const autoStrokes = calcAutoStrokes(s, par);
+    const autoGir = (autoStrokes - (s.putts || 0)) <= par - 2;
+    return { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
   };
 
   // updateScore handles strokes/putts with auto-inference; other fields use updateField
@@ -661,13 +712,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const updated = { ...round };
     updated.holes = [...round.holes];
     let np = { ...playerScore, [field]: value, touched: true };
+    // GIR을 사용자가 직접 선택(girAuto:false)한 뒤에는 스코어/퍼팅 수 보정이
+    // 그 선택을 조용히 덮어쓰지 않는다 — girAuto일 때만 자동 재계산한다.
+    const girIsAuto = playerScore.girAuto !== false;
     if (field === 'strokes') {
-      const inf = inferStatsFromStrokes(value, hole.par);
-      np.putts = inf.putts;
-      if (hole.par > 3 && !playerScore.touched) np.fairway = inf.fairway;
-      np.gir = inf.gir; np.girAuto = true;
+      if (playerScore.puttsManual) {
+        // 퍼팅 수를 사용자가 직접 지정한 뒤라면 스코어 변경이 그 값을 덮어쓰지 않는다.
+        // 유효 범위(퍼팅 < 스코어)를 벗어날 때만 클램프한다.
+        const maxPutts = Math.max(0, value - 1);
+        if ((playerScore.putts || 0) > maxPutts) np.putts = maxPutts;
+        if (girIsAuto) {
+          const ag = calculateGir(value, np.putts, hole.par);
+          if (ag !== null) { np.gir = ag; np.girAuto = true; }
+        }
+      } else {
+        const inf = inferStatsFromStrokes(value, hole.par);
+        np.putts = inf.putts;
+        if (hole.par > 3 && !playerScore.touched) np.fairway = inf.fairway;
+        if (girIsAuto) { np.gir = inf.gir; np.girAuto = true; }
+      }
     }
-    if (field === 'putts') {
+    if (field === 'putts' && girIsAuto) {
       const ag = calculateGir(np.strokes, value, hole.par);
       if (ag !== null) { np.gir = ag; np.girAuto = true; }
     }
@@ -690,16 +755,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     onUpdate(updated);
   };
 
-  const updateLandingPoint = (side) => {
-    const updated = { ...round };
-    updated.holes = [...round.holes];
-    updated.holes[holeIdx] = {
-      ...hole,
-      scores: { ...hole.scores, [activePlayer]: { ...playerScore, fairwayHit: side, touched: true } },
-    };
-    onUpdate(updated);
-  };
-
   const updateGir = (val) => {
     const updated = { ...round };
     updated.holes = [...round.holes];
@@ -707,42 +762,111 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     onUpdate(updated);
   };
 
+  const updateOnGreen = (val) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, onGreen: val, touched: true } } };
+    onUpdate(updated);
+  };
+
+  const extraShotTopRef = useRef(null);
+  const prevExtraShotsLenRef = useRef(0);
+  const shotPageTimeoutRef = useRef(null);
+
+  const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
+
+  // ─── 라운드 완료 ────────────────────────────────────────────────────────────
+  // 입력하지 않은 홀은 기본값(파·2퍼트)이 그대로 저장돼 평균 스코어가 왜곡되므로
+  // 그런 홀이 있으면 한 번 확인한다. 완료는 한 번만 실행되게 막는다.
+  const untouchedHoles = (r) => r.holes
+    .map((h, i) => (r.players.some(p => h.scores[p]?.touched !== true) ? i : -1))
+    .filter(i => i >= 0);
+
+  const doFinish = (u) => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setPendingFinish(null);
+    // 저장에 실패하면 다시 누를 수 있게 잠금을 푼다 (안내는 상위에서 띄운다).
+    setTimeout(() => Promise.resolve(onFinish(u)).catch(() => { finishingRef.current = false; }), 50);
+  };
+
+  const requestFinish = (u) => {
+    if (finishingRef.current) return;
+    if (untouchedHoles(u).length > 0) { setPendingFinish(u); return; }
+    doFinish(u);
+  };
+
   const goToHole = (idx) => { if (idx >= 0 && idx < 18) { setHoleIdx(idx); onUpdate({ ...round, currentHole: idx }); } };
 
-  const confirmAndGoToHole = (idx) => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+  // freshScore: 현재 플레이어의 최신 스코어 객체 (setState 배치 전 최신값을 직접 전달할 때 사용)
+  const confirmAndGoToHole = (idx, freshScore) => {
+    setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 120);
     const updated = { ...round };
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];
     const us = {};
     round.players.forEach(p => {
-      const s = ch.scores[p];
-      const autoStrokes = calcAutoStrokes(s, ch.par);
-      const autoGir = (autoStrokes - (s.putts || 0)) <= ch.par - 2;
-      us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
+      const s = (p === activePlayer && freshScore) ? freshScore : ch.scores[p];
+      us[p] = finalizeScore(s, ch.par);
     });
     updated.holes[holeIdx] = { ...ch, scores: us };
     updated.currentHole = idx; setHoleIdx(idx); onUpdate(updated);
   };
 
+  const triggerChipIn = (freshScore) => {
+    if (holeInModalPendingRef.current) return;
+    holeInModalPendingRef.current = true;
+    holeInCbRef.current = () => {
+      if (isLastHole) {
+        const u = { ...round }; u.holes = [...round.holes];
+        const lh = u.holes[holeIdx]; const us = {};
+        round.players.forEach(p => {
+          const s = p === activePlayer ? freshScore : lh.scores[p];
+          us[p] = finalizeScore(s, lh.par);
+        });
+        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
+      } else {
+        confirmAndGoToHole(holeIdx + 1, freshScore);
+      }
+    };
+    setHoleInModalData({
+      isLastHole,
+      scoreName: getScoreName(freshScore.strokes, hole.par),
+      strokes: freshScore.strokes,
+      putts: 0,
+      onCount: freshScore.strokes,
+    });
+    setShowHoleInModal(true);
+    setTimeout(() => { setShowHoleInModal(false); holeInModalPendingRef.current = false; holeInCbRef.current?.(); }, 2500);
+  };
+
   const getScoreName = (strokes, par) => {
     if (!strokes) return null;
-    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', isHoleInOne: true };
+    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', textColor: '#fff', bg: 'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)', shadow: '0 2px 12px rgba(201,162,40,0.5)', anim: 'holeInOnePulse 2s ease-in-out infinite', fw: '800' };
     const diff = strokes - par;
-    if (diff <= -3) return { name: 'Albatross', color: '#e8c84e' };
-    if (diff === -2) return { name: 'Eagle', color: '#c9a228' };
-    if (diff === -1) return { name: 'Birdie', color: '#3db87a' };
-    if (diff === 0)  return { name: 'Par', color: '#8896b0' };
-    if (diff === 1)  return { name: 'Bogey', color: '#6b7c9a' };
-    if (diff === 2)  return { name: 'Double', color: '#ef5350' };
-    return { name: `+${diff}`, color: '#c62828' };
+    if (diff <= -3) return { name: 'Albatross', color: '#e8c84e', bg: 'rgba(232,200,78,0.12)', shadow: '0 2px 16px rgba(232,200,78,0.4)', anim: 'albatrossGlow 1.8s ease-in-out infinite', fw: '800' };
+    if (diff === -2) return { name: 'Eagle',     color: '#c9a228', bg: 'rgba(201,162,40,0.1)',  shadow: '0 2px 10px rgba(201,162,40,0.35)', anim: 'eagleGlow 2.2s ease-in-out infinite',     fw: '700' };
+    if (diff === -1) return { name: 'Birdie',    color: '#3db87a', bg: 'rgba(61,184,122,0.08)', shadow: '0 2px 6px rgba(61,184,122,0.25)',   anim: 'birdieGlow 2.8s ease-in-out infinite',   fw: '600' };
+    if (diff === 0)  return { name: 'Par',        color: '#8896b0' };
+    if (diff === 1)  return { name: 'Bogey',      color: '#e57373', bg: 'rgba(239,83,80,0.06)',  shadow: '0 2px 5px rgba(239,83,80,0.2)',   anim: 'bogeyRed 3.5s ease-in-out infinite',  fw: '600' };
+    if (diff === 2)  return { name: 'Double',     color: '#ef5350', bg: 'rgba(239,83,80,0.09)',  shadow: '0 2px 8px rgba(239,83,80,0.3)',   anim: 'doubleRed 3s ease-in-out infinite',   fw: '700' };
+    if (diff === 3)  return { name: 'Triple',     color: '#e53935', bg: 'rgba(229,57,53,0.12)',  shadow: '0 2px 10px rgba(229,57,53,0.4)',  anim: 'tripleRed 2.5s ease-in-out infinite', fw: '700' };
+    if (diff === 4)  return { name: 'Quadruple',  color: '#c62828', bg: 'rgba(198,40,40,0.15)',  shadow: '0 2px 12px rgba(198,40,40,0.5)',  anim: 'quadRed 2s ease-in-out infinite',     fw: '800' };
+    if (diff === 5)  return { name: 'Quintuple',  color: '#b71c1c', bg: 'rgba(183,28,28,0.17)',  shadow: '0 2px 14px rgba(183,28,28,0.55)', anim: 'quadRed 1.9s ease-in-out infinite',   fw: '800' };
+    if (diff === 6)  return { name: 'Sextuple',   color: '#b71c1c', bg: 'rgba(183,28,28,0.18)',  shadow: '0 2px 15px rgba(183,28,28,0.58)', anim: 'quadRed 1.8s ease-in-out infinite',   fw: '800' };
+    if (diff === 7)  return { name: 'Septuple',   color: '#b71c1c', bg: 'rgba(183,28,28,0.19)',  shadow: '0 2px 16px rgba(183,28,28,0.62)', anim: 'quadRed 1.7s ease-in-out infinite',   fw: '800' };
+    if (diff === 8)  return { name: 'Octuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.20)',  shadow: '0 2px 17px rgba(183,28,28,0.65)', anim: 'quadRed 1.6s ease-in-out infinite',   fw: '800' };
+    if (diff === 9)  return { name: 'Nonuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.21)',  shadow: '0 2px 18px rgba(183,28,28,0.68)', anim: 'quadRed 1.5s ease-in-out infinite',   fw: '800' };
+    if (diff === 10) return { name: 'Decuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
+    return                   { name: `+${diff}`,  color: '#b71c1c', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
   const teeComplete = !!(playerScore.teeClub && playerScore.shotShape &&
-    (hole.par <= 3 || playerScore.fairwayHit != null));
+    (hole.par === 3 ? !playerScore.girAuto : (playerScore.fairwayHit != null || playerScore.teeGIR)));
   const teeShotSummary = [
     `${playerScore.strokes}타`,
+    hole.par === 3 && playerScore.teeDistance ? `${playerScore.teeDistance}m` : null,
     playerScore.teeClub
       ? (playerScore.teeClubSub
           ? `${playerScore.teeClub.toUpperCase()} ${playerScore.teeClubSub}`
@@ -756,16 +880,19 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const isLastHole = holeIdx === 17;
   const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
   const isPar5 = hole.par === 5;
+  const isSimpleMode = round.players.length > 1;
 
   const clubs = hole.par === 3
-    ? [{ id: 'iron', label: 'IRON' }, { id: 'hybrid', label: 'HYBRID' }]
+    ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
     : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
 
-  const secHdr = (label, onDelete) => (
+  const secHdr = (label, onDelete, state = 'idle') => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
-      <div style={{ height: 1, flex: 1, background: '#1b2238' }} />
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.22em' }}>{label}</span>
-      <div style={{ height: 1, flex: 1, background: '#1b2238' }} />
+      <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
+      <span style={{ fontSize: 11, fontWeight: 800, color: HDR[state].label, letterSpacing: '0.2em' }}>
+        {state === 'done' && '✓ '}{label}
+      </span>
+      <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
       {onDelete && (
         <button onClick={onDelete} style={{ fontSize: 9, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
       )}
@@ -774,14 +901,173 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const extraShots = playerScore.extraShots || [];
 
-  const addExtraShot = () =>
-    updateField('extraShots', [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: 150, windDirection: null, windStrength: null }]);
+  // ─── 지금 입력 차례인 섹션 ──────────────────────────────────────────────────
+  // 헤더 색: 지금 차례 = 금색, 입력을 마친 샷 = 초록 ✓, 아직 차례가 아닌 샷 = 회색.
+  // 예전에는 '접힌 + 완료' 헤더를 금색으로 칠해서, 그린을 입력하는 중에도 티샷이
+  // 강조돼 티샷 차례로 착각하게 만들었다.
+  const currentTurn = (() => {
+    if (shotPage === 1) return playerScore.onGreenLanding ? 'putt' : 'green';
+    if (!teeComplete) return 'tee';
+    if (extraShots.length === 0) return 'second';
+    return expandedExtraShot >= 0 ? expandedExtraShot : extraShots.length - 1;
+  })();
+  const turnState = (key, done) => (currentTurn === key ? 'active' : done ? 'done' : 'idle');
 
-  const removeExtraShot = (idx) =>
-    updateField('extraShots', extraShots.filter((_, i) => i !== idx));
+  const EXTRA_SHOT_NAMES = [
+    '써드샷 ( 3rd )',
+    '포쓰샷 ( 4th )',
+    '피프스샷 ( 5th )',
+    '식스샷 ( 6th )',
+    '세븐샷 ( 7th )',
+    '에잇샷 ( 8th )',
+    '나인스샷 ( 9th )',
+    '텐스샷 ( 10th )',
+    '일레븐스샷 ( 11th )',
+    '트웰프스샷 ( 12th )',
+    '써틴스샷 ( 13th )',
+    '포틴스샷 ( 14th )',
+    '피프틴스샷 ( 15th )',
+    '식스틴스샷 ( 16th )',
+    '세븐틴스샷 ( 17th )',
+    '에잇틴스샷 ( 18th )',
+    '나인틴스샷 ( 19th )',
+    '트웬티스샷 ( 20th )',
+  ];
+  const extraShotName = (idx) => EXTRA_SHOT_NAMES[idx] ?? `${idx + 3}번째 샷`;
+
+  // ─── GPS 샷 지점 ────────────────────────────────────────────────────────────
+  // gpsPoints[slot] = (slot+1)번째 샷을 친 지점, gpsGreen = 그린 도착 지점.
+  // 샷 거리만 측정하므로 핀·티박스 좌표는 따로 저장하지 않는다.
+  const gpsPoints = playerScore.gpsPoints || [];
+  const gpsGreen = playerScore.gpsGreen || null;
+  // gpsPin: 그날의 핀 자리. 지도에서 그린을 보고 찍거나 홀 옆에 서서 찍는다.
+  // 각 샷 지점에서 핀까지 남은 거리와, 티박스→핀 = 그날의 홀 전장이 나온다.
+  const gpsPin = playerScore.gpsPin || null;
+  const fieldShots = countFieldShots(playerScore, hole.par);
+
+  // 위치 기록은 스코어 입력이 아니므로 touched를 세우지 않는다. updateField를
+  // 쓰면 티에서 위치만 찍어도 홀이 '입력 완료'로 잡혀 진행률이 먼저 올라간다.
+  const updateGpsField = (field, value) => updateGpsFields({ [field]: value });
+
+  const updateGpsFields = (fields) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, ...fields } } };
+    onUpdate(updated);
+  };
+
+  // ─── 잔여거리 자동 반영 ──────────────────────────────────────────────────────
+  // measuredRemaining[i] = (i+1)번째 샷을 치는 자리에서 핀까지 실측 거리.
+  // 슬라이더 값은 눈대중 추정치라, 핀과 그 샷 지점을 모두 찍었으면 실측값이
+  // 언제나 더 정확하다. 측정값이 생기거나 바뀌면 슬라이더에 덮어쓴다.
+  const measuredRemaining = pinDistances(gpsPoints, gpsPin, fieldShots);
+  // GPS가 튄 값(2km 등)은 clubDistance·복기와 같은 기준으로 걸러낸다.
+  const roundM = (d) => { const v = saneRemaining(d); return v != null ? Math.round(v) : null; };
+  // 세컨샷은 슬롯 1, 익스트라샷 k는 슬롯 k+2 가 '치기 전' 자리다.
+  const measuredSecond = roundM(measuredRemaining[1]);
+  const measuredExtra = (k) => roundM(measuredRemaining[k + 2]);
+
+  // 측정값이 생기거나 바뀔 때만 저장값에 덮어쓴다. 마지막으로 반영한 실측값을
+  // remainingAppliedM 에 같이 저장해 두고 그것과 비교한다 — 사용자가 그 뒤
+  // 슬라이더를 직접 돌린 값은, 홀을 오가거나 선수를 바꿔 effect가 다시 돌아도
+  // 실측값 자체가 바뀌지 않는 한 그대로 남는다.
+  const measuredKey = [holeIdx, activePlayer, ...measuredRemaining.map((d) => roundM(d) ?? '')].join('|');
+  useEffect(() => {
+    const patch = {};
+    if (measuredSecond != null && measuredSecond !== playerScore.remainingAppliedM) {
+      patch.remainingDistance = measuredSecond;
+      patch.remainingAppliedM = measuredSecond;
+    }
+    let extrasChanged = false;
+    const nextExtras = extraShots.map((shot, k) => {
+      const d = measuredExtra(k);
+      if (d != null && d !== shot.remainingAppliedM) {
+        extrasChanged = true;
+        return { ...shot, remainingDistance: d, remainingAppliedM: d };
+      }
+      return shot;
+    });
+    if (extrasChanged) patch.extraShots = nextExtras;
+    if (Object.keys(patch).length > 0) updateGpsFields(patch);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measuredKey]);
+
+  const setGpsPoint = (slot, fix) => {
+    const next = [...gpsPoints];
+    while (next.length <= slot) next.push(null);
+    next[slot] = fix;
+    updateGpsField('gpsPoints', next);
+  };
+
+  // 0=티샷, 1=세컨샷, 2 이상은 익스트라샷 이름에서 괄호 표기를 뗀 것.
+  const shotLabel = (slot) =>
+    slot === 0 ? '티샷'
+      : slot === 1 ? '세컨샷'
+        : (EXTRA_SHOT_NAMES[slot - 2]?.replace(/\s*\(.*\)\s*$/, '') ?? `${slot + 1}번째 샷`);
+
+  // 마지막 지점 이름: 홀인원·칩인은 볼이 그린에 멈추지 않고 홀에 들어간다.
+  const finalPointLabel = isHoledOut(playerScore) ? '홀인 지점' : '그린 랜딩 지점';
+
+  // 지점은 순서대로만 찍는다. 직전 지점이 없으면 거리가 계산되지 않아 기록해도
+  // 의미가 없다. 원온(파3 GIR·파4/5 teeGIR)과 홀인원이면 fieldShots가 1이라
+  // 그린(=마지막) 지점의 직전이 곧 티샷이 되어, 세컨샷을 거치지 않고 바로 열린다.
+  const gpsLocked = (slot) => slot > 0 && !gpsPoints[slot - 1];
+  const gpsLockHint = (slot) => `${shotLabel(slot - 1)} 지점을 먼저 찍어주세요`;
+
+  // extraFields: 같은 클릭 안에서 함께 반영할 다른 필드(예: gir/onGreen).
+  // updateField를 별도로 또 호출하면 이전 playerScore를 다시 읽어와 그 값을 덮어써 버리므로 한 번에 합쳐서 반영한다.
+  const addExtraShot = (extraFields = {}) => {
+    const newIdx = extraShots.length;
+    const prevDist = newIdx === 0
+      ? (playerScore.remainingDistance || 150)
+      : (extraShots[newIdx - 1].remainingDistance || 150);
+    const initDist = Math.ceil(prevDist / 2);
+    updateFields({
+      extraShots: [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: initDist, windDirection: null, windStrength: null, onGreen: null }],
+      ...extraFields,
+    });
+    setExpandedExtraShot(newIdx);
+  };
+
+  const removeExtraShot = (fromIdx) => {
+    // 삭제한 샷의 GPS 지점도 함께 버린다. 남겨두면 나중에 같은 자리에 샷을 다시
+    // 추가했을 때 지웠던 좌표가 "✓ 기록됨" 상태로 되살아난다.
+    // (슬롯 0=티샷, 1=세컨샷이므로 익스트라샷 idx의 슬롯은 idx+2)
+    updateFields({
+      extraShots: extraShots.slice(0, fromIdx),
+      gpsPoints: gpsPoints.slice(0, fromIdx + 2),
+    });
+    setExpandedExtraShot(Math.max(0, fromIdx - 1));
+    if (fromIdx === 0) setSecondShotExpanded(true);
+  };
 
   const updateExtraShot = (idx, patch) =>
     updateField('extraShots', extraShots.map((s, i) => i === idx ? { ...s, ...patch } : s));
+
+  // 지도에서 "샷 추가" — 스코어 폼의 온그린 실패와 같은 뜻이다. 지도만 보고
+  // 라운드할 수 있어야 하는데, 그린을 못 올렸을 때 폼으로 돌아가야만 샷이
+  // 늘어나던 것을 지도 안에서도 되게 한다.
+  const addShotFromMap = () => {
+    if (extraShots.length === 0) {
+      addExtraShot(hole.par > 3 ? { gir: false, girAuto: false } : { onGreen: false });
+      return;
+    }
+    const lastIdx = extraShots.length - 1;
+    const prev = extraShots[lastIdx];
+    updateField('extraShots', [
+      ...extraShots.map((s, i) => i === lastIdx ? { ...s, onGreen: false } : s),
+      { club: null, subClub: null, lie: [], remainingDistance: Math.ceil((prev.remainingDistance || 150) / 2),
+        windDirection: null, windStrength: null, onGreen: null },
+    ]);
+    setExpandedExtraShot(extraShots.length);
+  };
+
+  // 잘못 눌렀을 때를 위한 되돌리기. 아무것도 입력되지 않은 마지막 샷만 지운다.
+  const lastShotIsEmpty = extraShots.length > 0 && (() => {
+    const last = extraShots[extraShots.length - 1];
+    return !last.club && last.onGreen == null && !gpsPoints[extraShots.length + 1];
+  })();
+  const undoLastShotFromMap = () => removeExtraShot(extraShots.length - 1);
 
   const puttDetails = (() => {
     const raw = playerScore.puttDetails;
@@ -792,26 +1078,77 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     );
   })();
 
+  // 퍼팅 거리 슬라이더의 시작값. 첫 퍼팅은 5m, 이후는 직전 퍼팅 거리의 절반
+  // (0.5m 단위, 최소 0.5m) — 5m를 놓치면 보통 그보다 훨씬 짧게 남는다.
+  // 직전 퍼팅도 입력 전이면 그 시작값을 기준으로 이어서 줄인다.
+  const puttDefaultDistance = (idx) => {
+    if (idx <= 0) return 5;
+    const prev = puttDetails[idx - 1]?.distance ?? puttDefaultDistance(idx - 1);
+    return Math.max(0.5, Math.round(prev / 2 / 0.5) * 0.5);
+  };
+
+  // 스코어(총 타수)가 우선값: 퍼팅 개수 변경이 이미 정해진 스코어를 바꾸지 않는다.
+  // 퍼팅 수는 스코어를 넘어설 수 없으므로 필요 시 퍼팅 수만 클램프한다.
   const updatePuttsCount = (n) => {
-    const newDetails = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    updateFields({ putts: n, puttDetails: newDetails });
+    const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
+    const clamped = Math.min(n, maxPutts);
+    const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
+    // GIR을 사용자가 직접 선택한 뒤에는(girAuto:false) 퍼팅 수 변경이 그 선택을 덮어쓰지 않는다.
+    const ag = playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par) : null;
+    const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
+    updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, ...girFields });
+  };
+
+  const updatePenalty = (field, newVal) => {
+    const newScore = { ...playerScore, [field]: newVal };
+    const hasPenalty = (newScore.ob || 0) > 0 || (newScore.hazard || 0) > 0;
+    const extra = hasPenalty && playerScore.teeGIR ? { teeGIR: false } : {};
+    const newStrokes = calcAutoStrokes({ ...newScore, ...extra }, hole.par);
+    updateFields({ [field]: newVal, ...extra, strokes: newStrokes });
   };
 
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
+  const updatePlayerStrokes = (player, newStrokes) => {
+    const updated = { ...round };
+    updated.holes = [...round.holes];
+    const ps = hole.scores[player];
+    const inf = inferStatsFromStrokes(newStrokes, hole.par);
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [player]: { ...ps, strokes: newStrokes, putts: inf.putts, gir: inf.gir, girAuto: true, touched: true } } };
+    onUpdate(updated);
+  };
+
+  // lie 미입력은 세 가지 형태로 들어온다: 새로 만든 퍼팅 슬롯은 [], 라디얼에서
+  // 선택을 해제하면 null, 과거 데이터는 ''. 빈 배열을 입력된 값으로 오판하면
+  // 새로 늘어난 퍼팅이 "미입력"으로 잡히지 않아 자동으로 펼쳐지지 않는다.
+  const isPuttEmpty = (p) =>
+    p.distance == null && p.aimDistance == null &&
+    (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
+
   useEffect(() => {
-    const firstEmpty = puttDetails.findIndex(p =>
-      p.distance == null && p.aimDistance == null && (p.lie == null || p.lie === '')
-    );
+    const firstEmpty = puttDetails.findIndex(isPuttEmpty);
     setExpandedPutt(firstEmpty >= 0 ? firstEmpty : 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [puttDetails.length]);
+  }, [holeIdx, puttDetails.length]);
 
-  useEffect(() => { setShotPage(0); setTeeExpanded(true); }, [holeIdx]);
+  useEffect(() => {
+    clearTimeout(shotPageTimeoutRef.current);
+    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false);
+  }, [holeIdx]);
+
+  useEffect(() => {
+    if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current) {
+      setTimeout(() => extraShotTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }
+    prevExtraShotsLenRef.current = extraShots.length;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extraShots.length]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (teeComplete) setTeeExpanded(false); }, [teeComplete]);
+  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage((hole.par === 3 && playerScore.gir === true) || playerScore.teeGIR ? 1 : 0); } }, [teeComplete]);
+
+  useEffect(() => { if (shotPage === 1) scrollDown(); }, [shotPage]);
 
   return (
     <div style={styles.container}>
@@ -836,7 +1173,47 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       })()}
 
       {/* Running Score */}
-      {(() => {
+      {isSimpleMode ? (() => {
+        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
+        const fmtC=(d,has)=>!has?'#4d5a78':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
+        return (
+          <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
+            {round.players.map((player, pi) => {
+              const th = round.holes.filter(h => h.scores[player]?.touched);
+              const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
+              const pp = th.reduce((s,h) => s+h.par, 0);
+              const pd = ps-pp;
+              const ft = round.holes.slice(0,9).filter(h=>h.scores[player]?.touched);
+              const bt = round.holes.slice(9).filter(h=>h.scores[player]?.touched);
+              const fd = ft.reduce((s,h)=>s+h.scores[player].strokes,0)-ft.reduce((s,h)=>s+h.par,0);
+              const bd = bt.reduce((s,h)=>s+h.scores[player].strokes,0)-bt.reduce((s,h)=>s+h.par,0);
+              const isLast = pi === round.players.length - 1;
+              return (
+                <div key={player} style={{ display:'flex', alignItems:'center', gap:8, paddingTop:6, paddingBottom:6, borderBottom: isLast?'none':'1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ width:20, height:20, borderRadius:'50%', background:'#1b2a45', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <span style={{ fontSize:10, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
+                  </div>
+                  <span style={{ flex:1, fontSize:12, fontWeight:700, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <div style={{ textAlign:'center', minWidth:28 }}>
+                      <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', color:'#4d5a78', marginBottom:1 }}>{round.outCourseName||'OUT'}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color: fmtC(fd,ft.length>0) }}>{fmt(fd,ft.length>0)}</div>
+                    </div>
+                    <div style={{ textAlign:'center', minWidth:28 }}>
+                      <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', color:'#4d5a78', marginBottom:1 }}>{round.inCourseName||'IN'}</div>
+                      <div style={{ fontSize:12, fontWeight:800, color: fmtC(bd,bt.length>0) }}>{fmt(bd,bt.length>0)}</div>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'baseline', gap:5, minWidth:60, justifyContent:'flex-end' }}>
+                      <span style={{ fontSize:22, fontWeight:900, color:'#e8edf8', lineHeight:1 }}>{ps||0}</span>
+                      <span style={{ fontSize:13, fontWeight:800, color: fmtC(pd,th.length>0), lineHeight:1 }}>{fmt(pd,th.length>0)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })() : (() => {
         const th = round.holes.filter(h => h.scores[activePlayer]?.touched);
         const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
         const pp = th.reduce((s,h) => s+h.par, 0);
@@ -851,7 +1228,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         return (
           <div style={styles.runningScore}>
             <div style={styles.runningScoreMain}>
-              <div style={styles.runningScoreLabel}>{round.players.length>1?activePlayer:'SCORE'}</div>
+              <div style={styles.runningScoreLabel}>SCORE</div>
               <div style={styles.runningScoreValues}>
                 <span style={styles.runningScoreNumber}>{ps}</span>
                 <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,th.length>0) }}>{fmt(pd,th.length>0)}</span>
@@ -892,9 +1269,33 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={styles.holeNavTableRow}>
               <div style={styles.holeNavRowLabel}>PAR</div>
               <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#ff8844':'#c96820'):h.par===5?(ic?'#5dd49a':'#2ea868'):(ic?'#c9a228':'#8896b0'); const pb=ic?(h.par===3?'rgba(200,80,20,0.22)':h.par===5?'rgba(61,184,122,0.18)':'#1a2235'):'transparent'; return <div key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700' }}>{h.par}</div>; })}
+                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#ff8844':'#c96820'):h.par===5?(ic?'#5dd49a':'#2ea868'):(ic?'#c9a228':'#8896b0'); const pb=ic?(h.par===3?'rgba(200,80,20,0.22)':h.par===5?'rgba(61,184,122,0.18)':'#1a2235'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
               </div>
             </div>
+            {isSimpleMode ? round.players.map((player, pi) => {
+              const isLastPlayer = pi === round.players.length - 1;
+              const shortName = player.length > 4 ? player.slice(0,4) : player;
+              return (
+                <div key={player} style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize:9, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
+                  <div style={styles.holeNavTableCells}>
+                    {holes.map((h,li) => {
+                      const i=offset+li; const done=h.scores[player]?.touched; const ic=i===holeIdx;
+                      const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
+                      let ms={};
+                      if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
+                      return (
+                        <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
+                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
+                            {hio&&<span style={styles.holeInOneStar}>★</span>}{psc.strokes}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }) : (
             <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }}>
               <div style={styles.holeNavRowLabel}>SCORE</div>
               <div style={styles.holeNavTableCells}>
@@ -913,55 +1314,251 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 })}
               </div>
             </div>
+            )}
           </div>
         ))}
       </div>
 
       {/* Hole Header */}
-      <div style={styles.holeHeader}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 16px 16px', borderBottom:'1px solid #0e1320', background:'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%)' }}>
+        {/* 좌측: HOLE + PAR + 파대비 */}
         <div>
-          <div style={styles.holeLabel}>HOLE {holeIdx+1}</div>
-          <div style={{ ...styles.holePar, color: isPar5?'#3db87a':styles.holePar.color }}>PAR {hole.par}</div>
-          {isPar5 && <div style={{ display:'inline-block', marginTop:6, fontSize:10, fontWeight:700, color:'#3db87a', background:'rgba(61,184,122,0.12)', border:'1px solid rgba(61,184,122,0.4)', padding:'3px 10px', borderRadius:3, letterSpacing:'0.08em' }}>찬스홀</div>}
+          <div style={{ fontSize:10, fontWeight:700, color:'#c9a228', letterSpacing:'0.28em', marginBottom:5, textTransform:'uppercase' }}>HOLE {holeIdx+1}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ fontSize:32, fontWeight:900, lineHeight:1, letterSpacing:'-0.02em', color: isPar5?'#3db87a': hole.par===3?'#5b9cf6':'#e8edf8' }}>PAR {hole.par}</div>
+            {(() => {
+              const diff = playerScore.strokes - hole.par;
+              if (diff === 0 || !playerScore.touched) return null;
+              const under = diff < 0;
+              return (
+                <div style={{
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  height:28, padding:'0 10px',
+                  fontSize:13, fontWeight:800, letterSpacing:'0.04em',
+                  alignSelf:'center',
+                  color: under?'#3db87a':'#ef5350',
+                  background: under?'rgba(61,184,122,0.1)':'rgba(239,83,80,0.1)',
+                  border:`1px solid ${under?'rgba(61,184,122,0.3)':'rgba(239,83,80,0.3)'}`,
+                  borderRadius:6,
+                }}>
+                  {under ? diff : `+${diff}`}
+                </div>
+              );
+            })()}
+          </div>
         </div>
+
+        {/* 우측: 스코어명 */}
         {scoreName && (
-          <div style={{ ...styles.scoreName, color: isPar3AtPar?'#fff':(scoreName.isHoleInOne?'#fff':scoreName.color), borderColor: isPar3AtPar?'#c04a10':scoreName.color, background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':scoreName.isHoleInOne?'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)':'transparent', boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':scoreName.isHoleInOne?'0 2px 12px rgba(201,162,40,0.5)':'none', fontWeight:(isPar3AtPar||scoreName.isHoleInOne)?'800':'600', opacity:playerScore.touched?1:0.35, animation:scoreName.isHoleInOne&&playerScore.touched?'holeInOnePulse 2s ease-in-out infinite':'none' }}>
+          <div style={{
+            fontSize:11, fontWeight: isPar3AtPar?'800':(scoreName.fw||'700'),
+            letterSpacing:'0.14em', textTransform:'uppercase',
+            color: isPar3AtPar?'#fff':(scoreName.textColor||scoreName.color),
+            background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':(scoreName.bg||'transparent'),
+            border:`1.5px solid ${isPar3AtPar?'#c04a10':scoreName.color}`,
+            borderRadius:6, padding:'6px 12px',
+            boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':(playerScore.touched&&scoreName.shadow?scoreName.shadow:'none'),
+            opacity: playerScore.touched?1:0.3,
+            animation: playerScore.touched&&scoreName.anim?scoreName.anim:'none',
+          }}>
             {isPar3AtPar?'PAR 3 !':scoreName.name}
           </div>
         )}
       </div>
 
-      {/* 총 타수 */}
-      <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+      {/* ── 멀티플레이어 간편 스코어 ── */}
+      {isSimpleMode && (
+        <div style={{ padding:'8px 16px 4px' }}>
+          {round.players.map((player, pi) => {
+            const ps = hole.scores[player];
+            const sn = getScoreName(ps.strokes, hole.par);
+            const diff = ps.strokes - hole.par;
+            const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
+            return (
+              <div key={player} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8, padding:'6px 10px', borderRadius:10, background:'#0d1525', border:'1px solid #1b2744' }}>
+                <div style={{ width:26, height:26, borderRadius:'50%', background:'#1b2a45', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <span style={{ fontSize:11, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
+                </div>
+                <span style={{ flex:1, fontSize:13, fontWeight:600, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                <span style={{ fontSize:10, fontWeight:700, color: sn?.color||'#4d5a78', minWidth:24, textAlign:'center' }}>{diffLabel}</span>
+                <div style={{ display:'flex', alignItems:'center', background:'#131c30', borderRadius:8, overflow:'hidden', height:38 }}>
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'rgba(61,184,122,0.55)', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                    onClick={() => updatePlayerStrokes(player, Math.max(1, ps.strokes - 1))}>−</button>
+                  <span style={{ width:34, textAlign:'center', fontSize:20, fontWeight:900, color: sn?.color||'#e8edf8', lineHeight:1 }}>{ps.strokes}</span>
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'rgba(239,83,80,0.55)', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                    onClick={() => updatePlayerStrokes(player, Math.min(20, ps.strokes + 1))}>+</button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 이전/다음 홀 네비게이션 */}
+          <div style={{ display:'flex', gap:8, marginTop:4 }}>
+            <button
+              disabled={holeIdx === 0}
+              style={{ flex:1, height:46, borderRadius:10, border:'1px solid #1b2744', background:'transparent', color: holeIdx===0?'#252f4a':'#c4cfe0', fontSize:14, fontWeight:700, cursor: holeIdx===0?'default':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+              onClick={() => goToHole(holeIdx - 1)}>
+              ‹ 이전
+            </button>
+            {isLastHole ? (
+              <button
+                style={{ flex:1, height:46, borderRadius:10, border:'none', background:'#c9a228', color:'#0b0e18', fontSize:14, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+                onClick={() => {
+                  const u = { ...round }; u.holes = [...round.holes];
+                  const lh = u.holes[holeIdx]; const us = {};
+                  round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
+                  u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
+                }}>
+                🏁 라운드 완료
+              </button>
+            ) : (
+              <button
+                style={{ flex:1, height:46, borderRadius:10, border:'none', background:'#1b2a45', color:'#e8edf8', fontSize:14, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
+                onClick={() => goToHole(holeIdx + 1)}>
+                다음 홀 ›
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!isSimpleMode && <>
+      {/* 스코어 */}
+      <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
+          <div style={{ flex:1 }} />
+          <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>스코어</span>
+          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
+            <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+              onClick={()=>updateScore('strokes', hole.par)}>초기화</button>
+          </div>
+        </div>
         <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
           <button
             style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
             onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
           <button
             style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
-            onClick={()=>updateScore('strokes',playerScore.strokes+1)}>+</button>
+            onClick={()=>updateScore('strokes',Math.min(20,playerScore.strokes+1))}>+</button>
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
             <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
           </div>
         </div>
       </div>
 
-      {/* Player Tabs */}
-      {round.players.length > 1 && (
-        <div style={styles.playerTabs}>
-          {round.players.map(p => {
-            const psc=hole.scores[p];
+      {/* 퍼팅 개수 */}
+      <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
+          <div style={{ flex:1 }} />
+          <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>퍼팅</span>
+          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
+            <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+              onClick={()=>{ updatePuttsCount(2); setShowPuttsDropdown(false); }}>초기화</button>
+          </div>
+        </div>
+        <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.22), rgba(239,83,80,0.22))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
+          {[0,1,2,3,4].map((n, i) => {
+            const t = n / 4;
+            const r = Math.round(61 + (239-61)*t);
+            const g = Math.round(184 + (83-184)*t);
+            const b = Math.round(122 + (80-122)*t);
+            const sel = n === 4 ? playerScore.putts >= 4 : playerScore.putts === n;
+            const curVal = playerScore.putts;
+            const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
+            const disabled = n > maxPutts;
+            const label = n === 4
+              ? (curVal < 4 ? '4' : `${curVal}+`)
+              : String(n);
             return (
-              <button key={p} style={{ ...styles.playerTab, background: activePlayer===p?'#c9a228':'transparent', color: activePlayer===p?'#0b0e18':'#8896b0', borderColor: activePlayer===p?'#c9a228':'#252f4a' }} onClick={()=>setActivePlayer(p)}>
-                {p}<span style={{ ...styles.playerTabScore, background: psc.touched?'#0b0e18':'#252f4a', opacity: psc.touched?1:0.7 }}>{psc.strokes}</span>
-              </button>
+              <button key={n}
+                disabled={disabled}
+                style={{
+                  flex:1, background: sel ? `rgba(${r},${g},${b},0.32)` : 'transparent',
+                  border:'none', borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                  color: sel ? `rgb(${r},${g},${b})` : 'rgba(232,237,248,0.45)',
+                  fontSize: 18, fontWeight:900,
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.35 : 1,
+                  boxShadow: sel ? `inset 0 0 0 2px rgba(${r},${g},${b},0.7)` : 'none',
+                }}
+                onClick={() => {
+                  if (n === 4) {
+                    if (curVal < 4) { updatePuttsCount(4); setShowPuttsDropdown(false); }
+                    else { setShowPuttsDropdown(v => !v); }
+                  } else {
+                    updatePuttsCount(n);
+                    setShowPuttsDropdown(false);
+                  }
+                }}>{label}</button>
             );
           })}
         </div>
-      )}
+
+        {showPuttsDropdown && (() => {
+          const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
+          // 스코어가 높아 퍼팅 8개를 넘어야 하는 경우도 선택 가능하도록 상한까지 확장
+          const upper = Math.max(8, Math.min(maxPutts, 15));
+          const options = Array.from({ length: Math.max(0, upper - 4) }, (_, i) => i + 5);
+          return (
+            <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap' }}>
+              {options.map(n => {
+                const disabled = n > maxPutts;
+                const sel = playerScore.putts === n;
+                return (
+                  <button key={n}
+                    disabled={disabled}
+                    style={{
+                      flex:1, height:38, borderRadius:8,
+                      border: `2px solid ${sel ? '#ef5350' : '#1b2238'}`,
+                      background: sel ? 'rgba(239,83,80,0.18)' : '#161c2c',
+                      color: sel ? '#ef5350' : 'rgba(232,237,248,0.7)',
+                      fontSize:16, fontWeight:800,
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.35 : 1,
+                    }}
+                    onClick={() => { updatePuttsCount(n); setShowPuttsDropdown(false); }}>{n}</button>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* 패널티 */}
+      <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
+          <div style={{ flex:1 }} />
+          <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>패널티</span>
+          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
+            {((playerScore.ob||0) > 0 || (playerScore.hazard||0) > 0) && (
+              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+                onClick={()=>{ updateFields({ ob:0, hazard:0, strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0}, hole.par) }); }}>초기화</button>
+            )}
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          {[
+            { label:'해저드', val:playerScore.hazard||0, onDec:()=>{ const c=playerScore.hazard||0; if(c>0) updatePenalty('hazard',c-1); }, onInc:()=>updatePenalty('hazard',Math.min(5,(playerScore.hazard||0)+1)) },
+            { label:'OB',    val:playerScore.ob||0,     onDec:()=>{ const c=playerScore.ob||0;     if(c>0) updatePenalty('ob',c-1);     }, onInc:()=>updatePenalty('ob',    Math.min(5,(playerScore.ob||0)+1))   },
+          ].map(item => (
+            <div key={item.label} style={{ flex:1 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'#4d5a78', textAlign:'center', marginBottom:4 }}>{item.label}</div>
+              <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'#131c30', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
+                <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
+                <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
+                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                  <span style={{ fontSize:22, fontWeight:900, color: item.val > 0 ? '#ef5350' : '#2e3d56', lineHeight:1 }}>{item.val}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      </>}
 
       {/* ── Score Input Form ── */}
-      <div style={{ paddingBottom: 8 }}>
+      {!isSimpleMode && <div style={{ paddingBottom: 8 }}>
 
         {/* ── 티샷 아코디언 ── */}
         <button
@@ -972,38 +1569,70 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             borderBottom: teeExpanded ? 'none' : '1px solid #0e1320',
           }}
         >
-          <div style={{ height:1, flex: teeExpanded ? 1 : 0, width: teeExpanded ? undefined : 20, background:'#1b2238' }} />
-          <span style={{ fontSize:10, fontWeight:700, color: teeComplete && !teeExpanded ? '#c9a228' : '#4d5a78', letterSpacing:'0.22em', flexShrink:0 }}>티 샷</span>
-          {!teeExpanded && teeComplete && (
-            <span style={{ fontSize:11, color:'#8896b0', fontWeight:600, letterSpacing:'0.04em', flex:1, textAlign:'left', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-              {teeShotSummary}
-            </span>
-          )}
-          <div style={{ height:1, flex:1, background:'#1b2238' }} />
-          <span style={{ fontSize:10, color:'#3d4d65', flexShrink:0 }}>{teeExpanded ? '▲' : '▼'}</span>
+          {(() => { const h = HDR[turnState('tee', teeComplete)]; return (<>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{turnState('tee', teeComplete) === 'done' && '✓ '}티 샷</span>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:11, color: h.arrow, flexShrink:0 }}>{teeExpanded ? '▲' : '▼'}</span>
+          </>); })()}
         </button>
 
         {teeExpanded && <>
-        {/* 티샷 클럽 */}
+        {/* 티박스 위치 — 여기서 찍어야 티샷 거리가 측정된다 */}
+        <GpsShotPoint
+          label="티샷 지점"
+          point={gpsPoints[0] || null}
+          pinPoint={gpsPin}
+          onCapture={fix => setGpsPoint(0, fix)}
+          onClear={() => setGpsPoint(0, null)}
+        />
+
+        {/* PAR3 전용: 핀 위치 */}
+        {hole.par === 3 && (
+          <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
+            </div>
+            <RadialPicker centerId="center" centerLabel="센터" placeholder="선택" dirs={PIN_DIRS}
+              value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
+              onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
+              onOpen={scrollDown}
+            />
+          </div>
+        )}
+
+        {/* PAR3 전용: 거리 (핀 위치 선택 후) */}
+        {hole.par === 3 && playerScore.pinPosition && (
+          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+            <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>거리</span></div>
+            <SwipeDistance value={playerScore.teeDistance||150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
+            <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
+          </div>
+        )}
+
+        {/* 티샷 클럽 (PAR3: 핀 위치 선택 후, PAR4+: 항상) */}
+        {(hole.par > 3 || playerScore.pinPosition) && (
         <ClubSelector
           icon="〽"
           label="클럽"
           categories={clubs}
           value={playerScore.teeClub}
           subValue={playerScore.teeClubSub}
-          onCategory={v => updateFields({ teeClub: v, teeClubSub: null })}
+          onCategory={v => { updateFields({ teeClub: v, teeClubSub: null }); if (v) scrollDown(); }}
           onSub={v => updateField('teeClubSub', v)}
           stacked
           onInteractStart={() => setTeeClubInteracting(true)}
           onInteractEnd={() => setTeeClubInteracting(false)}
         />
+        )}
 
-        {/* 티샷 구질 - 클럽 선택 완료 후 등장 */}
-        {(!playerScore.teeClub && !teeClubInteracting) ? (
+        {/* 티샷 구질 - 클럽 선택 완료 후 등장 (PAR3: 핀 위치 선택 후) */}
+        {(hole.par > 3 || playerScore.pinPosition) && (
+          (!playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
             <span style={{ fontSize:10, color:'#2e3d56', letterSpacing:'0.12em' }}>클럽을 선택하면 구질 입력이 나타납니다</span>
           </div>
-        ) : (playerScore.teeClub && !teeClubInteracting) ? (
+          ) : (playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
@@ -1014,13 +1643,56 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   {row.map(s => (
                     <button key={s}
                       style={{ ...fChip, flex:1, textAlign:'center', padding:'10px 6px', fontSize:13, borderRadius:8, ...(playerScore.shotShape===s?fChipOn:{}) }}
-                      onClick={()=>updateField('shotShape', playerScore.shotShape===s?null:s)}>{s}</button>
+                      onClick={()=>{ const nv=playerScore.shotShape===s?null:s; updateField('shotShape',nv); if(nv) scrollDown(); }}>{s}</button>
                   ))}
                 </div>
               ))}
             </div>
           </div>
-        ) : null}
+          ) : null
+        )}
+
+        {/* PAR3 전용: GIR - 구질 선택 후 등장 */}
+        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && (() => {
+          const hioSelected = playerScore.putts===0 && playerScore.girAuto===false && (playerScore.puttDetails?.length||0)===0 && playerScore.touched;
+          return (
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>⚑</span><span style={fLbl}>GIR</span>
+            </div>
+            {/* 성공 / 실패 */}
+            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.gir===true && !playerScore.girAuto?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+                onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
+              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+                onClick={()=>{ updateGir(false); setSecondShotExpanded(true); setShotPage(0); scrollDown(); }}>실패</button>
+            </div>
+            {/* 홀인원 풀와이드 */}
+            <button
+              style={{
+                width:'100%', padding:'13px 16px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                border: hioSelected ? '2px solid #c9a228' : '1.5px solid #252f4a',
+                background: hioSelected
+                  ? 'linear-gradient(135deg, rgba(201,162,40,0.28) 0%, rgba(201,162,40,0.08) 100%)'
+                  : '#1a2235',
+                color: hioSelected ? '#c9a228' : '#8896b0',
+                fontWeight: 700, fontSize: 13, letterSpacing:'0.08em',
+                animation: hioSelected ? 'holeInOnePulse 1.6s ease-in-out infinite' : 'none',
+                boxShadow: hioSelected ? '0 0 20px rgba(201,162,40,0.35)' : 'none',
+                transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
+              }}
+              onClick={() => {
+                const freshStrokes = calcAutoStrokes({ ...playerScore, putts: 0 }, hole.par);
+                const freshScore = { ...playerScore, gir: true, girAuto: false, putts: 0, strokes: freshStrokes, puttDetails: [], touched: true };
+                triggerChipIn(freshScore);
+              }}>
+              {hioSelected && <span style={{ fontSize:16 }}>⭐</span>}
+              <span>홀인원</span>
+              {hioSelected && <span style={{ fontSize:16 }}>⭐</span>}
+            </button>
+          </div>
+        );})()}
 
         {/* FAIRWAY HIT - 구질 선택 후 등장 */}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
@@ -1029,27 +1701,52 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
             </div>
             <div style={{ display:'flex', gap:8 }}>
-              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>updateScore('fairway',true)}>O</button>
-              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>updateScore('fairway',false)}>X</button>
+              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>{ updateScore('fairway',true); scrollDown(); }}>O</button>
+              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:16, fontWeight:800, cursor:'pointer' }} onClick={()=>{ updateScore('fairway',false); scrollDown(); }}>X</button>
             </div>
           </div>
         )}
 
-        {/* LANDING POINT (L/C/R) - 구질 선택 후 등장 */}
-        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
+        {/* LANDING POINT (L/C/R/그린) - 페어웨이 힛 선택 후 등장 */}
+        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && playerScore.fairway != null && (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
             </div>
-            <div style={{ display:'flex', gap:8 }}>
+            {/* L / C / R 3분할 */}
+            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
-                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${playerScore.fairwayHit===id?col:'#252f4a'}`, background:playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
-                  onClick={()=>updateLandingPoint(playerScore.fairwayHit===id?null:id)}>
+                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#252f4a'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
+                  onClick={()=>{ updateFields({ teeGIR: false, fairwayHit: playerScore.fairwayHit===id?null:id }); }}>
                   <div style={{ fontSize:12, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:10, marginTop:2 }}>{label}</div>
                 </button>
               ))}
             </div>
+            {/* G 그린(1온) 풀와이드 버튼 */}
+            <button
+              style={{
+                width:'100%', padding:'13px 16px', borderRadius:8, cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                border: playerScore.teeGIR ? '1.5px solid #c9a228' : '1.5px solid #252f4a',
+                background: playerScore.teeGIR ? 'linear-gradient(135deg, rgba(201,162,40,0.22) 0%, rgba(201,162,40,0.08) 100%)' : '#1a2235',
+                color: playerScore.teeGIR ? '#c9a228' : '#8896b0',
+                animation: playerScore.teeGIR ? 'goldPulse 1.8s ease-in-out infinite' : 'none',
+                boxShadow: playerScore.teeGIR ? '0 0 18px rgba(201,162,40,0.28)' : 'none',
+                transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
+              }}
+              onClick={()=>{
+                if (playerScore.teeGIR) { updateFields({ teeGIR: false }); setShotPage(0); }
+                else {
+                  updateFields({ teeGIR: true, fairwayHit: null });
+                  clearTimeout(shotPageTimeoutRef.current);
+                  shotPageTimeoutRef.current = setTimeout(() => setShotPage(1), 2000);
+                }
+              }}>
+              <span style={{ fontSize:15, fontWeight:900 }}>G</span>
+              <span style={{ fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>그린  (1온)</span>
+              {playerScore.teeGIR && <span style={{ fontSize:14, marginLeft:4 }}>⛳</span>}
+            </button>
           </div>
         )}
         </>}
@@ -1057,20 +1754,52 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* ── 페이지 네이션 ── */}
         <div style={{ display:'flex', margin:'8px 16px 0', borderRadius:10, overflow:'hidden', border:'1px solid #1b2238', background:'#0a0e1a' }}>
           {[['필드샷', 0], ['퍼팅', 1]].map(([label, pg]) => (
-            <button key={pg} onClick={() => setShotPage(pg)}
-              style={{ flex:1, padding:'12px 0', border:'none', cursor:'pointer', background: shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: shotPage===pg ? '#c9a228' : '#4d5a78', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
+            <button key={pg} onClick={() => teeComplete && setShotPage(pg)}
+              style={{ flex:1, padding:'12px 0', border:'none', cursor: teeComplete ? 'pointer' : 'default', background: teeComplete && shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: !teeComplete ? '#1a2535' : shotPage===pg ? '#c9a228' : '#4d5a78', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${teeComplete && shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
             >{label}</button>
           ))}
         </div>
+        {!teeComplete && (
+          <div style={{ padding:'8px 16px', textAlign:'center' }}>
+            <span style={{ fontSize:10, color:'#1e2d3d', letterSpacing:'0.1em' }}>티샷 완료 후 입력 가능합니다</span>
+          </div>
+        )}
 
-        {shotPage === 0 && <>
-        {/* ── 세컨샷 ── */}
-        {secHdr('세 컨 샷')}
+        {teeComplete && shotPage === 0 && !playerScore.teeGIR && <>
+        {/* ── 세컨샷 아코디언 헤더 ── */}
+        <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
+          {(() => {
+            const st = turnState('second', !!playerScore.secondClub || playerScore.gir != null || extraShots.length > 0);
+            const h = HDR[st];
+            return (<>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{st === 'done' && '✓ '}세컨샷 ( 2nd )</span>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:11, color: h.arrow, flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
+          </>); })()}
+        </button>
+
+        {secondShotExpanded && <>
+        {/* 세컨샷 지점 — 티샷한 볼 앞. 티 지점과의 거리가 곧 티샷 거리다 */}
+        <GpsShotPoint
+          label="세컨샷 지점"
+          point={gpsPoints[1] || null}
+          prevPoint={gpsPoints[0] || null}
+          prevLabel={shotLabel(0)}
+          locked={gpsLocked(1)}
+          lockedHint={gpsLockHint(1)}
+          pinPoint={gpsPin}
+          onCapture={fix => setGpsPoint(1, fix)}
+          onClear={() => setGpsPoint(1, null)}
+        />
 
         {/* 남은 거리 */}
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
-          <SwipeDistance value={playerScore.remainingDistance||150} min={1} max={300} onChange={v=>updateField('remainingDistance',v)} />
+          <div style={{ ...fLeft, marginBottom:10 }}>
+            <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
+            {measuredSecond != null && <span style={{ fontSize:9, fontWeight:800, color:'#3db87a', marginLeft:6, padding:'1px 5px', borderRadius:4, border:'1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>}
+          </div>
+          <SwipeDistance value={playerScore.remainingDistance||150} min={1} max={SANE_REMAIN_M} onChange={v=>updateField('remainingDistance',v)} />
           <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
         </div>
 
@@ -1081,163 +1810,231 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           categories={SECOND_CLUBS}
           value={playerScore.secondClub}
           subValue={playerScore.secondClubSub}
-          onCategory={v => updateFields({ secondClub: v, secondClubSub: null })}
+          onCategory={v => { updateFields({ secondClub: v, secondClubSub: null }); if (v) scrollDown(); }}
           onSub={v => updateField('secondClubSub', v)}
           stacked
         />
 
-        {/* 세컨샷 라이 */}
-        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
+        {/* 라이·바람 — 기본 접힘, 세컨샷 클럽을 고르면 금색으로 활성화 */}
+        <LieSection
+          key={`lie-${holeIdx}-${activePlayer}`}
+          label="세컨샷 라이"
+          enabled={!!playerScore.secondClub}
+          value={playerScore.terrainCondition}
+          onChange={v => updateField('terrainCondition', v)}
+        />
+        <WindSection
+          key={`wind-${holeIdx}-${activePlayer}`}
+          enabled={!!playerScore.secondClub}
+          direction={playerScore.windDirection} strength={playerScore.windStrength}
+          onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)}
+          onReset={() => updateField('windDirection', null)}
+        />
+        </>}
+
+        {/* ── 세컨샷 온그린 체크 → 써드샷 이후 ── */}
+        {/* 라이가 선택 입력이 되면서 다음 단계는 클럽 선택으로 연다. 라이만 있는
+            과거 기록, 지도에서 샷을 추가한 경우도 그대로 보이게 한다. */}
+        {(playerScore.secondClub || lieValue(playerScore.terrainCondition) || extraShots.length > 0 || playerScore.gir != null) && (<>
+        <div ref={extraShotTopRef} />
+
+        {/* 세컨샷 GIR (추가 샷 없을 때, Par 4+) */}
+        {extraShots.length === 0 && hole.par > 3 && (
+          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+            <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>GIR</span></div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===true && !playerScore.girAuto ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                onClick={()=>{ updateGir(true); setShotPage(1); }}>성공</button>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.gir===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                onClick={()=>{ setSecondShotExpanded(false); addExtraShot({ gir: false, girAuto: false }); }}>실패</button>
+            </div>
           </div>
-          <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
-            value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
-            onChange={v => updateField('terrainCondition', v)}
-          />
-        </div>
+        )}
 
-        {/* 바람 */}
-        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
-              {playerScore.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(playerScore.windDirection)} {playerScore.windDirection}°</span>}
-              {playerScore.windStrength != null && playerScore.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(playerScore.windStrength).toFixed(1)}m/s</span>}
+        {/* 세컨샷 온그린 (추가 샷 없을 때, Par 3) */}
+        {extraShots.length === 0 && hole.par === 3 && (
+          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+            <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                onClick={()=>{ updateOnGreen(true); setShotPage(1); }}>성공</button>
+              <button style={{ ...fChipWide, padding:'10px 24px', ...(playerScore.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                onClick={()=>{ setSecondShotExpanded(false); addExtraShot({ onGreen: false }); }}>실패</button>
             </div>
-            {playerScore.windDirection != null && (
-              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
-                onClick={() => updateField('windDirection', null)}>초기화</button>
-            )}
           </div>
-          <WindInput direction={playerScore.windDirection} strength={playerScore.windStrength}
-            onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)} />
-        </div>
+        )}
 
-        {/* ── 추가 샷 ── */}
-        {extraShots.map((shot, idx) => (
-          <React.Fragment key={idx}>
-            {secHdr(`${idx + 3}번 째 샷`, () => removeExtraShot(idx))}
+        {/* 써드샷 / 네번째 샷 / ... 아코디언 */}
+        {extraShots.map((shot, idx) => {
+          const isExtraOpen = expandedExtraShot === idx;
+          const extraDone = shot.onGreen != null;
+          const exState = turnState(idx, extraDone);
+          const exHdr = HDR[exState];
+          return (
+            <React.Fragment key={idx}>
+              {/* 아코디언 헤더 */}
+              <button
+                onClick={() => setExpandedExtraShot(isExtraOpen ? -1 : idx)}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isExtraOpen ? 'none' : '1px solid #0e1320' }}
+              >
+                <div style={{ height:1, flex:1, background: exHdr.line }} />
+                <span style={{ fontSize:12, fontWeight:800, color: exHdr.label, letterSpacing:'0.18em', flexShrink:0 }}>
+                  {exState === 'done' && '✓ '}{extraShotName(idx)}
+                </span>
+                <div style={{ height:1, flex:1, background: exHdr.line }} />
+                <span style={{ fontSize:11, color: exHdr.arrow, flexShrink:0 }}>{isExtraOpen ? '▲' : '▼'}</span>
+              </button>
 
-            {/* 남은 거리 */}
-            <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-              <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
-              <SwipeDistance value={shot.remainingDistance||150} min={1} max={300} onChange={v => updateExtraShot(idx, { remainingDistance: v })} />
-              <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
-            </div>
+              {isExtraOpen && (<>
+                {/* 이 샷을 치는 지점 — 직전 지점과의 거리가 직전 샷의 거리다 */}
+                <GpsShotPoint
+                  label={`${extraShotName(idx)} 지점`}
+                  point={gpsPoints[idx + 2] || null}
+                  prevPoint={gpsPoints[idx + 1] || null}
+                  prevLabel={shotLabel(idx + 1)}
+                  locked={gpsLocked(idx + 2)}
+                  lockedHint={gpsLockHint(idx + 2)}
+                  pinPoint={gpsPin}
+                  onCapture={fix => setGpsPoint(idx + 2, fix)}
+                  onClear={() => setGpsPoint(idx + 2, null)}
+                />
 
-            {/* 클럽 */}
-            <ClubSelector
-              icon="〽"
-              label="클럽"
-              categories={SECOND_CLUBS}
-              value={shot.club}
-              subValue={shot.subClub}
-              onCategory={v => updateExtraShot(idx, { club: v, subClub: null })}
-              onSub={v => updateExtraShot(idx, { subClub: v })}
-              stacked
-            />
-
-            {/* 라이 */}
-            <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
-              </div>
-              <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
-                value={Array.isArray(shot.lie) ? shot.lie[0] : shot.lie}
-                onChange={v => updateExtraShot(idx, { lie: v })}
-              />
-            </div>
-
-            {/* 바람 */}
-            <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
-                  {shot.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(shot.windDirection)} {shot.windDirection}°</span>}
-                  {shot.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(shot.windStrength).toFixed(1)}m/s</span>}
+                {/* 남은 거리 */}
+                <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+                  <div style={{ ...fLeft, marginBottom:10 }}>
+                    <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
+                    {measuredExtra(idx) != null && <span style={{ fontSize:9, fontWeight:800, color:'#3db87a', marginLeft:6, padding:'1px 5px', borderRadius:4, border:'1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>}
+                  </div>
+                  <SwipeDistance value={shot.remainingDistance||150} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v })} />
+                  <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
                 </div>
-                {shot.windDirection != null && (
-                  <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
-                    onClick={() => updateExtraShot(idx, { windDirection: null })}>초기화</button>
-                )}
-              </div>
-              <WindInput
-                direction={shot.windDirection}
-                strength={shot.windStrength}
-                onDir={v => updateExtraShot(idx, { windDirection: v })}
-                onStrength={v => updateExtraShot(idx, { windStrength: v })}
-              />
-            </div>
-          </React.Fragment>
-        ))}
 
-        <div style={{ padding:'8px 16px 10px', borderBottom:'1px solid #0e1320' }}>
-          <button
-            style={{ width:'100%', padding:'11px', borderRadius:9, border:'1.5px dashed #252f4a', background:'transparent', color:'#4d5a78', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'0.08em' }}
-            onClick={addExtraShot}>+ 샷 추가</button>
-        </div>
+                {/* 클럽 */}
+                <ClubSelector
+                  icon="〽" label="클럽" categories={SECOND_CLUBS}
+                  value={shot.club} subValue={shot.subClub}
+                  onCategory={v => { updateExtraShot(idx, { club: v, subClub: null }); if (v) scrollDown(); }}
+                  onSub={v => updateExtraShot(idx, { subClub: v })}
+                  stacked
+                />
+
+                {/* 라이·바람 — 기본 접힘, 클럽을 고르면 금색으로 활성화 */}
+                <LieSection
+                  key={`lie-${holeIdx}-${activePlayer}-${idx}`}
+                  enabled={!!shot.club}
+                  value={shot.lie}
+                  onChange={v => updateExtraShot(idx, { lie: v })}
+                />
+                <WindSection
+                  key={`wind-${holeIdx}-${activePlayer}-${idx}`}
+                  enabled={!!shot.club}
+                  direction={shot.windDirection} strength={shot.windStrength}
+                  onDir={v => updateExtraShot(idx, { windDirection: v })}
+                  onStrength={v => updateExtraShot(idx, { windStrength: v })}
+                  onReset={() => updateExtraShot(idx, { windDirection: null })}
+                />
+
+                {/* 온그린 성공 / 실패 — 클럽 선택 후 노출 */}
+                {shot.club && (
+                <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+                  <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                      onClick={() => { updateExtraShot(idx, { onGreen: true }); setShotPage(1); }}>성공</button>
+                    <button
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                      onClick={() => {
+                        const updated = extraShots.map((s, i) => i === idx ? { ...s, onGreen: false } : s);
+                        // 뒤에 이미 샷이 기록돼 있으면 그게 곧 이 샷의 후속타다.
+                        // 여기서 또 만들면 항상 맨 뒤에 붙어서, 써드샷 실패를 눌렀는데
+                        // 여섯 번째 샷이 생기는 식으로 샷 순번이 어긋난다.
+                        if (idx < extraShots.length - 1) {
+                          updateField('extraShots', updated);
+                          setExpandedExtraShot(idx + 1);
+                          return;
+                        }
+                        const newShot = { club:null, subClub:null, lie:[], remainingDistance: Math.ceil((shot.remainingDistance||150) / 2), windDirection:null, windStrength:null, onGreen:null };
+                        updateField('extraShots', [...updated, newShot]);
+                        setExpandedExtraShot(extraShots.length);
+                      }}>실패</button>
+                    <button
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+                      onClick={() => {
+                        const updatedShots = extraShots.map((s, i) => i === idx ? { ...s, onGreen: 'chip-in' } : s);
+                        const freshPlayerScore = { ...playerScore, extraShots: updatedShots, putts: 0 };
+                        const freshStrokes = calcAutoStrokes(freshPlayerScore, hole.par);
+                        const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], touched: true };
+                        triggerChipIn(freshScore);
+                      }}>칩인</button>
+                  </div>
+                </div>
+                )}
+
+                {/* 삭제 */}
+                <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+                  <button
+                    style={{ width:'100%', padding:'8px', borderRadius:7, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                    onClick={() => removeExtraShot(idx)}>✕ {extraShotName(idx)} 이후 삭제</button>
+                </div>
+              </>)}
+            </React.Fragment>
+          );
+        })}
+        </>)}
 
         </>}
 
-        {shotPage === 1 && <>
+        {teeComplete && shotPage === 1 && <>
+
         {/* ── 그린 ── */}
-        {secHdr('그 린')}
+        {secHdr('그 린', null, turnState('green', !!playerScore.onGreenLanding))}
 
-        {/* GIR */}
-        <div style={fRow}>
-          <div style={fLeft}>
-            <span style={fIcon}>⚑</span>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={fLbl}>GIR</span>
-              {playerScore.girAuto && <span style={{ fontSize:9, color:'#c9a228', fontWeight:700, letterSpacing:'0.1em', background:'rgba(201,162,40,0.12)', border:'1px solid rgba(201,162,40,0.3)', borderRadius:3, padding:'1px 5px' }}>AUTO</span>}
-            </div>
-          </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <button style={{ ...fChipWide, ...(playerScore.gir===true?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }} onClick={()=>updateGir(true)}>✓ 온</button>
-            <button style={{ ...fChipWide, ...(playerScore.gir===false?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }} onClick={()=>updateGir(false)}>✗ 오프</button>
-          </div>
-        </div>
+        {/* 그린 도착 지점 — 마지막 필드샷의 거리가 여기서 확정된다.
+            퍼팅 거리는 GPS 오차(두 점 합성 ±5~10m)보다 짧아 측정 대상이 아니다. */}
+        <GpsShotPoint
+          label={finalPointLabel}
+          point={gpsGreen}
+          prevPoint={gpsPoints[fieldShots - 1] || null}
+          prevLabel={shotLabel(fieldShots - 1)}
+          locked={gpsLocked(fieldShots)}
+          lockedHint={gpsLockHint(fieldShots)}
+          pinPoint={gpsPin}
+          onCapture={fix => updateGpsField('gpsGreen', fix)}
+          onClear={() => updateGpsField('gpsGreen', null)}
+        />
 
-        {/* 핀 위치 */}
+        {/* 핀 위치 - PAR4+ 전용 (PAR3는 티샷에서 입력) */}
+        {hole.par > 3 && (
         <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
             <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
           </div>
           <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS}
             value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
-            onChange={v => updateField('pinPosition', v)}
+            onChange={v => { updateField('pinPosition', v); if (v) scrollDown(); }}
+            onOpen={scrollDown}
           />
         </div>
+        )}
 
+        {playerScore.pinPosition && (<>
         {/* 온그린 랜딩 (12-clock) */}
-        <div style={{ padding:'8px 16px 16px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ padding:'8px 16px 16px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
           <div style={{ ...fLeft, marginBottom:12 }}>
             <span style={fIcon}>⊙</span>
             <span style={fLbl}>온그린 랜딩</span>
             {playerScore.onGreenLanding && <span style={{ fontSize:10, color:'#c9a228', marginLeft:6 }}>{playerScore.onGreenLanding}시 방향</span>}
           </div>
-          <ClockDial12 value={playerScore.onGreenLanding} onChange={v=>updateField('onGreenLanding',v)} />
+          <ClockDial12 value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) scrollDown(); }} />
           <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:10, lineHeight:1.6 }}>
             12시=롱 · 6시=숏 · 9시=레프트 · 3시=라이트 (핀 기준)
           </div>
         </div>
 
-        {/* ── 퍼팅 ── */}
-        {secHdr('퍼 팅')}
-
-        {/* 퍼팅 */}
-        <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-            <span style={fIcon}>○</span><span style={fLbl}>퍼팅</span>
-          </div>
-          <div style={{ display:'flex', gap:6 }}>
-            {[0,1,2,3,4].map(n => (
-              <button key={n} style={{ flex:1, height:46, borderRadius:8, border:`2px solid ${playerScore.putts===n?'#c9a228':'#252f4a'}`, background:playerScore.putts===n?'rgba(201,162,40,0.2)':'#1a2235', color:playerScore.putts===n?'#c9a228':'#e8edf8', fontSize:18, fontWeight:800, cursor:'pointer' }}
-                onClick={()=>updatePuttsCount(n)}>{n}</button>
-            ))}
-          </div>
-        </div>
+        {/* 퍼팅 상세 — 온그린 랜딩 선택 후 노출 */}
+        {playerScore.onGreenLanding && (<>
+        {secHdr('퍼 팅', null, turnState('putt', false))}
 
         {playerScore.putts > 0 && (<>
 
@@ -1251,24 +2048,21 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <React.Fragment key={puttIdx}>
                 {/* 아코디언 헤더 */}
                 <button
-                  onClick={() => setExpandedPutt(isOpen ? -1 : puttIdx)}
+                  onClick={() => { const next = isOpen ? -1 : puttIdx; setExpandedPutt(next); if (next >= 0) scrollDown(); }}
                   style={{
                     width:'100%', display:'flex', alignItems:'center', gap:8,
                     padding:'10px 16px', background:'none', border:'none', cursor:'pointer',
                     borderBottom: isOpen ? 'none' : '1px solid #0e1320',
                   }}
                 >
-                  <div style={{ height:1, flex:1, background:'#151e32' }} />
-                  <span style={{ fontSize:9, fontWeight:700, color: isOpen ? '#c9a228' : '#3d4d65', letterSpacing:'0.18em' }}>
-                    PUTT {puttIdx + 1}
-                  </span>
-                  {!isOpen && (
-                    <span style={{ fontSize:10, color:'#4d5a78', fontWeight:600 }}>
-                      {[putt.distance ? `↔${putt.distance}m` : null, lieLabel].filter(Boolean).join('  ')}
+                  {(() => { const done = !isOpen && !!putt.holein; return (<>
+                    <div style={{ height:1, flex:1, background: done ? 'rgba(201,162,40,0.55)' : '#151e32' }} />
+                    <span style={{ fontSize:11, fontWeight:700, color: isOpen || done ? '#c9a228' : '#4d5a78', letterSpacing:'0.18em' }}>
+                      PUTT {puttIdx + 1}
                     </span>
-                  )}
-                  <div style={{ height:1, flex:1, background:'#151e32' }} />
-                  <span style={{ fontSize:10, color:'#3d4d65' }}>{isOpen ? '▲' : '▼'}</span>
+                    <div style={{ height:1, flex:1, background: done ? 'rgba(201,162,40,0.55)' : '#151e32' }} />
+                    <span style={{ fontSize:11, color: isOpen || done ? '#c9a228' : '#5a6a88' }}>{isOpen ? '▲' : '▼'}</span>
+                  </>); })()}
                 </button>
 
                 {/* 펼쳐진 내용 */}
@@ -1279,54 +2073,88 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                     </div>
                     <RadialPicker centerId="flat" centerLabel="평지" dirs={PUTT_LIE_DIRS}
                       value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
-                      onChange={v => updatePutt(puttIdx, 'lie', v)}
+                      onChange={v => { updatePutt(puttIdx, 'lie', v); if (v) scrollDown(); }}
+                      onOpen={scrollDown}
                     />
                   </div>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  {putt.lie && (Array.isArray(putt.lie) ? putt.lie.length > 0 : true) && (<>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance value={putt.distance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'distance',v)} />
+                    <SwipeDistance value={putt.distance||puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
                   </div>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance value={putt.aimDistance||3} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+                    <SwipeDistance value={putt.aimDistance||putt.distance||puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
                   </div>
+                  {/* 홀인 */}
+                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+                    <div style={{ ...fLeft, marginBottom:8 }}>
+                      <span style={fIcon}>⛳</span><span style={fLbl}>홀인</span>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button
+                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='success'?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+                        onClick={() => {
+                          if (holeInModalPendingRef.current) return;
+                          holeInModalPendingRef.current = true;
+                          const puttsUsed = puttIdx + 1;
+                          const freshStrokes = calcAutoStrokes({ ...playerScore, putts: puttsUsed }, hole.par);
+                          const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
+                            i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
+                          );
+                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, touched: true };
+                          holeInCbRef.current = () => {
+                            if (isLastHole) {
+                              const u = { ...round }; u.holes = [...round.holes];
+                              const lh = u.holes[holeIdx]; const us = {};
+                              round.players.forEach(p => {
+                                const s = p === activePlayer ? freshScore : lh.scores[p];
+                                us[p] = finalizeScore(s, lh.par);
+                              });
+                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
+                            } else {
+                              confirmAndGoToHole(holeIdx + 1, freshScore);
+                            }
+                          };
+                          const onCount = freshStrokes - puttsUsed;
+                          setHoleInModalData({
+                            isLastHole,
+                            scoreName: getScoreName(freshStrokes, hole.par),
+                            strokes: freshStrokes,
+                            putts: puttsUsed,
+                            onCount,
+                          });
+                          setShowHoleInModal(true);
+                          setTimeout(() => { setShowHoleInModal(false); holeInModalPendingRef.current = false; holeInCbRef.current?.(); }, 2500);
+                        }}
+                      >성공</button>
+                      <button
+                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='fail'?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+                        onClick={() => {
+                          const newPutts = Math.max(playerScore.putts || 0, puttIdx + 2);
+                          const newDetails = Array.from({ length: newPutts }, (_, i) =>
+                            i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
+                          );
+                          updateFields({ putts: newPutts, puttDetails: newDetails });
+                          setExpandedPutt(puttIdx + 1);
+                          scrollDown();
+                        }}
+                      >실패</button>
+                    </div>
+                  </div>
+                  </>)}
                 </>)}
               </React.Fragment>
             );
           })}
 
         </>)}
+        </>)}
 
-        {/* 페널티 */}
-        <div style={{ display:'flex', gap:8, padding:'12px 16px', marginBottom:4 }}>
-          <div style={fPenBox}>
-            <span style={fPenLbl}>OB</span>
-            <div style={{ position:'relative', display:'flex', height:52, width:'100%', borderRadius:8, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>{ const c=playerScore.ob||0; if(c>0) updateScore('ob',c-1); }}>−</button>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>updateScore('ob',Math.min(5,(playerScore.ob||0)+1))}>+</button>
-              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <span style={{ fontSize:26, fontWeight:900, color:(playerScore.ob||0)>0?'#ef5350':'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.ob||0}</span>
-              </div>
-            </div>
-          </div>
-          <div style={fPenBox}>
-            <span style={fPenLbl}>해저드</span>
-            <div style={{ position:'relative', display:'flex', height:52, width:'100%', borderRadius:8, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>{ const c=playerScore.hazard||0; if(c>0) updateScore('hazard',c-1); }}>−</button>
-              <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.5)', fontSize:26, fontWeight:700, cursor:'pointer' }}
-                onClick={()=>updateScore('hazard',Math.min(5,(playerScore.hazard||0)+1))}>+</button>
-              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <span style={{ fontSize:26, fontWeight:900, color:(playerScore.hazard||0)>0?'#c9a228':'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.hazard||0}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </>)}
         </>}
 
-      </div>
+      </div>}
 
       {/* Scoring Bottom Bar */}
       <div style={styles.tabBar}>
@@ -1342,8 +2170,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>이전</span>
           </button>
 
-          {/* 공백 */}
-          <div />
+          {/* 홀 지도 */}
+          <button
+            style={{ ...styles.tabBarBtn, color: (gpsPoints.some(Boolean) || gpsGreen) ? '#c9a228' : '#4d5a78' }}
+            onClick={() => setShowHoleMap(true)}
+          >
+            <MapIcon size={20} strokeWidth={1.8} />
+            <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>지도</span>
+          </button>
 
           {/* 홈 */}
           <button
@@ -1372,13 +2206,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               onClick={() => {
                 const u = { ...round }; u.holes = [...round.holes];
                 const lh = u.holes[holeIdx]; const us = {};
-                round.players.forEach(p => {
-                  const s = lh.scores[p];
-                  const autoStrokes = calcAutoStrokes(s, lh.par);
-                  const autoGir = (autoStrokes - (s.putts || 0)) <= lh.par - 2;
-                  us[p] = { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
-                });
-                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(), 50);
+                round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
+                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
               }}
             >
               <Flag size={20} strokeWidth={2} />
@@ -1397,17 +2226,61 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       </div>
 
+      {/* 미입력 홀 확인 모달 */}
+      {pendingFinish && (() => {
+        const missing = untouchedHoles(pendingFinish);
+        return (
+          <div style={styles.modalOverlay} onClick={() => setPendingFinish(null)}>
+            <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalIcon}>📝</div>
+              <div style={styles.modalTitle}>입력하지 않은 홀이 있어요</div>
+              <div style={styles.modalText}>
+                {missing.map(i => `${i + 1}`).join(', ')}번 홀<br/>
+                그대로 완료하면 이 홀들은 파(2퍼트)로 저장돼요
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                <button style={styles.modalBtnCancel} onClick={() => { setPendingFinish(null); goToHole(missing[0]); }}>
+                  {missing[0] + 1}번 홀 입력하러 가기
+                </button>
+                <button style={styles.modalBtnPrimary} onClick={() => doFinish(pendingFinish)}>그대로 완료</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Exit 확인 모달 */}
       {showExitConfirm && (
         <div style={styles.modalOverlay} onClick={()=>setShowExitConfirm(false)}>
           <div style={styles.modalCard} onClick={e=>e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
-            <div style={styles.modalTitle}>라운드를 나가시겠어요?</div>
-            <div style={styles.modalText}>현재까지 입력한 스코어는<br/>저장되지 않습니다</div>
+            <div style={styles.modalTitle}>라운드를 그만두시겠어요?</div>
+            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#ef5350' }}>삭제</b>합니다</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 하기</button>
-              <button style={styles.modalBtnPrimary} onClick={()=>{ setShowExitConfirm(false); onGoToSetup(); }}>세팅 다시하기</button>
-              <button style={styles.modalBtnConfirm} onClick={()=>{ setShowExitConfirm(false); onExit(); }}>홈으로 나가기</button>
+              <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 기록하기</button>
+              <button style={styles.modalBtnCancel} onClick={()=>{ setShowExitConfirm(false); onGoHome(); }}>기록 유지하고 홈으로</button>
+              <button style={styles.modalBtnPrimary} onClick={()=>{ setShowExitConfirm(false); onGoToSetup(); }}>삭제하고 세팅 다시하기</button>
+              <button style={styles.modalBtnConfirm} onClick={()=>{ setShowExitConfirm(false); onExit(); }}>삭제하고 나가기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 홀인 성공 모달 */}
+      {showHoleInModal && holeInModalData && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.78)', animation:'modalFadeIn 0.25s ease-out' }}>
+          <div style={{ animation:'modalSlideUp 0.38s cubic-bezier(0.16,1,0.3,1)', display:'flex', flexDirection:'column', alignItems:'center', gap:14, padding:'36px 44px', borderRadius:20, background:'rgba(8,14,26,0.97)', border:`1.5px solid ${holeInModalData.scoreName?.color ? holeInModalData.scoreName.color + '55' : 'rgba(201,162,40,0.35)'}`, boxShadow:'0 8px 48px rgba(0,0,0,0.65)', minWidth:220, textAlign:'center' }}>
+            <div style={{ fontSize:32 }}>⛳</div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#8896b0', letterSpacing:'0.2em', textTransform:'uppercase' }}>홀인 성공</div>
+            <div style={{ fontSize:26, fontWeight:900, color: holeInModalData.scoreName?.color || '#c9a228', letterSpacing:'0.04em' }}>
+              {holeInModalData.scoreName?.name || `${holeInModalData.strokes}타`}
+            </div>
+            <div style={{ width:40, height:1, background:'rgba(255,255,255,0.1)' }} />
+            <div style={{ fontSize:14, fontWeight:600, color:'#c4cfe0', letterSpacing:'0.08em' }}>
+              {holeInModalData.onCount} 온 &nbsp;/&nbsp; {holeInModalData.putts} 펏
+            </div>
+            <div style={{ fontSize:11, color:'#4d5a78', letterSpacing:'0.12em', marginTop:4 }}>
+              {holeInModalData.isLastHole ? '라운드 완료!' : '다음 홀로 이동합니다.'}
             </div>
           </div>
         </div>
@@ -1446,7 +2319,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                         <div key={hi} style={styles.parTableParCell}>
                           <div style={{ ...styles.parTableParValue, background:p===3?'rgba(61,184,122,0.15)':p===4?'#0e1c14':p===5?'#c9a228':'#ef5350', color:p===3?'#3db87a':p===4?'#e8edf8':'#0b0e18', outline:hi===holeIdx?'2px solid #c9a228':'none', outlineOffset:1 }}>{p}</div>
                           <button style={{ ...styles.parTapZone, left:0, opacity:p>3?1:0.3 }} onClick={()=>p>3&&updateParDraft(hi,p-1)} />
-                          <button style={{ ...styles.parTapZone, right:0, opacity:p<6?1:0.3 }} onClick={()=>p<6&&updateParDraft(hi,p+1)} />
+                          <button style={{ ...styles.parTapZone, right:0, opacity:p<7?1:0.3 }} onClick={()=>p<7&&updateParDraft(hi,p+1)} />
                         </div>
                       );
                     })}
@@ -1465,6 +2338,25 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       )}
 
       {/* 메모 모달 */}
+      {showHoleMap && (
+        <HoleMapModal
+          holeNo={holeIdx + 1}
+          par={hole.par}
+          gpsPoints={gpsPoints}
+          gpsGreen={gpsGreen}
+          gpsPin={gpsPin}
+          fieldShots={fieldShots}
+          shotLabel={shotLabel}
+          finalLabel={isHoledOut(playerScore) ? '홀' : '그린 랜딩'}
+          onSetPoint={setGpsPoint}
+          onSetGreen={fix => updateGpsField('gpsGreen', fix)}
+          onSetPin={fix => updateGpsField('gpsPin', fix)}
+          onAddShot={addShotFromMap}
+          onUndoShot={lastShotIsEmpty ? undoLastShotFromMap : null}
+          onClose={() => setShowHoleMap(false)}
+        />
+      )}
+
       {showMemoModal && (
         <div style={styles.modalOverlay} onClick={()=>setShowMemoModal(false)}>
           <div style={styles.memoModalCard} onClick={e=>e.stopPropagation()}>
@@ -1487,10 +2379,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
 // ─── Style constants ──────────────────────────────────────────────────────────
 
+// 샷 섹션 헤더 색 — active(지금 차례) · done(입력 완료) · idle(아직)
+const HDR = {
+  active: { line: 'rgba(201,162,40,0.6)', label: '#e8c45a', arrow: '#c9a228' },
+  done:   { line: 'rgba(61,184,122,0.3)', label: '#3db87a', arrow: '#3db87a' },
+  idle:   { line: '#252f4a',              label: '#6e84a8', arrow: '#5a6a88' },
+};
+
 const fRow = { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54, gap:12 };
 const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0, minWidth:130 };
-const fIcon = { fontSize:14, width:18, textAlign:'center', color:'#8896b0', flexShrink:0 };
-const fLbl  = { fontSize:11, fontWeight:700, color:'#8896b0', letterSpacing:'0.15em', textTransform:'uppercase' };
+const fIcon = { fontSize:14, width:18, textAlign:'center', color:'#7888a8', flexShrink:0 };
+const fLbl  = { fontSize:11, fontWeight:700, color:'#8ca4bc', letterSpacing:'0.15em', textTransform:'uppercase' };
 
 const fChip = { padding:'5px 9px', borderRadius:6, border:'1.5px solid #252f4a', background:'#1a2235', color:'#e8edf8', fontSize:11, fontWeight:600, cursor:'pointer' };
 const fChipOn = { border:'2px solid #c9a228', background:'rgba(201,162,40,0.18)', color:'#c9a228' };

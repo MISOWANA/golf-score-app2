@@ -2955,6 +2955,288 @@ const styles = {
     userSelect: 'none',
     WebkitUserSelect: 'none',
   },
+
+  // ─── Round Insights (기획서 기반 재설계) ───────────────────────────────────
+
+  riToggleRow: {
+    display: 'flex',
+    background: C.surface1,
+    border: `1px solid ${C.border}`,
+    borderRadius: '6px',
+    padding: '3px',
+    marginBottom: '16px',
+    gap: '3px',
+  },
+  riToggleBtn: {
+    flex: 1,
+    padding: '8px 0',
+    borderRadius: '4px',
+    border: 'none',
+    background: 'transparent',
+    color: C.textMuted,
+    fontSize: '12px',
+    fontWeight: '700',
+    letterSpacing: '0.04em',
+    cursor: 'pointer',
+    transition: 'background 0.15s, color 0.15s',
+  },
+  riToggleBtnActive: {
+    background: C.surface3,
+    color: C.textPrimary,
+  },
+
+  // 스코어 5단계 분해 스탯바
+  riStatBarTrack: {
+    display: 'flex',
+    width: '100%',
+    height: '10px',
+    borderRadius: '5px',
+    overflow: 'hidden',
+    background: C.surface3,
+    marginBottom: '12px',
+  },
+  riStatBarSeg: {
+    height: '100%',
+    transition: 'width 0.4s ease-out',
+  },
+  riLegendGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px 14px',
+  },
+  riLegendItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '11px',
+    color: C.textSec,
+  },
+  riLegendDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '2px',
+    flexShrink: 0,
+  },
+  riLegendValue: {
+    color: C.textPrimary,
+    fontWeight: '700',
+  },
+
+  // 진단 카드 — T1.5, 페이지 전체에서 유일하게 가장 강조되는 블록
+  riDiagCard: {
+    background: C.surface2,
+    borderRadius: '12px',
+    padding: '18px 20px',
+    marginBottom: '10px',
+    border: `1px solid ${C.border}`,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  riDiagCardAccent: {
+    position: 'absolute',
+    left: 0, top: 0, bottom: 0,
+    width: '4px',
+  },
+  riDiagHead: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: '12px',
+    gap: '10px',
+  },
+  riDiagLabel: {
+    fontSize: '10px',
+    letterSpacing: '0.18em',
+    color: C.textMuted,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  riDiagCause: {
+    fontSize: '22px',
+    fontWeight: '800',
+    letterSpacing: '-0.01em',
+    lineHeight: 1.25,
+  },
+  riDiagPct: {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: C.textSec,
+    whiteSpace: 'nowrap',
+  },
+  riDiagRow: {
+    display: 'flex',
+    fontSize: '12px',
+    color: C.textSec,
+    lineHeight: 1.7,
+    gap: '8px',
+  },
+  riDiagRowLabel: {
+    width: '38px',
+    flexShrink: 0,
+    fontSize: '10px',
+    fontWeight: '700',
+    color: C.textMuted,
+    letterSpacing: '0.05em',
+    paddingTop: '1px',
+  },
+  riDiagDirective: {
+    marginTop: '12px',
+    paddingTop: '12px',
+    borderTop: `1px solid ${C.border}`,
+    fontSize: '13px',
+    color: C.textPrimary,
+    lineHeight: 1.6,
+    fontWeight: '600',
+  },
+
+  // 신뢰도 배지 + CI 바
+  riConfBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    fontSize: '11px',
+    fontWeight: '700',
+    padding: '2px 8px',
+    borderRadius: '8px',
+    letterSpacing: '0.02em',
+    color: C.textMuted,
+    background: 'rgba(136,150,176,0.10)',
+  },
+  riConfBadgeHigh: {
+    color: C.greenAccent,
+    background: C.greenBg,
+  },
+  riCiTrack: {
+    position: 'relative',
+    width: '100%',
+    height: '6px',
+    borderRadius: '3px',
+    background: C.surface3,
+    overflow: 'hidden',
+  },
+  riCiFill: {
+    position: 'absolute',
+    top: 0, bottom: 0,
+    background: C.gold,
+    borderRadius: '3px',
+  },
+  riCiCenter: {
+    position: 'absolute',
+    top: '-2px',
+    width: '2px',
+    height: '10px',
+    background: C.textPrimary,
+  },
+
+  // 홀 타임라인
+  riTimelineWrap: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(9, 1fr)',
+    gap: '4px',
+  },
+  riTimelineCell: {
+    borderRadius: '4px',
+    background: C.surface1,
+    border: `1px solid ${C.border}`,
+    borderTop: `3px solid ${C.border}`,
+    padding: '6px 2px',
+    textAlign: 'center',
+  },
+  riTimelineHole: {
+    fontSize: '9px',
+    color: C.textMuted,
+    fontWeight: '700',
+    marginBottom: '2px',
+  },
+  riTimelineScore: {
+    fontSize: '15px',
+    fontWeight: '800',
+    color: C.textPrimary,
+    fontVariantNumeric: 'tabular-nums',
+  },
+
+  // 성장 현황판 배너
+  riGrowthBanner: {
+    background: C.surface1,
+    border: `1px dashed ${C.borderMid}`,
+    borderRadius: '6px',
+    padding: '12px 14px',
+    fontSize: '12px',
+    color: C.textSec,
+    lineHeight: 1.6,
+  },
+  riGrowthTitle: {
+    fontSize: '10px',
+    letterSpacing: '0.15em',
+    color: C.textMuted,
+    fontWeight: '700',
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+  },
+
+  // 클럽/구간 통계 행
+  riStatRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 0',
+    borderBottom: `1px solid ${C.border}`,
+  },
+  riStatRowLabel: {
+    width: '76px',
+    flexShrink: 0,
+    fontSize: '12px',
+    fontWeight: '700',
+    color: C.textPrimary,
+  },
+  riStatRowBarTrack: {
+    flex: 1,
+    height: '6px',
+    borderRadius: '3px',
+    background: C.surface3,
+    overflow: 'hidden',
+  },
+  riStatRowBarFill: {
+    height: '100%',
+    borderRadius: '3px',
+    background: C.gold,
+  },
+  riStatRowValue: {
+    width: '54px',
+    flexShrink: 0,
+    textAlign: 'right',
+    fontSize: '13px',
+    fontWeight: '800',
+    color: C.textPrimary,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  riStatRowN: {
+    width: '44px',
+    flexShrink: 0,
+    textAlign: 'right',
+    fontSize: '10px',
+    color: C.textMuted,
+  },
+
+  riSubTabRow: {
+    display: 'flex',
+    gap: '6px',
+    marginBottom: '14px',
+  },
+  riSubTabBtn: {
+    padding: '6px 12px',
+    borderRadius: '20px',
+    border: `1px solid ${C.border}`,
+    background: 'transparent',
+    color: C.textSec,
+    fontSize: '12px',
+    fontWeight: '700',
+    cursor: 'pointer',
+  },
+  riSubTabBtnActive: {
+    border: `1px solid ${C.gold}`,
+    background: C.goldBg,
+    color: C.gold,
+  },
 };
 
 export default styles;

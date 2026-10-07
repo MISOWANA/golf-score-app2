@@ -108,6 +108,41 @@ const globalCSS = `
     50%       { box-shadow: 0 2px 28px rgba(201,162,40,0.9), 0 0 0 6px rgba(201,162,40,0.15); }
   }
 
+  @keyframes albatrossGlow {
+    0%, 100% { box-shadow: 0 2px 16px rgba(232,200,78,0.5), 0 0 0 0 rgba(232,200,78,0.35); }
+    50%       { box-shadow: 0 2px 28px rgba(232,200,78,0.85), 0 0 0 5px rgba(232,200,78,0.12); }
+  }
+
+  @keyframes eagleGlow {
+    0%, 100% { box-shadow: 0 2px 10px rgba(201,162,40,0.35), 0 0 0 0 rgba(201,162,40,0.25); }
+    50%       { box-shadow: 0 2px 20px rgba(201,162,40,0.65), 0 0 0 4px rgba(201,162,40,0.08); }
+  }
+
+  @keyframes birdieGlow {
+    0%, 100% { box-shadow: 0 2px 6px rgba(61,184,122,0.25), 0 0 0 0 rgba(61,184,122,0.2); }
+    50%       { box-shadow: 0 2px 14px rgba(61,184,122,0.5), 0 0 0 3px rgba(61,184,122,0.06); }
+  }
+
+  @keyframes bogeyRed {
+    0%, 100% { box-shadow: 0 2px 5px rgba(239,83,80,0.2); }
+    50%       { box-shadow: 0 2px 12px rgba(239,83,80,0.4), 0 0 0 2px rgba(239,83,80,0.06); }
+  }
+
+  @keyframes doubleRed {
+    0%, 100% { box-shadow: 0 2px 8px rgba(239,83,80,0.3); }
+    50%       { box-shadow: 0 2px 16px rgba(239,83,80,0.58), 0 0 0 3px rgba(239,83,80,0.08); }
+  }
+
+  @keyframes tripleRed {
+    0%, 100% { box-shadow: 0 2px 10px rgba(229,57,53,0.4); }
+    50%       { box-shadow: 0 2px 20px rgba(229,57,53,0.72), 0 0 0 4px rgba(229,57,53,0.1); }
+  }
+
+  @keyframes quadRed {
+    0%, 100% { box-shadow: 0 2px 12px rgba(198,40,40,0.5), 0 0 0 0 rgba(198,40,40,0.35); }
+    50%       { box-shadow: 0 2px 24px rgba(198,40,40,0.82), 0 0 0 5px rgba(198,40,40,0.12); }
+  }
+
   /* ── Mobile optimisations ───────────────────────────────────────────── */
   @media (max-width: 430px) {
     * { -webkit-text-size-adjust: none !important; }

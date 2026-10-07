@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../../styles/styles';
 
 const getHeaderFontSize = (text) => {
@@ -10,7 +9,7 @@ const getHeaderFontSize = (text) => {
   return '6px';
 };
 
-export default function ScorecardTable({ round, player }) {
+export default function ScorecardTable({ round, player, onSelectHole }) {
   const renderTable = (holes, label, offset) => {
     const parSum = holes.reduce((s, h) => s + h.par, 0);
     const strokesSum = holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
@@ -29,11 +28,21 @@ export default function ScorecardTable({ round, player }) {
             {label}
           </div>
           <div style={styles.scorecardTableCells}>
-            {holes.map((h, localIdx) => (
-              <div key={offset + localIdx} style={styles.scorecardHeaderCell}>
-                {offset + localIdx + 1}
-              </div>
-            ))}
+            {holes.map((h, localIdx) => {
+              const idx = offset + localIdx;
+              return (
+                <div
+                  key={idx}
+                  onClick={onSelectHole ? () => onSelectHole(idx) : undefined}
+                  style={{
+                    ...styles.scorecardHeaderCell,
+                    ...(onSelectHole ? { cursor: 'pointer', color: '#c9a228' } : {}),
+                  }}
+                >
+                  {idx + 1}
+                </div>
+              );
+            })}
           </div>
           <div style={{ ...styles.scorecardTotalCell, ...styles.scorecardTotalHeader }}>
             TOT

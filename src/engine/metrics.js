@@ -9,7 +9,9 @@ export function getHasPenalty(h) {
 }
 
 export function getTotalPenaltyStrokes(h) {
-  return (h.obCount ?? 0) + (h.hazardCount ?? 0);
+  // OB/해저드 1회 = 페널티 1타 + 재샷 1타로 항상 2타씩 계산한다
+  // (ScoringView.calcAutoStrokes / scoreBreakdown.js와 동일한 모델).
+  return ((h.obCount ?? 0) + (h.hazardCount ?? 0)) * 2;
 }
 
 export function getPuttCategory(h) {
@@ -41,7 +43,7 @@ export function getTeeMissCategory(h) {
   if (fairwayHit === false) {
     if (landingPoint === 'L') return 'miss_left';
     if (landingPoint === 'R') return 'miss_right';
-    return 'miss_left';
+    return 'miss_unknown';
   }
   return 'fairway';
 }
@@ -70,7 +72,7 @@ export function getDamageCategory(h) {
   const penalty = getTotalPenaltyStrokes(h);
   if (diff <= 0 && penalty === 0) return 'clean';
   if (diff <= 1 && penalty <= 1)  return 'minor';
-  if (diff <= 2 || penalty <= 2)  return 'major';
+  if (diff <= 2 && penalty <= 2)  return 'major';
   return 'catastrophic';
 }
 
@@ -109,9 +111,10 @@ export function buildRoundMetrics(holes) {
   const doubleCount     = metrics.filter(x => x.m.scoreCategory === 'double').length;
   const triplePlusCount = metrics.filter(x => x.m.scoreCategory === 'triple_plus').length;
 
-  const girCount        = holes.filter(h => h.gir === true).length;
-  const fairwayHoles    = holes.filter(h => h.par >= 4);
-  const fairwayHitCount = fairwayHoles.filter(h => h.fairwayHit === true).length;
+  const girCount          = holes.filter(h => h.gir === true).length;
+  const fairwayHoles      = holes.filter(h => h.par >= 4);
+  const fairwayRecorded   = fairwayHoles.filter(h => h.fairwayHit != null);
+  const fairwayHitCount   = fairwayRecorded.filter(h => h.fairwayHit === true).length;
 
   const totalPutts      = holes.reduce((s, h) => s + (h.putts ?? 2), 0);
   const onePuttCount    = metrics.filter(x => x.m.puttCategory === 'one_putt').length;
@@ -157,7 +160,8 @@ export function buildRoundMetrics(holes) {
     doubleOrWorseRate: safe(doubleCount + triplePlusCount, holeCount),
     girCount, girRate: safe(girCount, holeCount),
     fairwayHoleCount: fairwayHoles.length,
-    fairwayHitCount,  fairwayHitRate: safe(fairwayHitCount, fairwayHoles.length),
+    fairwayRecordedCount: fairwayRecorded.length,
+    fairwayHitCount,  fairwayHitRate: safe(fairwayHitCount, fairwayRecorded.length),
     totalPutts, avgPutts: safe(totalPutts, holeCount),
     onePuttCount, threePuttCount, threePuttRate: safe(threePuttCount, holeCount),
     totalOB, totalHazard, totalPenalties: totalOB + totalHazard,

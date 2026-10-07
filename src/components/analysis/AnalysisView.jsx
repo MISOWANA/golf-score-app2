@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft, Home, BookOpen, Edit3, X, Calendar, MapPin, User } from 'lucide-react';
 import styles from '../../styles/styles';
 import StatTile from './StatTile';
 import BreakdownBar from './BreakdownBar';
 import ScorecardTable from './ScorecardTable';
 import Insights from './Insights';
+import HoleReview from './HoleReview';
+import HoleReviewGrid from './HoleReviewGrid';
 
 export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
   const [activePlayer, setActivePlayer] = useState(initialRound?.players[0]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
+  // 홀별 복기 — 스코어카드에서 홀 번호를 누르면 열린다.
+  const [reviewHoleIdx, setReviewHoleIdx] = useState(null);
 
   if (!round) return null;
 
@@ -175,6 +179,10 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       </div>
 
       <div style={styles.section}>
+        <HoleReviewGrid round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
+      </div>
+
+      <div style={styles.section}>
         <div style={styles.sectionTitle}>KEY STATS</div>
         <div style={styles.keyStatsGrid}>
           <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/18 holes`} />
@@ -197,7 +205,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>HOLE BY HOLE</div>
-        <ScorecardTable round={round} player={activePlayer} />
+        <ScorecardTable round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
       </div>
 
       <div style={styles.section}>
@@ -250,6 +258,17 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
           </button>
         </div>
       </div>
+
+      {/* 홀별 복기 */}
+      {reviewHoleIdx != null && (
+        <HoleReview
+          round={round}
+          player={activePlayer}
+          holeIdx={reviewHoleIdx}
+          onNav={setReviewHoleIdx}
+          onClose={() => setReviewHoleIdx(null)}
+        />
+      )}
 
       {/* 라운드 정보 수정 모달 */}
       {showEditModal && editDraft && (
@@ -401,7 +420,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
                       {editDraft.pars.slice(start, end).map((p, localIdx) => {
                         const holeI = start + localIdx;
                         const canDec = p > 3;
-                        const canInc = p < 6;
+                        const canInc = p < 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
                         return (
                           <div key={holeI} style={styles.parTableParCell}>
                             <div style={{

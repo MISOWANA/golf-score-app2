@@ -3,12 +3,24 @@ import { ChevronLeft, Plus, X } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
 
-export default function SetupView({ onStart, onBack }) {
+// 로컬 타임존 기준 YYYY-MM-DD (input type="date"가 요구하는 형식). toISOString()은
+// UTC 기준이라 자정 근처에서 하루 밀리는 문제가 있어 로컬 필드로 직접 조립한다.
+function todayLocalDateStr() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export default function SetupView({ onStart, onBack, currentUser }) {
   const [courseName, setCourseName] = useState('');
+  const [roundDate, setRoundDate] = useState(todayLocalDateStr);
   const [outCourseName, setOutCourseName] = useState('');
   const [inCourseName, setInCourseName] = useState('');
-  const [players, setPlayers] = useState(['']);
+  const [players, setPlayers] = useState([currentUser?.userName || '']);
   const [pars, setPars] = useState(Array(18).fill(4));
+  const [teeBox, setTeeBox] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -16,8 +28,13 @@ export default function SetupView({ onStart, onBack }) {
   const [selectedClub, setSelectedClub] = useState(null); // 클럽 전체 데이터
   const [selectedOut, setSelectedOut] = useState(null);   // 선택된 OUT 9홀 코스
   const [selectedIn, setSelectedIn] = useState(null);     // 선택된 IN 9홀 코스
+  const [selectedPairIdx, setSelectedPairIdx] = useState(null);
+  const [pairReversed, setPairReversed] = useState(false);
 
   const searchRef = useRef(null);
+  // swapOutIn에서 OUT/IN을 바꿀 때는 파를 직접 스왑하므로, 아래 파 자동계산 effect가
+  // 원본 DB 파 값으로 다시 덮어써서 그 결과(혹은 사용자가 수동 수정한 파)를 지우지 않도록 스킵 신호로 쓴다.
+  const skipParsSyncRef = useRef(false);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -34,7 +51,11 @@ export default function SetupView({ onStart, onBack }) {
     if (selectedOut) setOutCourseName(selectedOut.name);
     if (selectedIn)  setInCourseName(selectedIn.name);
     if (selectedOut && selectedIn) {
-      setPars([...selectedOut.pars, ...selectedIn.pars]);
+      if (skipParsSyncRef.current) {
+        skipParsSyncRef.current = false;
+      } else {
+        setPars([...selectedOut.pars, ...selectedIn.pars]);
+      }
     }
   }, [selectedOut, selectedIn]);
 
@@ -43,6 +64,8 @@ export default function SetupView({ onStart, onBack }) {
     setSelectedClub(null);
     setSelectedOut(null);
     setSelectedIn(null);
+    setSelectedPairIdx(null);
+    setPairReversed(false);
     const results = searchCourses(val);
     setSuggestions(results);
     setShowSuggestions(results.length > 0);
@@ -53,18 +76,50 @@ export default function SetupView({ onStart, onBack }) {
     setSelectedClub(club);
     setShowSuggestions(false);
     setSuggestions([]);
+    setSelectedPairIdx(null);
+    setPairReversed(false);
 
-    if (club.courses.length === 2) {
-      // 2개 코스면 자동 선택
+    if (club.pairs) {
+      setSelectedOut(null);
+      setSelectedIn(null);
+      setOutCourseName('');
+      setInCourseName('');
+    } else if (club.courses.length === 2) {
       setSelectedOut(club.courses[0]);
       setSelectedIn(club.courses[1]);
     } else {
-      // 3개 이상이면 선택 UI 표시
       setSelectedOut(null);
       setSelectedIn(null);
       setOutCourseName('');
       setInCourseName('');
     }
+  };
+
+  const selectPair = (pairIdx, reversed) => {
+    const pair = selectedClub.pairs[pairIdx];
+    const courseA = selectedClub.courses.find(c => c.name === pair[0]);
+    const courseB = selectedClub.courses.find(c => c.name === pair[1]);
+    const rev = reversed ?? false;
+    setSelectedPairIdx(pairIdx);
+    setPairReversed(rev);
+    setSelectedOut(rev ? courseB : courseA);
+    setSelectedIn(rev ? courseA : courseB);
+  };
+
+  const swapOutIn = () => {
+    setOutCourseName(inCourseName);
+    setInCourseName(outCourseName);
+    if (selectedOut && selectedIn) skipParsSyncRef.current = true;
+    setSelectedOut(selectedIn);
+    setSelectedIn(selectedOut);
+    setPars(prev => [...prev.slice(9), ...prev.slice(0, 9)]);
+    if (selectedPairIdx !== null) setPairReversed(r => !r);
+  };
+
+  const getPairLabel = (pair) => {
+    const a = pair[0].replace(/OUT$|IN$/, '');
+    const b = pair[1].replace(/OUT$|IN$/, '');
+    return a === b ? a : `${pair[0]}/${pair[1]}`;
   };
 
   const addPlayer = () => {
@@ -84,8 +139,13 @@ export default function SetupView({ onStart, onBack }) {
     setPars(updated);
   };
 
-  const needsCourseSelect = selectedClub && selectedClub.courses.length > 2;
-  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim());
+  const needsPairSelect = !!(selectedClub?.pairs);
+  const needsCourseSelect = selectedClub && !selectedClub.pairs && selectedClub.courses.length > 2;
+  // 스코어를 플레이어 이름으로 구분해 저장하므로, 같은 이름이 둘이면 서로 덮어쓴다.
+  const normPlayer = (n) => n.trim().toLowerCase();
+  const dupPlayer = players.findIndex((p, i) => p.trim() && players.findIndex(q => normPlayer(q) === normPlayer(p)) !== i);
+  const hasDupPlayer = dupPlayer >= 0;
+  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim()) && !hasDupPlayer && teeBox;
 
   const chipStyle = (active) => ({
     flex: 1, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
@@ -107,7 +167,20 @@ export default function SetupView({ onStart, onBack }) {
 
       {/* 골프장 검색 */}
       <div style={styles.formSection}>
-        <label style={styles.formLabel}>골프장 이름</label>
+        <div style={styles.formLabelRow}>
+          <label style={styles.formLabel}>골프장 이름</label>
+          <input
+            type="date"
+            value={roundDate}
+            max={todayLocalDateStr()}
+            onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
+            style={{
+              width: '104px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '8px',
+              color: '#e8edf8', fontSize: '11px', fontWeight: '700', padding: '6px 6px',
+              colorScheme: 'dark',
+            }}
+          />
+        </div>
         <div ref={searchRef} style={{ position: 'relative' }}>
           <input
             style={styles.formInput}
@@ -125,9 +198,11 @@ export default function SetupView({ onStart, onBack }) {
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 500, overflow: 'hidden',
             }}>
               {suggestions.map((club, i) => {
-                const totalPar = club.courses.length === 2
-                  ? club.courses[0].pars.reduce((a,b)=>a+b,0) + club.courses[1].pars.reduce((a,b)=>a+b,0)
-                  : null;
+                const subLabel = club.pairs
+                  ? club.pairs.map(p => p.join('/')).join(' · ')
+                  : club.courses.length === 2
+                    ? `${club.courses[0].pars.reduce((a,b)=>a+b,0)+club.courses[1].pars.reduce((a,b)=>a+b,0)} PAR | ${club.courses.map(c=>c.name).join(' · ')}`
+                    : `${club.courses.length}개 코스`;
                 return (
                   <button
                     key={i}
@@ -141,10 +216,7 @@ export default function SetupView({ onStart, onBack }) {
                   >
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#e8edf8' }}>{club.name}</div>
-                      <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>
-                        {club.courses.map(c => c.name).join(' · ')}
-                        {totalPar ? ` | PAR ${totalPar}` : ` | ${club.courses.length}개 코스`}
-                      </div>
+                      <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>{subLabel}</div>
                     </div>
                     <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
                       {club.location}
@@ -159,6 +231,36 @@ export default function SetupView({ onStart, onBack }) {
           )}
         </div>
       </div>
+
+      {/* 고정 페어 선택 UI (군산CC 등) */}
+      {needsPairSelect && (
+        <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 12, border: '1px solid #1b2744' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
+            코스 조합 선택
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: selectedPairIdx !== null ? 12 : 0 }}>
+            {selectedClub.pairs.map((pair, idx) => (
+              <button key={idx}
+                style={{ ...chipStyle(selectedPairIdx === idx), width: 'calc(50% - 3px)', flex: 'none' }}
+                onClick={() => selectPair(idx, selectedPairIdx === idx ? pairReversed : false)}>
+                {getPairLabel(pair)}
+              </button>
+            ))}
+          </div>
+          {selectedPairIdx !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 11, color: '#3db87a', fontWeight: 600 }}>
+                OUT: {selectedOut?.name} → IN: {selectedIn?.name}
+              </span>
+              <button
+                style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
+                onClick={() => selectPair(selectedPairIdx, !pairReversed)}>
+                ⇄ 순서 변경
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 다중 코스 선택 UI */}
       {needsCourseSelect && (
@@ -205,7 +307,16 @@ export default function SetupView({ onStart, onBack }) {
 
       {/* 코스 이름 */}
       <div style={styles.formSection}>
-        <label style={styles.formLabel}>코스 이름</label>
+        <div style={styles.formLabelRow}>
+          <label style={styles.formLabel}>코스 이름</label>
+          <button
+            style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            onClick={swapOutIn}
+            title="OUT/IN 순서 바꾸기"
+          >
+            ⇄ OUT/IN 순서 변경
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '10px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>OUT (1~9홀)</div>
@@ -244,7 +355,10 @@ export default function SetupView({ onStart, onBack }) {
           <div key={i} style={styles.playerRow}>
             <div style={styles.playerBadge}>{i + 1}</div>
             <input
-              style={{ ...styles.formInput, flex: 1, marginBottom: 0 }}
+              style={{
+                ...styles.formInput, flex: 1, marginBottom: 0,
+                ...(name.trim() && players.findIndex(q => normPlayer(q) === normPlayer(name)) !== i ? { borderColor: '#ef5350' } : {}),
+              }}
               placeholder={`플레이어 ${i + 1}`}
               value={name}
               onChange={(e) => updatePlayer(i, e.target.value)}
@@ -257,6 +371,48 @@ export default function SetupView({ onStart, onBack }) {
             )}
           </div>
         ))}
+        {hasDupPlayer && (
+          <div style={{ fontSize: 12, color: '#ef5350', marginTop: 6, lineHeight: 1.6 }}>
+            같은 이름의 플레이어가 있어요. 이름을 다르게 입력해 주세요 (예: 철수A, 철수B).
+          </div>
+        )}
+        {players.length > 1 && (
+          <div style={{ fontSize: 12, color: '#8896b0', marginTop: 6, lineHeight: 1.6 }}>
+            2명 이상은 스코어 위주의 간편 기록이에요. 샷 상세 입력과 스탯·인사이트 집계는 1인 라운드만 지원해요.
+          </div>
+        )}
+      </div>
+
+      {/* TEE BOX */}
+      <div style={styles.formSection}>
+        <label style={styles.formLabel}>TEE BOX</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { id: '레드티',    color: '#ef5350', bg: 'rgba(239,83,80,0.15)',   border: '#ef5350'  },
+            { id: '옐로우티',  color: '#f5c842', bg: 'rgba(245,200,66,0.15)',  border: '#f5c842'  },
+            { id: '화이트티',  color: '#e8edf8', bg: 'rgba(232,237,248,0.12)', border: '#8896b0'  },
+            { id: '블루티',    color: '#42a5f5', bg: 'rgba(66,165,245,0.15)',  border: '#42a5f5'  },
+            { id: '블랙티',    color: '#111418', activeText: '#e8edf8', bg: 'rgba(17,20,24,0.6)',    border: '#e8edf8', dotBorder: '1.5px solid #e8edf8' },
+          ].map(({ id, color, activeText, bg, border, dotBorder }) => {
+            const active = teeBox === id;
+            return (
+              <button key={id}
+                style={{
+                  flex: 1, padding: '10px 4px', borderRadius: 8, textAlign: 'center', cursor: 'pointer',
+                  border: `1.5px solid ${active ? border : '#252f4a'}`,
+                  background: active ? bg : '#1a2235',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                }}
+                onClick={() => setTeeBox(active ? null : id)}
+              >
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: color, boxShadow: active ? `0 0 6px ${border}` : 'none', border: dotBorder || 'none' }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: active ? (activeText || color) : '#4d5a78', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                  {id.replace('티', '')}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* 파 설정 */}
@@ -302,7 +458,7 @@ export default function SetupView({ onStart, onBack }) {
                 {pars.slice(start, end).map((p, localIdx) => {
                   const holeIdx = start + localIdx;
                   const canDecrease = p > 3;
-                  const canIncrease = p < 6;
+                  const canIncrease = p < 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
                   return (
                     <div key={holeIdx} style={styles.parTableParCell}>
                       <div style={{
@@ -334,7 +490,7 @@ export default function SetupView({ onStart, onBack }) {
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim())}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString())}
       >
         라운드 시작하기
       </button>

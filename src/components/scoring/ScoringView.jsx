@@ -1788,6 +1788,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           prevLabel={shotLabel(0)}
           locked={gpsLocked(1)}
           lockedHint={gpsLockHint(1)}
+          onOpenMap={() => setShowHoleMap(true)}
           pinPoint={gpsPin}
           onCapture={fix => setGpsPoint(1, fix)}
           onClear={() => setGpsPoint(1, null)}
@@ -1894,6 +1895,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   prevLabel={shotLabel(idx + 1)}
                   locked={gpsLocked(idx + 2)}
                   lockedHint={gpsLockHint(idx + 2)}
+                  onOpenMap={() => setShowHoleMap(true)}
                   pinPoint={gpsPin}
                   onCapture={fix => setGpsPoint(idx + 2, fix)}
                   onClear={() => setGpsPoint(idx + 2, null)}
@@ -1999,6 +2001,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           prevLabel={shotLabel(fieldShots - 1)}
           locked={gpsLocked(fieldShots)}
           lockedHint={gpsLockHint(fieldShots)}
+          onOpenMap={() => setShowHoleMap(true)}
           pinPoint={gpsPin}
           onCapture={fix => updateGpsField('gpsGreen', fix)}
           onClear={() => updateGpsField('gpsGreen', null)}

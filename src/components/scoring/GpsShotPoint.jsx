@@ -82,6 +82,8 @@ export default function GpsShotPoint({
   // locked: 직전 지점이 아직 안 찍힌 상태. 그 상태로 기록해 봐야 거리가
   // 계산되지 않으므로 순서대로만 찍게 막는다.
   locked = false, lockedHint,
+  // onOpenMap: locked 상태에서 지도 버튼과 동일하게 지도 모달을 열어 준다.
+  onOpenMap,
   // pinPoint: 지도에서 찍은 그날의 핀 위치. 있으면 이 지점에서 핀까지
   // 남은 거리를 함께 보여준다.
   pinPoint = null,
@@ -177,13 +179,27 @@ export default function GpsShotPoint({
           </div>
         </>
       ) : locked ? (
-        <div style={{
-          padding: '12px 16px', borderRadius: 9, textAlign: 'center',
-          border: '1px dashed #252f4a', background: 'transparent',
-          color: '#4d5a78', fontSize: 11, fontWeight: 600, lineHeight: 1.5,
-        }}>
-          {lockedHint}
-        </div>
+        onOpenMap ? (
+          <button
+            onClick={onOpenMap}
+            style={{
+              width: '100%', padding: '12px 16px', borderRadius: 9, textAlign: 'center',
+              border: '1px dashed #3a4e72', background: 'rgba(255,255,255,0.02)',
+              color: '#8ca4bc', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
+              cursor: 'pointer',
+            }}
+          >
+            🗺 지도에서 샷 지점을 선택해주세요
+          </button>
+        ) : (
+          <div style={{
+            padding: '12px 16px', borderRadius: 9, textAlign: 'center',
+            border: '1px dashed #252f4a', background: 'transparent',
+            color: '#4d5a78', fontSize: 11, fontWeight: 600, lineHeight: 1.5,
+          }}>
+            {lockedHint}
+          </div>
+        )
       ) : (
         <button
           onClick={run}

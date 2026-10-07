@@ -615,6 +615,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
   const [activePlayer, setActivePlayer] = useState(round.players[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
+  const finishingRef = useRef(false);                          // 완료 버튼 연타 방지
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoDraft, setMemoDraft] = useState('');
   const [showParEditModal, setShowParEditModal] = useState(false);
@@ -773,6 +775,27 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
 
+  // ─── 라운드 완료 ────────────────────────────────────────────────────────────
+  // 입력하지 않은 홀은 기본값(파·2퍼트)이 그대로 저장돼 평균 스코어가 왜곡되므로
+  // 그런 홀이 있으면 한 번 확인한다. 완료는 한 번만 실행되게 막는다.
+  const untouchedHoles = (r) => r.holes
+    .map((h, i) => (r.players.some(p => h.scores[p]?.touched !== true) ? i : -1))
+    .filter(i => i >= 0);
+
+  const doFinish = (u) => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setPendingFinish(null);
+    // 저장에 실패하면 다시 누를 수 있게 잠금을 푼다 (안내는 상위에서 띄운다).
+    setTimeout(() => Promise.resolve(onFinish(u)).catch(() => { finishingRef.current = false; }), 50);
+  };
+
+  const requestFinish = (u) => {
+    if (finishingRef.current) return;
+    if (untouchedHoles(u).length > 0) { setPendingFinish(u); return; }
+    doFinish(u);
+  };
+
   const goToHole = (idx) => { if (idx >= 0 && idx < 18) { setHoleIdx(idx); onUpdate({ ...round, currentHole: idx }); } };
 
   // freshScore: 현재 플레이어의 최신 스코어 객체 (setState 배치 전 최신값을 직접 전달할 때 사용)
@@ -801,7 +824,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           const s = p === activePlayer ? freshScore : lh.scores[p];
           us[p] = finalizeScore(s, lh.par);
         });
-        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
+        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
       } else {
         confirmAndGoToHole(holeIdx + 1, freshScore);
       }
@@ -1384,7 +1407,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   const u = { ...round }; u.holes = [...round.holes];
                   const lh = u.holes[holeIdx]; const us = {};
                   round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
-                  u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
+                  u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
                 }}>
                 🏁 라운드 완료
               </button>
@@ -2088,7 +2111,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                                 const s = p === activePlayer ? freshScore : lh.scores[p];
                                 us[p] = finalizeScore(s, lh.par);
                               });
-                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
+                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
                             } else {
                               confirmAndGoToHole(holeIdx + 1, freshScore);
                             }
@@ -2184,7 +2207,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 const u = { ...round }; u.holes = [...round.holes];
                 const lh = u.holes[holeIdx]; const us = {};
                 round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
-                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); setTimeout(() => onFinish(u), 50);
+                u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
               }}
             >
               <Flag size={20} strokeWidth={2} />
@@ -2203,17 +2226,41 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       </div>
 
+      {/* 미입력 홀 확인 모달 */}
+      {pendingFinish && (() => {
+        const missing = untouchedHoles(pendingFinish);
+        return (
+          <div style={styles.modalOverlay} onClick={() => setPendingFinish(null)}>
+            <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
+              <div style={styles.modalIcon}>📝</div>
+              <div style={styles.modalTitle}>입력하지 않은 홀이 있어요</div>
+              <div style={styles.modalText}>
+                {missing.map(i => `${i + 1}`).join(', ')}번 홀<br/>
+                그대로 완료하면 이 홀들은 파(2퍼트)로 저장돼요
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                <button style={styles.modalBtnCancel} onClick={() => { setPendingFinish(null); goToHole(missing[0]); }}>
+                  {missing[0] + 1}번 홀 입력하러 가기
+                </button>
+                <button style={styles.modalBtnPrimary} onClick={() => doFinish(pendingFinish)}>그대로 완료</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Exit 확인 모달 */}
       {showExitConfirm && (
         <div style={styles.modalOverlay} onClick={()=>setShowExitConfirm(false)}>
           <div style={styles.modalCard} onClick={e=>e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
-            <div style={styles.modalTitle}>라운드를 나가시겠어요?</div>
-            <div style={styles.modalText}>현재까지 입력한 스코어는<br/>저장되지 않습니다</div>
+            <div style={styles.modalTitle}>라운드를 그만두시겠어요?</div>
+            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#ef5350' }}>삭제</b>합니다</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 하기</button>
-              <button style={styles.modalBtnPrimary} onClick={()=>{ setShowExitConfirm(false); onGoToSetup(); }}>세팅 다시하기</button>
-              <button style={styles.modalBtnConfirm} onClick={()=>{ setShowExitConfirm(false); onExit(); }}>홈으로 나가기</button>
+              <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 기록하기</button>
+              <button style={styles.modalBtnCancel} onClick={()=>{ setShowExitConfirm(false); onGoHome(); }}>기록 유지하고 홈으로</button>
+              <button style={styles.modalBtnPrimary} onClick={()=>{ setShowExitConfirm(false); onGoToSetup(); }}>삭제하고 세팅 다시하기</button>
+              <button style={styles.modalBtnConfirm} onClick={()=>{ setShowExitConfirm(false); onExit(); }}>삭제하고 나가기</button>
             </div>
           </div>
         </div>

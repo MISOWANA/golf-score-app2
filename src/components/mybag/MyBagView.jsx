@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
-import { loadClubsByUser, saveClubsForUser } from '../../db.js';
+import { loadClubsByUser, saveClubsForUser, userIdsOf } from '../../db.js';
 import styles from '../../styles/styles';
 import ClubCard from './ClubCard';
 
@@ -60,7 +60,7 @@ export default function MyBagView({ currentUser, onBack }) {
     userEditedRef.current = false;
     const load = async () => {
       try {
-        const savedClubs = await loadClubsByUser(currentUser.userId);
+        const savedClubs = await loadClubsByUser(userIdsOf(currentUser));
         if (cancelled || userEditedRef.current) return;
         if (savedClubs && Array.isArray(savedClubs)) {
           const migrated = savedClubs.map(c => {
@@ -87,6 +87,8 @@ export default function MyBagView({ currentUser, onBack }) {
     };
     load();
     return () => { cancelled = true; };
+  // aliases는 userId가 같으면 바뀌지 않는다 (프로필 단위로 함께 움직임)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.userId]);
 
   const saveClubs = async (updated) => {

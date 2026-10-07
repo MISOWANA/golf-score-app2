@@ -11,7 +11,7 @@ function fmtSigned(n, digits = 2) {
   return (v > 0 ? '+' : '') + v.toFixed(digits);
 }
 
-export default function StatsView({ rounds, onBack }) {
+export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
   if (rounds.length === 0) {
     return (
       <div style={styles.container}>
@@ -22,6 +22,11 @@ export default function StatsView({ rounds, onBack }) {
           <div style={styles.pageTitle}>Stats</div>
           <div style={{ width: 40 }} />
         </header>
+        {excludedCount > 0 && (
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+          여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
+        </div>
+      )}
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📊</div>
           <div style={styles.emptyTitle}>통계 데이터 부족</div>
@@ -119,6 +124,11 @@ export default function StatsView({ rounds, onBack }) {
         <div style={styles.pageTitle}>Career</div>
         <div style={{ width: 40 }} />
       </header>
+      {excludedCount > 0 && (
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+          여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
+        </div>
+      )}
 
       <div style={styles.section}>
         <div style={styles.sectionTitle}>OVERVIEW</div>

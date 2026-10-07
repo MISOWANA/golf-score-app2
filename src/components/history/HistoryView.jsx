@@ -3,7 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
 import HistoryCard from './HistoryCard';
 
-export default function HistoryView({ rounds, onBack, onSelect, onDelete }) {
+export default function HistoryView({ rounds, onBack, onSelect, onDelete, userName }) {
   const [pendingDelete, setPendingDelete] = useState(null);
 
   return (
@@ -28,6 +28,7 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete }) {
             <HistoryCard
               key={r.id}
               round={r}
+              userName={userName}
               onSelect={() => onSelect(r.id)}
               onDelete={() => setPendingDelete(r)}
             />

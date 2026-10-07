@@ -141,7 +141,11 @@ export default function SetupView({ onStart, onBack, currentUser }) {
 
   const needsPairSelect = !!(selectedClub?.pairs);
   const needsCourseSelect = selectedClub && !selectedClub.pairs && selectedClub.courses.length > 2;
-  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim()) && teeBox;
+  // 스코어를 플레이어 이름으로 구분해 저장하므로, 같은 이름이 둘이면 서로 덮어쓴다.
+  const normPlayer = (n) => n.trim().toLowerCase();
+  const dupPlayer = players.findIndex((p, i) => p.trim() && players.findIndex(q => normPlayer(q) === normPlayer(p)) !== i);
+  const hasDupPlayer = dupPlayer >= 0;
+  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim()) && !hasDupPlayer && teeBox;
 
   const chipStyle = (active) => ({
     flex: 1, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
@@ -351,7 +355,10 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           <div key={i} style={styles.playerRow}>
             <div style={styles.playerBadge}>{i + 1}</div>
             <input
-              style={{ ...styles.formInput, flex: 1, marginBottom: 0 }}
+              style={{
+                ...styles.formInput, flex: 1, marginBottom: 0,
+                ...(name.trim() && players.findIndex(q => normPlayer(q) === normPlayer(name)) !== i ? { borderColor: '#ef5350' } : {}),
+              }}
               placeholder={`플레이어 ${i + 1}`}
               value={name}
               onChange={(e) => updatePlayer(i, e.target.value)}
@@ -364,6 +371,16 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             )}
           </div>
         ))}
+        {hasDupPlayer && (
+          <div style={{ fontSize: 12, color: '#ef5350', marginTop: 6, lineHeight: 1.6 }}>
+            같은 이름의 플레이어가 있어요. 이름을 다르게 입력해 주세요 (예: 철수A, 철수B).
+          </div>
+        )}
+        {players.length > 1 && (
+          <div style={{ fontSize: 12, color: '#8896b0', marginTop: 6, lineHeight: 1.6 }}>
+            2명 이상은 스코어 위주의 간편 기록이에요. 샷 상세 입력과 스탯·인사이트 집계는 1인 라운드만 지원해요.
+          </div>
+        )}
       </div>
 
       {/* TEE BOX */}

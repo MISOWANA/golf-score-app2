@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import GolfScoringApp from './GolfScoringApp'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import './index.css'
 import '@fontsource/noto-sans-kr/300.css'
 import '@fontsource/noto-sans-kr/400.css'
@@ -12,6 +13,8 @@ import '@fontsource/noto-sans-kr/900.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <GolfScoringApp />
+    <ErrorBoundary>
+      <GolfScoringApp />
+    </ErrorBoundary>
   </React.StrictMode>
 )

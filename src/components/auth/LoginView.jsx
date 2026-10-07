@@ -68,7 +68,7 @@ function BirdieBuddyLogo() {
   );
 }
 
-export default function LoginView({ onLogin, loading }) {
+export default function LoginView({ onLogin, loading, profiles = [] }) {
   const [userName, setUserName] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
 
@@ -84,9 +84,38 @@ export default function LoginView({ onLogin, loading }) {
       <div style={styles.loginCard}>
         <BirdieBuddyLogo />
 
+        {/* 이 기기에 기록이 있는 사용자 — 탭 한 번으로 이어서 쓴다 */}
+        {profiles.length > 0 && (
+          <div style={{ marginBottom: 24, textAlign: 'left' }}>
+            <div style={{ ...styles.formLabel, marginBottom: 8 }}>이어서 하기</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {profiles.map((p) => (
+                <button
+                  key={p.userId}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => onLogin(p.userName)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                    width: '100%', padding: '13px 16px', borderRadius: 10, cursor: 'pointer',
+                    border: '1.5px solid rgba(201,162,40,0.45)', background: 'rgba(201,162,40,0.08)',
+                    color: '#e8edf8', fontSize: 15, fontWeight: 700, textAlign: 'left',
+                  }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.userName}</span>
+                  <span style={{ color: '#c9a228', fontSize: 13, flexShrink: 0 }}>계속 →</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: '#4d5a78', marginTop: 8, lineHeight: 1.6 }}>
+              같은 이름을 입력해도 기존 기록으로 이어집니다.
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} style={styles.loginForm}>
           <div style={styles.formSection}>
-            <label style={styles.formLabel}>이름</label>
+            <label style={styles.formLabel}>{profiles.length > 0 ? '새 사용자' : '이름'}</label>
             <input
               style={{
                 ...styles.formInput,

@@ -1,10 +1,11 @@
 import React from 'react';
 import styles from '../../styles/styles';
+import { myPlayer, totalPar as sumPar } from '../../engine/players.js';
 
-export default function RoundRow({ round, onClick }) {
-  const firstPlayer = round.players[0];
+export default function RoundRow({ round, onClick, userName }) {
+  const firstPlayer = myPlayer(round, userName);
   const total = round.holes.reduce((s, h) => s + (h.scores[firstPlayer]?.strokes || 0), 0);
-  const totalPar = round.pars.reduce((a, b) => a + b, 0);
+  const totalPar = sumPar(round);
   const diff = total - totalPar;
 
   return (

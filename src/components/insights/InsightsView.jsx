@@ -51,7 +51,7 @@ function clockToQuadrant(clock) {
   return 'left';
 }
 
-export default function InsightsView({ rounds, onBack }) {
+export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
 
   if (rounds.length === 0) {
@@ -64,6 +64,11 @@ export default function InsightsView({ rounds, onBack }) {
           <div style={styles.pageTitle}>Insights</div>
           <div style={{ width: 40 }} />
         </header>
+        {excludedCount > 0 && (
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+          여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
+        </div>
+      )}
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>⚡</div>
           <div style={styles.emptyTitle}>분석할 데이터가 없습니다</div>
@@ -264,6 +269,11 @@ export default function InsightsView({ rounds, onBack }) {
         <div style={styles.pageTitle}>Insights</div>
         <div style={{ width: 40 }} />
       </header>
+      {excludedCount > 0 && (
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+          여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
+        </div>
+      )}
 
       <div style={styles.insightsBanner}>
         <div style={styles.insightsBannerLabel}>{latestRound.courseName || '이번 라운드'}</div>

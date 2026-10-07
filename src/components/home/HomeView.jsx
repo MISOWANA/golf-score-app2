@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Plus, Download, Upload, LogOut, PlayCircle } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
+import { myPlayer } from '../../engine/players.js';
 
 export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onViewStats, onSwitchUser, onExportData, onImportData, loading }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -21,7 +22,11 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
     logoClickRef.current = { count: now - prev.lastAt < 700 ? prev.count + 1 : 1, lastAt: now };
     if (logoClickRef.current.count < 3) return;
     logoClickRef.current = { count: 0, lastAt: 0 };
+    hardRefresh();
+  };
 
+  const hardRefresh = async () => {
+    const now = Date.now();
     setHardRefreshing(true);
     try {
       if (window.caches) {
@@ -36,10 +41,8 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
 
   const avgScore = rounds.length > 0
     ? (rounds.reduce((sum, r) => {
-        const total = r.holes.reduce((s, h) => {
-          const firstPlayer = Object.keys(h.scores)[0];
-          return s + (h.scores[firstPlayer]?.strokes || 0);
-        }, 0);
+        const me = myPlayer(r, currentUser.userName);
+        const total = r.holes.reduce((s, h) => s + (h.scores[me]?.strokes || 0), 0);
         return sum + total;
       }, 0) / rounds.length).toFixed(1)
     : '—';
@@ -155,7 +158,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             <div style={styles.sectionTitle}>최근 라운드</div>
             <button style={styles.textLink} onClick={onViewHistory}>전체보기</button>
           </div>
-          <RoundRow round={recentRound} onClick={() => { onViewHistory(); }} />
+          <RoundRow round={recentRound} userName={currentUser.userName} onClick={() => { onViewHistory(); }} />
         </div>
       )}
 
@@ -190,7 +193,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
               JSON 백업 파일에서 데이터를 복원합니다.
             </div>
             <div style={{ fontSize:12, color:'#ef5350', textAlign:'center', background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>
-              ⚠️ 기존 데이터와 병합됩니다.<br/>잘못된 파일을 가져오면 데이터가<br/>손상될 수 있습니다.
+              기존 기록은 지우지 않고 합칩니다.<br/>같은 라운드는 파일 내용으로 바뀌어요.
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <button style={{ padding:'13px', borderRadius:10, border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
@@ -217,12 +220,12 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             <div style={{ fontSize:26, textAlign:'center', marginBottom:12 }}>⚠️</div>
             <div style={{ fontSize:16, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:8 }}>사용자 전환하시겠어요?</div>
             <div style={{ fontSize:13, color:'#8896b0', textAlign:'center', lineHeight:1.6, marginBottom: activeRound ? 6 : 20 }}>
-              다른 사용자로 전환됩니다.
+              기록은 이 기기에 그대로 남아요.<br/>같은 이름으로 다시 들어오면 이어집니다.
             </div>
             {activeRound && (
               <div style={{ fontSize:12, color:'#ef5350', textAlign:'center', background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>
-                ⚠️ 진행 중인 라운드가 있습니다.<br/>
-                현재까지 기록한 데이터가<br/>저장되지 않을 수 있습니다.
+                진행 중인 라운드도 보관돼요.<br/>
+                다시 로그인하면 이어서 기록할 수 있어요.
               </div>
             )}
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

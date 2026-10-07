@@ -1011,7 +1011,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 지점은 순서대로만 찍는다. 직전 지점이 없으면 거리가 계산되지 않아 기록해도
   // 의미가 없다. 원온(파3 GIR·파4/5 teeGIR)과 홀인원이면 fieldShots가 1이라
   // 그린(=마지막) 지점의 직전이 곧 티샷이 되어, 세컨샷을 거치지 않고 바로 열린다.
-  const gpsLocked = (slot) => slot > 0 && !gpsPoints[slot - 1];
+  const gpsLocked = (slot) => {
+    if (slot <= 0 || gpsPoints[slot - 1]) return false;
+    // 그린 랜딩 슬롯(마지막)은 GIR/온그린이 확정된 경우 이전 GPS 없이도 찍을 수 있게 완화.
+    // 파5 세컨온, 파3 세컨온, 써드/포쓰샷 온그린 모두 해당.
+    if (slot === fieldShots) {
+      const lastExtraOnGreen = extraShots.length > 0 && extraShots[extraShots.length - 1]?.onGreen === true;
+      const secondOnGreen = extraShots.length === 0 && (
+        (hole.par > 3 && playerScore.gir === true) ||
+        (hole.par === 3 && playerScore.onGreen === true)
+      );
+      if (lastExtraOnGreen || secondOnGreen) return false;
+    }
+    return true;
+  };
   const gpsLockHint = (slot) => `${shotLabel(slot - 1)} 지점을 먼저 찍어주세요`;
 
   // extraFields: 같은 클릭 안에서 함께 반영할 다른 필드(예: gir/onGreen).

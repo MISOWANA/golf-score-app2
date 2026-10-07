@@ -32,9 +32,11 @@ const scoreTone = (diff) => {
   return diff === 1 ? '#e57373' : C.red;
 };
 const scoreText = (diff) => (diff == null ? '' : diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`);
-const SCORE_NAME = { [-3]: '알바트로스', [-2]: '이글', [-1]: '버디', 0: '파', 1: '보기', 2: '더블보기', 3: '트리플보기' };
+const SCORE_NAME = {
+  [-3]: 'ALBATROSS', [-2]: 'EAGLE', [-1]: 'BIRDIE', 0: 'PAR', 1: 'BOGEY', 2: 'DOUBLE BOGEY', 3: 'TRIPLE BOGEY',
+};
 const scoreName = (strokes, diff) => {
-  if (strokes === 1) return '홀인원';
+  if (strokes === 1) return 'HOLE IN ONE';
   if (diff == null) return null;
   return SCORE_NAME[diff] ?? scoreText(diff);
 };
@@ -225,20 +227,22 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
             PAR {review.par}{review.holeLength != null && ` · ${m(review.holeLength)}`}
           </div>
         </div>
-        {/* 스코어 — '버디 4/3(-1)' : 스코어 이름 · 파/타수 · 파 대비 */}
-        <div style={{
-          display: 'flex', alignItems: 'baseline', gap: 7, padding: '9px 14px', borderRadius: 12,
-          background: tint(nameTone === C.line ? C.dim : nameTone, 0.12),
-          border: `1px solid ${tint(nameTone === C.line ? C.dim : nameTone, 0.4)}`,
-          whiteSpace: 'nowrap',
-        }}>
-          <span style={{ fontSize: 20, fontWeight: 900, color: nameTone }}>{name ?? '—'}</span>
-          <span style={{ fontSize: 20, fontWeight: 900, color: C.line }}>
-            {review.par}/{review.strokes ?? '—'}
+        {/* 스코어 — [BIRDIE] 4/3(-1) : 스코어 이름만 배지로, 숫자는 배지 밖에 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, whiteSpace: 'nowrap' }}>
+          <span style={{
+            padding: '5px 10px', borderRadius: 8,
+            background: tint(nameTone === C.line ? C.dim : nameTone, 0.14),
+            border: `1px solid ${tint(nameTone === C.line ? C.dim : nameTone, 0.5)}`,
+            fontSize: 13, fontWeight: 900, letterSpacing: '0.06em', color: nameTone,
+          }}>{name ?? '—'}</span>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+            <span style={{ fontSize: 22, fontWeight: 900, color: C.line }}>
+              {review.par}/{review.strokes ?? '—'}
+            </span>
+            {review.diff != null && (
+              <span style={{ fontSize: 15, fontWeight: 800, color: nameTone }}>({scoreText(review.diff)})</span>
+            )}
           </span>
-          {review.diff != null && (
-            <span style={{ fontSize: 15, fontWeight: 800, color: nameTone }}>({scoreText(review.diff)})</span>
-          )}
         </div>
         <button onClick={onClose} aria-label="닫기" style={{
           width: 42, height: 42, borderRadius: 10, border: 'none', flexShrink: 0,

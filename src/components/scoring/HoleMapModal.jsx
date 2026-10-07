@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { haversine, combinedAccuracy, gpsQuality, shotDistances, pinDistances } from '../../engine/geo.js';
-import { pointIcon, pinIcon, draftIcon, distanceIcon, createSatelliteMap } from '../map/holeMapLayers.js';
+import { pointIcon, pinIcon, draftIcon, distanceIcon, rightNormal, createSatelliteMap } from '../map/holeMapLayers.js';
 import { getVWorldKey, setVWorldKey, VWORLD_SIGNUP_URL } from '../../engine/mapTiles.js';
 
 // 라운드 중에 쓰는 화면이라 기본 줌은 한 홀이 거의 다 들어오는 수준으로 잡는다.
@@ -278,7 +278,7 @@ export default function HoleMapModal({
       }).addTo(layer);
       const d = haversine(from, to);
       if (d != null) {
-        L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], { icon: distanceIcon(d) }).addTo(layer);
+        L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], { icon: distanceIcon(d, ...rightNormal(from, to)) }).addTo(layer);
       }
     }
 

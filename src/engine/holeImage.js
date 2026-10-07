@@ -69,6 +69,11 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+const chipWidth = (ctx, text, size = 22, pad = 9) => {
+  ctx.font = FONT(800, size);
+  return ctx.measureText(text).width + pad * 2;
+};
+
 function chip(ctx, text, x, y, { bg, border, color, size = 22, pad = 9, align = 'left' }) {
   ctx.font = FONT(800, size);
   const w = ctx.measureText(text).width + pad * 2;
@@ -247,8 +252,19 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
     const d = haversine(pts[i], pts[i + 1]);
     if (d == null) continue;
     const a = toXY(pts[i]); const b = toXY(pts[i + 1]);
-    chip(ctx, fmtM(d), (a.x + b.x) / 2 - 24, (a.y + b.y) / 2, {
-      bg: 'rgba(6,8,15,0.88)', border: 'rgba(240,201,58,0.55)', color: C.goldBright, size: 20,
+    // 화면 지도(distanceIcon)와 같은 배치 — 선 중점에서 오른쪽 수직 방향으로
+    // 떼어 놓는다. 세로에 가까운 선이면 오른쪽, 가로에 가까우면 위·아래.
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    let nx = -(b.y - a.y) / len;
+    let ny = (b.x - a.x) / len;
+    if (nx < 0 || (nx === 0 && ny > 0)) { nx = -nx; ny = -ny; }
+    const text = fmtM(d);
+    const w = chipWidth(ctx, text, 20);
+    const h = 20 + 9 * 1.1;
+    const ax = (a.x + b.x) / 2 + nx * 22;
+    const ay = (a.y + b.y) / 2 + ny * 22;
+    chip(ctx, text, ax + (-0.5 + nx * 0.5) * w, ay + ny * 0.5 * h, {
+      bg: 'rgba(6,8,15,0.9)', border: 'rgba(255,255,255,0.4)', color: '#ffffff', size: 20,
     });
   }
 
@@ -258,7 +274,9 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
     crosshair(ctx, x, y);
     const remain = typeof p.slot === 'number' ? toPin[p.slot] : haversine(review.gps.green, pin);
     const text = remain != null ? `${p.label} · 남은 ${fmtM(remain)}` : p.label;
-    const rightSide = x < mapSize * 0.62;
+    // 화면 지도와 같이 조준선 왼쪽에 둔다(오른쪽은 구간 거리 자리).
+    // 왼쪽 가장자리에 붙은 지점만 잘리지 않도록 오른쪽으로 넘긴다.
+    const rightSide = x - 26 - chipWidth(ctx, text, 21) < 8;
     chip(ctx, text, rightSide ? x + 26 : x - 26, y - 30, {
       bg: 'rgba(6,8,15,0.86)', border: 'rgba(240,201,58,0.5)', color: C.goldBright,
       size: 21, align: rightSide ? 'left' : 'right',

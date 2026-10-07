@@ -10,7 +10,7 @@ import { createSatelliteMap, drawHoleOverlay, MAP_COLOR as C } from '../map/hole
 // 지도와 샷 목록으로 함께 본다.
 //
 // 레이아웃은 샷 트래킹 앱(Arccos·18Birdies)의 홀 상세를 따른다:
-//   헤더 = 홀·파·전장 + 스코어카드 기호(버디 ○, 보기 □)
+//   헤더 = 홀·파·전장 + 스코어 ('버디 4/3(-1)')
 //   요약 = 한 줄 스탯 바 (페어웨이 · GIR · 퍼팅 · 벌타)
 //   샷 목록 = 클럽 배지 | 샷·조건 | 친 거리·결과 — 한 행에 한 샷
 
@@ -44,30 +44,6 @@ const tint = (hex, a) => {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 };
-
-// 스코어카드 기호 — 골퍼가 종이 스코어카드에서 익숙한 표기.
-// 이글 이하 ◎, 버디 ○, 파 없음, 보기 □, 더블 이상 ▣
-function ScoreMark({ strokes, diff }) {
-  const color = strokes === 1 ? C.goldBright : scoreTone(diff);
-  const round = diff != null && diff < 0;
-  const double = diff != null && (diff <= -2 || diff >= 2);
-  const framed = diff != null && diff !== 0;
-  const size = 50;
-  const ring = (inset) => ({
-    position: 'absolute', inset, border: `2px solid ${color}`,
-    borderRadius: round ? '50%' : 6,
-  });
-  return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      {framed && <div style={ring(0)} />}
-      {framed && double && <div style={ring(5)} />}
-      <div style={{
-        position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 26, fontWeight: 900, color: C.line,
-      }}>{strokes ?? '—'}</div>
-    </div>
-  );
-}
 
 // 스탯 바의 한 칸 — 값이 O/X면 ✓/✕ 아이콘으로.
 function Stat({ label, value, color }) {
@@ -249,14 +225,20 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
             PAR {review.par}{review.holeLength != null && ` · ${m(review.holeLength)}`}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: nameTone }}>{name ?? '—'}</div>
-            {review.diff != null && (
-              <div style={{ fontSize: 12, fontWeight: 700, color: LABEL, marginTop: 2 }}>{scoreText(review.diff)}</div>
-            )}
-          </div>
-          <ScoreMark strokes={review.strokes} diff={review.diff} />
+        {/* 스코어 — '버디 4/3(-1)' : 스코어 이름 · 파/타수 · 파 대비 */}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', gap: 7, padding: '9px 14px', borderRadius: 12,
+          background: tint(nameTone === C.line ? C.dim : nameTone, 0.12),
+          border: `1px solid ${tint(nameTone === C.line ? C.dim : nameTone, 0.4)}`,
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ fontSize: 20, fontWeight: 900, color: nameTone }}>{name ?? '—'}</span>
+          <span style={{ fontSize: 20, fontWeight: 900, color: C.line }}>
+            {review.par}/{review.strokes ?? '—'}
+          </span>
+          {review.diff != null && (
+            <span style={{ fontSize: 15, fontWeight: 800, color: nameTone }}>({scoreText(review.diff)})</span>
+          )}
         </div>
         <button onClick={onClose} aria-label="닫기" style={{
           width: 42, height: 42, borderRadius: 10, border: 'none', flexShrink: 0,
@@ -419,10 +401,10 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
         borderTop: `1px solid ${BORDER}`, background: '#0d1220',
       }}>
         <button onClick={() => canPrev && onNav(holeIdx - 1)} disabled={!canPrev} style={navBtn(canPrev)}>
-          ← {holeIdx}홀
+          ← {canPrev ? `${holeIdx}홀` : '이전'}
         </button>
         <button onClick={() => canNext && onNav(holeIdx + 1)} disabled={!canNext} style={navBtn(canNext)}>
-          {holeIdx + 2}홀 →
+          {canNext ? `${holeIdx + 2}홀` : '다음'} →
         </button>
       </div>
     </div>

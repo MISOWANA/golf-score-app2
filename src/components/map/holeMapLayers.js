@@ -17,6 +17,7 @@ export const MAP_COLOR = {
 // 샷 지점은 "어디쯤"이 아니라 "정확히 이 자리"가 중요하다. 라벨 알약으로 점을
 // 덮어버리지 않도록, 중심을 비운 십자 조준선으로 지점을 찍고 라벨은 옆으로 뺀다.
 // 위성영상은 밝기가 제각각이라 모든 선에 어두운 테두리를 깔아 대비를 만든다.
+// 라벨은 조준선 왼쪽에 둔다 — 오른쪽은 구간 거리 라벨 자리다(distanceIcon).
 export const pointIcon = (label) => L.divIcon({
   className: '',
   html: `<div style="position:relative;width:0;height:0">
@@ -35,7 +36,7 @@ export const pointIcon = (label) => L.divIcon({
         <circle cx="19" cy="19" r="1.5" fill="#f0c93a"/>
       </svg>
       <div style="
-        position:absolute;left:14px;top:-22px;white-space:nowrap;
+        position:absolute;right:14px;top:-22px;white-space:nowrap;
         padding:2px 7px;border-radius:4px;
         background:rgba(6,8,15,0.82);border:1px solid rgba(240,201,58,0.55);
         color:#f0c93a;font-size:10px;font-weight:800;letter-spacing:0.04em;
@@ -96,17 +97,36 @@ export const draftIcon = () => L.divIcon({
   iconAnchor: [22, 22],
 });
 
-export const distanceIcon = (meters) => L.divIcon({
+// 구간 거리 라벨. (nx, ny) = 선에 수직인 화면 방향 단위벡터(오른쪽을 향한 쪽).
+// 선 중점에서 그 방향으로 떼어 놓아 라벨이 선을 덮지 않게 한다 — 세로에 가까운
+// 선이면 오른쪽, 가로에 가까운 선이면 위·아래로 자연스럽게 옮겨 간다.
+// 크기 0인 마커 안이라 width:max-content를 주지 않으면 박스가 글자보다 좁아진다.
+export const distanceIcon = (meters, nx = 1, ny = 0) => L.divIcon({
   className: '',
-  html: `<div style="
-      transform:translate(-50%,-50%);
-      padding:2px 7px;border-radius:4px;white-space:nowrap;
-      background:rgba(6,8,15,0.86);border:1px solid rgba(240,201,58,0.5);
-      color:#f0c93a;font-size:11px;font-weight:800;
-    ">${Math.round(meters)}m</div>`,
+  html: `<div style="position:relative;width:0;height:0">
+      <div style="
+        position:absolute;left:${(nx * 12).toFixed(1)}px;top:${(ny * 12).toFixed(1)}px;
+        transform:translate(${(-50 + nx * 50).toFixed(0)}%,${(-50 + ny * 50).toFixed(0)}%);
+        width:max-content;padding:2px 7px;border-radius:4px;white-space:nowrap;
+        background:rgba(6,8,15,0.88);border:1px solid rgba(255,255,255,0.35);
+        color:#ffffff;font-size:11px;font-weight:800;line-height:1.4;
+      ">${Math.round(meters)}m</div>
+    </div>`,
   iconSize: [0, 0],
   iconAnchor: [0, 0],
 });
+
+// from→to 선의 오른쪽 수직 방향(화면 좌표, y는 아래가 +). 지도는 북쪽이 위라
+// 경도 차에 cos(위도)를 곱하면 화면 방향과 거의 같다.
+export function rightNormal(from, to) {
+  const dx = (to.lng - from.lng) * Math.cos((from.lat * Math.PI) / 180);
+  const dy = -(to.lat - from.lat);
+  const len = Math.hypot(dx, dy) || 1;
+  let nx = -dy / len;
+  let ny = dx / len;
+  if (nx < 0 || (nx === 0 && ny > 0)) { nx = -nx; ny = -ny; }
+  return [nx, ny];
+}
 
 // 위성 타일 지도를 만든다. 실패 콜백은 인증키/영역 문제를 화면에 알리는 용도.
 export function createSatelliteMap(el, apiKey, { onTileError, onTileLoad } = {}) {
@@ -155,7 +175,7 @@ export function drawHoleOverlay(group, { chain = [], pin = null } = {}) {
     }).addTo(group);
     const d = haversine(from, to);
     if (d != null) {
-      L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], { icon: distanceIcon(d) }).addTo(group);
+      L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], { icon: distanceIcon(d, ...rightNormal(from, to)) }).addTo(group);
     }
   }
 

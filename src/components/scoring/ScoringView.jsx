@@ -256,13 +256,14 @@ function WindInput({ direction, strength, onDir, onStrength }) {
   );
 }
 
-// 바람 입력 — 쓰는 사람이 적어 기본은 접어 둔다. 클럽을 고르기 전에는 회색으로
-// 두되 눌러서 펼칠 수는 있다(막지 않는다). 클럽을 고르면 금색 테두리로 바뀌어
-// "이제 바람도 입력할 수 있다"를 알린다. 입력한 값은 접힌 상태에서도 헤더에 요약한다.
-function WindSection({ enabled, direction, strength, onDir, onStrength, onReset }) {
+// 선택 입력 섹션 (라이·바람) — 쓰는 사람이 적어 기본은 접어 둔다. 클럽을 고르기
+// 전에는 회색으로 두되 눌러서 펼칠 수는 있다(막지 않는다). 클럽을 고르면 금색
+// 테두리로 바뀌어 "이제 이것도 입력할 수 있다"를 알린다. 입력한 값은 접힌
+// 상태에서도 헤더에 요약한다.
+// children(close) — 선택이 끝나면 섹션을 접을 수 있도록 close를 넘긴다.
+function OptionalSection({ icon, label, enabled, summary, children }) {
   const [open, setOpen] = useState(false);
-  const expanded = open;
-  const hasValue = direction != null || strength > 0;
+  const hasValue = !!summary;
   const accent = enabled ? '#c9a228' : '#4d5a78';
   return (
     <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
@@ -272,34 +273,67 @@ function WindSection({ enabled, direction, strength, onDir, onStrength, onReset 
           width:'100%', display:'flex', alignItems:'center', gap:8, padding:'10px 12px', borderRadius:9,
           cursor:'pointer', textAlign:'left',
           border:`1.5px solid ${enabled ? '#c9a228' : '#252f4a'}`,
-          background: enabled ? (expanded || hasValue ? 'rgba(201,162,40,0.12)' : 'rgba(201,162,40,0.05)') : 'transparent',
+          background: enabled ? (open || hasValue ? 'rgba(201,162,40,0.12)' : 'rgba(201,162,40,0.05)') : 'transparent',
         }}
       >
-        <span style={{ ...fIcon, color: accent }}>💨</span>
-        <span style={{ ...fLbl, color: enabled ? '#e8c45a' : '#4d5a78' }}>바람</span>
+        <span style={{ ...fIcon, color: accent }}>{icon}</span>
+        <span style={{ ...fLbl, color: enabled ? '#e8c45a' : '#4d5a78' }}>{label}</span>
         <span style={{ flex:1, minWidth:0, fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-          {hasValue ? [
-              direction != null && `${toCompassLabel(direction)} ${direction}°`,
-              strength > 0 && `${Number(strength).toFixed(1)}m/s`,
-            ].filter(Boolean).join(' · ')
+          {hasValue ? summary
             : <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
                 {enabled ? '선택 입력' : '클럽 선택 후 입력'}
               </span>}
         </span>
-        <span style={{ fontSize:12, fontWeight:800, color: accent }}>{expanded ? '접기 ▴' : '펼치기 ▾'}</span>
+        <span style={{ fontSize:12, fontWeight:800, color: accent }}>{open ? '접기 ▴' : '펼치기 ▾'}</span>
       </button>
-      {expanded && (
+      {open && (
         <div style={{ marginTop:12, paddingBottom:6, animation:'fadeIn 0.18s ease-out' }}>
-          {direction != null && (
-            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
-              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
-                onClick={onReset}>방향 초기화</button>
-            </div>
-          )}
-          <WindInput direction={direction} strength={strength} onDir={onDir} onStrength={onStrength} />
+          {children(() => setOpen(false))}
         </div>
       )}
     </div>
+  );
+}
+
+function WindSection({ enabled, direction, strength, onDir, onStrength, onReset }) {
+  const summary = [
+    direction != null && `${toCompassLabel(direction)} ${direction}°`,
+    strength > 0 && `${Number(strength).toFixed(1)}m/s`,
+  ].filter(Boolean).join(' · ');
+  return (
+    <OptionalSection icon="💨" label="바람" enabled={enabled} summary={summary}>
+      {() => (<>
+        {direction != null && (
+          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
+            <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+              onClick={onReset}>방향 초기화</button>
+          </div>
+        )}
+        <WindInput direction={direction} strength={strength} onDir={onDir} onStrength={onStrength} />
+      </>)}
+    </OptionalSection>
+  );
+}
+
+// 라이 값은 문자열 또는 [문자열] (과거 데이터) 로 들어온다.
+const lieValue = (lie) => (Array.isArray(lie) ? lie[0] || null : lie || null);
+const lieText = (lie) => {
+  const v = lieValue(lie);
+  if (!v) return '';
+  if (v === 'flat') return '평지';
+  return (LIE_DIRS.find(d => d.id === v)?.label ?? v).replace('\n', ' ');
+};
+
+function LieSection({ label = '라이', enabled, value, onChange }) {
+  return (
+    <OptionalSection icon="▲" label={label} enabled={enabled} summary={lieText(value)}>
+      {(close) => (
+        <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS} alwaysOpen
+          value={lieValue(value)}
+          onChange={v => { onChange(v); if (v) close(); }}
+        />
+      )}
+    </OptionalSection>
   );
 }
 
@@ -463,12 +497,14 @@ const RADIAL_POS = {
   right: { tx:  96, ty:   0 },
 };
 
-function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder }) {
+// alwaysOpen: 접기 버튼 없이 선택지만 보인다 (바깥 섹션이 접기를 맡을 때).
+function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder, alwaysOpen }) {
   const raw = Array.isArray(value) ? value[0] || null : value || null;
   // 아직 선택이 없으면 펼친 상태로 시작한다 — 필드에서 입력 차례마다 "열기"를
   // 한 번 더 누르지 않게 하려는 것. 선택이 끝나면 접혀서 결과만 남고, 사용자가
   // 직접 접은 경우에는(값 변화가 없으므로) 그대로 접힌 채 유지된다.
-  const [open, setOpen] = useState(raw == null);
+  const [openState, setOpen] = useState(raw == null);
+  const open = alwaysOpen || openState;
 
   useEffect(() => { setOpen(raw == null); }, [raw]);
 
@@ -486,7 +522,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
 
   return (
     <div style={{ width:'100%' }}>
-      <button
+      {!alwaysOpen && <button
         onClick={() => { setOpen(v => { if (!v && onOpen) onOpen(); return !v; }); }}
         style={{
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center',
@@ -501,7 +537,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
         </span>
         {!open && selIcon && <span style={{ color:'#c9a228' }}>{selIcon}</span>}
         <span style={{ fontSize:9, color: open || hasSelection ? '#c9a228' : '#4d5a78', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
-      </button>
+      </button>}
 
       {open && (() => {
         const byPos = {};
@@ -531,7 +567,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
         };
         const centerOpt = { id: centerId, label: centerLabel, icon: null };
         return (
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginTop:8 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginTop: alwaysOpen ? 0 : 8 }}>
             {optBtn(byPos['ul'])}{optBtn(byPos['up'])}{optBtn(byPos['ur'])}
             {optBtn(byPos['left'])}{optBtn(centerOpt)}{optBtn(byPos['right'])}
             {optBtn(byPos['dl'])}{optBtn(byPos['down'])}{optBtn(byPos['dr'])}
@@ -1714,20 +1750,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
         </div>
 
-        {/* 세컨샷 라이 */}
-        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-            <span style={fIcon}>▲</span><span style={fLbl}>세컨샷 라이</span>
-          </div>
-          <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
-            value={Array.isArray(playerScore.terrainCondition) ? playerScore.terrainCondition[0] : playerScore.terrainCondition}
-            onChange={v => { updateField('terrainCondition', v); if (v) scrollDown(); }}
-            onOpen={scrollDown}
-          />
-        </div>
-
         {/* 세컨샷 클럽 */}
-        {playerScore.terrainCondition && (
         <ClubSelector
           icon="〽"
           label="세컨샷 클럽"
@@ -1738,10 +1761,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onSub={v => updateField('secondClubSub', v)}
           stacked
         />
-        )}
 
-        {/* 바람 — 기본 접힘, 세컨샷 클럽을 고르면 활성화 */}
-        {playerScore.terrainCondition && (
+        {/* 라이·바람 — 기본 접힘, 세컨샷 클럽을 고르면 금색으로 활성화 */}
+        <LieSection
+          key={`lie-${holeIdx}-${activePlayer}`}
+          label="세컨샷 라이"
+          enabled={!!playerScore.secondClub}
+          value={playerScore.terrainCondition}
+          onChange={v => updateField('terrainCondition', v)}
+        />
         <WindSection
           key={`wind-${holeIdx}-${activePlayer}`}
           enabled={!!playerScore.secondClub}
@@ -1749,11 +1777,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)}
           onReset={() => updateField('windDirection', null)}
         />
-        )}
         </>}
 
         {/* ── 세컨샷 온그린 체크 → 써드샷 이후 ── */}
-        {playerScore.terrainCondition && (<>
+        {/* 라이가 선택 입력이 되면서 다음 단계는 클럽 선택으로 연다. 라이만 있는
+            과거 기록, 지도에서 샷을 추가한 경우도 그대로 보이게 한다. */}
+        {(playerScore.secondClub || lieValue(playerScore.terrainCondition) || extraShots.length > 0 || playerScore.gir != null) && (<>
         <div ref={extraShotTopRef} />
 
         {/* 세컨샷 GIR (추가 샷 없을 때, Par 4+) */}
@@ -1825,20 +1854,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   <div style={{ textAlign:'center', fontSize:9, color:'#4d5a78', marginTop:6, letterSpacing:'0.1em' }}>← 슬라이드로 1m 단위 조정 →</div>
                 </div>
 
-                {/* 라이 */}
-                <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                    <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
-                  </div>
-                  <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS}
-                    value={Array.isArray(shot.lie) ? shot.lie[0] : shot.lie}
-                    onChange={v => { updateExtraShot(idx, { lie: v }); if (v) scrollDown(); }}
-                    onOpen={scrollDown}
-                  />
-                </div>
-
-                {/* 클럽 — 라이 선택 후 노출 */}
-                {shot.lie && (Array.isArray(shot.lie) ? shot.lie.length > 0 : true) && (
+                {/* 클럽 */}
                 <ClubSelector
                   icon="〽" label="클럽" categories={SECOND_CLUBS}
                   value={shot.club} subValue={shot.subClub}
@@ -1846,10 +1862,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   onSub={v => updateExtraShot(idx, { subClub: v })}
                   stacked
                 />
-                )}
 
-                {/* 바람 — 기본 접힘, 클럽을 고르면 활성화 */}
-                {shot.lie && (Array.isArray(shot.lie) ? shot.lie.length > 0 : true) && (
+                {/* 라이·바람 — 기본 접힘, 클럽을 고르면 금색으로 활성화 */}
+                <LieSection
+                  key={`lie-${holeIdx}-${activePlayer}-${idx}`}
+                  enabled={!!shot.club}
+                  value={shot.lie}
+                  onChange={v => updateExtraShot(idx, { lie: v })}
+                />
                 <WindSection
                   key={`wind-${holeIdx}-${activePlayer}-${idx}`}
                   enabled={!!shot.club}
@@ -1858,7 +1878,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   onStrength={v => updateExtraShot(idx, { windStrength: v })}
                   onReset={() => updateExtraShot(idx, { windDirection: null })}
                 />
-                )}
 
                 {/* 온그린 성공 / 실패 — 클럽 선택 후 노출 */}
                 {shot.club && (

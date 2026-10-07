@@ -1055,6 +1055,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     );
   })();
 
+  // 퍼팅 거리 슬라이더의 시작값. 첫 퍼팅은 5m, 이후는 직전 퍼팅 거리의 절반
+  // (0.5m 단위, 최소 0.5m) — 5m를 놓치면 보통 그보다 훨씬 짧게 남는다.
+  // 직전 퍼팅도 입력 전이면 그 시작값을 기준으로 이어서 줄인다.
+  const puttDefaultDistance = (idx) => {
+    if (idx <= 0) return 5;
+    const prev = puttDetails[idx - 1]?.distance ?? puttDefaultDistance(idx - 1);
+    return Math.max(0.5, Math.round(prev / 2 / 0.5) * 0.5);
+  };
+
   // 스코어(총 타수)가 우선값: 퍼팅 개수 변경이 이미 정해진 스코어를 바꾸지 않는다.
   // 퍼팅 수는 스코어를 넘어설 수 없으므로 필요 시 퍼팅 수만 클램프한다.
   const updatePuttsCount = (n) => {
@@ -2048,11 +2057,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   {putt.lie && (Array.isArray(putt.lie) ? putt.lie.length > 0 : true) && (<>
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance value={putt.distance||5} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
+                    <SwipeDistance value={putt.distance||puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
                   </div>
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance value={putt.aimDistance||5} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+                    <SwipeDistance value={putt.aimDistance||putt.distance||puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
                   </div>
                   {/* 홀인 */}
                   <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>

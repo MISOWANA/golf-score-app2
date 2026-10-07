@@ -886,7 +886,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         : (EXTRA_SHOT_NAMES[slot - 2]?.replace(/\s*\(.*\)\s*$/, '') ?? `${slot + 1}번째 샷`);
 
   // 마지막 지점 이름: 홀인원·칩인은 볼이 그린에 멈추지 않고 홀에 들어간다.
-  const finalPointLabel = isHoledOut(playerScore) ? '홀인 지점' : '그린 도착 지점';
+  const finalPointLabel = isHoledOut(playerScore) ? '홀인 지점' : '그린 랜딩 지점';
 
   // 지점은 순서대로만 찍는다. 직전 지점이 없으면 거리가 계산되지 않아 기록해도
   // 의미가 없다. 원온(파3 GIR·파4/5 teeGIR)과 홀인원이면 fieldShots가 1이라
@@ -2220,7 +2220,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           gpsPin={gpsPin}
           fieldShots={fieldShots}
           shotLabel={shotLabel}
-          finalLabel={isHoledOut(playerScore) ? '홀' : '그린'}
+          finalLabel={isHoledOut(playerScore) ? '홀' : '그린 랜딩'}
           onSetPoint={setGpsPoint}
           onSetGreen={fix => updateGpsField('gpsGreen', fix)}
           onSetPin={fix => updateGpsField('gpsPin', fix)}

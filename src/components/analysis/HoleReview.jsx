@@ -174,7 +174,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
 
     const chain = [
       ...review.shots.map((s) => ({ label: s.name, point: review.gps.points[s.slot] || null })),
-      { label: review.holedOut ? '홀' : '그린', point: review.gps.green },
+      { label: review.holedOut ? '홀' : '그린 랜딩', point: review.gps.green },
     ];
     const focus = drawHoleOverlay(group, { chain, pin: review.gps.pin });
 

@@ -20,7 +20,7 @@ const fmtAcc = (acc) => (acc == null ? '' : `±${Math.round(acc)}m`);
 // ─── 본체 ─────────────────────────────────────────────────────────────────────
 
 export default function HoleMapModal({
-  holeNo, par, gpsPoints, gpsGreen, gpsPin, fieldShots, shotLabel, finalLabel = '그린',
+  holeNo, par, gpsPoints, gpsGreen, gpsPin, fieldShots, shotLabel, finalLabel = '그린 랜딩',
   onSetPoint, onSetGreen, onSetPin, onAddShot, onUndoShot, onClose,
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);

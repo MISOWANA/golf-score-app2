@@ -132,7 +132,7 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
     const p = review.gps.points[s.slot];
     if (p) pts.push({ ...p, label: s.name, slot: s.slot });
   });
-  if (review.gps.green) pts.push({ ...review.gps.green, label: review.holedOut ? '홀' : '그린', slot: 'green' });
+  if (review.gps.green) pts.push({ ...review.gps.green, label: review.holedOut ? '홀' : '그린 랜딩', slot: 'green' });
   const pin = review.gps.pin;
   const all = pin ? [...pts, pin] : pts;
   if (all.length === 0) return null;

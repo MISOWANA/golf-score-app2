@@ -46,7 +46,12 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
 
   return (
     <div style={styles.container}>
-      <header style={styles.header}>
+      <header style={{ ...styles.header, position: 'relative' }}>
+        {/* 배포된 버전 확인용 — 마지막 커밋 시각(KST). vite.config.js 의 appVersion */}
+        <span style={{
+          position: 'absolute', top: 2, right: 0,
+          fontSize: 10, color: '#5a6a88', letterSpacing: '0.02em', pointerEvents: 'none',
+        }}>{__APP_VERSION__}</span>
         <div style={styles.headerTop}>
           <div style={styles.logo}>
             <div style={{ ...styles.logoMark, cursor: 'pointer' }} onClick={handleLogoClick} title="3번 연속 클릭하면 강력 새로고침">⛳</div>

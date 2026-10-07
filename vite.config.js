@@ -1,13 +1,38 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'node:child_process'
 
 // GitHub Pages 배포 경로. manifest의 start_url/scope와 service worker의
 // navigateFallback이 모두 이 값을 기준으로 해야 한다.
 const BASE = '/golf-score-app2/'
 
+// 앱 버전 = 마지막 커밋 시각(KST, 분 단위). 커밋 시각을 쓰는 이유: 빌드 시각은
+// 같은 코드를 다시 빌드해도 바뀌지만, 커밋 시각은 코드가 바뀔 때만 바뀐다.
+// CI(UTC)에서 빌드해도 한국 시각으로 찍히도록 시간대를 고정한다.
+// git이 없는 환경이면 빌드 시각으로 대신한다.
+function appVersion() {
+  let date
+  try {
+    date = new Date(execSync('git log -1 --format=%cI', { encoding: 'utf8' }).trim())
+  } catch {
+    date = new Date()
+  }
+  if (Number.isNaN(date.getTime())) date = new Date()
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    }).formatToParts(date).map(({ type, value }) => [type, value]),
+  )
+  return `v${p.year}.${p.month}.${p.day} ${p.hour}:${p.minute}`
+}
+
 export default defineConfig({
   base: BASE,
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion()),
+  },
   plugins: [
     react(),
     VitePWA({

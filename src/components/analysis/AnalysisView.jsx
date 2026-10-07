@@ -160,7 +160,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
         <div style={styles.bigScoreDisplay}>
           <div style={styles.bigScoreNum}>{stats.total}</div>
           <div style={{ ...styles.bigScoreDiff, color: stats.diff > 0 ? '#ef5350' : stats.diff < 0 ? '#3db87a' : '#8896b0' }}>
-            {stats.diff > 0 ? `+${stats.diff}` : stats.diff === 0 ? 'Even' : stats.diff}
+            ({stats.diff > 0 ? `+${stats.diff}` : stats.diff === 0 ? 'E' : stats.diff})
           </div>
           <div style={styles.bigScoreLabel}>vs par {stats.totalPar}</div>
         </div>

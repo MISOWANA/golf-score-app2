@@ -104,7 +104,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
             fontWeight: '700',
           }}>
             {strokesSum}
-            <span style={styles.scorecardTotalDiff}> {diffLabel}</span>
+            <span style={styles.scorecardTotalDiff}>({diffLabel})</span>
           </div>
         </div>
 

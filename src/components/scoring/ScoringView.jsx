@@ -1203,9 +1203,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', color:'#4d5a78', marginBottom:1 }}>{round.inCourseName||'IN'}</div>
                       <div style={{ fontSize:12, fontWeight:800, color: fmtC(bd,bt.length>0) }}>{fmt(bd,bt.length>0)}</div>
                     </div>
-                    <div style={{ display:'flex', alignItems:'baseline', gap:5, minWidth:60, justifyContent:'flex-end' }}>
+                    <div style={{ display:'flex', alignItems:'baseline', gap:2, minWidth:60, justifyContent:'flex-end' }}>
                       <span style={{ fontSize:22, fontWeight:900, color:'#e8edf8', lineHeight:1 }}>{ps||0}</span>
-                      <span style={{ fontSize:13, fontWeight:800, color: fmtC(pd,th.length>0), lineHeight:1 }}>{fmt(pd,th.length>0)}</span>
+                      {th.length > 0 && <span style={{ fontSize:13, fontWeight:800, color: fmtC(pd,true), lineHeight:1 }}>({fmt(pd,true)})</span>}
                     </div>
                   </div>
                 </div>
@@ -1231,7 +1231,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <div style={styles.runningScoreLabel}>SCORE</div>
               <div style={styles.runningScoreValues}>
                 <span style={styles.runningScoreNumber}>{ps}</span>
-                <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,th.length>0) }}>{fmt(pd,th.length>0)}</span>
+                {th.length > 0 && <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,true) }}>({fmt(pd,true)})</span>}
               </div>
             </div>
             <div style={styles.runningScoreDivider} />

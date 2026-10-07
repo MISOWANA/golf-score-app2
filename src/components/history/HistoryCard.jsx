@@ -23,7 +23,7 @@ export default function HistoryCard({ round, onSelect, onDelete, userName }) {
         <div style={styles.historyCardRight}>
           <div style={styles.historyScore}>{total}</div>
           <div style={{ ...styles.historyDiff, color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>
-            {diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff}
+            ({diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff})
           </div>
         </div>
       </button>

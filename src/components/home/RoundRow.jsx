@@ -21,7 +21,7 @@ export default function RoundRow({ round, onClick, userName }) {
       <div style={styles.roundRowRight}>
         <div style={styles.roundScore}>{total}</div>
         <div style={{ ...styles.roundDiff, color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>
-          {diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff}
+          ({diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff})
         </div>
       </div>
     </button>

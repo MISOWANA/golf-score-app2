@@ -256,6 +256,53 @@ function WindInput({ direction, strength, onDir, onStrength }) {
   );
 }
 
+// 바람 입력 — 쓰는 사람이 적어 기본은 접어 둔다. 클럽을 고르기 전에는 회색으로
+// 두되 눌러서 펼칠 수는 있다(막지 않는다). 클럽을 고르면 금색 테두리로 바뀌어
+// "이제 바람도 입력할 수 있다"를 알린다. 입력한 값은 접힌 상태에서도 헤더에 요약한다.
+function WindSection({ enabled, direction, strength, onDir, onStrength, onReset }) {
+  const [open, setOpen] = useState(false);
+  const expanded = open;
+  const hasValue = direction != null || strength > 0;
+  const accent = enabled ? '#c9a228' : '#4d5a78';
+  return (
+    <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', gap:8, padding:'10px 12px', borderRadius:9,
+          cursor:'pointer', textAlign:'left',
+          border:`1.5px solid ${enabled ? '#c9a228' : '#252f4a'}`,
+          background: enabled ? (expanded || hasValue ? 'rgba(201,162,40,0.12)' : 'rgba(201,162,40,0.05)') : 'transparent',
+        }}
+      >
+        <span style={{ ...fIcon, color: accent }}>💨</span>
+        <span style={{ ...fLbl, color: enabled ? '#e8c45a' : '#4d5a78' }}>바람</span>
+        <span style={{ flex:1, minWidth:0, fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {hasValue ? [
+              direction != null && `${toCompassLabel(direction)} ${direction}°`,
+              strength > 0 && `${Number(strength).toFixed(1)}m/s`,
+            ].filter(Boolean).join(' · ')
+            : <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
+                {enabled ? '선택 입력' : '클럽 선택 후 입력'}
+              </span>}
+        </span>
+        <span style={{ fontSize:12, fontWeight:800, color: accent }}>{expanded ? '접기 ▴' : '펼치기 ▾'}</span>
+      </button>
+      {expanded && (
+        <div style={{ marginTop:12, paddingBottom:6, animation:'fadeIn 0.18s ease-out' }}>
+          {direction != null && (
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
+              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
+                onClick={onReset}>방향 초기화</button>
+            </div>
+          )}
+          <WindInput direction={direction} strength={strength} onDir={onDir} onStrength={onStrength} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClockDial12({ value, onChange }) {
   return (
     <div style={{ position: 'relative', width: '100%', paddingTop: '90%', maxWidth: 280, margin: '0 auto' }}>
@@ -1693,23 +1740,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         />
         )}
 
-        {/* 바람 */}
+        {/* 바람 — 기본 접힘, 세컨샷 클럽을 고르면 활성화 */}
         {playerScore.terrainCondition && (
-        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
-              {playerScore.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(playerScore.windDirection)} {playerScore.windDirection}°</span>}
-              {playerScore.windStrength != null && playerScore.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(playerScore.windStrength).toFixed(1)}m/s</span>}
-            </div>
-            {playerScore.windDirection != null && (
-              <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
-                onClick={() => updateField('windDirection', null)}>초기화</button>
-            )}
-          </div>
-          <WindInput direction={playerScore.windDirection} strength={playerScore.windStrength}
-            onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)} />
-        </div>
+        <WindSection
+          key={`wind-${holeIdx}-${activePlayer}`}
+          enabled={!!playerScore.secondClub}
+          direction={playerScore.windDirection} strength={playerScore.windStrength}
+          onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)}
+          onReset={() => updateField('windDirection', null)}
+        />
         )}
         </>}
 
@@ -1809,26 +1848,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 />
                 )}
 
-                {/* 바람 — 클럽 선택 후 노출 */}
-                {shot.club && (
-                <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={fIcon}>💨</span><span style={fLbl}>바람</span>
-                      {shot.windDirection != null && <span style={{ fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:6 }}>{toCompassLabel(shot.windDirection)} {shot.windDirection}°</span>}
-                      {shot.windStrength > 0 && <span style={{ fontSize:10, color:'#c9a228', marginLeft:4 }}>{Number(shot.windStrength).toFixed(1)}m/s</span>}
-                    </div>
-                    {shot.windDirection != null && (
-                      <button style={{ fontSize:9, color:'#4d5a78', background:'none', border:'1px solid #1b2238', borderRadius:4, padding:'2px 7px', cursor:'pointer' }}
-                        onClick={() => updateExtraShot(idx, { windDirection: null })}>초기화</button>
-                    )}
-                  </div>
-                  <WindInput
-                    direction={shot.windDirection} strength={shot.windStrength}
-                    onDir={v => updateExtraShot(idx, { windDirection: v })}
-                    onStrength={v => updateExtraShot(idx, { windStrength: v })}
-                  />
-                </div>
+                {/* 바람 — 기본 접힘, 클럽을 고르면 활성화 */}
+                {shot.lie && (Array.isArray(shot.lie) ? shot.lie.length > 0 : true) && (
+                <WindSection
+                  key={`wind-${holeIdx}-${activePlayer}-${idx}`}
+                  enabled={!!shot.club}
+                  direction={shot.windDirection} strength={shot.windStrength}
+                  onDir={v => updateExtraShot(idx, { windDirection: v })}
+                  onStrength={v => updateExtraShot(idx, { windStrength: v })}
+                  onReset={() => updateExtraShot(idx, { windDirection: null })}
+                />
                 )}
 
                 {/* 온그린 성공 / 실패 — 클럽 선택 후 노출 */}

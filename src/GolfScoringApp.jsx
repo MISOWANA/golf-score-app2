@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
   saveActiveRound, loadActiveRound, clearActiveRound,
-  migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf,
+  migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf, deleteProfile,
   requestPersistentStorage,
 } from './db.js';
 import { isValidRound } from './engine/roundValidation.js';
@@ -84,6 +84,12 @@ export default function GolfScoringApp() {
     } catch (e) {
       console.error('Login failed', e);
     }
+  };
+
+  // 로그인 화면에서 사용자 삭제 — 그 사용자의 기록을 이 기기에서 모두 지운다.
+  const handleDeleteProfile = async (profile) => {
+    await deleteProfile(profile);
+    setProfiles(await listProfiles());
   };
 
   const handleResumeRound = () => {
@@ -259,6 +265,7 @@ export default function GolfScoringApp() {
       {view === 'login' && (
         <LoginView
           onLogin={handleUserLogin}
+          onDeleteProfile={handleDeleteProfile}
           loading={loading}
           profiles={profiles}
         />

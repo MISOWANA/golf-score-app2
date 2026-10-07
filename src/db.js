@@ -207,6 +207,35 @@ export const loginByName = async (userName) => {
   return profile;
 };
 
+// 사용자 삭제 — 프로필과 그 사용자의 모든 기록(라운드·클럽·진행 중 라운드)을
+// 이 기기에서 영구히 지운다. 예전 ID(aliases)에 남은 기록까지 함께 지운다.
+export const deleteProfile = async (profile) => {
+  await ensureDB();
+  const ids = userIdsOf(profile);
+  const tx = db.transaction([ROUNDS_STORE, CLUBS_STORE, USERS_STORE], 'readwrite');
+  const done = new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  const rounds = tx.objectStore(ROUNDS_STORE);
+  const clubs = tx.objectStore(CLUBS_STORE);
+  const users = tx.objectStore(USERS_STORE);
+  ids.forEach((id) => {
+    rounds.index('userId').openKeyCursor(IDBKeyRange.only(id)).onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) { rounds.delete(cursor.primaryKey); cursor.continue(); }
+    };
+    clubs.delete(id);
+    users.delete(`active_round_${id}`);
+  });
+  users.delete(PROFILE_PREFIX + profile.userId);
+  users.get('current').onsuccess = (e) => {
+    if (ids.includes(e.target.result?.userId)) users.delete('current');
+  };
+  await done;
+};
+
 // 'current'에 들어 있는 사용자를 프로필 형태로 돌려준다.
 export const getCurrentProfile = async () => {
   const current = await getCurrentUser();

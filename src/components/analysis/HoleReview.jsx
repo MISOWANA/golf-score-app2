@@ -337,7 +337,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
             // 티샷의 남은거리는 홀 전장이라 헤더에 이미 있다.
             const from = s.slot === 0 ? null : s.from;
             const meta = [
-              from && `남은 ${m(from.value)}${from.measured ? '' : ' (입력)'}`,
+              from && `남은거리 ${m(from.value)}${from.measured ? '' : ' (입력)'}`,
               s.lie, s.shape,
             ].filter(Boolean).join(' · ');
             return (

@@ -28,6 +28,15 @@ export const clubLabel = (club, sub) => {
   return `${base} ${sub}`;
 };
 
+// 목록 왼쪽 배지에 넣는 짧은 클럽 표기 — DR · 3W · 7I · 52°
+const CLUB_CODE = { driver: 'DR', wood: 'W', hybrid: 'H', iron: 'I', wedge: 'WG' };
+export const clubCode = (club, sub) => {
+  if (!club) return null;
+  if (club === 'driver') return 'DR';
+  if (sub) return club === 'wedge' && /^\d+$/.test(String(sub)) ? `${sub}°` : String(sub).slice(0, 3);
+  return CLUB_CODE[club] ?? String(club).slice(0, 2).toUpperCase();
+};
+
 export const lieLabel = (lie) => {
   const v = Array.isArray(lie) ? lie[0] : lie;
   return v ? (LIE_LABEL[v] ?? v) : null;
@@ -78,6 +87,12 @@ export function buildHoleReview(hole, player, holeIdx) {
     const e = s.extraShots?.[slot - 2];
     return clubLabel(e?.club, e?.subClub);
   };
+  const codeFor = (slot) => {
+    if (slot === 0) return clubCode(s.teeClub, s.teeClubSub);
+    if (slot === 1) return clubCode(s.secondClub, s.secondClubSub);
+    const e = s.extraShots?.[slot - 2];
+    return clubCode(e?.club, e?.subClub);
+  };
   const lieFor = (slot) => {
     if (slot === 0) return null;                 // 티샷은 티업
     if (slot === 1) return lieLabel(s.terrainCondition);
@@ -96,6 +111,7 @@ export function buildHoleReview(hole, player, holeIdx) {
     slot,
     name: shotName(slot),
     club: clubFor(slot),
+    code: codeFor(slot),
     lie: lieFor(slot),
     shape: slot === 0 ? (s.shotShape ?? null) : null,
     from: fromFor(slot),                          // 치기 전 남은 거리

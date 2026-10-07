@@ -863,11 +863,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
     : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
 
-  const secHdr = (label, onDelete) => (
+  const secHdr = (label, onDelete, state = 'idle') => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
-      <div style={{ height: 1, flex: 1, background: '#252f4a' }} />
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#6e84a8', letterSpacing: '0.2em' }}>{label}</span>
-      <div style={{ height: 1, flex: 1, background: '#252f4a' }} />
+      <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
+      <span style={{ fontSize: 11, fontWeight: 800, color: HDR[state].label, letterSpacing: '0.2em' }}>
+        {state === 'done' && '✓ '}{label}
+      </span>
+      <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
       {onDelete && (
         <button onClick={onDelete} style={{ fontSize: 9, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
       )}
@@ -875,6 +877,18 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   );
 
   const extraShots = playerScore.extraShots || [];
+
+  // ─── 지금 입력 차례인 섹션 ──────────────────────────────────────────────────
+  // 헤더 색: 지금 차례 = 금색, 입력을 마친 샷 = 초록 ✓, 아직 차례가 아닌 샷 = 회색.
+  // 예전에는 '접힌 + 완료' 헤더를 금색으로 칠해서, 그린을 입력하는 중에도 티샷이
+  // 강조돼 티샷 차례로 착각하게 만들었다.
+  const currentTurn = (() => {
+    if (shotPage === 1) return playerScore.onGreenLanding ? 'putt' : 'green';
+    if (!teeComplete) return 'tee';
+    if (extraShots.length === 0) return 'second';
+    return expandedExtraShot >= 0 ? expandedExtraShot : extraShots.length - 1;
+  })();
+  const turnState = (key, done) => (currentTurn === key ? 'active' : done ? 'done' : 'idle');
 
   const EXTRA_SHOT_NAMES = [
     '써드샷 ( 3rd )',
@@ -1523,10 +1537,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             borderBottom: teeExpanded ? 'none' : '1px solid #0e1320',
           }}
         >
-          <div style={{ height:1, flex:1, background: teeComplete && !teeExpanded ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
-          <span style={{ fontSize:12, fontWeight:800, color: teeComplete && !teeExpanded ? '#c9a228' : '#8fb0cc', letterSpacing:'0.18em', flexShrink:0 }}>티 샷</span>
-          <div style={{ height:1, flex:1, background: teeComplete && !teeExpanded ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
-          <span style={{ fontSize:11, color: teeComplete && !teeExpanded ? '#c9a228' : '#5a6a88', flexShrink:0 }}>{teeExpanded ? '▲' : '▼'}</span>
+          {(() => { const h = HDR[turnState('tee', teeComplete)]; return (<>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{turnState('tee', teeComplete) === 'done' && '✓ '}티 샷</span>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:11, color: h.arrow, flexShrink:0 }}>{teeExpanded ? '▲' : '▼'}</span>
+          </>); })()}
         </button>
 
         {teeExpanded && <>
@@ -1720,10 +1736,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {teeComplete && shotPage === 0 && !playerScore.teeGIR && <>
         {/* ── 세컨샷 아코디언 헤더 ── */}
         <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
-          <div style={{ height:1, flex:1, background: !secondShotExpanded && playerScore.secondClub ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
-          <span style={{ fontSize:12, fontWeight:800, color: !secondShotExpanded && playerScore.secondClub ? '#c9a228' : '#8fb0cc', letterSpacing:'0.18em', flexShrink:0 }}>세컨샷 ( 2nd )</span>
-          <div style={{ height:1, flex:1, background: !secondShotExpanded && playerScore.secondClub ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
-          <span style={{ fontSize:11, color: !secondShotExpanded && playerScore.secondClub ? '#c9a228' : '#5a6a88', flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
+          {(() => {
+            const st = turnState('second', !!playerScore.secondClub || playerScore.gir != null || extraShots.length > 0);
+            const h = HDR[st];
+            return (<>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{st === 'done' && '✓ '}세컨샷 ( 2nd )</span>
+          <div style={{ height:1, flex:1, background: h.line }} />
+          <span style={{ fontSize:11, color: h.arrow, flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
+          </>); })()}
         </button>
 
         {secondShotExpanded && <>
@@ -1815,6 +1836,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {extraShots.map((shot, idx) => {
           const isExtraOpen = expandedExtraShot === idx;
           const extraDone = shot.onGreen != null;
+          const exState = turnState(idx, extraDone);
+          const exHdr = HDR[exState];
           return (
             <React.Fragment key={idx}>
               {/* 아코디언 헤더 */}
@@ -1822,12 +1845,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 onClick={() => setExpandedExtraShot(isExtraOpen ? -1 : idx)}
                 style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isExtraOpen ? 'none' : '1px solid #0e1320' }}
               >
-                <div style={{ height:1, flex:1, background: !isExtraOpen && extraDone ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
-                <span style={{ fontSize:12, fontWeight:800, color: !isExtraOpen && extraDone ? '#c9a228' : '#8fb0cc', letterSpacing:'0.18em', flexShrink:0 }}>
-                  {extraShotName(idx)}
+                <div style={{ height:1, flex:1, background: exHdr.line }} />
+                <span style={{ fontSize:12, fontWeight:800, color: exHdr.label, letterSpacing:'0.18em', flexShrink:0 }}>
+                  {exState === 'done' && '✓ '}{extraShotName(idx)}
                 </span>
-                <div style={{ height:1, flex:1, background: !isExtraOpen && extraDone ? 'rgba(201,162,40,0.55)' : '#252f4a' }} />
-                <span style={{ fontSize:11, color: !isExtraOpen && extraDone ? '#c9a228' : '#5a6a88', flexShrink:0 }}>{isExtraOpen ? '▲' : '▼'}</span>
+                <div style={{ height:1, flex:1, background: exHdr.line }} />
+                <span style={{ fontSize:11, color: exHdr.arrow, flexShrink:0 }}>{isExtraOpen ? '▲' : '▼'}</span>
               </button>
 
               {isExtraOpen && (<>
@@ -1933,7 +1956,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {teeComplete && shotPage === 1 && <>
 
         {/* ── 그린 ── */}
-        {secHdr('그 린')}
+        {secHdr('그 린', null, turnState('green', !!playerScore.onGreenLanding))}
 
         {/* 그린 도착 지점 — 마지막 필드샷의 거리가 여기서 확정된다.
             퍼팅 거리는 GPS 오차(두 점 합성 ±5~10m)보다 짧아 측정 대상이 아니다. */}
@@ -1979,7 +2002,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
         {/* 퍼팅 상세 — 온그린 랜딩 선택 후 노출 */}
         {playerScore.onGreenLanding && (<>
-        {secHdr('퍼 팅')}
+        {secHdr('퍼 팅', null, turnState('putt', false))}
 
         {playerScore.putts > 0 && (<>
 
@@ -2299,6 +2322,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 }
 
 // ─── Style constants ──────────────────────────────────────────────────────────
+
+// 샷 섹션 헤더 색 — active(지금 차례) · done(입력 완료) · idle(아직)
+const HDR = {
+  active: { line: 'rgba(201,162,40,0.6)', label: '#e8c45a', arrow: '#c9a228' },
+  done:   { line: 'rgba(61,184,122,0.3)', label: '#3db87a', arrow: '#3db87a' },
+  idle:   { line: '#252f4a',              label: '#6e84a8', arrow: '#5a6a88' },
+};
 
 const fRow = { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54, gap:12 };
 const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0, minWidth:130 };

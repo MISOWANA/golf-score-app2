@@ -359,16 +359,16 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
 
           {review.putts.map((p, i) => {
             const tone = p.holein === 'success' ? C.green : p.holein === 'fail' ? C.red : MUTED;
+            const displayDist = p.distance ?? (i === 0 ? review.approachProximity : null);
             return (
               <Row
                 key={`p${p.no}`}
                 badge={`P${p.no}`}
                 badgeColor={tone === MUTED ? LABEL : tone}
                 title={`${p.no}번째 퍼팅`}
-                meta={[i === 0 && review.approachProximity != null && p.distance == null
-                  ? `핀까지 ${m1(review.approachProximity)}` : null, p.lie].filter(Boolean).join(' · ') || null}
-                value={m1(p.distance)}
-                valueColor={p.distance != null ? C.line : MUTED}
+                meta={p.lie || null}
+                value={m1(displayDist)}
+                valueColor={displayDist != null ? C.line : MUTED}
                 result={p.holein === 'success' ? '홀인' : p.holein === 'fail' ? '실패' : null}
                 resultColor={tone}
               />

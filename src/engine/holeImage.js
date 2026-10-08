@@ -7,7 +7,7 @@
 // VWorld 타일이 Access-Control-Allow-Origin: * 를 주기 때문에
 // crossOrigin='anonymous' 로 받으면 canvas가 오염되지 않아 toDataURL이 된다.
 
-import { haversine, shotDistances, pinDistances, saneRemaining } from './geo.js';
+import { haversine, pinDistances, saneRemaining } from './geo.js';
 import { satelliteTileUrl, TILE_MAX_ZOOM } from './mapTiles.js';
 
 const TILE = 256;
@@ -144,14 +144,23 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
 
   // 각 샷 지점에서 핀까지 남은 거리 (사용자 요청의 핵심 표기)
   const toPin = pinDistances(review.gps.points, pin, review.gps.fieldShots).map(saneRemaining);
-  const shotDist = shotDistances(review.gps.points, review.gps.green, review.gps.fieldShots);
 
+  // 날아간 거리는 복기 데이터의 값을 그대로 쓴다 — 벌타 홀에서 멈춘 자리가 불확실한
+  // 샷은 이미 빠져 있다 (holeReview → geo.shotDistanceTrusted).
   const rows = review.shots.map((s, i) => ({
     name: s.name,
     club: s.club,
-    flown: shotDist[i] ?? null,
+    flown: s.distance ?? null,
     remain: toPin[i] ?? null,
   }));
+
+  // 구간은 바로 다음 지점과만 잇는다. 중간 지점이 비어 있을 때 건너뛰어 이으면
+  // 두 샷이 한 샷처럼 그려지고 합친 거리가 붙는다(화면 지도와 같은 규칙).
+  const lastSlot = review.gps.fieldShots - 1;
+  const segmentOk = (a, b) =>
+    typeof a.slot === 'number'
+    && review.gps.trusted?.[a.slot] !== false
+    && (b.slot === (a.slot === lastSlot ? 'green' : a.slot + 1));
 
   const headH = 118;
   const rowH = 44;
@@ -244,11 +253,13 @@ export async function renderHoleImage(review, { apiKey, mapSize = 1040 } = {}) {
   ctx.setLineDash([12, 9]);
   ctx.strokeStyle = C.gold; ctx.lineWidth = 4;
   for (let i = 0; i < pts.length - 1; i++) {
+    if (!segmentOk(pts[i], pts[i + 1])) continue;
     const a = toXY(pts[i]); const b = toXY(pts[i + 1]);
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
   ctx.setLineDash([]);
   for (let i = 0; i < pts.length - 1; i++) {
+    if (!segmentOk(pts[i], pts[i + 1])) continue;
     const d = haversine(pts[i], pts[i + 1]);
     if (d == null) continue;
     const a = toXY(pts[i]); const b = toXY(pts[i + 1]);

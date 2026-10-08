@@ -143,7 +143,9 @@ export function createSatelliteMap(el, apiKey, { onTileError, onTileLoad } = {})
 }
 
 // 샷 궤적 + 핀을 그린다.
-//   chain : [{ label, point }] — 샷 지점들과 마지막 그린 도착점 (순서대로)
+//   chain : [{ label, point, trusted? }] — 샷 지점들과 마지막 그린 도착점 (순서대로).
+//           trusted === false 인 지점에서 나가는 구간은 선·거리를 그리지 않는다
+//           (벌타 홀에서 멈춘 자리가 불확실한 샷 — geo.shotDistanceTrusted).
 //   pin   : 핀 좌표 (없으면 핀 관련 요소는 그리지 않는다)
 // 반환: 지도 범위를 맞출 좌표 목록
 export function drawHoleOverlay(group, { chain = [], pin = null } = {}) {
@@ -169,7 +171,7 @@ export function drawHoleOverlay(group, { chain = [], pin = null } = {}) {
   for (let i = 0; i < chain.length - 1; i++) {
     const from = chain[i].point;
     const to = chain[i + 1].point;
-    if (!from || !to) continue;
+    if (!from || !to || chain[i].trusted === false) continue;
     L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
       color: MAP_COLOR.gold, weight: 3, opacity: 0.85, dashArray: '6 5',
     }).addTo(group);

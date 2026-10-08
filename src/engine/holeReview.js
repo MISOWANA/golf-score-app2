@@ -4,7 +4,8 @@
 // clubDistance.js 의 extractClubShots 는 통계용이라 거리를 못 구한 샷을 버리지만,
 // 복기에서는 클럽만 입력된 샷도 그대로 보여야 하므로 별도로 조립한다.
 
-import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining } from './geo.js';
+import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted } from './geo.js';
+import { penaltyAt, penaltyResultText, shotTitle } from './penalties.js';
 
 const CLUB_LABEL = { driver: 'DRIVER', wood: 'WOOD', hybrid: 'HYBRID', iron: 'IRON', wedge: 'WEDGE' };
 
@@ -14,10 +15,6 @@ const LIE_LABEL = {
   'downhill-slice': '내리막 슬라이스', 'downhill-hook': '내리막 훅',
 };
 
-const EXTRA_NAMES = ['써드샷', '포쓰샷', '피프스샷', '식스샷', '세븐샷', '에잇샷', '나인스샷', '텐스샷'];
-
-export const shotName = (slot) =>
-  slot === 0 ? '티샷' : slot === 1 ? '세컨샷' : (EXTRA_NAMES[slot - 2] ?? `${slot + 1}번째 샷`);
 
 export const clubLabel = (club, sub) => {
   if (!club) return null;
@@ -46,6 +43,9 @@ const firstPuttDistance = (s) => s.puttDetails?.[0]?.distance ?? null;
 
 // 한 샷의 결과를 사람이 읽는 한 줄로.
 const shotResult = (slot, s, par, lastSlot) => {
+  // 이 샷에서 벌타가 났으면 그게 결과다 (OB · OB티, 해저드 …)
+  const pen = penaltyAt(s, slot);
+  if (pen) return { text: penaltyResultText(pen, slot), tone: 'bad' };
   if (slot === 0) {
     if (s.teeGIR === true) return { text: '그린 (1온)', tone: 'good' };
     if (par === 3) {
@@ -66,14 +66,15 @@ const shotResult = (slot, s, par, lastSlot) => {
   const isExtra = slot >= 2;
   // 파4·5 세컨샷 뒤에 샷이 더 있으면 세컨샷은 그린에 못 올라간 것이다. s.gir는
   // '규정 타수 안에 온그린'이라 파5 3온이면 true가 되므로 세컨샷 결과로 쓰면 안 된다.
-  // 파5 세컨샷이 그린에 못 미친 건 보통 레이업이라 실패로 칠하지 않는다.
+  // 파5 이상 세컨샷이 그린에 못 미친 건 보통 레이업이라 실패로 칠하지 않는다.
   if (slot === 1 && par > 3 && (s.extraShots?.length ?? 0) > 0) {
-    return par === 5 ? { text: '그린 밖', tone: 'neutral' } : { text: '그린 놓침', tone: 'bad' };
+    return par >= 5 ? { text: '그린 밖', tone: 'neutral' } : { text: '그린 놓침', tone: 'bad' };
   }
   const shot = isExtra ? s.extraShots?.[slot - 2] : null;
-  // 파4·5 세컨샷은 보통 GIR로 판단하지만, 세컨샷 칩인은 onGreen에 기록된다.
+  // 파4·5 세컨샷은 'GIR/2온 성공·칩인'을 onGreen에 남긴다. 예전 기록은 onGreen이
+  // 없어 gir로 판단한다 (gir는 확정 때 타수로 다시 계산돼 벌타 홀에서는 달라질 수 있다).
   const onGreen = isExtra ? shot?.onGreen
-    : (par === 3 || s.onGreen === 'chip-in') ? s.onGreen : s.gir;
+    : (par === 3 || s.onGreen === 'chip-in' || s.onGreen === true) ? s.onGreen : s.gir;
   if (onGreen === 'chip-in') return { text: '칩인', tone: 'great' };
   if (onGreen === true) return { text: '온그린', tone: 'good' };
   if (onGreen === false) return { text: '그린 놓침', tone: 'bad' };
@@ -117,15 +118,20 @@ export function buildHoleReview(hole, player, holeIdx) {
     return manual != null ? { value: manual, measured: false } : null;
   };
 
+  // 벌타 홀에서 멈춘 자리가 불확실한 샷은 거리를 보여주지 않는다 — 티샷 뒤 OB티까지
+  // 거리가 '티샷 거리'로 보이면 안 된다 (geo.shotDistanceTrusted, 클럽 통계와 같은 기준).
+  const trusted = Array.from({ length: n }, (_, slot) => shotDistanceTrusted(s, par, slot));
+
   const shots = Array.from({ length: n }, (_, slot) => ({
     slot,
-    name: shotName(slot),
+    name: shotTitle(s, slot),                    // 벌타로 타수가 밀리면 '4번째 샷 · OB티'
     club: clubFor(slot),
     code: codeFor(slot),
     lie: lieFor(slot),
     shape: slot === 0 ? (s.shotShape ?? null) : null,
     from: fromFor(slot),                          // 치기 전 남은 거리
-    distance: gpsDist[slot] ?? null,              // 실제로 날아간 거리 (GPS)
+    distance: trusted[slot] ? (gpsDist[slot] ?? null) : null,   // 실제로 날아간 거리 (GPS)
+    distanceExcluded: !trusted[slot] && gpsDist[slot] != null,  // 측정은 됐지만 벌타로 뺀 거리
     result: shotResult(slot, s, par, n - 1),
   }));
 
@@ -163,6 +169,7 @@ export function buildHoleReview(hole, player, holeIdx) {
       green: s.gpsGreen || null,
       pin: s.gpsPin || null,
       fieldShots: n,
+      trusted,                                    // 샷별 구간 거리를 그려도 되는지
       hasAny: (s.gpsPoints || []).some(Boolean) || !!s.gpsGreen || !!s.gpsPin,
     },
   };

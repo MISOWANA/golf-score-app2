@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { buildHoleReview } from '../../engine/holeReview.js';
@@ -106,9 +106,44 @@ function Section({ title, aside, children }) {
   );
 }
 
-export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
+// 라운드를 마친 뒤 이 홀의 스코어·퍼팅 수를 고치는 작은 편집기.
+function ScoreEditor({ par, strokes, putts, onSave, onCancel }) {
+  const [st, setSt] = useState(strokes ?? par);
+  const [pt, setPt] = useState(Math.min(putts ?? 2, Math.max(0, (strokes ?? par) - 1)));
+  const setStrokes = (v) => { const nv = Math.max(1, Math.min(20, v)); setSt(nv); setPt((p) => Math.min(p, nv - 1)); };
+  const stepper = (label, value, onDec, onInc) => (
+    <div style={{ flex: 1 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: LABEL, textAlign: 'center', marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', height: 48, borderRadius: 10, background: '#0d1425', border: `1px solid ${BORDER}` }}>
+        <button onClick={onDec} style={{ flex: 1, height: '100%', background: 'none', border: 'none', color: C.green, fontSize: 22, fontWeight: 800, cursor: 'pointer' }}>−</button>
+        <span style={{ minWidth: 40, textAlign: 'center', fontSize: 24, fontWeight: 900, color: C.line }}>{value}</span>
+        <button onClick={onInc} style={{ flex: 1, height: '100%', background: 'none', border: 'none', color: C.red, fontSize: 22, fontWeight: 800, cursor: 'pointer' }}>+</button>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ marginTop: 10, padding: 12, borderRadius: 14, background: CARD, border: `1px solid ${C.gold}55` }}>
+      <div style={{ display: 'flex', gap: 10 }}>
+        {stepper('스코어', st, () => setStrokes(st - 1), () => setStrokes(st + 1))}
+        {stepper('퍼팅', pt, () => setPt(Math.max(0, pt - 1)), () => setPt(Math.min(st - 1, pt + 1)))}
+      </div>
+      <div style={{ fontSize: 12, color: LABEL, lineHeight: 1.6, marginTop: 8 }}>
+        GIR은 스코어와 퍼팅 수로 다시 계산돼요. 퍼팅 수를 바꾸면 퍼팅별 상세 기록은 지워져요.
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <button onClick={onCancel} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${BORDER}`, background: 'transparent', color: LABEL, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+        <button onClick={() => onSave({ strokes: st, putts: pt })} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: C.gold, color: C.ink, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>저장</button>
+      </div>
+    </div>
+  );
+}
+
+export default function HoleReview({ round, player, holeIdx, onNav, onClose, onEditScore }) {
   const hole = round?.holes?.[holeIdx];
-  const review = hole ? buildHoleReview(hole, player, holeIdx) : null;
+  // 매 렌더마다 새로 만들면 아래 지도 effect가 렌더마다 다시 돌아 범위가 계속 맞춰진다.
+  const review = useMemo(() => (hole ? buildHoleReview(hole, player, holeIdx) : null), [hole, player, holeIdx]);
+  // 스코어 편집 — 어느 홀의 편집인지 함께 들고 다녀서 홀을 넘기면 자연히 닫힌다.
+  const [editingHole, setEditingHole] = useState(null);
 
   const apiKey = getVWorldKey();
   const containerRef = useRef(null);
@@ -151,7 +186,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
     if (!map || !group || !review) return;
 
     const chain = [
-      ...review.shots.map((s) => ({ label: s.name, point: review.gps.points[s.slot] || null })),
+      ...review.shots.map((s) => ({ label: s.name, point: review.gps.points[s.slot] || null, trusted: review.gps.trusted[s.slot] })),
       { label: review.holedOut ? '홀' : '그린 랜딩', point: review.gps.green },
     ];
     const focus = drawHoleOverlay(group, { chain, pin: review.gps.pin });
@@ -264,6 +299,31 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
           </div>
         </div>
 
+        {/* 라운드 후 스코어 수정 */}
+        {onEditScore && (
+          <div style={{ padding: '10px 14px 0' }}>
+            {editingHole === holeIdx ? (
+              <ScoreEditor
+                key={holeIdx}
+                par={review.par}
+                strokes={review.strokes}
+                putts={review.puttCount}
+                onCancel={() => setEditingHole(null)}
+                onSave={(v) => { onEditScore(holeIdx, v); setEditingHole(null); }}
+              />
+            ) : (
+              <button
+                onClick={() => setEditingHole(holeIdx)}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: 12, cursor: 'pointer',
+                  border: `1px dashed ${BORDER}`, background: 'transparent',
+                  color: LABEL, fontSize: 13, fontWeight: 700,
+                }}
+              >✎ 이 홀 스코어 수정</button>
+            )}
+          </div>
+        )}
+
         {/* 지도 — GPS를 찍은 홀만. 안 찍은 홀은 자리를 차지하지 않는다. */}
         {hasMap && (
           <div style={{ padding: '14px 14px 0' }}>
@@ -339,6 +399,8 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose }) {
             const meta = [
               from && `남은거리 ${m(from.value)}${from.measured ? '' : ' (입력)'}`,
               s.lie, s.shape,
+              // 벌타 홀에서 멈춘 자리가 불확실해 뺀 거리 (티샷 → OB티 등)
+              s.distanceExcluded && '벌타 홀 · 거리 제외',
             ].filter(Boolean).join(' · ');
             return (
               <Row

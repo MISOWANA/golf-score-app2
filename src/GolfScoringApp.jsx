@@ -162,7 +162,10 @@ export default function GolfScoringApp() {
         }, {})
       })),
       currentHole: 0,
-      completed: false
+      completed: false,
+      // 진행률·누적 스코어를 '확정한 홀'(confirmed) 기준으로 센다. 이 표시가 없는
+      // 예전 진행 중 라운드는 입력한 홀(touched) 기준 그대로 둔다.
+      trackConfirm: true,
     };
     setCurrentRound(newRound);
     saveActiveRound(currentUser.userId, newRound).catch(console.error);

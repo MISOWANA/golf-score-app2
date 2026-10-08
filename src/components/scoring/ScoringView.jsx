@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 
 import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
-import { fieldShotCount as countFieldShots, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, SANE_REMAIN_M } from '../../engine/geo.js';
+import { fieldShotCount as countFieldShots, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
+import { penaltyAt, phantomStrokes, strokeNumberOf, shotTitle, titleShifted } from '../../engine/penalties.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,9 @@ const SECOND_CLUBS = [
   { id: 'wedge',  label: 'WEDGE' },
 ];
 
+// 티샷 벌타 뒤 다음 샷 — 다시 친 티샷이면 드라이버, 드롭 후면 아이언·웨지일 수 있다.
+const AFTER_TEE_PENALTY_CLUBS = [{ id: 'driver', label: 'DRIVER' }, ...SECOND_CLUBS];
+
 const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 62];
 
 const CLUB_SUBS = {
@@ -97,26 +101,45 @@ const getNavLabelFontSize = (text) => {
 // value가 null이면 '미입력'으로 보여주고 아무것도 저장하지 않는다. 눈대중 기본값을
 // 그대로 저장하면 실제와 다른 거리가 통계에 섞이기 때문 — 입력하지 않은 거리는
 // 비워 두는 편이 낫다. start는 처음 조작할 때의 출발값(가운데를 탭하면 이 값으로 입력).
+//
+// 손가락 동작 구분: 가로로 끌면 값 조절, 세로로 밀면 화면 스크롤(touch-action: pan-y),
+// 거의 움직이지 않고 떼면 탭. 예전에는 이 칸 위에서 스크롤 자체가 막혀 있었고,
+// 세로로 민 동작이 탭으로 처리돼 스크롤하려다 기본값이 저장됐다.
+const TAP_SLOP = 8;    // 이 안에서 떼면 탭
+const DRAG_START = 6;  // 가로로 이만큼 움직이면 끌기 시작
+
 function SwipeDistance({ value, start, min = 1, max = 300, onChange, step = 1, decimals = 0, unit = 'm' }) {
-  const startX = useRef(null);
+  const startPos = useRef(null);       // { x, y }
   const startVal = useRef(value);
-  const movedRef = useRef(false);
+  const modeRef = useRef(null);        // null(아직 모름) | 'drag' | 'scroll'
   const [active, setActive] = useState(false);
   const clamp = v => parseFloat(Math.max(min, Math.min(max, Math.round(v / step) * step)).toFixed(decimals));
   const empty = value == null;
   const base = empty ? (start ?? min) : value;
 
-  const handleStart = (x) => { startX.current = x; startVal.current = base; movedRef.current = false; setActive(true); };
-  const handleMove  = (x) => {
-    // 손가락이 살짝 떨린 정도로는 입력하지 않는다 (미입력 칸을 스크롤하다 스친 경우).
-    if (!movedRef.current && Math.abs(x - startX.current) < 4) return;
-    movedRef.current = true;
-    onChange(clamp(startVal.current + (x - startX.current) / 4 * step));
+  const handleStart = (x, y) => { startPos.current = { x, y }; startVal.current = base; modeRef.current = null; setActive(true); };
+  const handleMove  = (x, y) => {
+    if (!startPos.current || modeRef.current === 'scroll') return;
+    const dx = x - startPos.current.x;
+    const dy = y - startPos.current.y;
+    if (modeRef.current == null) {
+      // 세로 움직임이 먼저 크면 스크롤로 보고 이 동작은 끝까지 값을 건드리지 않는다.
+      if (Math.abs(dy) > TAP_SLOP && Math.abs(dy) >= Math.abs(dx)) { modeRef.current = 'scroll'; setActive(false); return; }
+      if (Math.abs(dx) < DRAG_START) return;
+      modeRef.current = 'drag';
+    }
+    onChange(clamp(startVal.current + dx / 4 * step));
   };
-  const handleEnd   = () => {
+  const handleEnd = (x, y) => {
     setActive(false);
-    if (empty && !movedRef.current) onChange(clamp(base));   // 미입력 칸을 탭 → 출발값으로 입력
+    const p = startPos.current;
+    startPos.current = null;
+    // 떼는 위치로 한 번 더 확인한다 — 스크롤 중에는 움직임 이벤트가 오지 않는 브라우저가 있다.
+    const isTap = modeRef.current == null && p && Math.hypot(x - p.x, y - p.y) < TAP_SLOP;
+    modeRef.current = null;
+    if (empty && isTap) onChange(clamp(base));   // 미입력 칸을 탭 → 출발값으로 입력
   };
+  const handleCancel = () => { setActive(false); startPos.current = null; modeRef.current = null; };
 
   const display = empty ? '—' : (decimals > 0 ? Number(value).toFixed(decimals) : value);
 
@@ -124,14 +147,16 @@ function SwipeDistance({ value, start, min = 1, max = 300, onChange, step = 1, d
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <button style={fMiniBtn} onClick={() => onChange(clamp(base - step))}>−</button>
       <div
-        style={{ flex: 1, textAlign: 'center', padding: '8px 0', cursor: 'ew-resize', touchAction: 'none', userSelect: 'none', background: active ? 'rgba(201,162,40,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
-        onTouchStart={e => handleStart(e.touches[0].clientX)}
-        onTouchMove={e => { e.preventDefault(); handleMove(e.touches[0].clientX); }}
-        onTouchEnd={e => { e.preventDefault(); handleEnd(); }}
+        style={{ flex: 1, textAlign: 'center', padding: '8px 0', cursor: 'ew-resize', touchAction: 'pan-y', userSelect: 'none', background: active ? 'rgba(201,162,40,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
+        onTouchStart={e => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
+        onTouchMove={e => handleMove(e.touches[0].clientX, e.touches[0].clientY)}
+        // 탭 뒤에 따라오는 가짜 마우스 이벤트로 두 번 입력되지 않게 막는다.
+        onTouchEnd={e => { e.preventDefault(); const t = e.changedTouches[0]; handleEnd(t.clientX, t.clientY); }}
+        onTouchCancel={handleCancel}
         onMouseDown={e => {
-          handleStart(e.clientX);
-          const move = (me) => handleMove(me.clientX);
-          const up   = () => { handleEnd(); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+          handleStart(e.clientX, e.clientY);
+          const move = (me) => handleMove(me.clientX, me.clientY);
+          const up   = (ue) => { handleEnd(ue.clientX, ue.clientY); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
           window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
         }}
       >
@@ -150,6 +175,7 @@ function WindCompass({ direction, onChange }) {
   const ref = useRef(null);
   const [dragging, setDragging] = useState(false);
   const lastBearing = useRef(direction ?? 0);
+  const downRef = useRef(null);   // { x, y, dragging } — 누른 위치와 끌기 시작 여부
 
   const getBearing = (clientX, clientY) => {
     const rect = ref.current.getBoundingClientRect();
@@ -165,23 +191,33 @@ function WindCompass({ direction, onChange }) {
     <div>
       <div
         ref={ref}
-        style={{ position: 'relative', width: 210, height: 210, margin: '0 auto', touchAction: 'none', cursor: 'crosshair', userSelect: 'none' }}
+        // 탭하거나 옆으로 끌면 방향이 정해지고, 세로로 밀면 화면이 스크롤된다.
+        // 예전에는 누르는 순간 방향이 들어가서, 나침반 위에서 스크롤하려다
+        // 바람 방향이 입력됐다.
+        style={{ position: 'relative', width: 210, height: 210, margin: '0 auto', touchAction: 'pan-y', cursor: 'crosshair', userSelect: 'none' }}
         onPointerDown={e => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          setDragging(true);
-          onChange(getBearing(e.clientX, e.clientY));
+          downRef.current = { x: e.clientX, y: e.clientY, dragging: false };
+          // 마우스는 나침반 밖으로 끌어도 계속 받도록 캡처한다
+          if (e.pointerType === 'mouse') e.currentTarget.setPointerCapture(e.pointerId);
         }}
         onPointerMove={e => {
-          if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+          const d = downRef.current;
+          if (!d) return;
+          if (!d.dragging) {
+            if (Math.abs(e.clientX - d.x) < 10) return;   // 옆으로 끌기 시작해야 회전
+            d.dragging = true;
+            setDragging(true);
+          }
           onChange(getBearing(e.clientX, e.clientY));
         }}
         onPointerUp={e => {
+          const d = downRef.current;
+          downRef.current = null;
           setDragging(false);
-          e.currentTarget.releasePointerCapture(e.pointerId);
+          // 거의 움직이지 않고 뗐으면 탭 — 누른 쪽 방향으로 정한다
+          if (d && !d.dragging && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) onChange(getBearing(e.clientX, e.clientY));
         }}
-        onPointerCancel={e => {
-          setDragging(false);
-        }}
+        onPointerCancel={() => { downRef.current = null; setDragging(false); }}
       >
         <svg viewBox="0 0 100 100" width="100%" height="100%">
           {/* Background */}
@@ -235,7 +271,7 @@ function WindCompass({ direction, onChange }) {
 
         {direction == null && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#6e84a8', letterSpacing: '0.1em', pointerEvents: 'none' }}>
-            드래그로 방향 설정
+            탭해서 방향 설정
           </div>
         )}
       </div>
@@ -635,6 +671,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
   const [pendingSkip, setPendingSkip] = useState(null);       // 입력 없는 홀에서 '다음' — 이동할 홀 번호
+  const [obChoiceSlot, setObChoiceSlot] = useState(null);     // OB 처리(OB티/다시 치기)를 고르는 중인 샷
+  const [puttAsk, setPuttAsk] = useState(null);               // 퍼팅 수를 모른 채 '다음'/'완료' — { next } 또는 { finish: true }
   const finishingRef = useRef(false);                          // 완료 버튼 연타 방지
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoDraft, setMemoDraft] = useState('');
@@ -686,6 +724,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const hasProgress = round.holes.some(h => round.players.some(p => h.scores[p]?.touched === true));
 
+  // 진행률·누적 스코어·홀 표에서 '끝난 홀'로 셀지. 새 라운드는 확정(confirmed —
+  // '다음'·홀인으로 끝낸)한 홀만 센다: 티샷 클럽만 골라도 그 홀이 끝난 홀로 잡혀
+  // 진행률이 먼저 오르고 누적 스코어에 미리 들어가던 문제. 예전 진행 중 라운드는
+  // 확정 기록이 없으므로 입력한(touched) 홀 기준 그대로 둔다.
+  const doneFor = (h, p) => (round.trackConfirm ? h.scores[p]?.confirmed === true : h.scores[p]?.touched === true);
+
   const handleBackClick = () => { if (hasProgress) setShowExitConfirm(true); else onGoToSetup(); };
 
   const calculateGir = (strokes, putts, par) => {
@@ -706,30 +750,65 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     return { putts, fairway: null, gir };
   };
 
+  // 파4 이상 세컨샷의 결과(온그린·실패·칩인)가 기록에 있는지.
+  // 'GIR/2온 성공'은 onGreen:true로 남긴다 — gir는 홀 확정 때 다시 계산돼 바뀌므로
+  // 기준으로 쓰면 확정할 때마다 결과가 흔들린다. 퍼팅 홀인까지 기록했으면 추가 샷이
+  // 없는 것 자체가 세컨샷 온그린이라는 기록이다.
+  const secondShotDecided = (s) =>
+    (s.extraShots?.length ?? 0) > 0 || s.onGreen === true || s.onGreen === 'chip-in'
+    || (s.gir === true && s.girAuto === false)
+    || (Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success'));
+
   const calcAutoStrokes = (score, par) => {
     const ob = score.ob || 0;
     const hazard = score.hazard || 0;
     const hasPenalty = ob + hazard > 0;
     const effectiveTeeGIR = score.teeGIR && !hasPenalty;
-    // 티샷과 퍼팅 사이의 기본 필드샷: 파4·5는 세컨샷 1개. 파3는 티샷 온그린(GIR)이면 0,
-    // 그린을 놓쳤으면 세컨샷(어프로치) 1개 — geo.fieldShotCount와 같은 기준.
-    const baseField = par > 3 ? 1 : (par3TeeOnGreen(score) ? 0 : 1);
-    // OB 1회 = 벌타 1타 + 다시 치는 샷 1타 (OB티 로컬룰도 같은 결과). 다시 친 샷은
-    // 따로 기록하지 않으므로 여기서 하나씩 더한다.
+    // 티샷과 퍼팅 사이의 기본 필드샷.
+    //   파3: 티샷 온그린(GIR)이면 0, 그린을 놓쳤으면 세컨샷(어프로치) 1개 — geo.fieldShotCount와 같은 기준.
+    //   파4 이상: 세컨샷 1개. 단 세컨샷 결과를 아직 기록하지 않았으면 규정 타수 온그린
+    //   (파-2타 만에 온그린)을 가정한다 — 티샷만 입력한 파5가 버디(4타)로 계산되지 않게.
+    const baseField = par > 3
+      ? (secondShotDecided(score) ? 1 : par - 3)
+      : (par3TeeOnGreen(score) ? 0 : 1);
+    // OB 1회 = 벌타 1타 + 다시 치는 샷 1타.
+    //   OB티로 이동(앞으로 나가서 치기)이나 어느 샷인지 모르는 OB는 다시 치는 샷을 치지
+    //   않으므로 여기서 1타씩 더한다(phantomStrokes). 제자리에서 다시 친 OB는 그 샷이
+    //   다음 샷으로 기록되므로 더하지 않는다.
     // 해저드 1회 = 벌타 1타뿐 — 드롭 후 이어 치는 샷은 사용자가 다음 샷으로 기록한다.
-    const field = effectiveTeeGIR ? 0 : baseField + ob + (score.extraShots?.length || 0);
+    const field = effectiveTeeGIR ? 0 : baseField + phantomStrokes(score) + (score.extraShots?.length || 0);
     return 1 + field + (score.putts || 0) + ob + hazard;
   };
 
-  // teeClub + 퍼팅 홀인 성공까지 완료된 경우에만 auto-calc, 미완료 시 수동 스코어 유지.
-  // 홀인 뒤 사용자가 스코어를 −/+로 직접 고쳤으면(strokesManual) 그 값을 덮어쓰지 않는다 —
-  // 상세 입력으로 표현 못 하는 상황(규칙 적용 등)을 바로잡을 방법이 그것뿐이다.
+  // ─── 스코어 자동 계산 ───────────────────────────────────────────────────────
+  // 상세 입력 홀(티샷 클럽을 고른 홀)은 스코어 칸이 샷 기록으로 계산된다:
+  // 샷 수 + 퍼팅 수 + 벌타. 퍼팅을 아직 입력하지 않았으면 기본 2퍼트로 본다.
+  // 사용자가 −/+로 직접 고치면(strokesManual) 그 값을 그대로 둔다 — 상세 입력으로
+  // 표현 못 하는 상황(규칙 적용 등)을 바로잡을 방법이 그것뿐이다.
+  // 예전에는 퍼팅 '홀인 성공'을 눌러야만 계산돼서, 위쪽 퍼팅 수만 고르고 넘기면
+  // 샷 기록과 다른 기본 파가 저장됐다.
+  const autoScoreOn = (s) => round.players.length === 1 && !!s.teeClub && !s.strokesManual;
+  const withAutoStrokes = (s) => (autoScoreOn(s) ? { ...s, strokes: calcAutoStrokes(s, hole.par) } : s);
+
+  // 퍼팅 수를 알고 있는지 — 위쪽 퍼팅 수를 골랐거나, 퍼팅 홀인 성공·실패를 눌렀거나,
+  // 칩인·홀인원으로 끝났거나, 이미 확정한 홀.
+  const puttsKnown = (s) => !!(s.puttsManual || s.confirmed || isHoledOut(s)
+    || (Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success' || p?.holein === 'fail')));
+  // 상세 입력 중이고 퍼팅을 아직 모르는 홀. 스코어를 2퍼트로 가정해 보여주면 GIR을
+  // 놓치는 순간 보기로 보이지만 1퍼트로 막을 수도 있다 — 그래서 스코어 대신
+  // '온그린까지 N타 · 퍼팅 남음'을 보여주고, 퍼팅을 입력하면 확정한다.
+  // (저장값은 2퍼트 기준 예상치로 계속 갱신해 둔다 — 중간에 앱이 꺼져도 남도록.)
+  const scorePending = (s) => autoScoreOn(s) && !puttsKnown(s);
+  const strokesToGreen = (s, par) => calcAutoStrokes({ ...s, putts: 0 }, par);
+
+  // 홀 확정 — 상세 입력 홀은 스코어·GIR을 샷 기록으로 다시 계산한다(칩인·홀인원 포함).
+  // confirmed: 이 홀을 '다음'/홀인으로 끝냈다는 표시. 진행률과 누적 스코어는 확정된
+  // 홀만 센다 — 입력 중인 홀이 미리 끝난 홀로 잡히지 않게.
   const finalizeScore = (s, par) => {
-    const puttComplete = Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success');
-    if (!s.teeClub || !puttComplete || s.strokesManual) return { ...s, touched: true };
+    if (!s.teeClub || s.strokesManual) return { ...s, touched: true, confirmed: true };
     const autoStrokes = calcAutoStrokes(s, par);
     const autoGir = (autoStrokes - (s.putts || 0)) <= par - 2;
-    return { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true };
+    return { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true, confirmed: true };
   };
 
   // updateScore handles strokes/putts with auto-inference; other fields use updateField
@@ -743,7 +822,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     // 그 선택을 조용히 덮어쓰지 않는다 — girAuto일 때만 자동 재계산한다.
     const girIsAuto = playerScore.girAuto !== false;
     if (field === 'strokes') {
-      if (playerScore.puttsManual) {
+      // 퍼팅 수를 직접 정했거나 상세 입력 홀이면 스코어 변경이 퍼팅 수를 추정해
+      // 바꾸지 않는다 — 상세 입력 홀의 퍼팅 수는 기록이다.
+      if (playerScore.puttsManual || playerScore.teeClub) {
         // 퍼팅 수를 사용자가 직접 지정한 뒤라면 스코어 변경이 그 값을 덮어쓰지 않는다.
         // 유효 범위(퍼팅 < 스코어)를 벗어날 때만 클램프한다.
         const maxPutts = Math.max(0, value - 1);
@@ -769,26 +850,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     onUpdate(updated);
   };
 
-  const updateField = (field, value) => {
-    const updated = { ...round };
-    updated.holes = [...round.holes];
-    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, [field]: value, touched: true } } };
-    onUpdate(updated);
-  };
+  // 상세 입력 필드를 바꾸는 경로는 모두 여기를 지난다 — 스코어 자동 계산을 함께 반영한다.
+  const updateField = (field, value) => updateFields({ [field]: value });
 
   const updateFields = (fields) => {
     const updated = { ...round };
     updated.holes = [...round.holes];
-    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, ...fields, touched: true } } };
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: withAutoStrokes({ ...playerScore, ...fields, touched: true }) } };
     onUpdate(updated);
   };
 
-  const updateOnGreen = (val) => {
-    const updated = { ...round };
-    updated.holes = [...round.holes];
-    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: { ...playerScore, onGreen: val, touched: true } } };
-    onUpdate(updated);
-  };
+  const updateOnGreen = (val) => updateFields({ onGreen: val });
 
   const extraShotTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
@@ -807,8 +879,22 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     if (finishingRef.current) return;
     finishingRef.current = true;
     setPendingFinish(null);
+    // 입력은 했지만 '다음'으로 확정하지 않고 지나간 홀(홀 번호를 눌러 이동한 경우)도
+    // 확정한 홀과 똑같이 스코어·GIR을 샷 기록으로 맞춰 저장한다.
+    const finalized = {
+      ...u,
+      // 예전 진행 중 라운드(trackConfirm 없음)는 확정 기록이 없어 모든 홀이 미확정으로
+      // 보이므로 건드리지 않는다 — 그때 직접 고친 스코어를 다시 계산해 덮어쓰지 않게.
+      holes: !u.trackConfirm ? u.holes : u.holes.map(h => {
+        const pending = u.players.some(p => h.scores[p]?.touched && !h.scores[p]?.confirmed);
+        if (!pending) return h;
+        const scores = { ...h.scores };
+        u.players.forEach(p => { if (scores[p]?.touched && !scores[p].confirmed) scores[p] = finalizeScore(scores[p], h.par); });
+        return { ...h, scores };
+      }),
+    };
     // 저장에 실패하면 다시 누를 수 있게 잠금을 푼다 (안내는 상위에서 띄운다).
-    setTimeout(() => Promise.resolve(onFinish(u)).catch(() => { finishingRef.current = false; }), 50);
+    setTimeout(() => Promise.resolve(onFinish(finalized)).catch(() => { finishingRef.current = false; }), 50);
   };
 
   const requestFinish = (u) => {
@@ -825,18 +911,36 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 홀 번호 칸을 눌러 이동하는 건 둘러보기라 확정하지 않는다.
   const holeUntouched = (idx) => round.players.every(p => round.holes[idx].scores[p]?.touched !== true);
 
+  // 상세 입력 중인데 퍼팅 수를 모르면 2퍼트로 가정하지 않고 퍼팅 수를 먼저 묻는다.
   const handleNext = () => {
     if (holeUntouched(holeIdx)) { setPendingSkip(holeIdx + 1); return; }
+    if (scorePending(playerScore)) { setPuttAsk({ next: holeIdx + 1 }); return; }
     confirmAndGoToHole(holeIdx + 1);
+  };
+
+  // 마지막 홀을 확정하고 완료한다. freshScore: 현재 플레이어의 최신 스코어(있으면).
+  const finishWith = (freshScore) => {
+    const u = { ...round }; u.holes = [...round.holes];
+    const lh = u.holes[holeIdx]; const us = {};
+    round.players.forEach(p => { us[p] = finalizeScore(p === activePlayer && freshScore ? freshScore : lh.scores[p], lh.par); });
+    u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
   };
 
   // 마지막 홀이 비어 있으면 확정하지 않고 넘긴다 — 완료 전 미입력 홀 확인에 함께 잡힌다.
   const handleFinishClick = () => {
     if (holeUntouched(holeIdx)) { requestFinish(round); return; }
-    const u = { ...round }; u.holes = [...round.holes];
-    const lh = u.holes[holeIdx]; const us = {};
-    round.players.forEach(p => { us[p] = finalizeScore(lh.scores[p], lh.par); });
-    u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
+    if (scorePending(playerScore)) { setPuttAsk({ finish: true }); return; }
+    finishWith(null);
+  };
+
+  // 퍼팅 수를 고르면 그 수로 스코어를 계산해 확정하고 넘어간다.
+  const confirmWithPutts = (n) => {
+    const ask = puttAsk;
+    setPuttAsk(null);
+    if (!ask) return;
+    const details = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
+    const fresh = withAutoStrokes({ ...playerScore, putts: n, puttDetails: details, puttsManual: true, touched: true });
+    if (ask.finish) finishWith(fresh); else confirmAndGoToHole(ask.next, fresh);
   };
 
   // freshScore: 현재 플레이어의 최신 스코어 객체 (setState 배치 전 최신값을 직접 전달할 때 사용)
@@ -924,8 +1028,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
-  const teeComplete = !!(playerScore.teeClub && playerScore.shotShape &&
-    (hole.par === 3 ? (playerScore.teeOnGreen != null || !playerScore.girAuto) : (playerScore.fairwayHit != null || playerScore.teeGIR)));
+  // 티샷에서 OB·해저드가 났으면 그것으로 티샷 결과가 정해진다.
+  const teeComplete = !!(playerScore.teeClub && playerScore.shotShape && (penaltyAt(playerScore, 0) ||
+    (hole.par === 3 ? (playerScore.teeOnGreen != null || !playerScore.girAuto) : (playerScore.fairwayHit != null || playerScore.teeGIR))));
   const teeShotSummary = [
     `${playerScore.strokes}타`,
     hole.par === 3 && playerScore.teeDistance ? `${playerScore.teeDistance}m` : null,
@@ -996,7 +1101,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     '나인틴스샷 ( 19th )',
     '트웬티스샷 ( 20th )',
   ];
-  const extraShotName = (idx) => EXTRA_SHOT_NAMES[idx] ?? `${idx + 3}번째 샷`;
+  // 벌타로 실제 타수가 밀린 샷은 '4번째 샷 · OB티'처럼 실제 타수로 부른다 (penalties.shotTitle).
+  const extraShotName = (idx) => (titleShifted(playerScore, idx + 2)
+    ? shotTitle(playerScore, idx + 2)
+    : (EXTRA_SHOT_NAMES[idx] ?? `${idx + 3}번째 샷`));
+  const secondShotName = titleShifted(playerScore, 1) ? shotTitle(playerScore, 1) : '세컨샷 ( 2nd )';
 
   // ─── GPS 샷 지점 ────────────────────────────────────────────────────────────
   // gpsPoints[slot] = (slot+1)번째 샷을 친 지점, gpsGreen = 그린 도착 지점.
@@ -1055,6 +1164,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measuredKey]);
 
+  // 직전 샷 거리를 보여줄 기준 지점. 벌타 홀에서 멈춘 자리가 불확실한 샷(티샷 →
+  // OB티 등)은 거리를 보여주지 않는다 — 복기·클럽 통계와 같은 기준.
+  const trustedPrevPoint = (slot) => (shotDistanceTrusted(playerScore, hole.par, slot) ? (gpsPoints[slot] || null) : null);
+
   const setGpsPoint = (slot, fix) => {
     const next = [...gpsPoints];
     while (next.length <= slot) next.push(null);
@@ -1064,9 +1177,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   // 0=티샷, 1=세컨샷, 2 이상은 익스트라샷 이름에서 괄호 표기를 뗀 것.
   const shotLabel = (slot) =>
-    slot === 0 ? '티샷'
-      : slot === 1 ? '세컨샷'
-        : (EXTRA_SHOT_NAMES[slot - 2]?.replace(/\s*\(.*\)\s*$/, '') ?? `${slot + 1}번째 샷`);
+    titleShifted(playerScore, slot) ? shotTitle(playerScore, slot)
+      : slot === 0 ? '티샷'
+        : slot === 1 ? '세컨샷'
+          : (EXTRA_SHOT_NAMES[slot - 2]?.replace(/\s*\(.*\)\s*$/, '') ?? `${slot + 1}번째 샷`);
 
   // 마지막 지점 이름: 홀인원·칩인은 볼이 그린에 멈추지 않고 홀에 들어간다.
   const finalPointLabel = isHoledOut(playerScore) ? '홀인 지점' : '그린 랜딩 지점';
@@ -1133,9 +1247,23 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 라운드할 수 있어야 하는데, 그린을 못 올렸을 때 폼으로 돌아가야만 샷이
   // 늘어나던 것을 지도 안에서도 되게 한다.
   const addShotFromMap = () => {
+    // 1온(파4·5 G)이나 파3 티샷 온그린으로 표시한 홀에서 '＋샷'은 그 표시가 틀렸다는
+    // 뜻이다 — 표시를 풀어 세컨샷 자리를 연다. 익스트라샷을 붙이면 1온 계산에 가려
+    // 화면에도 지도에도 나타나지 않고 기록에만 남았다.
+    if (extraShots.length === 0 && hole.par > 3 && playerScore.teeGIR) {
+      clearTimeout(shotPageTimeoutRef.current);
+      updateFields({ teeGIR: false });
+      setShotPage(0);
+      return;
+    }
+    if (extraShots.length === 0 && hole.par === 3 && par3TeeOnGreen(playerScore)) {
+      updateFields({ teeOnGreen: false, gir: false, girAuto: false });
+      setShotPage(0);
+      return;
+    }
     if (extraShots.length === 0) {
-      // 파5 세컨샷 뒤 샷 추가는 레이업이라 GIR 실패가 아니다 (폼의 '2온 실패'와 같게)
-      addExtraShot(hole.par === 5 ? {} : hole.par > 3 ? { gir: false, girAuto: false } : { onGreen: false });
+      // 파5 이상 세컨샷 뒤 샷 추가는 레이업이라 GIR 실패가 아니다 (폼의 '2온 실패'와 같게)
+      addExtraShot(hole.par >= 5 ? {} : hole.par > 3 ? { gir: false, girAuto: false } : { onGreen: false });
       return;
     }
     const lastIdx = extraShots.length - 1;
@@ -1172,24 +1300,132 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     return Math.max(0.5, Math.round(prev / 2 / 0.5) * 0.5);
   };
 
-  // 스코어(총 타수)가 우선값: 퍼팅 개수 변경이 이미 정해진 스코어를 바꾸지 않는다.
-  // 퍼팅 수는 스코어를 넘어설 수 없으므로 필요 시 퍼팅 수만 클램프한다.
+  // 퍼팅 수로 고를 수 있는 최댓값.
+  //   스코어 자동 계산 중(상세 입력 홀): 스코어가 퍼팅 수를 따라 바뀌므로 스코어로 막지 않는다.
+  //   그 외: 스코어(총 타수)가 우선값이라 퍼팅 수는 스코어-1을 넘을 수 없다.
+  const PUTTS_MAX = 12;
+  const maxPuttsAllowed = autoScoreOn(playerScore) ? PUTTS_MAX : Math.max(0, (playerScore.strokes || 1) - 1);
+
   const updatePuttsCount = (n) => {
-    const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
-    const clamped = Math.min(n, maxPutts);
+    const clamped = Math.min(n, maxPuttsAllowed);
     const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
     // GIR을 사용자가 직접 선택한 뒤에는(girAuto:false) 퍼팅 수 변경이 그 선택을 덮어쓰지 않는다.
-    const ag = playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par) : null;
+    // 스코어 자동 계산 중이면 GIR은 홀을 확정할 때 샷 기록으로 다시 계산한다.
+    const ag = !autoScoreOn(playerScore) && playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par) : null;
     const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
     updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, ...girFields });
   };
 
+  // 위쪽 벌타 칸(홀 합계). 샷을 모르고 넣은 벌타는 OB티 기준으로 계산된다.
+  // 합계를 샷별 벌타 수보다 줄이면 샷에 붙은 벌타도 마지막 것부터 함께 지운다.
   const updatePenalty = (field, newVal) => {
-    const newScore = { ...playerScore, [field]: newVal };
+    let penalties = playerScore.penalties || [];
+    let excess = penalties.filter(p => p.type === field).length - newVal;
+    if (excess > 0) {
+      penalties = [...penalties].reverse().filter(p => (excess > 0 && p.type === field ? (excess--, false) : true)).reverse();
+    }
+    const newScore = { ...playerScore, [field]: newVal, penalties };
     const hasPenalty = (newScore.ob || 0) > 0 || (newScore.hazard || 0) > 0;
     const extra = hasPenalty && playerScore.teeGIR ? { teeGIR: false } : {};
     const newStrokes = calcAutoStrokes({ ...newScore, ...extra }, hole.par);
-    updateFields({ [field]: newVal, ...extra, strokes: newStrokes, strokesManual: false });
+    updateFields({ [field]: newVal, penalties, ...extra, strokes: newStrokes, strokesManual: false });
+  };
+
+  // ─── 샷별 벌타 ──────────────────────────────────────────────────────────────
+  // 샷 결과에서 [OB]·[해저드]를 누르면 그 샷의 벌타로 기록한다 (penalties.js 참고).
+  // 한 샷에는 벌타가 하나뿐이다. 위쪽 합계 칸도 함께 올린다.
+  // 벌타가 난 샷은 그린에 가지 못한 것이므로 결과를 맞추고 다음 샷 자리를 연다.
+  const emptyShot = () => ({ club: null, subClub: null, lie: [], remainingDistance: null, windDirection: null, windStrength: null, onGreen: null });
+
+  const addShotPenalty = (slot, type, mode = null) => {
+    const old = penaltyAt(playerScore, slot);
+    const rest = (playerScore.penalties || []).filter(p => p.slot !== slot);
+    const counts = {
+      ob: Math.max(0, (playerScore.ob || 0) - (old?.type === 'ob' ? 1 : 0)),
+      hazard: Math.max(0, (playerScore.hazard || 0) - (old?.type === 'hazard' ? 1 : 0)),
+    };
+    // 위쪽 합계 칸에 이미 넣어 둔(어느 샷인지 모르는) 같은 벌타가 있으면 그것을 이 샷의
+    // 벌타로 본다 — 위에서 OB +1을 누른 뒤 티샷 [OB]를 또 눌러도 두 번 세지 않게.
+    const unclaimed = counts[type] - rest.filter(p => p.type === type).length;
+    if (unclaimed <= 0) counts[type] += 1;
+    const fields = { penalties: [...rest, { slot, type, mode }], ...counts, strokesManual: false };
+    if (slot === 0) {
+      // 티샷 벌타 — 페어웨이 미적중, 1온·온그린 아님. 다음 샷(세컨샷 자리)은 늘 있다.
+      if (hole.par > 3) Object.assign(fields, { fairway: false, teeGIR: false });
+      else Object.assign(fields, { teeOnGreen: false, gir: false, girAuto: false });
+      clearTimeout(shotPageTimeoutRef.current);
+    } else if (slot === 1) {
+      if (extraShots.length === 0) {
+        fields.extraShots = [emptyShot()];
+        if (hole.par === 3) fields.onGreen = false;
+        else { fields.onGreen = null; if (hole.par < 5) Object.assign(fields, { gir: false, girAuto: false }); }
+      }
+    } else {
+      const k = slot - 2;
+      const next = extraShots.map((x, i) => (i === k ? { ...x, onGreen: false } : x));
+      if (k === extraShots.length - 1) next.push(emptyShot());
+      fields.extraShots = next;
+    }
+    // 제자리에서 다시 치기 — 다시 친 샷은 같은 자리에서 친다. 그 자리를 찍어 뒀으면 옮겨 적는다.
+    if (type === 'ob' && mode === 'replay' && gpsPoints[slot] && !gpsPoints[slot + 1]) {
+      const pts = [...gpsPoints];
+      while (pts.length <= slot + 1) pts.push(null);
+      pts[slot + 1] = gpsPoints[slot];
+      fields.gpsPoints = pts;
+    }
+    updateFields(fields);
+    // 다음 샷으로 화면을 옮긴다
+    if (slot === 0) { setShotPage(0); setSecondShotExpanded(true); }
+    else if (slot === 1) { setSecondShotExpanded(false); setExpandedExtraShot(0); }
+    else setExpandedExtraShot(slot - 1);
+  };
+
+  const removeShotPenalty = (slot) => {
+    const p = penaltyAt(playerScore, slot);
+    if (!p) return;
+    const fields = {
+      penalties: (playerScore.penalties || []).filter(x => x.slot !== slot),
+      [p.type]: Math.max(0, (playerScore[p.type] || 0) - 1),
+      strokesManual: false,
+    };
+    // 벌타 때문에 만든 다음 샷이 아직 비어 있으면 함께 지운다 (잘못 누른 경우)
+    const nextIdx = slot - 1;   // 다음 샷(slot+1)의 익스트라샷 번호
+    const ns = slot >= 1 && nextIdx === extraShots.length - 1 ? extraShots[nextIdx] : null;
+    if (ns && !ns.club && ns.onGreen == null && !gpsPoints[slot + 1]) {
+      fields.extraShots = extraShots.slice(0, nextIdx);
+      fields.gpsPoints = gpsPoints.slice(0, slot + 1);
+    }
+    updateFields(fields);
+  };
+
+  // OB 처리 선택 창의 두 버튼
+  const chooseOb = (mode) => { const slot = obChoiceSlot; setObChoiceSlot(null); if (slot != null) addShotPenalty(slot, 'ob', mode); };
+  const chooseObForward = () => chooseOb('forward');
+  const chooseObReplay = () => chooseOb('replay');
+
+  // [OB]·[해저드] 버튼 한 줄. OB는 처리 방식(OB티/다시 치기)을 고른 뒤 기록한다.
+  const penaltyRow = (slot) => {
+    const p = penaltyAt(playerScore, slot);
+    const chip = (active) => ({
+      flex: 1, padding: '9px 6px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+      fontSize: 12, fontWeight: 700,
+      border: `1.5px solid ${active ? '#ef5350' : '#252f4a'}`,
+      background: active ? 'rgba(239,83,80,0.14)' : '#1a2235',
+      color: active ? '#ef5350' : '#8896b0',
+    });
+    return (
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+        <span style={{ ...fLbl, minWidth: 40 }}>벌타</span>
+        <button style={chip(p?.type === 'ob')}
+          onClick={() => (p?.type === 'ob' ? removeShotPenalty(slot) : setObChoiceSlot(slot))}>
+          {p?.type === 'ob' ? `OB · ${p.mode === 'replay' ? '다시 치기' : slot === 0 ? 'OB티' : '2벌타 드롭'} ✕` : 'OB'}
+        </button>
+        <button style={chip(p?.type === 'hazard')}
+          onClick={() => (p?.type === 'hazard' ? removeShotPenalty(slot) : addShotPenalty(slot, 'hazard'))}>
+          {p?.type === 'hazard' ? '해저드 ✕' : '해저드'}
+        </button>
+      </div>
+    );
   };
 
   const updatePutt = (idx, key, val) =>
@@ -1248,7 +1484,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
       {/* Progress */}
       {(() => {
-        const c = round.holes.filter(h => round.players.every(p => h.scores[p].touched)).length;
+        const c = round.holes.filter(h => round.players.every(p => doneFor(h, p))).length;
         return (
           <div style={styles.progressBar}>
             <div style={styles.progressText}><span style={styles.progressNumber}>{c}</span><span style={styles.progressTotal}> / 18 holes</span></div>
@@ -1264,12 +1500,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         return (
           <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
             {round.players.map((player, pi) => {
-              const th = round.holes.filter(h => h.scores[player]?.touched);
+              const th = round.holes.filter(h => doneFor(h, player));
               const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
               const pp = th.reduce((s,h) => s+h.par, 0);
               const pd = ps-pp;
-              const ft = round.holes.slice(0,9).filter(h=>h.scores[player]?.touched);
-              const bt = round.holes.slice(9).filter(h=>h.scores[player]?.touched);
+              const ft = round.holes.slice(0,9).filter(h=>doneFor(h, player));
+              const bt = round.holes.slice(9).filter(h=>doneFor(h, player));
               const fd = ft.reduce((s,h)=>s+h.scores[player].strokes,0)-ft.reduce((s,h)=>s+h.par,0);
               const bd = bt.reduce((s,h)=>s+h.scores[player].strokes,0)-bt.reduce((s,h)=>s+h.par,0);
               const isLast = pi === round.players.length - 1;
@@ -1299,13 +1535,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </div>
         );
       })() : (() => {
-        const th = round.holes.filter(h => h.scores[activePlayer]?.touched);
+        const th = round.holes.filter(h => doneFor(h, activePlayer));
         const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
         const pp = th.reduce((s,h) => s+h.par, 0);
         const pu = th.reduce((s,h) => s+(h.scores[activePlayer]?.putts||0), 0);
         const pd = ps-pp;
-        const ft = round.holes.slice(0,9).filter(h=>h.scores[activePlayer]?.touched);
-        const bt = round.holes.slice(9).filter(h=>h.scores[activePlayer]?.touched);
+        const ft = round.holes.slice(0,9).filter(h=>doneFor(h, activePlayer));
+        const bt = round.holes.slice(9).filter(h=>doneFor(h, activePlayer));
         const fd = ft.reduce((s,h)=>s+h.scores[activePlayer].strokes,0)-ft.reduce((s,h)=>s+h.par,0);
         const bd = bt.reduce((s,h)=>s+h.scores[activePlayer].strokes,0)-bt.reduce((s,h)=>s+h.par,0);
         const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
@@ -1365,14 +1601,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize:9, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
                   <div style={styles.holeNavTableCells}>
                     {holes.map((h,li) => {
-                      const i=offset+li; const done=h.scores[player]?.touched; const ic=i===holeIdx;
+                      const i=offset+li; const done=doneFor(h, player); const ic=i===holeIdx;
                       const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
                       let ms={};
                       if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
                       return (
                         <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
                           <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
-                            {hio&&<span style={styles.holeInOneStar}>★</span>}{psc.strokes}
+                            {hio&&<span style={styles.holeInOneStar}>★</span>}{!done && scorePending(psc) ? '·' : psc.strokes}
                           </span>
                         </button>
                       );
@@ -1385,14 +1621,14 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <div style={styles.holeNavRowLabel}>SCORE</div>
               <div style={styles.holeNavTableCells}>
                 {holes.map((h,li) => {
-                  const i=offset+li; const done=round.players.every(p=>h.scores[p].touched); const ic=i===holeIdx;
+                  const i=offset+li; const done=round.players.every(p=>doneFor(h, p)); const ic=i===holeIdx;
                   const psc=h.scores[activePlayer]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
                   let ms={};
                   if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
                   return (
                     <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
                       <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
-                        {hio&&<span style={styles.holeInOneStar}>★</span>}{psc.strokes}
+                        {hio&&<span style={styles.holeInOneStar}>★</span>}{!done && scorePending(psc) ? '·' : psc.strokes}
                       </span>
                     </button>
                   );
@@ -1413,7 +1649,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={{ fontSize:32, fontWeight:900, lineHeight:1, letterSpacing:'-0.02em', color: isPar5?'#3db87a': hole.par===3?'#5b9cf6':'#e8edf8' }}>PAR {hole.par}</div>
             {(() => {
               const diff = playerScore.strokes - hole.par;
-              if (diff === 0 || !playerScore.touched) return null;
+              if (diff === 0 || !playerScore.touched || scorePending(playerScore)) return null;
               const under = diff < 0;
               return (
                 <div style={{
@@ -1434,7 +1670,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
 
         {/* 우측: 스코어명 */}
-        {scoreName && (
+        {/* 퍼팅 입력 전에는 스코어 이름(버디·보기…)을 붙이지 않는다 — 아직 정해지지 않았다 */}
+        {scorePending(playerScore) && (
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.14em', color:'#8896b0', border:'1.5px solid #3a4e72', borderRadius:6, padding:'6px 12px' }}>
+            진행 중
+          </div>
+        )}
+        {scoreName && !scorePending(playerScore) && (
           <div style={{
             fontSize:11, fontWeight: isPar3AtPar?'800':(scoreName.fw||'700'),
             letterSpacing:'0.14em', textTransform:'uppercase',
@@ -1507,15 +1749,25 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
         <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
           <div style={{ flex:1 }}>
-            {/* 상세 입력이 있는데 스코어를 직접 고친 상태 — 자동 계산이 덮어쓰지 않는다 */}
-            {playerScore.strokesManual && playerScore.teeClub && (
-              <span style={{ fontSize:10, fontWeight:700, color:'#c9a228' }}>직접 입력</span>
+            {/* 상세 입력 홀: 샷 기록으로 계산 중이면 '자동', 직접 고쳤으면 '직접 입력' */}
+            {playerScore.teeClub && !isSimpleMode && (
+              playerScore.strokesManual
+                ? <span style={{ fontSize:10, fontWeight:700, color:'#c9a228' }}>직접 입력</span>
+                : <span style={{ fontSize:10, fontWeight:700, color:'#3db87a' }}>샷 기록으로 자동 계산</span>
             )}
           </div>
           <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>스코어</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
-              onClick={()=>updateScore('strokes', hole.par, { strokesManual: false })}>초기화</button>
+            {playerScore.teeClub ? (
+              // 상세 입력 홀에서 직접 고친 값을 버리고 샷 기록 계산으로 되돌린다
+              playerScore.strokesManual && (
+                <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+                  onClick={()=>updateFields({ strokesManual: false })}>자동 계산</button>
+              )
+            ) : (
+              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+                onClick={()=>updateScore('strokes', hole.par, { strokesManual: false })}>초기화</button>
+            )}
           </div>
         </div>
         <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
@@ -1526,7 +1778,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
             onClick={()=>updateScore('strokes',Math.min(20,playerScore.strokes+1))}>+</button>
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-            <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
+            {scorePending(playerScore) ? (
+              // 퍼팅 전: 2퍼트로 가정한 스코어 대신 그린까지 친(칠) 타수만 보여준다
+              <div style={{ textAlign:'center', lineHeight:1.2 }}>
+                <div style={{ fontSize:17, fontWeight:900, color:'#e8edf8' }}>온그린까지 {strokesToGreen(playerScore, hole.par)}타</div>
+                <div style={{ fontSize:11, fontWeight:700, color:'#8896b0', marginTop:2 }}>퍼팅 남음</div>
+              </div>
+            ) : (
+              <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
+            )}
           </div>
         </div>
       </div>
@@ -1549,8 +1809,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             const b = Math.round(122 + (80-122)*t);
             const sel = n === 4 ? playerScore.putts >= 4 : playerScore.putts === n;
             const curVal = playerScore.putts;
-            const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
-            const disabled = n > maxPutts;
+            const disabled = n > maxPuttsAllowed;
             const label = n === 4
               ? (curVal < 4 ? '4' : `${curVal}+`)
               : String(n);
@@ -1580,14 +1839,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
 
         {showPuttsDropdown && (() => {
-          const maxPutts = Math.max(0, (playerScore.strokes || 1) - 1);
           // 스코어가 높아 퍼팅 8개를 넘어야 하는 경우도 선택 가능하도록 상한까지 확장
-          const upper = Math.max(8, Math.min(maxPutts, 15));
+          const upper = Math.max(8, Math.min(maxPuttsAllowed, 15));
           const options = Array.from({ length: Math.max(0, upper - 4) }, (_, i) => i + 5);
           return (
             <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap' }}>
               {options.map(n => {
-                const disabled = n > maxPutts;
+                const disabled = n > maxPuttsAllowed;
                 const sel = playerScore.putts === n;
                 return (
                   <button key={n}
@@ -1617,7 +1875,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {((playerScore.ob||0) > 0 || (playerScore.hazard||0) > 0) && (
               <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
-                onClick={()=>{ updateFields({ ob:0, hazard:0, strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0}, hole.par), strokesManual: false }); }}>초기화</button>
+                onClick={()=>{ updateFields({ ob:0, hazard:0, penalties: [], strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0, penalties: []}, hole.par), strokesManual: false }); }}>초기화</button>
             )}
           </div>
         </div>
@@ -1638,10 +1896,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           ))}
         </div>
-        {((playerScore.ob||0) > 0 || (playerScore.hazard||0) > 0) && (
+        {/* 어느 샷인지 모르는 벌타(위쪽 칸으로만 넣은 것)가 있을 때만 안내한다 */}
+        {(playerScore.ob||0) + (playerScore.hazard||0) > (playerScore.penalties || []).length && (
           <div style={{ fontSize:11, color:'#8896b0', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
-            OB는 벌타+다시 친 샷이 자동 반영돼요 (다시 친 샷은 따로 기록하지 마세요)<br/>
-            해저드는 1벌타 — 드롭 후 친 샷은 다음 샷으로 기록하세요
+            여기서 넣은 OB는 OB티 기준(+2타)으로 계산돼요 · 해저드는 1벌타<br/>
+            샷 아래 [OB]·[해저드]로 기록하면 '제자리에서 다시 치기'도 고를 수 있어요
           </div>
         )}
       </div>
@@ -1782,6 +2041,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </button>
           </div>
         );})()}
+        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && penaltyRow(0)}
 
         {/* FAIRWAY HIT - 구질 선택 후 등장 */}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
@@ -1842,6 +2102,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </button>
           </div>
         )}
+        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && penaltyRow(0)}
         </>}
 
         {/* ── 페이지 네이션 ── */}
@@ -1866,7 +2127,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             const h = HDR[st];
             return (<>
           <div style={{ height:1, flex:1, background: h.line }} />
-          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{st === 'done' && '✓ '}세컨샷 ( 2nd )</span>
+          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{st === 'done' && '✓ '}{secondShotName}</span>
           <div style={{ height:1, flex:1, background: h.line }} />
           <span style={{ fontSize:11, color: h.arrow, flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
           </>); })()}
@@ -1875,9 +2136,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {secondShotExpanded && <>
         {/* 세컨샷 지점 — 티샷한 볼 앞. 티 지점과의 거리가 곧 티샷 거리다 */}
         <GpsShotPoint
-          label="세컨샷 지점"
+          label={`${shotLabel(1)} 지점`}
           point={gpsPoints[1] || null}
-          prevPoint={gpsPoints[0] || null}
+          prevPoint={trustedPrevPoint(0)}
           prevLabel={shotLabel(0)}
           locked={gpsLocked(1)}
           lockedHint={gpsLockHint(1)}
@@ -1900,8 +2161,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* 세컨샷 클럽 */}
         <ClubSelector
           icon="〽"
-          label="세컨샷 클럽"
-          categories={SECOND_CLUBS}
+          label={titleShifted(playerScore, 1) ? '클럽' : '세컨샷 클럽'}
+          categories={penaltyAt(playerScore, 0) ? AFTER_TEE_PENALTY_CLUBS : SECOND_CLUBS}
           value={playerScore.secondClub}
           subValue={playerScore.secondClubSub}
           onCategory={v => { updateFields({ secondClub: v, secondClubSub: null }); if (v) scrollDown(); }}
@@ -1924,6 +2185,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onDir={v=>updateField('windDirection',v)} onStrength={v=>updateField('windStrength',v)}
           onReset={() => updateField('windDirection', null)}
         />
+        {penaltyRow(1)}
         </>}
 
         {/* ── 세컨샷 온그린 체크 → 써드샷 이후 ── */}
@@ -1932,17 +2194,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {(playerScore.secondClub || lieValue(playerScore.terrainCondition) || extraShots.length > 0 || playerScore.gir != null) && (<>
         <div ref={extraShotTopRef} />
 
-        {/* 세컨샷 GIR (추가 샷 없을 때, Par 4+). 파5는 세컨샷 뒤 온그린이 GIR이
+        {/* 세컨샷 GIR (추가 샷 없을 때, Par 4+). 파5 이상은 세컨샷 뒤 온그린이 GIR이
             아니라 2온이다 — 레이업을 'GIR 실패'로 누르게 하지 않도록 이름을 바꾼다.
             (GIR 값은 홀 확정 때 타수로 다시 계산된다) */}
         {extraShots.length === 0 && hole.par > 3 && (
           <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
-            <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>{hole.par === 5 ? '2온' : 'GIR'}</span></div>
+            <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>{penaltyAt(playerScore, 0) ? '온그린' : hole.par >= 5 ? '2온' : 'GIR'}</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in' ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
-                onClick={()=>{ updateFields({ gir: true, girAuto: false, onGreen: null }); setShotPage(1); }}>성공</button>
+              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                onClick={()=>{ updateFields({ gir: true, girAuto: false, onGreen: true }); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
-                onClick={()=>{ setSecondShotExpanded(false); addExtraShot(hole.par === 5 ? { onGreen: null } : { gir: false, girAuto: false, onGreen: null }); }}>실패</button>
+                onClick={()=>{ setSecondShotExpanded(false); addExtraShot(hole.par >= 5 ? { onGreen: null } : { gir: false, girAuto: false, onGreen: null }); }}>실패</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
                 onClick={secondShotChipIn}>칩인</button>
             </div>
@@ -1990,7 +2252,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 <GpsShotPoint
                   label={`${extraShotName(idx)} 지점`}
                   point={gpsPoints[idx + 2] || null}
-                  prevPoint={gpsPoints[idx + 1] || null}
+                  prevPoint={trustedPrevPoint(idx + 1)}
                   prevLabel={shotLabel(idx + 1)}
                   locked={gpsLocked(idx + 2)}
                   lockedHint={gpsLockHint(idx + 2)}
@@ -2035,14 +2297,21 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   onReset={() => updateExtraShot(idx, { windDirection: null })}
                 />
 
-                {/* 온그린 성공 / 실패 — 클럽 선택 후 노출 */}
-                {shot.club && (
+                {/* 온그린 성공 / 실패 / 칩인 — 세컨샷처럼 클럽 없이도 고를 수 있다 */}
                 <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
                   <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
-                  <div style={{ display:'flex', gap:6 }}>
+                  <div style={{ display:'flex', gap:6, flex:1 }}>
                     <button
                       style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
-                      onClick={() => { updateExtraShot(idx, { onGreen: true }); setShotPage(1); }}>성공</button>
+                      onClick={() => {
+                        // 이 샷이 그린에 올라갔으면 뒤에 기록된 샷은 있을 수 없다 — '실패'를
+                        // 잘못 눌러 생긴 샷이 남아 타수에 더해지지 않게 그 샷과 GPS 지점을 지운다.
+                        updateFields({
+                          extraShots: extraShots.slice(0, idx + 1).map((s, i) => i === idx ? { ...s, onGreen: true } : s),
+                          gpsPoints: gpsPoints.slice(0, idx + 3),
+                        });
+                        setShotPage(1);
+                      }}>성공</button>
                     <button
                       style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                       onClick={() => {
@@ -2062,15 +2331,17 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                     <button
                       style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
                       onClick={() => {
-                        const updatedShots = extraShots.map((s, i) => i === idx ? { ...s, onGreen: 'chip-in' } : s);
-                        const freshPlayerScore = { ...playerScore, extraShots: updatedShots, putts: 0 };
+                        // 칩인 뒤에 기록된 샷도 함께 지운다 (위 '성공'과 같은 이유)
+                        const updatedShots = extraShots.slice(0, idx + 1).map((s, i) => i === idx ? { ...s, onGreen: 'chip-in' } : s);
+                        const freshPlayerScore = { ...playerScore, extraShots: updatedShots, gpsPoints: gpsPoints.slice(0, idx + 3), putts: 0 };
                         const freshStrokes = calcAutoStrokes(freshPlayerScore, hole.par);
                         const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], touched: true, strokesManual: false };
                         triggerChipIn(freshScore);
                       }}>칩인</button>
                   </div>
                 </div>
-                )}
+
+                {penaltyRow(idx + 2)}
 
                 {/* 삭제 */}
                 <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
@@ -2096,7 +2367,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         <GpsShotPoint
           label={finalPointLabel}
           point={gpsGreen}
-          prevPoint={gpsPoints[fieldShots - 1] || null}
+          prevPoint={trustedPrevPoint(fieldShots - 1)}
           prevLabel={shotLabel(fieldShots - 1)}
           locked={gpsLocked(fieldShots)}
           lockedHint={gpsLockHint(fieldShots)}
@@ -2363,6 +2634,47 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       )}
 
+      {/* OB 처리 선택 — OB티로 이동(앞으로 나가서 치기) / 제자리에서 다시 치기 */}
+      {obChoiceSlot != null && (
+        <div style={styles.modalOverlay} onClick={() => setObChoiceSlot(null)}>
+          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalIcon}>⚠️</div>
+            <div style={styles.modalTitle}>{shotLabel(obChoiceSlot)} OB</div>
+            <div style={styles.modalText}>다음 샷을 어디서 쳤나요?<br/>스코어는 둘 다 +2타예요</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <button style={styles.modalBtnPrimary} onClick={chooseObForward}>
+                {obChoiceSlot === 0 ? 'OB티로 이동' : '앞으로 나가서 치기 (2벌타 드롭)'}
+                <div style={obChoiceSub}>다음 샷 = {strokeNumberOf(playerScore, obChoiceSlot) + 3}번째 샷</div>
+              </button>
+              <button style={styles.modalBtnCancel} onClick={chooseObReplay}>
+                제자리에서 다시 치기
+                <div style={obChoiceSub}>다시 친 샷 = {strokeNumberOf(playerScore, obChoiceSlot) + 2}번째 샷 · 클럽·위치도 기록</div>
+              </button>
+              <button style={styles.modalBtnCancel} onClick={() => setObChoiceSlot(null)}>취소</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 퍼팅 수를 모른 채 '다음'/'완료' — 2퍼트로 가정하지 않고 물어본다 */}
+      {puttAsk && (
+        <div style={styles.modalOverlay} onClick={() => setPuttAsk(null)}>
+          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalIcon}>⛳</div>
+            <div style={styles.modalTitle}>퍼팅을 몇 번 했나요?</div>
+            <div style={styles.modalText}>{holeIdx + 1}번 홀 · 온그린까지 {strokesToGreen(playerScore, hole.par)}타</div>
+            <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+              {[0, 1, 2, 3, 4, 5].map(n => (
+                <button key={n}
+                  style={{ flex:1, height:48, borderRadius:10, border:'1.5px solid #3a4e72', background:'#1a2235', color:'#e8edf8', fontSize:18, fontWeight:900, cursor:'pointer' }}
+                  onClick={() => confirmWithPutts(n)}>{n}</button>
+              ))}
+            </div>
+            <button style={styles.modalBtnCancel} onClick={() => setPuttAsk(null)}>취소</button>
+          </div>
+        </div>
+      )}
+
       {/* Exit 확인 모달 */}
       {showExitConfirm && (
         <div style={styles.modalOverlay} onClick={()=>setShowExitConfirm(false)}>
@@ -2465,6 +2777,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           gpsPin={gpsPin}
           fieldShots={fieldShots}
           shotLabel={shotLabel}
+          shotTrusted={(slot) => shotDistanceTrusted(playerScore, hole.par, slot)}
           finalLabel={isHoledOut(playerScore) ? '홀' : '그린 랜딩'}
           onSetPoint={setGpsPoint}
           onSetGreen={fix => updateGpsField('gpsGreen', fix)}
@@ -2512,6 +2825,8 @@ const fLbl  = { fontSize:11, fontWeight:700, color:'#8ca4bc', letterSpacing:'0.1
 const fChip = { padding:'5px 9px', borderRadius:6, border:'1.5px solid #252f4a', background:'#1a2235', color:'#e8edf8', fontSize:11, fontWeight:600, cursor:'pointer' };
 const fChipOn = { border:'2px solid #c9a228', background:'rgba(201,162,40,0.18)', color:'#c9a228' };
 const fChipWide = { minWidth:52, padding:'7px 12px', borderRadius:8, border:'1.5px solid #252f4a', background:'#1a2235', color:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' };
+
+const obChoiceSub = { fontSize: 12, fontWeight: 600, marginTop: 3, opacity: 0.85 };
 
 const fMiniBtn = { width:32, height:32, borderRadius:7, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
 

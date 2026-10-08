@@ -13,6 +13,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
   const [activePlayer, setActivePlayer] = useState(initialRound?.players[0]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
+  const [editError, setEditError] = useState(null);
   // 홀별 복기 — 스코어카드에서 홀 번호를 누르면 열린다.
   const [reviewHoleIdx, setReviewHoleIdx] = useState(null);
 
@@ -24,7 +25,9 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
     const totalPar = round.pars.reduce((a, b) => a + b, 0);
     const totalPutts = holes.reduce((s, h) => s + (h.scores[player]?.putts || 0), 0);
     const girHoles = holes.filter(h => h.scores[player]?.gir === true).length;
-    const par4or5 = holes.filter(h => h.par > 3);
+    // 페어웨이는 O/X를 기록한 홀만 센다 — 기록하지 않은 홀(간편 기록 등)을 미적중으로
+    // 세면 적중률이 실제보다 낮게 나온다. 인사이트(metrics.js)와 같은 기준.
+    const par4or5 = holes.filter(h => h.par > 3 && typeof h.scores[player]?.fairway === 'boolean');
     const fairwaysHit = par4or5.filter(h => h.scores[player]?.fairway === true).length;
     const fairwayTotal = par4or5.length;
 
@@ -40,7 +43,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
     return {
       total, totalPar, diff: total - totalPar, totalPutts,
       girHoles, girPct: ((girHoles / 18) * 100).toFixed(0),
-      fairwaysHit, fairwayTotal, fairwayPct: fairwayTotal > 0 ? ((fairwaysHit / fairwayTotal) * 100).toFixed(0) : 0,
+      fairwaysHit, fairwayTotal, fairwayPct: fairwayTotal > 0 ? ((fairwaysHit / fairwayTotal) * 100).toFixed(0) : null,
       birdies, eagles, pars, bogeys, doubles,
       avgPutts: (totalPutts / 18).toFixed(1),
       front9, back9
@@ -48,6 +51,32 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
   };
 
   const stats = calculateStats(activePlayer);
+
+  // 라운드를 마친 뒤 홀 스코어 고치기 (복기 화면의 '이 홀 스코어 수정').
+  // 직접 고친 값이라 strokesManual로 남기고, GIR은 타수·퍼팅 수로 다시 계산한다.
+  // 퍼팅 수가 바뀌면 퍼팅별 상세(거리·홀인)가 더는 맞지 않으므로 비운다 — 맞지 않는
+  // 상세가 퍼팅 성공률 통계에 섞이는 것보다 낫다.
+  const editHoleScore = (holeIdx, { strokes, putts }) => {
+    const holes = round.holes.map((h, i) => {
+      if (i !== holeIdx) return h;
+      const s = h.scores[activePlayer];
+      return {
+        ...h,
+        scores: {
+          ...h.scores,
+          [activePlayer]: {
+            ...s, strokes, putts,
+            puttDetails: putts === s.putts ? s.puttDetails : [],
+            gir: strokes - putts <= h.par - 2, girAuto: true,
+            strokesManual: true, touched: true,
+          },
+        },
+      };
+    });
+    const updated = { ...round, holes };
+    setRound(updated);
+    onUpdateRound?.(updated);
+  };
 
   const openEditModal = () => {
     setEditDraft({
@@ -58,6 +87,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       players: [...round.players],
       pars: [...round.pars],
     });
+    setEditError(null);
     setShowEditModal(true);
   };
 
@@ -70,6 +100,15 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
   const saveEdit = () => {
     if (!editDraft.courseName.trim()) return;
 
+    // 스코어는 플레이어 이름으로 묶여 있어서, 두 사람을 같은 이름으로 바꾸면 한쪽
+    // 기록이 덮어써져 사라진다. 비운 이름은 원래 이름을 그대로 쓴다.
+    const nextNames = editDraft.players.map((p, i) => p.trim() || round.players[i]);
+    const norm = (n) => n.trim().toLowerCase();
+    if (new Set(nextNames.map(norm)).size !== nextNames.length) {
+      setEditError('같은 이름의 플레이어가 있어요. 이름을 다르게 입력해 주세요.');
+      return;
+    }
+
     // 파 변경 반영 — hole.par 업데이트
     let updatedHoles = round.holes.map((h, i) => ({
       ...h,
@@ -77,13 +116,12 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
     }));
 
     // 플레이어명 변경 시 스코어 키 리매핑
-    const hasRenames = round.players.some((p, i) => p !== editDraft.players[i]);
+    const hasRenames = round.players.some((p, i) => p !== nextNames[i]);
     if (hasRenames) {
       updatedHoles = updatedHoles.map(h => {
         const newScores = {};
         round.players.forEach((oldName, idx) => {
-          const newName = (editDraft.players[idx] || '').trim() || oldName;
-          newScores[newName] = h.scores[oldName];
+          newScores[nextNames[idx]] = h.scores[oldName];
         });
         return { ...h, scores: newScores };
       });
@@ -91,9 +129,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 
     // activePlayer 이름 변경 처리
     const activeIdx = round.players.indexOf(activePlayer);
-    const newActivePlayer = activeIdx >= 0
-      ? ((editDraft.players[activeIdx] || '').trim() || activePlayer)
-      : activePlayer;
+    const newActivePlayer = activeIdx >= 0 ? nextNames[activeIdx] : activePlayer;
 
     // 날짜: 로컬 정오 기준으로 저장해 타임존 영향 방지
     const [y, m, d] = editDraft.date.split('-').map(Number);
@@ -105,7 +141,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       courseName: editDraft.courseName.trim(),
       outCourseName: editDraft.outCourseName.trim() || 'OUT',
       inCourseName: editDraft.inCourseName.trim() || 'IN',
-      players: editDraft.players.map(p => p.trim()).filter(p => p),
+      players: nextNames,
       pars: editDraft.pars,
       holes: updatedHoles,
     };
@@ -186,7 +222,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
         <div style={styles.sectionTitle}>KEY STATS</div>
         <div style={styles.keyStatsGrid}>
           <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/18 holes`} />
-          <StatTile label="Fairways" value={`${stats.fairwayPct}%`} sub={`${stats.fairwaysHit}/${stats.fairwayTotal}`} />
+          <StatTile label="Fairways" value={stats.fairwayPct != null ? `${stats.fairwayPct}%` : '—'} sub={stats.fairwayTotal > 0 ? `${stats.fairwaysHit}/${stats.fairwayTotal}` : '기록 없음'} />
           <StatTile label="Avg Putts" value={stats.avgPutts} sub={`${stats.totalPutts} total`} />
           <StatTile label="Birdies+" value={stats.birdies + stats.eagles} sub={`${stats.eagles} eagle`} />
         </div>
@@ -267,6 +303,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
           holeIdx={reviewHoleIdx}
           onNav={setReviewHoleIdx}
           onClose={() => setReviewHoleIdx(null)}
+          onEditScore={editHoleScore}
         />
       )}
 
@@ -366,6 +403,10 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
                 ))}
               </div>
             </div>
+
+            {editError && (
+              <div style={{ fontSize: 12, color: '#ef5350', marginTop: -8, marginBottom: 14, lineHeight: 1.6 }}>{editError}</div>
+            )}
 
             {/* 파 설정 */}
             <div style={{ marginBottom: '16px' }}>

@@ -52,6 +52,7 @@ export function buildApproachProximity(rounds, windowSize = 20) {
       // 마지막 "유효한"(거리 필터 통과) 샷이 그린에 도달했을 때만 근접도 유효
       // (extractClubShots가 이미 각 체인 항목에 onGreen을 실어준다).
       if (last.onGreen !== true) return;
+      if (last.fromDistance == null) return;   // 어느 거리에서 친 샷인지 모르면 구간에 넣을 수 없다
       const puttDistance = s.puttDetails?.[0]?.distance;
       if (puttDistance == null) return;
       const bucket = samples.find(b => last.fromDistance >= b.min && last.fromDistance < b.max);

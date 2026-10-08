@@ -6,6 +6,8 @@
 // 좌표점 모양: { lat, lng, acc, t }
 //   acc = 측위 오차 반경(m, 68% 신뢰), t = 기록 시각(epoch ms)
 
+import { penaltyAt } from './penalties.js';
+
 const EARTH_RADIUS_M = 6371008.8; // IUGG 평균 반지름
 
 const toRad = (deg) => (deg * Math.PI) / 180;
@@ -90,6 +92,45 @@ export function fieldShotCount(score, par) {
   const onGreenInOne = score.teeGIR === true || (par === 3 && par3TeeOnGreen(score));
   if (onGreenInOne) return 1;
   return 2 + (score.extraShots?.length ?? 0);
+}
+
+// 티샷 거리(티 지점 → 다음 샷 지점)를 '실제로 처음 친 샷'의 거리로 믿을 수 있는지.
+//
+// 티샷에서 벌타가 나면 다음 샷 지점은 티샷 볼이 멈춘 자리가 아니다 — OB티(4타째),
+// 해저드 드롭 지점, 다시 친 티샷 볼(3타째)이다. 그 거리를 티샷 거리로 쓰면 드라이버
+// 거리가 오염된다. 벌타가 어느 샷에서 났는지는 기록하지 않으므로, 벌타가 있는 홀은
+// 티샷이 페어웨이(또는 1온)에 멈췄다고 기록된 경우만 믿는다 — 그때는 벌타가 그 뒤의
+// 샷에서 난 것이다. 파3은 티샷 결과가 다시 친 티샷을 가리킬 수 있어 믿지 않는다.
+export function teeShotDistanceTrusted(score, par) {
+  if (!score) return false;
+  if ((score.ob || 0) + (score.hazard || 0) === 0) return true;
+  return par > 3 && (score.fairway === true || score.teeGIR === true);
+}
+
+// 한 샷의 거리(그 샷을 친 지점 → 다음 지점)를 그 샷의 실제 거리로 믿을 수 있는지.
+// slot: 0=티샷, 1=세컨샷, 2 이상=익스트라샷.
+//
+// 벌타가 없으면 언제나 믿는다. 벌타가 있으면 벌타가 난 샷의 '다음 지점'이 OB티·드롭
+// 지점이라 거리가 오염되는데, 어느 샷의 벌타인지는 기록하지 않으므로 그 샷이 멈춘
+// 자리가 확실한 경우만 믿는다: 티샷은 teeShotDistanceTrusted, 그 뒤 샷은 그린에
+// 올라간(또는 칩인한) 샷. 오염된 거리보다 빠진 거리가 낫다.
+export function shotDistanceTrusted(score, par, slot) {
+  if (!score) return false;
+  const total = (score.ob || 0) + (score.hazard || 0);
+  if (total === 0) return true;
+  // 샷별로 기록한 벌타: 벌타가 난 그 샷만 믿지 않는다. 모든 벌타가 어느 샷인지
+  // 기록돼 있으면 나머지 샷은 깨끗하다.
+  if (penaltyAt(score, slot)) return false;
+  if ((score.penalties || []).length >= total) return true;
+  // 어느 샷인지 모르는 벌타가 남아 있으면 아래 보수적인 규칙을 쓴다.
+  if (slot === 0) return teeShotDistanceTrusted(score, par);
+  const extras = score.extraShots ?? [];
+  const reached = (v) => v === true || v === 'chip-in';
+  if (slot === 1) {
+    if (extras.length > 0) return false;
+    return par === 3 ? reached(score.onGreen) : (score.gir === true || reached(score.onGreen));
+  }
+  return reached(extras[slot - 2]?.onGreen);
 }
 
 // 마지막 지점이 "그린 도착"이 아니라 "홀인 지점"인 경우.

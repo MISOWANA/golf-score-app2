@@ -21,6 +21,9 @@ const fmtAcc = (acc) => (acc == null ? '' : `±${Math.round(acc)}m`);
 
 export default function HoleMapModal({
   holeNo, par, gpsPoints, gpsGreen, gpsPin, fieldShots, shotLabel, finalLabel = '그린 랜딩',
+  // shotTrusted(slot): 그 샷의 구간 거리를 보여도 되는지 — 벌타 홀에서 멈춘 자리가
+  // 불확실한 샷(티샷 → OB티 등)은 구간 선·거리를 그리지 않는다.
+  shotTrusted = () => true,
   onSetPoint, onSetGreen, onSetPin, onAddShot, onUndoShot, onClose,
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);
@@ -272,7 +275,7 @@ export default function HoleMapModal({
     for (let i = 0; i < shotSlots.length - 1; i++) {
       const from = shotSlots[i].point;
       const to = shotSlots[i + 1].point;
-      if (!from || !to) continue;
+      if (!from || !to || !shotTrusted(shotSlots[i].id)) continue;
       L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
         color: COLOR.gold, weight: 3, opacity: 0.85, dashArray: '6 5',
       }).addTo(layer);
@@ -363,7 +366,7 @@ export default function HoleMapModal({
 
   const summaryRows = Array.from({ length: fieldShots }, (_, i) => ({
     label: shotLabel(i),
-    shot: shotDist[i] ?? null,
+    shot: shotTrusted(i) ? (shotDist[i] ?? null) : null,
     toPin: i + 1 < fieldShots ? (toPinArr[i + 1] ?? null) : haversine(gpsGreen, gpsPin),
   })).filter((r) => r.shot != null || r.toPin != null);
 

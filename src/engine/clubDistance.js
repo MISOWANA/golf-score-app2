@@ -12,7 +12,7 @@
 // 체인으로는 역산이 불가능하기 때문(extractTeeShot).
 
 import { median, iqr, distanceTier } from './stats.js';
-import { shotDistances, pinDistances, fieldShotCount, saneRemaining } from './geo.js';
+import { shotDistances, pinDistances, fieldShotCount, saneRemaining, shotDistanceTrusted } from './geo.js';
 
 // GPS 오측(튄 fix)으로 터무니없는 값이 들어오는 것을 막는 상한 — 한 샷이
 // 날아간 거리. 핀까지 남은 거리 상한은 geo.js 의 saneRemaining.
@@ -47,31 +47,33 @@ export function extractClubShots(hole, player) {
 
   // shotNo를 함께 들고 간다. 클럽이 비어 건너뛴 샷이 있으면 체인 인덱스와
   // 실제 샷 순번이 어긋나서, 인덱스로 GPS 거리를 찾으면 엉뚱한 샷에 붙는다.
+  // 남은 거리(fromDistance)는 없을 수 있다 — 입력하지 않았고 핀도 안 찍은 샷. 그래도
+  // GPS로 잰 거리가 있으면 클럽 거리 표본이 되므로 체인에서 빼지 않는다.
+  // (남은 거리가 없으면 뺄셈 역산과 어프로치 근접도 구간에서만 빠진다.)
   const chain = [];
   const secondFrom = s.secondClub ? remainingFor(2, s.remainingDistance) : null;
-  if (secondFrom) {
+  if (s.secondClub) {
     // 이 샷 뒤에 extraShots가 더 있으면 그린에 도달하지 못했다는 뜻이고,
     // 없으면 이 샷이 체인의 마지막이므로 GIR 여부로 그린 도달을 판단한다.
     chain.push({
       shotNo: 2,
       club: s.secondClub, subClub: s.secondClubSub ?? null,
-      fromDistance: secondFrom.value, fromMeasured: secondFrom.measured,
+      fromDistance: secondFrom?.value ?? null, fromMeasured: secondFrom?.measured ?? false,
       lie: s.terrainCondition ?? null,
       // 파3 세컨샷은 그린을 놓친 뒤의 어프로치라 GIR이 아니라 onGreen으로 판단한다
       // (파3 gir는 그린을 놓쳤으면 항상 false). 칩인은 그린에 도달한 것으로 본다.
       onGreen: (s.extraShots?.length ?? 0) > 0 ? false
-        : (s.onGreen === 'chip-in' || (hole.par === 3 ? s.onGreen === true : s.gir === true)),
+        : (s.onGreen === 'chip-in' || s.onGreen === true || (hole.par > 3 && s.gir === true)),
     });
   }
   (s.extraShots || []).forEach((shot, k) => {
     if (!shot.club) return;
     const from = remainingFor(3 + k, shot.remainingDistance);
-    if (!from) return;
     chain.push({
       shotNo: 3 + k,
       club: shot.club,
       subClub: shot.subClub ?? null,
-      fromDistance: from.value, fromMeasured: from.measured,
+      fromDistance: from?.value ?? null, fromMeasured: from?.measured ?? false,
       lie: Array.isArray(shot.lie) ? (shot.lie[0] ?? null) : (shot.lie ?? null),
       onGreen: shot.onGreen === true || shot.onGreen === 'chip-in',
     });
@@ -81,12 +83,20 @@ export function extractClubShots(hole, player) {
 
   return chain
     .map((shot, i) => {
+      // 벌타 홀에서 멈춘 자리가 불확실한 샷(OB·해저드가 났을 수 있는 샷)은 뺀다.
+      if (!shotDistanceTrusted(s, hole.par, shot.shotNo - 1)) return null;
       const measured = saneDistance(gpsDist[shot.shotNo - 1]);
       if (measured != null) return { ...shot, distance: measured, measured: true };
 
+      // 잔여거리 뺄셈은 바로 다음 샷과만 한다. 중간 샷의 거리·클럽이 비어 체인에서
+      // 빠졌으면 다음 체인 항목은 두 샷 뒤라, 빼면 두 샷을 합친 거리가 이 클럽에
+      // 붙는다(3W+7I가 3W 한 번으로). 마지막 샷은 그린에 올렸을 때만 첫 퍼팅
+      // 거리로 끝난다 — 그린을 놓친 샷에 퍼팅 거리를 빼면 역시 두 샷이 합쳐진다.
       const next = chain[i + 1];
-      const toDistance = next ? next.fromDistance : puttDistance;
-      if (toDistance == null) return null;
+      const toDistance = next
+        ? (next.shotNo === shot.shotNo + 1 ? next.fromDistance : null)
+        : (shot.onGreen === true ? puttDistance : null);
+      if (toDistance == null || shot.fromDistance == null) return null;
       const distance = shot.fromDistance - toDistance;
       if (!(distance > 0) || distance >= SANE_MAX_M) return null; // 미완료/입력오류 방어
       return { ...shot, distance, measured: false };
@@ -100,6 +110,9 @@ export function extractClubShots(hole, player) {
 export function extractTeeShot(hole, player) {
   const s = hole.scores?.[player];
   if (!s || !s.teeClub) return null;
+  // 실제로 처음 친 샷의 거리만 티샷 거리다 — 티샷 벌타 뒤의 OB티·드롭 지점까지
+  // 거리는 넣지 않는다 (geo.shotDistanceTrusted).
+  if (!shotDistanceTrusted(s, hole.par, 0)) return null;
 
   const distance = saneDistance(gpsDistancesFor(hole, s)[0]);
   if (distance == null) return null;

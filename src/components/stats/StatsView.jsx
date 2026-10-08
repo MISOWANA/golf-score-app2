@@ -42,7 +42,8 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
     const par = r.pars.reduce((a, b) => a + b, 0);
     const girHoles = r.holes.filter(h => h.scores[p]?.gir === true).length;
     const putts = r.holes.reduce((s, h) => s + (h.scores[p]?.putts || 0), 0);
-    const par4or5 = r.holes.filter(h => h.par > 3);
+    // 페어웨이 O/X를 기록한 홀만 센다 (기록 안 한 홀을 미적중으로 세지 않는다)
+    const par4or5 = r.holes.filter(h => h.par > 3 && typeof h.scores[p]?.fairway === 'boolean');
     const fairwaysHit = par4or5.filter(h => h.scores[p]?.fairway === true).length;
     return {
       date: r.date,
@@ -52,7 +53,8 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
       // 라운드 홀 수로 나눔 (18홀 고정 가정 대신 실제 홀 수 사용)
       girPct: r.holes.length > 0 ? (girHoles / r.holes.length) * 100 : 0,
       avgPutts: r.holes.length > 0 ? putts / r.holes.length : 0,
-      fairwayPct: par4or5.length > 0 ? (fairwaysHit / par4or5.length) * 100 : 0
+      fairwayHit: fairwaysHit,
+      fairwayRecorded: par4or5.length,
     };
   });
 
@@ -60,7 +62,10 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
   const bestScore = Math.min(...allScores.map(s => s.total));
   const avgGir = (allScores.reduce((s, x) => s + x.girPct, 0) / allScores.length).toFixed(0);
   const avgPuttsPerHole = allScores.reduce((s, x) => s + x.avgPutts, 0) / allScores.length;
-  const avgFairway = (allScores.reduce((s, x) => s + x.fairwayPct, 0) / allScores.length).toFixed(0);
+  // 라운드별 비율의 평균이 아니라 기록된 전체 티샷 기준 적중률 — 페어웨이를 기록하지
+  // 않은 라운드가 0%로 섞여 평균을 끌어내리지 않게.
+  const fwRecorded = allScores.reduce((s, x) => s + x.fairwayRecorded, 0);
+  const avgFairway = fwRecorded > 0 ? ((allScores.reduce((s, x) => s + x.fairwayHit, 0) / fwRecorded) * 100).toFixed(0) : null;
 
   const maxTotal = Math.max(...allScores.map(s => s.total));
   const minTotal = Math.min(...allScores.map(s => s.total));
@@ -138,7 +143,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
           <StatTile label="Average" value={avgScore} sub="per round" />
           <StatTile label="GIR" value={`${avgGir}%`} sub="average" />
           <StatTile label="Putts" value={puttsPerGir != null ? puttsPerGir.toFixed(2) : '–'} sub="per GIR" />
-          <StatTile label="FW" value={`${avgFairway}%`} sub="hit rate" />
+          <StatTile label="FW" value={avgFairway != null ? `${avgFairway}%` : '—'} sub={avgFairway != null ? 'hit rate' : '기록 없음'} />
         </div>
       </div>
 

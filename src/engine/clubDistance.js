@@ -57,7 +57,10 @@ export function extractClubShots(hole, player) {
       club: s.secondClub, subClub: s.secondClubSub ?? null,
       fromDistance: secondFrom.value, fromMeasured: secondFrom.measured,
       lie: s.terrainCondition ?? null,
-      onGreen: (s.extraShots?.length ?? 0) > 0 ? false : s.gir === true,
+      // 파3 세컨샷은 그린을 놓친 뒤의 어프로치라 GIR이 아니라 onGreen으로 판단한다
+      // (파3 gir는 그린을 놓쳤으면 항상 false). 칩인은 그린에 도달한 것으로 본다.
+      onGreen: (s.extraShots?.length ?? 0) > 0 ? false
+        : (s.onGreen === 'chip-in' || (hole.par === 3 ? s.onGreen === true : s.gir === true)),
     });
   }
   (s.extraShots || []).forEach((shot, k) => {
@@ -70,7 +73,7 @@ export function extractClubShots(hole, player) {
       subClub: shot.subClub ?? null,
       fromDistance: from.value, fromMeasured: from.measured,
       lie: Array.isArray(shot.lie) ? (shot.lie[0] ?? null) : (shot.lie ?? null),
-      onGreen: shot.onGreen === true,
+      onGreen: shot.onGreen === true || shot.onGreen === 'chip-in',
     });
   });
 

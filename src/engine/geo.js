@@ -76,10 +76,18 @@ export function pinDistances(gpsPoints, gpsPin, fieldShotCount) {
 // OB 재샷은 세지 않는다(해저드는 재샷 없이 드롭 후 다음 샷으로 기록된다). 벌타와 재샷은 strokes에 반영되지만 치는
 // 위치가 사실상 같은 자리라 GPS 지점을 따로 둘 이유가 없고, 클럽 거리
 // 통계에 필요한 건 성공한 샷의 거리다.
+// 파3 티샷이 그린에 올라갔는지 — 사용자가 티샷에서 고른 값(teeOnGreen).
+// gir는 홀을 확정할 때 타수로 다시 계산돼 덮어써지므로(예: OB 후 재티샷 온그린은
+// GIR이 아니다) 샷 흐름 판단에 쓰면 확정할 때마다 결과가 바뀐다. teeOnGreen이
+// 없는 예전 기록만 gir로 대신한다.
+export function par3TeeOnGreen(score) {
+  return score?.teeOnGreen ?? (score?.gir === true);
+}
+
 export function fieldShotCount(score, par) {
   if (!score) return 0;
   if (score.strokes === 1) return 1;
-  const onGreenInOne = score.teeGIR === true || (par === 3 && score.gir === true);
+  const onGreenInOne = score.teeGIR === true || (par === 3 && par3TeeOnGreen(score));
   if (onGreenInOne) return 1;
   return 2 + (score.extraShots?.length ?? 0);
 }

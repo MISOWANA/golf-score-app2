@@ -49,8 +49,10 @@ const shotResult = (slot, s, par, lastSlot) => {
   if (slot === 0) {
     if (s.teeGIR === true) return { text: '그린 (1온)', tone: 'good' };
     if (par === 3) {
-      if (s.gir === true) return { text: '온그린', tone: 'good' };
-      if (s.gir === false) return { text: '그린 놓침', tone: 'bad' };
+      if (s.strokes === 1) return { text: '홀인원', tone: 'great' };
+      const onGreen = s.teeOnGreen ?? s.gir;
+      if (onGreen === true) return { text: '온그린', tone: 'good' };
+      if (onGreen === false) return { text: '그린 놓침', tone: 'bad' };
       return null;
     }
     if (s.fairway === true) return { text: '페어웨이', tone: 'good' };
@@ -69,7 +71,9 @@ const shotResult = (slot, s, par, lastSlot) => {
     return par === 5 ? { text: '그린 밖', tone: 'neutral' } : { text: '그린 놓침', tone: 'bad' };
   }
   const shot = isExtra ? s.extraShots?.[slot - 2] : null;
-  const onGreen = isExtra ? shot?.onGreen : (par === 3 ? s.onGreen : s.gir);
+  // 파4·5 세컨샷은 보통 GIR로 판단하지만, 세컨샷 칩인은 onGreen에 기록된다.
+  const onGreen = isExtra ? shot?.onGreen
+    : (par === 3 || s.onGreen === 'chip-in') ? s.onGreen : s.gir;
   if (onGreen === 'chip-in') return { text: '칩인', tone: 'great' };
   if (onGreen === true) return { text: '온그린', tone: 'good' };
   if (onGreen === false) return { text: '그린 놓침', tone: 'bad' };

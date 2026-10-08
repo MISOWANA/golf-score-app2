@@ -9,9 +9,9 @@ export function getHasPenalty(h) {
 }
 
 export function getTotalPenaltyStrokes(h) {
-  // OB/해저드 1회 = 페널티 1타 + 재샷 1타로 항상 2타씩 계산한다
+  // OB 1회 = 페널티 1타 + 재샷 1타, 해저드 1회 = 페널티 1타
   // (ScoringView.calcAutoStrokes / scoreBreakdown.js와 동일한 모델).
-  return ((h.obCount ?? 0) + (h.hazardCount ?? 0)) * 2;
+  return (h.obCount ?? 0) * 2 + (h.hazardCount ?? 0);
 }
 
 export function getPuttCategory(h) {

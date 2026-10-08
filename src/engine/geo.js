@@ -73,7 +73,7 @@ export function pinDistances(gpsPoints, gpsPin, fieldShotCount) {
 //   투온                        → 2 (티샷 → 세컨샷 → 그린)
 //   쓰리온 이상                 → 2 + 익스트라샷 수
 //
-// OB·해저드 재샷은 세지 않는다. 벌타와 재샷은 strokes에 반영되지만 치는
+// OB 재샷은 세지 않는다(해저드는 재샷 없이 드롭 후 다음 샷으로 기록된다). 벌타와 재샷은 strokes에 반영되지만 치는
 // 위치가 사실상 같은 자리라 GPS 지점을 따로 둘 이유가 없고, 클럽 거리
 // 통계에 필요한 건 성공한 샷의 거리다.
 export function fieldShotCount(score, par) {

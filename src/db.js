@@ -195,6 +195,52 @@ export const migrateProfiles = async () => {
   await putProfiles([...changed]);
 };
 
+// ─── 저장된 기록 보정 (한 번만) ──────────────────────────────────────────────
+//
+// 계산식 버그로 잘못 저장된 기록을 고친다. 끝나면 users 스토어에 표시를 남겨
+// 다음부터는 건너뛴다. 끝난 라운드와 진행 중 라운드 모두 대상이다.
+// 반환: 고친 홀 수 (이미 끝났으면 0).
+const MIGRATION_PAR3_KEY = 'migration:par3-missed-green-strokes';
+
+export const migrateRoundData = async (fixRound) => {
+  await ensureDB();
+  const readTx = db.transaction([USERS_STORE, ROUNDS_STORE], 'readonly');
+  const [done, rounds, userRows] = await Promise.all([
+    asPromise(readTx.objectStore(USERS_STORE).get(MIGRATION_PAR3_KEY)),
+    asPromise(readTx.objectStore(ROUNDS_STORE).getAll()),
+    asPromise(readTx.objectStore(USERS_STORE).getAll()),
+  ]);
+  if (done) return 0;
+
+  let total = 0;
+  const fixedRounds = [];
+  rounds.forEach((r) => {
+    const { round, changed } = fixRound(r);
+    if (changed > 0) { fixedRounds.push(round); total += changed; }
+  });
+  const fixedActive = [];
+  userRows
+    .filter((row) => typeof row.id === 'string' && row.id.startsWith('active_round_') && row.round)
+    .forEach((row) => {
+      const { round, changed } = fixRound(row.round);
+      if (changed > 0) { fixedActive.push({ ...row, round }); total += changed; }
+    });
+
+  // 고친 기록과 완료 표시를 한 트랜잭션으로 — 중간에 끊겨도 반만 고쳐진 채
+  // 완료로 남지 않는다 (다음 실행 때 처음부터 다시 한다).
+  const tx = db.transaction([USERS_STORE, ROUNDS_STORE], 'readwrite');
+  const committed = new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  fixedRounds.forEach((r) => tx.objectStore(ROUNDS_STORE).put(r));
+  fixedActive.forEach((row) => tx.objectStore(USERS_STORE).put(row));
+  tx.objectStore(USERS_STORE).put({ id: MIGRATION_PAR3_KEY, at: new Date().toISOString(), fixedHoles: total });
+  await committed;
+  return total;
+};
+
 // 이름으로 로그인 — 같은 이름(대소문자·앞뒤 공백 무시)의 프로필이 있으면 그대로 쓴다.
 export const loginByName = async (userName) => {
   const name = userName.trim();

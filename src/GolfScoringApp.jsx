@@ -3,9 +3,10 @@ import {
   initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
   saveActiveRound, loadActiveRound, clearActiveRound,
   migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf, deleteProfile,
-  requestPersistentStorage,
+  requestPersistentStorage, migrateRoundData,
 } from './db.js';
 import { isValidRound } from './engine/roundValidation.js';
+import { fixPar3MissedGreenStrokes } from './engine/migrations.js';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import globalCSS from './styles/globalCSS';
 import styles from './styles/styles';
@@ -38,6 +39,11 @@ export default function GolfScoringApp() {
         requestPersistentStorage();
         // 예전 로그인 흔적(userId)들을 이름별 프로필로 묶는다. 실패해도 앱은 뜬다.
         try { await migrateProfiles(); } catch (e) { console.error('Profile migration failed', e); }
+        // 파3 그린 놓친 홀 타수 누락 보정 (한 번만). 실패해도 앱은 뜨고 다음 실행 때 다시 한다.
+        try {
+          const fixed = await migrateRoundData(fixPar3MissedGreenStrokes);
+          if (fixed > 0) console.info(`파3 타수 보정: ${fixed}개 홀`);
+        } catch (e) { console.error('Round data migration failed', e); }
         const user = await getCurrentProfile();
         if (user) {
           setCurrentUserState(user);
@@ -237,7 +243,9 @@ export default function GolfScoringApp() {
         throw new Error('유효하지 않은 파일 형식입니다');
       }
 
-      const validRounds = importedData.data.rounds.filter(isValidRound);
+      // 보정 전에 내보낸 예전 백업도 가져올 때 같은 보정을 거친다 (이미 고친 홀은 건너뛴다).
+      const validRounds = importedData.data.rounds.filter(isValidRound)
+        .map((r) => fixPar3MissedGreenStrokes(r).round);
       const skipped = importedData.data.rounds.length - validRounds.length;
 
       const sanitized = {

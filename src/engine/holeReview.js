@@ -62,6 +62,12 @@ const shotResult = (slot, s, par, lastSlot) => {
   }
   // 세컨샷 이후
   const isExtra = slot >= 2;
+  // 파4·5 세컨샷 뒤에 샷이 더 있으면 세컨샷은 그린에 못 올라간 것이다. s.gir는
+  // '규정 타수 안에 온그린'이라 파5 3온이면 true가 되므로 세컨샷 결과로 쓰면 안 된다.
+  // 파5 세컨샷이 그린에 못 미친 건 보통 레이업이라 실패로 칠하지 않는다.
+  if (slot === 1 && par > 3 && (s.extraShots?.length ?? 0) > 0) {
+    return par === 5 ? { text: '그린 밖', tone: 'neutral' } : { text: '그린 놓침', tone: 'bad' };
+  }
   const shot = isExtra ? s.extraShots?.[slot - 2] : null;
   const onGreen = isExtra ? shot?.onGreen : (par === 3 ? s.onGreen : s.gir);
   if (onGreen === 'chip-in') return { text: '칩인', tone: 'great' };

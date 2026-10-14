@@ -28,6 +28,9 @@ export default function HoleMapModal({
   // shotTrusted(slot): 그 샷의 구간 거리를 보여도 되는지 — 벌타 홀에서 멈춘 자리가
   // 불확실한 샷(티샷 → OB티 등)은 구간 선·거리를 그리지 않는다.
   shotTrusted = () => true,
+  // fillFor(pos): 지도를 닫을 때 남은 거리 슬라이더에 먼저 채워질 값 — { label, d } 또는 null.
+  // 닫기 전에 "이 거리가 입력된다"를 미리 보여주는 데 쓴다 (계산은 ScoringView가 한다).
+  fillFor = null,
   onSetPoint, onSetGreen, onSetPin, onAddShot, onUndoShot, onClose,
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);
@@ -374,6 +377,11 @@ export default function HoleMapModal({
   const pinFromTee = selected === PIN_SLOT && !!gpsPoints[0] && !!lastMarked && lastMarked.point !== gpsPoints[0];
   const draftHoleLen = pinFromTee ? haversine(gpsPoints[0], draft) : null;
 
+  // 닫을 때 마지막으로 잡은 내 위치를 함께 넘긴다 — 지도에서 본 '핀까지' 거리를 남은 거리에 채우는 데 쓴다.
+  const close = () => onClose?.(pos);
+  // 지금 이 위치에서 지도를 닫으면 남은 거리에 채워질 값 (조정 중에는 보여주지 않는다)
+  const fill = !draft && pos && fillFor ? fillFor(pos) : null;
+
   const quality = gpsQuality(pos?.acc);
   const liveDistance = haversine(pos, selectedSlot?.point);
   const liveDistanceAcc = combinedAccuracy(pos, selectedSlot?.point);
@@ -420,7 +428,7 @@ export default function HoleMapModal({
   // ── 키 입력 화면 (탈출구) ───────────────────────────────────────────────────
   if (!apiKey || showKeyForm) {
     return (
-      <Shell holeNo={holeNo} par={par} onClose={onClose}>
+      <Shell holeNo={holeNo} par={par} onClose={close}>
         <div style={{ padding: '28px 20px', overflowY: 'auto' }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: COLOR.line, marginBottom: 10 }}>
             지도를 쓰려면 VWorld 인증키가 필요합니다
@@ -498,7 +506,7 @@ export default function HoleMapModal({
 
   // ── 지도 화면 ───────────────────────────────────────────────────────────────
   return (
-    <Shell holeNo={holeNo} par={par} onClose={onClose}>
+    <Shell holeNo={holeNo} par={par} onClose={close}>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: COLOR.ink }} />
 
@@ -585,6 +593,11 @@ export default function HoleMapModal({
                 />
               )}
             </MetricPanel>
+            {fill && (
+              <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
+                지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
+              </div>
+            )}
           </div>
         )}
 

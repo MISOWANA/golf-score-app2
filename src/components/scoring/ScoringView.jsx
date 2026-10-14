@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 
 import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
-import { fieldShotCount as countFieldShots, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
+import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
 import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1233,19 +1233,39 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // remainingAppliedM 에 같이 저장해 두고 그것과 비교한다 — 사용자가 그 뒤
   // 슬라이더를 직접 돌린 값은, 홀을 오가거나 선수를 바꿔 effect가 다시 돌아도
   // 실측값 자체가 바뀌지 않는 한 그대로 남는다.
+  //
+  // 우선순위: 사용자가 슬라이더로 정한 값 > 지도(실측) 거리. 지도 거리는 '1차로' 채워 둔
+  // 값이라, 비어 있거나 앞서 지도 거리로 넣어 둔 뒤 손대지 않은 값일 때만 새로 채운다.
+  //   value === applied  → 지도 거리를 그대로 넣어 둔 값 (핀·지점을 다시 찍으면 같이 갱신)
+  //   source === 'live'  → 지도를 닫을 때 현재 위치 기준으로 넣어 둔 값 (이후 실측으로 갱신)
+  //   그 밖의 값        → 사용자가 직접 정한 값 — 지도 거리가 바뀌어도 건드리지 않는다
+  const mapManaged = (value, applied, source) => value == null || value === applied || source === 'live';
+  // 파3 티샷 거리는 티 지점 → 핀이다 (슬라이더 범위 50~250m 안일 때만 채운다)
+  const measuredTee = (() => {
+    if (hole.par !== 3) return null;
+    const d = roundM(measuredRemaining[0]);
+    return d != null && d >= 50 && d <= 250 ? d : null;
+  })();
   const measuredKey = [holeIdx, activePlayer, ...measuredRemaining.map((d) => roundM(d) ?? '')].join('|');
   useEffect(() => {
     const patch = {};
-    if (measuredSecond != null && measuredSecond !== playerScore.remainingAppliedM) {
+    if (measuredSecond != null && measuredSecond !== playerScore.remainingDistance
+        && mapManaged(playerScore.remainingDistance, playerScore.remainingAppliedM, playerScore.remainingSource)) {
       patch.remainingDistance = measuredSecond;
       patch.remainingAppliedM = measuredSecond;
+      patch.remainingSource = null;
+    }
+    if (measuredTee != null && measuredTee !== playerScore.teeDistance
+        && mapManaged(playerScore.teeDistance, playerScore.teeDistanceAppliedM, null)) {
+      patch.teeDistance = measuredTee;
+      patch.teeDistanceAppliedM = measuredTee;
     }
     let extrasChanged = false;
     const nextExtras = extraShots.map((shot, k) => {
       const d = measuredExtra(k);
-      if (d != null && d !== shot.remainingAppliedM) {
+      if (d != null && d !== shot.remainingDistance && mapManaged(shot.remainingDistance, shot.remainingAppliedM, shot.remainingSource)) {
         extrasChanged = true;
-        return { ...shot, remainingDistance: d, remainingAppliedM: d };
+        return { ...shot, remainingDistance: d, remainingAppliedM: d, remainingSource: null };
       }
       return shot;
     });
@@ -1253,6 +1273,76 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     if (Object.keys(patch).length > 0) updateGpsFields(patch);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measuredKey]);
+
+  // 남은 거리·티샷 거리 옆 표시 — 값이 지도 거리와 같으면 'GPS 실측', 사용자가 정한 값이 달라서
+  // 지도 거리가 따로 있으면 그 거리를 보여 주고 한 번에 바꿀 수 있게 한다. 현재 위치 기준으로
+  // 넣어 둔 값은 그렇게 표시한다.
+  const mapDistanceTag = (measured, value, source, onApply) => {
+    const base = { fontSize: 9, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 4 };
+    if (measured != null && value === measured) {
+      return <span style={{ ...base, color: '#3db87a', border: '1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>;
+    }
+    if (measured != null) {
+      return (
+        <button onClick={onApply}
+          style={{ ...base, color: '#8ec0ff', background: 'transparent', border: '1px solid rgba(142,192,255,0.5)', cursor: 'pointer' }}>
+          지도 {measured}m 적용
+        </button>
+      );
+    }
+    if (source === 'live' && value != null) {
+      return <span style={{ ...base, color: '#8ec0ff', border: '1px solid rgba(142,192,255,0.4)' }}>지도 현재 위치 기준</span>;
+    }
+    return null;
+  };
+
+  // ─── 지도에서 본 거리를 남은 거리에 먼저 채우기 ──────────────────────────────
+  // 지점을 찍지 않고 지도의 '여기서 핀까지' 숫자만 보고 닫는 경우가 많다. 그때 남은 거리
+  // 슬라이더가 비어 있으면 그 숫자를 먼저 넣어 둔다 — 사용자는 미세 조정만 하면 된다.
+  //   · 지금 칠 샷만 채운다: 익스트라샷이 없으면 세컨샷, 있으면 결과가 아직 없는 마지막 샷
+  //   · 슬라이더로 입력한 값은 건드리지 않는다 (미입력이거나 앞서 지도 기준으로 넣어 둔 값일 때만)
+  //   · 직전 지점에서 거의 움직이지 않았으면(티박스에서 막 열어 본 경우 등) 채우지 않는다
+  //   · remainingAppliedM은 건드리지 않는다 — 나중에 그 샷의 지점을 찍으면 실측값이 이 값을 대체한다
+  const mapFillFor = (livePos) => {
+    if (!livePos || !gpsPin || isHoledOut(playerScore)) return null;
+    let slot;
+    if (extraShots.length === 0) {
+      if (hole.par === 3 ? par3TeeOnGreen(playerScore) : playerScore.teeGIR) return null;   // 세컨샷이 없는 홀
+      if (secondShotDecided(playerScore)) return null;                                      // 이미 온그린·칩인
+      if (measuredSecond != null) return null;   // 이 샷의 지점이 찍혀 있으면 실측값이 채운다
+      if (playerScore.remainingDistance != null && playerScore.remainingSource !== 'live') return null;
+      slot = 1;
+    } else {
+      const last = extraShots[extraShots.length - 1];
+      if (last.onGreen != null) return null;
+      if (measuredExtra(extraShots.length - 1) != null) return null;
+      if (last.remainingDistance != null && last.remainingSource !== 'live') return null;
+      slot = extraShots.length + 1;
+    }
+    const prev = gpsPoints[slot - 1] || null;
+    if (prev) {
+      const moved = haversine(prev, livePos);
+      if (moved != null && moved < Math.max(15, livePos.acc ?? 0)) return null;
+    } else if (slot === 1 && !teeComplete) {
+      return null;   // 티 지점도 없고 티샷도 아직 안 끝났으면 어디서 보는 거리인지 알 수 없다
+    }
+    const d = roundM(haversine(livePos, gpsPin));
+    return d == null ? null : { slot, d, label: shotLabel(slot) };
+  };
+
+  const closeMapAndFill = (livePos) => {
+    setShowHoleMap(false);
+    const f = mapFillFor(livePos);
+    if (!f) return;
+    patchGpsLatest(holeIdx, activePlayer, (s) => {
+      if (f.slot === 1) {
+        return s.remainingDistance != null && s.remainingSource !== 'live' ? {} : { remainingDistance: f.d, remainingSource: 'live' };
+      }
+      const x = (s.extraShots || [])[f.slot - 2];
+      if (!x || (x.remainingDistance != null && x.remainingSource !== 'live')) return {};
+      return { extraShots: s.extraShots.map((e, i) => (i === f.slot - 2 ? { ...e, remainingDistance: f.d, remainingSource: 'live' } : e)) };
+    });
+  };
 
   // 직전 샷 거리를 보여줄 기준 지점. 벌타 홀에서 멈춘 자리가 불확실한 샷(티샷 →
   // OB티 등)은 거리를 보여주지 않는다 — 복기·클럽 통계와 같은 기준.
@@ -2145,8 +2235,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {/* PAR3 전용: 거리 */}
         {hole.par === 3 && (
           <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
-            <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>거리</span></div>
-            <SwipeDistance value={playerScore.teeDistance ?? null} start={150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
+            <div style={{ ...fLeft, marginBottom:10 }}>
+              <span style={fIcon}>↔</span><span style={fLbl}>거리</span>
+              {mapDistanceTag(measuredTee, playerScore.teeDistance, null,
+                () => updateFields({ teeDistance: measuredTee, teeDistanceAppliedM: measuredTee }))}
+            </div>
+            <SwipeDistance value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
             <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>
           </div>
         )}
@@ -2351,9 +2445,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ ...fLeft, marginBottom:10 }}>
             <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
-            {measuredSecond != null && <span style={{ fontSize:9, fontWeight:800, color:'#3db87a', marginLeft:6, padding:'1px 5px', borderRadius:4, border:'1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>}
+            {mapDistanceTag(measuredSecond, playerScore.remainingDistance, playerScore.remainingSource,
+              () => updateFields({ remainingDistance: measuredSecond, remainingAppliedM: measuredSecond, remainingSource: null }))}
           </div>
-          <SwipeDistance value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateField('remainingDistance',v)} />
+          <SwipeDistance value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null })} />
           <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>
         </div>
 
@@ -2465,9 +2560,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
                   <div style={{ ...fLeft, marginBottom:10 }}>
                     <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
-                    {measuredExtra(idx) != null && <span style={{ fontSize:9, fontWeight:800, color:'#3db87a', marginLeft:6, padding:'1px 5px', borderRadius:4, border:'1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>}
+                    {mapDistanceTag(measuredExtra(idx), shot.remainingDistance, shot.remainingSource,
+                      () => updateExtraShot(idx, { remainingDistance: measuredExtra(idx), remainingAppliedM: measuredExtra(idx), remainingSource: null }))}
                   </div>
-                  <SwipeDistance value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v })} />
+                  <SwipeDistance value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null })} />
                   <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>
                 </div>
 
@@ -3023,7 +3119,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onSetPin={fix => updateGpsField('gpsPin', fix)}
           onAddShot={addShotFromMap}
           onUndoShot={lastShotIsEmpty ? undoLastShotFromMap : null}
-          onClose={() => setShowHoleMap(false)}
+          fillFor={mapFillFor}
+          onClose={closeMapAndFill}
         />
       )}
 

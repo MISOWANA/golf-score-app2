@@ -789,8 +789,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // ─── 스코어 자동 계산 ───────────────────────────────────────────────────────
   // 상세 입력 홀(티샷 클럽을 고른 홀)은 스코어 칸이 샷 기록으로 계산된다:
   // 샷 수 + 퍼팅 수 + 벌타. 퍼팅을 아직 입력하지 않았으면 기본 2퍼트로 본다.
-  // 사용자가 −/+로 직접 고치면(strokesManual) 그 값을 그대로 둔다 — 상세 입력으로
-  // 표현 못 하는 상황(규칙 적용 등)을 바로잡을 방법이 그것뿐이다.
+  // 스코어는 벌타를 포함한 총 스코어다. 사용자가 −/+로 직접 고치면(strokesManual) 그 값이
+  // 언제나 우선이다 — 상세 입력으로 표현 못 하는 상황(규칙 적용 등)을 바로잡을 방법이
+  // 그것뿐이다. 이후 샷·벌타를 더 입력하거나 칩인·홀인 처리를 해도 자동 계산 값으로
+  // 덮어쓰지 않고, '자동 계산' 버튼을 눌러야만 샷 기록 계산으로 돌아간다.
   // 예전에는 퍼팅 '홀인 성공'을 눌러야만 계산돼서, 위쪽 퍼팅 수만 고르고 넘기면
   // 샷 기록과 다른 기본 파가 저장됐다.
   const autoScoreOn = (s) => round.players.length === 1 && !!s.teeClub && !s.strokesManual;
@@ -1021,7 +1023,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 세컨샷 결과는 onGreen에 'chip-in'으로 남긴다 — 써드샷 이후의 칩인과 같은 표기.
   const secondShotChipIn = () => {
     const base = { ...playerScore, onGreen: 'chip-in', putts: 0, puttDetails: [] };
-    triggerChipIn({ ...base, strokes: calcAutoStrokes(base, hole.par), touched: true, strokesManual: false });
+    // 직접 고친 스코어가 있으면 그 값을 유지한다 (base가 strokes·strokesManual을 그대로 들고 있다)
+    triggerChipIn(playerScore.strokesManual
+      ? { ...base, touched: true }
+      : { ...base, strokes: calcAutoStrokes(base, hole.par), touched: true, strokesManual: false });
   };
 
   // 홀인 모달: 2.5초 뒤 저장·이동(holeInCbRef). 그 전에 '취소'하면 아무것도
@@ -1490,6 +1495,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       return;
     }
     const lastIdx = extraShots.length - 1;
+    // 아직 아무것도 입력하지 않은 마지막 샷이 이미 있으면 그 샷이 곧 다음 샷이다 — 빈 샷을 또
+    // 만들면 앞 샷이 '실패'로 바뀌고 타수만 늘어난다 (벌타·실패로 생긴 빈 샷에서 ＋샷을 연타한 경우).
+    const lastShot = extraShots[lastIdx];
+    if (!lastShot.club && lastShot.onGreen == null && !gpsPoints[lastIdx + 2]) {
+      setExpandedExtraShot(lastIdx);
+      return;
+    }
     updateField('extraShots', [
       ...extraShots.map((s, i) => i === lastIdx ? { ...s, onGreen: false } : s),
       { club: null, subClub: null, lie: [], remainingDistance: null,
@@ -1556,8 +1568,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const newScore = { ...playerScore, [field]: newVal, penalties };
     const hasPenalty = penaltyCount(newScore) > 0;
     const extra = hasPenalty && playerScore.teeGIR ? { teeGIR: false } : {};
+    // 직접 고친 스코어(벌타 포함 총 스코어)가 있으면 벌타 횟수만 기록하고 스코어는 그대로 둔다.
+    if (playerScore.strokesManual) {
+      updateFields({ [field]: newVal, penalties, ...extra });
+      return;
+    }
     const newStrokes = calcAutoStrokes({ ...newScore, ...extra }, hole.par);
-    updateFields({ [field]: newVal, penalties, ...extra, strokes: newStrokes, strokesManual: false });
+    updateFields({ [field]: newVal, penalties, ...extra, strokes: newStrokes });
   };
 
   // ─── 샷별 벌타 ──────────────────────────────────────────────────────────────
@@ -1578,7 +1595,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     // 벌타로 본다 — 위에서 OB +1을 누른 뒤 티샷 [OB]를 또 눌러도 두 번 세지 않게.
     const unclaimed = counts[type] - rest.filter(p => p.type === type).length;
     if (unclaimed <= 0) counts[type] += 1;
-    const fields = { penalties: [...rest, { slot, type, mode }], ...counts, strokesManual: false };
+    // 스코어가 자동 계산 중이면 updateFields가 샷 기록으로 다시 계산한다. 직접 고친 스코어
+    // (strokesManual)는 그대로 둔다 — 벌타를 기록해도 총 스코어를 바꾸지 않는다.
+    const fields = { penalties: [...rest, { slot, type, mode }], ...counts };
     if (slot === 0) {
       // 티샷 벌타 — 페어웨이 미적중, 1온·온그린 아님. 다음 샷(세컨샷 자리)은 늘 있다.
       if (hole.par > 3) Object.assign(fields, { fairway: false, teeGIR: false });
@@ -1617,7 +1636,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const fields = {
       penalties: (playerScore.penalties || []).filter(x => x.slot !== slot),
       [p.type]: Math.max(0, (playerScore[p.type] || 0) - 1),
-      strokesManual: false,
     };
     // 벌타 때문에 만든 다음 샷이 아직 비어 있으면 함께 지운다 (잘못 누른 경우)
     const nextIdx = slot - 1;   // 다음 샷(slot+1)의 익스트라샷 번호
@@ -2033,7 +2051,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             {/* 상세 입력 홀: 샷 기록으로 계산 중이면 '자동', 직접 고쳤으면 '직접 입력' */}
             {playerScore.teeClub && !isSimpleMode && (
               playerScore.strokesManual
-                ? <span style={{ fontSize:10, fontWeight:700, color:'#c9a228' }}>직접 입력</span>
+                ? <span style={{ fontSize:10, fontWeight:700, color:'#c9a228' }}>직접 입력 · 벌타 포함 총 스코어</span>
                 : <span style={{ fontSize:10, fontWeight:700, color:'#3db87a' }}>샷 기록으로 자동 계산</span>
             )}
           </div>
@@ -2156,7 +2174,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {penaltyCount(playerScore) > 0 && (
               <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
-                onClick={()=>{ updateFields({ ob:0, hazard:0, unplayable:0, penalties: [], strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0, unplayable:0, penalties: []}, hole.par), strokesManual: false }); }}>초기화</button>
+                onClick={()=>{
+                  const cleared = { ob:0, hazard:0, unplayable:0, penalties: [] };
+                  // 직접 고친 스코어는 벌타 초기화로 바꾸지 않는다
+                  updateFields(playerScore.strokesManual
+                    ? cleared
+                    : { ...cleared, strokes: calcAutoStrokes({ ...playerScore, ...cleared }, hole.par) });
+                }}>초기화</button>
             )}
           </div>
         </div>
@@ -2629,8 +2653,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                         // 칩인 뒤에 기록된 샷도 함께 지운다 (위 '성공'과 같은 이유)
                         const updatedShots = extraShots.slice(0, idx + 1).map((s, i) => i === idx ? { ...s, onGreen: 'chip-in' } : s);
                         const freshPlayerScore = { ...playerScore, extraShots: updatedShots, gpsPoints: gpsPoints.slice(0, idx + 3), putts: 0 };
-                        const freshStrokes = calcAutoStrokes(freshPlayerScore, hole.par);
-                        const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], touched: true, strokesManual: false };
+                        const manual = !!playerScore.strokesManual;   // 직접 고친 스코어가 우선
+                        const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes(freshPlayerScore, hole.par);
+                        const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], touched: true, strokesManual: manual };
                         triggerChipIn(freshScore);
                       }}>칩인</button>
                   </div>
@@ -2769,11 +2794,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                           if (holeInModalPendingRef.current) return;
                           holeInModalPendingRef.current = true;
                           const puttsUsed = puttIdx + 1;
-                          const freshStrokes = calcAutoStrokes({ ...playerScore, putts: puttsUsed }, hole.par);
+                          // 직접 고친 스코어가 있으면 그 값이 우선 (퍼팅 수만 기록하고 타수는 유지)
+                          const manual = !!playerScore.strokesManual;
+                          const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes({ ...playerScore, putts: puttsUsed }, hole.par);
                           const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
                             i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
                           );
-                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, touched: true, strokesManual: false };
+                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, touched: true, strokesManual: manual };
                           holeInCbRef.current = () => {
                             if (isLastHole) {
                               const u = { ...round }; u.holes = [...round.holes];

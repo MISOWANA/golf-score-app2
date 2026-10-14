@@ -32,6 +32,11 @@ export function extractClubShots(hole, player) {
   const s = hole.scores?.[player];
   if (!s) return [];
 
+  // 티샷이 그린에 올라간 홀(1온·파3 티샷 온그린·홀인원)은 세컨샷 이후가 없다. 1온으로 정정하기
+  // 전에 입력해 둔 세컨샷 이후 기록은 화면에서 숨겨질 뿐 데이터에는 남아 있으므로, 클럽 통계와
+  // 어프로치 근접도에 섞이지 않게 여기서 거른다 (1온 표시를 풀면 그대로 되살아난다).
+  if (fieldShotCount(s, hole.par) <= 1) return [];
+
   const gpsDist = gpsDistancesFor(hole, s);
   const pinDist = pinDistancesFor(hole, s);
 

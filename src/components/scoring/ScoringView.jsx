@@ -1671,7 +1671,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   };
 
   // 벌타 처리 방법 선택 창의 선택지 — 룰에 맞춰 방법마다 몇 벌타이고 다음 샷이 몇 번째 샷인지 보여준다.
-  //   OB(18.2 · 로컬룰 E-5): 제자리 다시 치기 1벌타 / OB티·2벌타 드롭 2벌타
+  //   OB: 두 가지뿐 — 스트로크와 거리(Rule 18.2, 1벌타·직전 샷 지점에서 다시 치기) / OB티(국내 관행, 2벌타 상당)
   //   해저드(17.1d): 어느 방법이든 1벌타 — 볼이 들어간 지점 기준 드롭, 해저드 티, 제자리 다시 치기
   //   언플레이어블(19.2): 어느 방법이든 1벌타 — 후방 드롭, 측면 드롭, 제자리 다시 치기
   const penaltyOptions = (slot, type) => {
@@ -1683,10 +1683,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     };
     if (type === 'ob') {
       return [
-        { mode: 'forward', primary: true,
-          title: slot === 0 ? 'OB티로 이동' : '앞으로 나가서 치기 (2벌타 드롭)',
-          sub: `+2벌타 · 다음 샷 = ${n + 3}번째 샷` },
-        { ...replay, sub: `+1벌타 · 다시 친 샷 = ${next1}번째 샷 · 클럽·위치도 기록` },
+        { mode: 'replay', primary: true, title: '스트로크와 거리',
+          sub: `Rule 18.2 · 1벌타 · 직전 샷 지점에서 다시 치기 · 다시 친 샷 = ${next1}번째 샷` },
+        { mode: 'forward', title: 'OB티',
+          sub: `국내 골프장 관행 · 2벌타 상당 · ${slot === 0 ? '지정된 특설티에서' : '지정된 특설티 (없으면 OB 지점 근처 드롭)'} · 다음 샷 = ${n + 3}번째 샷` },
       ];
     }
     if (type === 'hazard') {
@@ -2224,7 +2224,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         {penaltyCount(playerScore) > (playerScore.penalties || []).length && (
           <div style={{ fontSize:11, color:'#8896b0', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
             여기서 넣은 OB는 OB티 기준(+2타)으로 계산돼요 · 해저드는 1벌타<br/>
-            샷 아래 [OB]·[해저드]로 기록하면 '제자리에서 다시 치기'도 고를 수 있어요
+            샷 아래 [OB]·[해저드]로 기록하면 '스트로크와 거리(다시 치기)'도 고를 수 있어요
           </div>
         )}
       </div>
@@ -2990,7 +2990,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       )}
 
-      {/* 벌타 처리 방법 선택 — OB(OB티·2벌타 드롭·다시 치기) / 해저드(드롭·해저드 티·다시 치기) / 언플레이어블(후방·측면 드롭·다시 치기) */}
+      {/* 벌타 처리 방법 선택 — OB(스트로크와 거리·OB티) / 해저드(드롭·해저드 티·다시 치기) / 언플레이어블(후방·측면 드롭·다시 치기) */}
       {penaltyChoice != null && (
         <div style={styles.modalOverlay} onClick={() => setPenaltyChoice(null)}>
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
@@ -2998,7 +2998,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={styles.modalTitle}>{shotLabel(penaltyChoice.slot)} {PENALTY_LABEL[penaltyChoice.type]}</div>
             <div style={styles.modalText}>
               {penaltyChoice.type === 'ob'
-                ? <>다음 샷을 어디서 쳤나요?<br/>스코어는 둘 다 +2타예요</>
+                ? <>OB 처리를 어떻게 했나요?<br/>스트로크와 거리는 1벌타 + 다시 친 샷, OB티는 2벌타 — 스코어는 둘 다 +2타예요</>
                 : <>다음 샷을 어떻게 쳤나요?<br/>방법은 달라도 모두 1벌타(+1타)예요</>}
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

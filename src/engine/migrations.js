@@ -38,6 +38,7 @@ const holedOut = (s) =>
 
 function fixPar3Score(s) {
   if (!s || s.strokesManual || s.teeOnGreen != null) return null;
+  if (s.unplayable) return null;   // 언플레이어블은 보정 시점 이후에 생긴 항목 — 예전 계산식과 맞지 않는다
   if (!s.teeClub || !holedOut(s)) return null;
   const missedGreen = s.onGreen != null || (s.extraShots?.length ?? 0) > 0;
   if (!missedGreen) return null;

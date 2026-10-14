@@ -4,7 +4,7 @@ import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
-import { penaltyAt, phantomStrokes, strokeNumberOf, shotTitle, titleShifted } from '../../engine/penalties.js';
+import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -674,7 +674,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
   const [pendingSkip, setPendingSkip] = useState(null);       // 입력 없는 홀에서 '다음' — 이동할 홀 번호
-  const [obChoiceSlot, setObChoiceSlot] = useState(null);     // OB 처리(OB티/다시 치기)를 고르는 중인 샷
+  const [penaltyChoice, setPenaltyChoice] = useState(null);   // 벌타 처리 방법(OB티·드롭·다시 치기 …)을 고르는 중인 { slot, type }
   const [puttAsk, setPuttAsk] = useState(null);               // 퍼팅 수를 모른 채 '다음'/'완료' — { next } 또는 { finish: true }
   const [landingAsk, setLandingAsk] = useState(null);         // 필수 랜딩(티샷 L/C/R·그린 방향)이 빈 채 '다음'/'완료' — { miss, next } 또는 { miss, finish: true }
   const finishingRef = useRef(false);                          // 완료 버튼 연타 방지
@@ -766,7 +766,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const calcAutoStrokes = (score, par) => {
     const ob = score.ob || 0;
     const hazard = score.hazard || 0;
-    const hasPenalty = ob + hazard > 0;
+    const unplayable = score.unplayable || 0;
+    const hasPenalty = ob + hazard + unplayable > 0;
     const effectiveTeeGIR = score.teeGIR && !hasPenalty;
     // 티샷과 퍼팅 사이의 기본 필드샷.
     //   파3: 티샷 온그린(GIR)이면 0, 그린을 놓쳤으면 세컨샷(어프로치) 1개 — geo.fieldShotCount와 같은 기준.
@@ -779,9 +780,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     //   OB티로 이동(앞으로 나가서 치기)이나 어느 샷인지 모르는 OB는 다시 치는 샷을 치지
     //   않으므로 여기서 1타씩 더한다(phantomStrokes). 제자리에서 다시 친 OB는 그 샷이
     //   다음 샷으로 기록되므로 더하지 않는다.
-    // 해저드 1회 = 벌타 1타뿐 — 드롭 후 이어 치는 샷은 사용자가 다음 샷으로 기록한다.
+    // 해저드·언플레이어블 1회 = 벌타 1타뿐 — 드롭(또는 다시 치기) 후 이어 치는 샷은 사용자가
+    // 다음 샷으로 기록한다.
     const field = effectiveTeeGIR ? 0 : baseField + phantomStrokes(score) + (score.extraShots?.length || 0);
-    return 1 + field + (score.putts || 0) + ob + hazard;
+    return 1 + field + (score.putts || 0) + ob + hazard + unplayable;
   };
 
   // ─── 스코어 자동 계산 ───────────────────────────────────────────────────────
@@ -1462,7 +1464,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       penalties = [...penalties].reverse().filter(p => (excess > 0 && p.type === field ? (excess--, false) : true)).reverse();
     }
     const newScore = { ...playerScore, [field]: newVal, penalties };
-    const hasPenalty = (newScore.ob || 0) > 0 || (newScore.hazard || 0) > 0;
+    const hasPenalty = penaltyCount(newScore) > 0;
     const extra = hasPenalty && playerScore.teeGIR ? { teeGIR: false } : {};
     const newStrokes = calcAutoStrokes({ ...newScore, ...extra }, hole.par);
     updateFields({ [field]: newVal, penalties, ...extra, strokes: newStrokes, strokesManual: false });
@@ -1480,6 +1482,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const counts = {
       ob: Math.max(0, (playerScore.ob || 0) - (old?.type === 'ob' ? 1 : 0)),
       hazard: Math.max(0, (playerScore.hazard || 0) - (old?.type === 'hazard' ? 1 : 0)),
+      unplayable: Math.max(0, (playerScore.unplayable || 0) - (old?.type === 'unplayable' ? 1 : 0)),
     };
     // 위쪽 합계 칸에 이미 넣어 둔(어느 샷인지 모르는) 같은 벌타가 있으면 그것을 이 샷의
     // 벌타로 본다 — 위에서 OB +1을 누른 뒤 티샷 [OB]를 또 눌러도 두 번 세지 않게.
@@ -1503,8 +1506,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       if (k === extraShots.length - 1) next.push(emptyShot());
       fields.extraShots = next;
     }
-    // 제자리에서 다시 치기 — 다시 친 샷은 같은 자리에서 친다. 그 자리를 찍어 뒀으면 옮겨 적는다.
-    if (type === 'ob' && mode === 'replay' && gpsPoints[slot] && !gpsPoints[slot + 1]) {
+    // 제자리에서 다시 치기(OB·해저드·언플레이어블 공통) — 다시 친 샷은 같은 자리에서 친다.
+    // 그 자리를 찍어 뒀으면 옮겨 적는다.
+    if (mode === 'replay' && gpsPoints[slot] && !gpsPoints[slot + 1]) {
       const pts = [...gpsPoints];
       while (pts.length <= slot + 1) pts.push(null);
       pts[slot + 1] = gpsPoints[slot];
@@ -1540,32 +1544,72 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updateFields(fields);
   };
 
-  // OB 처리 선택 창의 두 버튼
-  const chooseOb = (mode) => { const slot = obChoiceSlot; setObChoiceSlot(null); if (slot != null) addShotPenalty(slot, 'ob', mode); };
-  const chooseObForward = () => chooseOb('forward');
-  const chooseObReplay = () => chooseOb('replay');
+  // 벌타 처리 방법 선택 창의 선택지 — 룰에 맞춰 방법마다 몇 벌타이고 다음 샷이 몇 번째 샷인지 보여준다.
+  //   OB(18.2 · 로컬룰 E-5): 제자리 다시 치기 1벌타 / OB티·2벌타 드롭 2벌타
+  //   해저드(17.1d): 어느 방법이든 1벌타 — 볼이 들어간 지점 기준 드롭, 해저드 티, 제자리 다시 치기
+  //   언플레이어블(19.2): 어느 방법이든 1벌타 — 후방 드롭, 측면 드롭, 제자리 다시 치기
+  const penaltyOptions = (slot, type) => {
+    const n = strokeNumberOf(playerScore, slot);   // 벌타가 난 샷이 몇 타째인지
+    const next1 = n + 2;                           // +1벌타 뒤 다음 샷의 타수
+    const replay = {
+      mode: 'replay', title: '제자리에서 다시 치기',
+      sub: `직전 샷을 친 자리에서 · 다시 친 샷 = ${next1}번째 샷 · 클럽·위치도 기록`,
+    };
+    if (type === 'ob') {
+      return [
+        { mode: 'forward', primary: true,
+          title: slot === 0 ? 'OB티로 이동' : '앞으로 나가서 치기 (2벌타 드롭)',
+          sub: `+2벌타 · 다음 샷 = ${n + 3}번째 샷` },
+        { ...replay, sub: `+1벌타 · 다시 친 샷 = ${next1}번째 샷 · 클럽·위치도 기록` },
+      ];
+    }
+    if (type === 'hazard') {
+      return [
+        { mode: 'drop', primary: true, title: '볼이 들어간 지점 기준 드롭',
+          sub: `홀과 일직선 뒤쪽(후방) · 레드는 2클럽 측면도 가능 · 다음 샷 = ${next1}번째 샷` },
+        { mode: 'tee', title: '해저드 티에서 치기',
+          sub: `코스에 해저드 티(드롭존)가 있을 때 · 다음 샷 = ${next1}번째 샷` },
+        replay,
+      ];
+    }
+    return [
+      { mode: 'back', primary: true, title: '후방 드롭',
+        sub: `볼 자리와 홀을 잇는 선의 뒤쪽 · 거리 제한 없음 · 다음 샷 = ${next1}번째 샷` },
+      { mode: 'lateral', title: '측면 드롭',
+        sub: `볼 자리에서 2클럽 이내, 홀에 가깝지 않게 · 다음 샷 = ${next1}번째 샷` },
+      replay,
+    ];
+  };
 
-  // [OB]·[해저드] 버튼 한 줄. OB는 처리 방식(OB티/다시 치기)을 고른 뒤 기록한다.
+  const choosePenaltyMode = (mode) => {
+    const c = penaltyChoice;
+    setPenaltyChoice(null);
+    if (c) addShotPenalty(c.slot, c.type, mode);
+  };
+
+  // [OB]·[해저드]·[언플레이어블] 버튼 한 줄. 누르면 처리 방법(OB티·드롭·다시 치기 …)을 고른 뒤 기록한다.
   const penaltyRow = (slot) => {
     const p = penaltyAt(playerScore, slot);
     const chip = (active) => ({
-      flex: 1, padding: '9px 6px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
-      fontSize: 12, fontWeight: 700,
+      flex: active ? 2.2 : 1, minWidth: 0, padding: '9px 4px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+      fontSize: 12, fontWeight: 700, lineHeight: 1.25, whiteSpace: 'normal', wordBreak: 'keep-all',
       border: `1.5px solid ${active ? '#ef5350' : '#252f4a'}`,
       background: active ? 'rgba(239,83,80,0.14)' : '#1a2235',
       color: active ? '#ef5350' : '#8896b0',
     });
     return (
-      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
-        <span style={{ ...fLbl, minWidth: 40 }}>벌타</span>
-        <button style={chip(p?.type === 'ob')}
-          onClick={() => (p?.type === 'ob' ? removeShotPenalty(slot) : setObChoiceSlot(slot))}>
-          {p?.type === 'ob' ? `OB · ${p.mode === 'replay' ? '다시 치기' : slot === 0 ? 'OB티' : '2벌타 드롭'} ✕` : 'OB'}
-        </button>
-        <button style={chip(p?.type === 'hazard')}
-          onClick={() => (p?.type === 'hazard' ? removeShotPenalty(slot) : addShotPenalty(slot, 'hazard'))}>
-          {p?.type === 'hazard' ? '해저드 ✕' : '해저드'}
-        </button>
+      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+        <span style={{ ...fLbl, minWidth: 32 }}>벌타</span>
+        {['ob', 'hazard', 'unplayable'].map((type) => {
+          const active = p?.type === type;
+          const mode = active ? penaltyModeLabel(p, slot) : null;
+          return (
+            <button key={type} style={chip(active)}
+              onClick={() => (active ? removeShotPenalty(slot) : setPenaltyChoice({ slot, type }))}>
+              {active ? `${PENALTY_LABEL[type]}${mode ? ` · ${mode}` : ''} ✕` : PENALTY_LABEL[type]}
+            </button>
+          );
+        })}
       </div>
     );
   };
@@ -2020,9 +2064,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ flex:1 }} />
           <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>패널티</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            {((playerScore.ob||0) > 0 || (playerScore.hazard||0) > 0) && (
+            {penaltyCount(playerScore) > 0 && (
               <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
-                onClick={()=>{ updateFields({ ob:0, hazard:0, penalties: [], strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0, penalties: []}, hole.par), strokesManual: false }); }}>초기화</button>
+                onClick={()=>{ updateFields({ ob:0, hazard:0, unplayable:0, penalties: [], strokes: calcAutoStrokes({...playerScore, ob:0, hazard:0, unplayable:0, penalties: []}, hole.par), strokesManual: false }); }}>초기화</button>
             )}
           </div>
         </div>
@@ -2030,6 +2074,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           {[
             { label:'해저드', val:playerScore.hazard||0, onDec:()=>{ const c=playerScore.hazard||0; if(c>0) updatePenalty('hazard',c-1); }, onInc:()=>updatePenalty('hazard',Math.min(5,(playerScore.hazard||0)+1)) },
             { label:'OB',    val:playerScore.ob||0,     onDec:()=>{ const c=playerScore.ob||0;     if(c>0) updatePenalty('ob',c-1);     }, onInc:()=>updatePenalty('ob',    Math.min(5,(playerScore.ob||0)+1))   },
+            { label:'언플레이어블', val:playerScore.unplayable||0, onDec:()=>{ const c=playerScore.unplayable||0; if(c>0) updatePenalty('unplayable',c-1); }, onInc:()=>updatePenalty('unplayable',Math.min(5,(playerScore.unplayable||0)+1)) },
           ].map(item => (
             <div key={item.label} style={{ flex:1 }}>
               <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.15em', color:'#4d5a78', textAlign:'center', marginBottom:4 }}>{item.label}</div>
@@ -2044,7 +2089,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           ))}
         </div>
         {/* 어느 샷인지 모르는 벌타(위쪽 칸으로만 넣은 것)가 있을 때만 안내한다 */}
-        {(playerScore.ob||0) + (playerScore.hazard||0) > (playerScore.penalties || []).length && (
+        {penaltyCount(playerScore) > (playerScore.penalties || []).length && (
           <div style={{ fontSize:11, color:'#8896b0', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
             여기서 넣은 OB는 OB티 기준(+2타)으로 계산돼요 · 해저드는 1벌타<br/>
             샷 아래 [OB]·[해저드]로 기록하면 '제자리에서 다시 치기'도 고를 수 있어요
@@ -2794,24 +2839,32 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       )}
 
-      {/* OB 처리 선택 — OB티로 이동(앞으로 나가서 치기) / 제자리에서 다시 치기 */}
-      {obChoiceSlot != null && (
-        <div style={styles.modalOverlay} onClick={() => setObChoiceSlot(null)}>
+      {/* 벌타 처리 방법 선택 — OB(OB티·2벌타 드롭·다시 치기) / 해저드(드롭·해저드 티·다시 치기) / 언플레이어블(후방·측면 드롭·다시 치기) */}
+      {penaltyChoice != null && (
+        <div style={styles.modalOverlay} onClick={() => setPenaltyChoice(null)}>
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
-            <div style={styles.modalTitle}>{shotLabel(obChoiceSlot)} OB</div>
-            <div style={styles.modalText}>다음 샷을 어디서 쳤나요?<br/>스코어는 둘 다 +2타예요</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={styles.modalBtnPrimary} onClick={chooseObForward}>
-                {obChoiceSlot === 0 ? 'OB티로 이동' : '앞으로 나가서 치기 (2벌타 드롭)'}
-                <div style={obChoiceSub}>다음 샷 = {strokeNumberOf(playerScore, obChoiceSlot) + 3}번째 샷</div>
-              </button>
-              <button style={styles.modalBtnCancel} onClick={chooseObReplay}>
-                제자리에서 다시 치기
-                <div style={obChoiceSub}>다시 친 샷 = {strokeNumberOf(playerScore, obChoiceSlot) + 2}번째 샷 · 클럽·위치도 기록</div>
-              </button>
-              <button style={styles.modalBtnCancel} onClick={() => setObChoiceSlot(null)}>취소</button>
+            <div style={styles.modalTitle}>{shotLabel(penaltyChoice.slot)} {PENALTY_LABEL[penaltyChoice.type]}</div>
+            <div style={styles.modalText}>
+              {penaltyChoice.type === 'ob'
+                ? <>다음 샷을 어디서 쳤나요?<br/>스코어는 둘 다 +2타예요</>
+                : <>다음 샷을 어떻게 쳤나요?<br/>방법은 달라도 모두 1벌타(+1타)예요</>}
             </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {penaltyOptions(penaltyChoice.slot, penaltyChoice.type).map((o) => (
+                <button key={o.mode} style={o.primary ? styles.modalBtnPrimary : styles.modalBtnCancel}
+                  onClick={() => choosePenaltyMode(o.mode)}>
+                  {o.title}
+                  <div style={obChoiceSub}>{o.sub}</div>
+                </button>
+              ))}
+              <button style={styles.modalBtnCancel} onClick={() => setPenaltyChoice(null)}>취소</button>
+            </div>
+            {penaltyChoice.type === 'unplayable' && (
+              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 10, textAlign: 'left' }}>
+                벙커 안에서 선언하고 벙커 밖에서 치면 2벌타예요 — 위쪽 패널티의 언플레이어블 +를 한 번 더 눌러 주세요.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -3012,7 +3065,7 @@ const fChip = { padding:'5px 9px', borderRadius:6, border:'1.5px solid #252f4a',
 const fChipOn = { border:'2px solid #c9a228', background:'rgba(201,162,40,0.18)', color:'#c9a228' };
 const fChipWide = { minWidth:52, padding:'7px 12px', borderRadius:8, border:'1.5px solid #252f4a', background:'#1a2235', color:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' };
 
-const obChoiceSub = { fontSize: 12, fontWeight: 600, marginTop: 3, opacity: 0.85 };
+const obChoiceSub = { fontSize: 12, fontWeight: 600, marginTop: 3, opacity: 0.85, wordBreak: 'keep-all', lineHeight: 1.45 };
 
 const fMiniBtn = { width:32, height:32, borderRadius:7, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
 

@@ -152,6 +152,7 @@ export default function GolfScoringApp() {
             shotShape: null,
             ob: 0,
             hazard: 0,
+            unplayable: 0,
             gir: true,
             girAuto: true,
             greenMiss: null,

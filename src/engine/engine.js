@@ -15,6 +15,7 @@ export function toHoleInput(h, player) {
     greenMissDirection: s.greenMiss   ?? null,
     obCount:            s.ob          ?? 0,
     hazardCount:        s.hazard      ?? 0,
+    unplayableCount:    s.unplayable  ?? 0,
     putts:              s.putts       ?? null,
     memo:               s.memo        ?? null,
   };

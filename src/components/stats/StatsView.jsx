@@ -88,7 +88,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
       else if (diff === 0) parCount++;
       else if (diff === 1) bogeyCount++;
       else doublePlusCount++;
-      totalPenalties += (s.ob ?? 0) + (s.hazard ?? 0);
+      totalPenalties += (s.ob ?? 0) + (s.hazard ?? 0) + (s.unplayable ?? 0);
       if ((s.putts ?? 2) >= 3) threePuttCount++;
       if (s.gir === true) { girHoleCount++; girPuttsSum += s.putts ?? 2; }
       (parTypeHoles[h.par] ??= []).push(diff);

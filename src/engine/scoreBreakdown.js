@@ -3,7 +3,7 @@
 // 홀손실       = 스코어 - PAR
 // 퍼팅손실     = 퍼팅수 - 2                      (1퍼트면 -1, 음수 허용)
 // 그린도달초과 = 홀손실 - 퍼팅손실                (항등식, 항상 성립)
-// 페널티손실   = min(그린도달초과, OB*2 + 해저드)  ※ OB 1회 = 페널티 1타+재샷 1타, 해저드 1회 = 페널티 1타
+// 페널티손실   = min(그린도달초과, OB*2 + 해저드 + 언플레이어블)  ※ OB 1회 = 페널티 1타+재샷 1타, 해저드·언플레이어블 1회 = 페널티 1타
 // 잔여         = 그린도달초과 - 페널티손실
 //
 // 잔여의 첫 1타: 티샷 랜딩 L/R → 티샷 / 티샷 랜딩 C/G → 어프로치
@@ -21,6 +21,7 @@ export function toBreakdownInput(hole, player) {
     putts: s.putts ?? 2,
     ob: s.ob ?? 0,
     hazard: s.hazard ?? 0,
+    unplayable: s.unplayable ?? 0,
     teeGIR: s.teeGIR ?? false,
     fairwayHit: s.fairwayHit ?? null, // 'L' | 'C' | 'R' | null (par>3)
     gir: s.gir ?? null,
@@ -51,7 +52,7 @@ export function buildHoleBreakdown(input) {
   const holeLoss = input.score - input.par;
   const puttLoss = input.putts - 2;
   const overGreenExcess = holeLoss - puttLoss;
-  const penaltyStrokes = input.ob * 2 + input.hazard;
+  const penaltyStrokes = input.ob * 2 + input.hazard + (input.unplayable ?? 0);
   const penaltyLoss = Math.min(Math.max(0, overGreenExcess), penaltyStrokes);
   const remaining = overGreenExcess - penaltyLoss;
 
@@ -81,7 +82,7 @@ export function buildHoleBreakdown(input) {
 }
 
 const CATEGORY_LABEL = {
-  penalty:   'OB·해저드',
+  penalty:   'OB·해저드·언플',
   putting:   '퍼팅',
   tee:       '티샷',
   approach:  '어프로치',

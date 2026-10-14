@@ -234,6 +234,17 @@ export const HOLE_RULES = [
     },
   },
   {
+    id: 'H033', scope: 'hole', priority: 89, enabled: true,
+    conditions: [{ field: 'unplayableCount', operator: 'gte', value: 1 }],
+    result: {
+      insightType: 'unplayable', severity: 'warning',
+      title: '언플레이어블',
+      summaryTemplate: '{holeNumber}번 홀에서 언플레이어블 {unplayableCount}회로 1벌타를 받았습니다.',
+      recommendationTemplate: '나무·러프 깊은 곳에서는 무리한 탈출보다 안전하게 페어웨이로 빼는 선택이 더 싸게 먹힙니다.',
+      tags: ['penalty', 'unplayable'],
+    },
+  },
+  {
     id: 'H019', scope: 'hole', priority: 55, enabled: true,
     conditions: [
       { field: 'hasPenalty', operator: 'eq',  value: true },

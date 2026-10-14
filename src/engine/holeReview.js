@@ -5,7 +5,7 @@
 // 복기에서는 클럽만 입력된 샷도 그대로 보여야 하므로 별도로 조립한다.
 
 import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted } from './geo.js';
-import { penaltyAt, penaltyResultText, shotTitle } from './penalties.js';
+import { penaltyAt, penaltyCount, penaltyResultText, shotTitle } from './penalties.js';
 
 const CLUB_LABEL = { driver: 'DRIVER', wood: 'WOOD', hybrid: 'HYBRID', iron: 'IRON', wedge: 'WEDGE' };
 
@@ -143,7 +143,7 @@ export function buildHoleReview(hole, player, holeIdx) {
     holein: p?.holein ?? null,
   }));
 
-  const penalty = (s.ob || 0) + (s.hazard || 0);
+  const penalty = penaltyCount(s);
 
   return {
     holeIdx, holeNo: holeIdx + 1, par,
@@ -154,6 +154,7 @@ export function buildHoleReview(hole, player, holeIdx) {
     fairway: s.fairway ?? null,
     ob: s.ob || 0,
     hazard: s.hazard || 0,
+    unplayable: s.unplayable || 0,
     penalty,
     memo: s.memo || '',
     holeLength,

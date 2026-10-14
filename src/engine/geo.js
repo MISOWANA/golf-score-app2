@@ -6,7 +6,7 @@
 // 좌표점 모양: { lat, lng, acc, t }
 //   acc = 측위 오차 반경(m, 68% 신뢰), t = 기록 시각(epoch ms)
 
-import { penaltyAt } from './penalties.js';
+import { penaltyAt, penaltyCount } from './penalties.js';
 
 const EARTH_RADIUS_M = 6371008.8; // IUGG 평균 반지름
 
@@ -103,7 +103,7 @@ export function fieldShotCount(score, par) {
 // 샷에서 난 것이다. 파3은 티샷 결과가 다시 친 티샷을 가리킬 수 있어 믿지 않는다.
 export function teeShotDistanceTrusted(score, par) {
   if (!score) return false;
-  if ((score.ob || 0) + (score.hazard || 0) === 0) return true;
+  if (penaltyCount(score) === 0) return true;
   return par > 3 && (score.fairway === true || score.teeGIR === true);
 }
 
@@ -116,7 +116,7 @@ export function teeShotDistanceTrusted(score, par) {
 // 올라간(또는 칩인한) 샷. 오염된 거리보다 빠진 거리가 낫다.
 export function shotDistanceTrusted(score, par, slot) {
   if (!score) return false;
-  const total = (score.ob || 0) + (score.hazard || 0);
+  const total = penaltyCount(score);
   if (total === 0) return true;
   // 샷별로 기록한 벌타: 벌타가 난 그 샷만 믿지 않는다. 모든 벌타가 어느 샷인지
   // 기록돼 있으면 나머지 샷은 깨끗하다.

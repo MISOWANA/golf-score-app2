@@ -106,16 +106,17 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
     return buckets;
   })();
   const events = (() => {
-    let ob = 0, hazard = 0, threePutt = 0, onePutt = 0;
+    let ob = 0, hazard = 0, unplayable = 0, threePutt = 0, onePutt = 0;
     latestRound.holes.forEach(h => {
       const s = h.scores?.[player];
       if (!s) return;
       ob += s.ob ?? 0;
       hazard += s.hazard ?? 0;
+      unplayable += s.unplayable ?? 0;
       if ((s.putts ?? 2) >= 3) threePutt++;
       if ((s.putts ?? 2) === 1) onePutt++;
     });
-    return { ob, hazard, threePutt, onePutt };
+    return { ob, hazard, unplayable, threePutt, onePutt };
   })();
 
   // ── 누적 전용: 홀 결과 분포 + 이벤트 (전체 라운드 합산), 라운드별 스코어 추이 ──
@@ -135,7 +136,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
     return buckets;
   })();
   const careerEvents = (() => {
-    let ob = 0, hazard = 0, threePutt = 0, onePutt = 0;
+    let ob = 0, hazard = 0, unplayable = 0, threePutt = 0, onePutt = 0;
     rounds.forEach(r => {
       const p = r.players[0];
       r.holes.forEach(h => {
@@ -143,11 +144,12 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         if (!s) return;
         ob += s.ob ?? 0;
         hazard += s.hazard ?? 0;
+        unplayable += s.unplayable ?? 0;
         if ((s.putts ?? 2) >= 3) threePutt++;
         if ((s.putts ?? 2) === 1) onePutt++;
       });
     });
-    return { ob, hazard, threePutt, onePutt };
+    return { ob, hazard, unplayable, threePutt, onePutt };
   })();
   const roundTrend = [...rounds].reverse().map((r, idx) => {
     const p = r.players[0];
@@ -393,6 +395,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {(isCareerMode ? careerEvents : events).ob > 0 && <span style={styles.riSubTabBtn}>OB {(isCareerMode ? careerEvents : events).ob}회</span>}
           {(isCareerMode ? careerEvents : events).hazard > 0 && <span style={styles.riSubTabBtn}>해저드 {(isCareerMode ? careerEvents : events).hazard}회</span>}
+          {(isCareerMode ? careerEvents : events).unplayable > 0 && <span style={styles.riSubTabBtn}>언플레이어블 {(isCareerMode ? careerEvents : events).unplayable}회</span>}
           {(isCareerMode ? careerEvents : events).threePutt > 0 && <span style={styles.riSubTabBtn}>3퍼트+ {(isCareerMode ? careerEvents : events).threePutt}회</span>}
           {(isCareerMode ? careerEvents : events).onePutt > 0 && <span style={styles.riSubTabBtn}>1퍼트 {(isCareerMode ? careerEvents : events).onePutt}회</span>}
         </div>

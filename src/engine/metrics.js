@@ -5,13 +5,13 @@ export function getScoreToPar(h) {
 }
 
 export function getHasPenalty(h) {
-  return (h.obCount ?? 0) > 0 || (h.hazardCount ?? 0) > 0;
+  return (h.obCount ?? 0) > 0 || (h.hazardCount ?? 0) > 0 || (h.unplayableCount ?? 0) > 0;
 }
 
 export function getTotalPenaltyStrokes(h) {
-  // OB 1회 = 페널티 1타 + 재샷 1타, 해저드 1회 = 페널티 1타
+  // OB 1회 = 페널티 1타 + 재샷 1타, 해저드·언플레이어블 1회 = 페널티 1타
   // (ScoringView.calcAutoStrokes / scoreBreakdown.js와 동일한 모델).
-  return (h.obCount ?? 0) * 2 + (h.hazardCount ?? 0);
+  return (h.obCount ?? 0) * 2 + (h.hazardCount ?? 0) + (h.unplayableCount ?? 0);
 }
 
 export function getPuttCategory(h) {
@@ -122,6 +122,7 @@ export function buildRoundMetrics(holes) {
 
   const totalOB          = holes.reduce((s, h) => s + (h.obCount ?? 0), 0);
   const totalHazard      = holes.reduce((s, h) => s + (h.hazardCount ?? 0), 0);
+  const totalUnplayable  = holes.reduce((s, h) => s + (h.unplayableCount ?? 0), 0);
   const holesWithOB      = holes.filter(h => (h.obCount ?? 0) > 0).length;
   const holesWithPenalty = metrics.filter(x => x.m.hasPenalty).length;
 
@@ -164,7 +165,7 @@ export function buildRoundMetrics(holes) {
     fairwayHitCount,  fairwayHitRate: safe(fairwayHitCount, fairwayRecorded.length),
     totalPutts, avgPutts: safe(totalPutts, holeCount),
     onePuttCount, threePuttCount, threePuttRate: safe(threePuttCount, holeCount),
-    totalOB, totalHazard, totalPenalties: totalOB + totalHazard,
+    totalOB, totalHazard, totalUnplayable, totalPenalties: totalOB + totalHazard + totalUnplayable,
     holesWithOB, holesWithPenalty,
     par3Count: par3.length, par4Count: par4.length, par5Count: par5.length,
     par3AvgDiff: avgDiff(par3), par4AvgDiff: avgDiff(par4), par5AvgDiff: avgDiff(par5),

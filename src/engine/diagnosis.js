@@ -5,6 +5,7 @@
 // 명령형("~하세요") 대신 관찰 사실만 인용한다.
 
 import { toBreakdownInput, buildRoundBreakdown } from './scoreBreakdown.js';
+import { penaltyCount } from './penalties.js';
 
 function firstPuttDistance(hole, player) {
   return hole.scores?.[player]?.puttDetails?.[0]?.distance ?? null;
@@ -52,7 +53,7 @@ function teeDirective(round, player) {
     if (!s) return;
     if (s.fairwayHit === 'L') L++;
     else if (s.fairwayHit === 'R') R++;
-    const penalty = (s.ob ?? 0) + (s.hazard ?? 0);
+    const penalty = penaltyCount(s);
     if (penalty > 0 && s.teeClub) {
       penaltyByClub[s.teeClub] = (penaltyByClub[s.teeClub] ?? 0) + penalty;
     }
@@ -102,8 +103,8 @@ function shortGameDirective(round, player) {
 
 function penaltyDirective(round, player) {
   let count = 0;
-  round.holes.forEach(h => { const s = h.scores?.[player]; if (s) count += (s.ob ?? 0) + (s.hazard ?? 0); });
-  return { observation: `OB·해저드가 ${count}건 발생했습니다.`, directive: '위험 지역 공략 루트 재검토' };
+  round.holes.forEach(h => { const s = h.scores?.[player]; if (s) count += penaltyCount(s); });
+  return { observation: `OB·해저드·언플레이어블이 ${count}건 발생했습니다.`, directive: '위험 지역 공략 루트 재검토' };
 }
 
 const DIRECTIVE_BUILDERS = {

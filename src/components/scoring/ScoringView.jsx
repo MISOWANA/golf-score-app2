@@ -1340,14 +1340,33 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     setExpandedExtraShot(newIdx);
   };
 
+  // slot번째 샷(1=세컨샷, 2 이상=익스트라샷)의 '그린 온 여부' 표시를 미입력으로 되돌린 필드.
+  // 뒤에 이어지던 샷을 지웠는데 앞 샷에 '실패'가 눌린 채 남으면, 화면에는 실패인데 이어질
+  // 샷이 없어 타수는 온그린으로 계산되는 모순이 된다. (파4·5 세컨샷은 gir도 같이 쓴다 —
+  // 처음 상태인 gir=true·자동으로 돌려야 성공/실패 어느 쪽도 눌린 것으로 보이지 않는다.)
+  const withResultCleared = (fields, extras, slot) => {
+    if (slot === 1) {
+      const ag = playerScore.strokesManual ? calculateGir(playerScore.strokes, playerScore.putts, hole.par) : null;
+      const second = hole.par === 3 ? { onGreen: null } : { onGreen: null, gir: ag ?? true, girAuto: true };
+      return { fields: { ...fields, ...second }, extras };
+    }
+    return { fields, extras: extras.map((x, i) => (i === slot - 2 ? { ...x, onGreen: null } : x)) };
+  };
+
   const removeExtraShot = (fromIdx) => {
     // 삭제한 샷의 GPS 지점도 함께 버린다. 남겨두면 나중에 같은 자리에 샷을 다시
     // 추가했을 때 지웠던 좌표가 "✓ 기록됨" 상태로 되살아난다.
     // (슬롯 0=티샷, 1=세컨샷이므로 익스트라샷 idx의 슬롯은 idx+2)
-    updateFields({
-      extraShots: extraShots.slice(0, fromIdx),
-      gpsPoints: gpsPoints.slice(0, fromIdx + 2),
-    });
+    let fields = { gpsPoints: gpsPoints.slice(0, fromIdx + 2) };
+    let kept = extraShots.slice(0, fromIdx);
+    // 바로 앞 샷의 '실패' 표시도 되돌린다. 앞 샷이 벌타로 그린에 못 간 것이면 그 결과가
+    // 맞으므로 그대로 둔다.
+    const prevSlot = fromIdx + 1;
+    if (!penaltyAt(playerScore, prevSlot)) {
+      const r = withResultCleared(fields, kept, prevSlot);
+      fields = r.fields; kept = r.extras;
+    }
+    updateFields({ ...fields, extraShots: kept });
     setExpandedExtraShot(Math.max(0, fromIdx - 1));
     if (fromIdx === 0) setSecondShotExpanded(true);
   };
@@ -1392,7 +1411,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const last = extraShots[extraShots.length - 1];
     return !last.club && last.onGreen == null && !gpsPoints[extraShots.length + 1];
   })();
-  const undoLastShotFromMap = () => removeExtraShot(extraShots.length - 1);
+  // 앞 샷의 벌타(해저드·OB)가 만든 빈 샷이면 벌타까지 함께 되돌린다 — 샷만 지우면 '다음
+  // 샷이 없는 벌타'가 남는다. (removeShotPenalty는 비어 있는 다음 샷과 지점도 같이 지운다)
+  const undoLastShotFromMap = () => {
+    const prevSlot = extraShots.length;   // 마지막 익스트라샷(slot len+1)의 바로 앞 샷
+    if (penaltyAt(playerScore, prevSlot)) removeShotPenalty(prevSlot);
+    else removeExtraShot(extraShots.length - 1);
+  };
 
   const puttDetails = (() => {
     const raw = playerScore.puttDetails;
@@ -1504,8 +1529,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const nextIdx = slot - 1;   // 다음 샷(slot+1)의 익스트라샷 번호
     const ns = slot >= 1 && nextIdx === extraShots.length - 1 ? extraShots[nextIdx] : null;
     if (ns && !ns.club && ns.onGreen == null && !gpsPoints[slot + 1]) {
-      fields.extraShots = extraShots.slice(0, nextIdx);
       fields.gpsPoints = gpsPoints.slice(0, slot + 1);
+      // 벌타 때문에 '그린 못 감'이던 이 샷의 결과도 되돌린다 (이어질 샷이 사라지므로)
+      const r = slot >= 1
+        ? withResultCleared(fields, extraShots.slice(0, nextIdx), slot)
+        : { fields, extras: extraShots.slice(0, nextIdx) };
+      Object.assign(fields, r.fields);
+      fields.extraShots = r.extras;
     }
     updateFields(fields);
   };
@@ -1555,8 +1585,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // lie 미입력은 세 가지 형태로 들어온다: 새로 만든 퍼팅 슬롯은 [], 라디얼에서
   // 선택을 해제하면 null, 과거 데이터는 ''. 빈 배열을 입력된 값으로 오판하면
   // 새로 늘어난 퍼팅이 "미입력"으로 잡히지 않아 자동으로 펼쳐지지 않는다.
+  // 홀인 성공/실패를 누른 퍼트도 입력된 것이다 — 거리 없이 '실패'만 눌러 다음 퍼트가 생겼을 때
+  // 첫 퍼트를 '빈 퍼트'로 보면 열린 카드가 PUTT 1로 되돌아가 잘못된 퍼트에 홀인을 누르게 된다.
   const isPuttEmpty = (p) =>
-    p.distance == null && p.aimDistance == null &&
+    p.holein == null && p.distance == null && p.aimDistance == null &&
     (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
 
   useEffect(() => {
@@ -1578,8 +1610,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extraShots.length]);
 
+  useEffect(() => {
+    if (teeComplete) { setTeeExpanded(false); setShotPage((hole.par === 3 && par3TeeOnGreen(playerScore)) || playerScore.teeGIR ? 1 : 0); }
+    else setTeeExpanded(true);   // 접힌 채 '남은 항목'만 안내하면 어디를 눌러야 할지 알 수 없다
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (teeComplete) { setTeeExpanded(false); setShotPage((hole.par === 3 && par3TeeOnGreen(playerScore)) || playerScore.teeGIR ? 1 : 0); } }, [teeComplete]);
+  }, [teeComplete]);
 
   useEffect(() => { if (shotPage === 1) scrollDown(); }, [shotPage]);
 

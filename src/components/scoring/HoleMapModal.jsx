@@ -21,6 +21,10 @@ const fmtAcc = (acc) => (acc == null ? '' : `±${Math.round(acc)}m`);
 
 export default function HoleMapModal({
   holeNo, par, gpsPoints, gpsGreen, gpsPin, fieldShots, shotLabel, finalLabel = '그린 랜딩',
+  // greenOpen: 마지막 샷을 친 자리를 안 찍었어도 그린(마지막) 지점을 찍게 열어 둘지.
+  // 폼의 gpsLocked와 같은 기준이다 — 마지막 샷이 온그린으로 확정됐으면(파5 써드샷
+  // 온그린 등) 그 샷의 출발 지점을 놓쳤어도 그린 도착 지점은 기록할 수 있어야 한다.
+  greenOpen = false,
   // shotTrusted(slot): 그 샷의 구간 거리를 보여도 되는지 — 벌타 홀에서 멈춘 자리가
   // 불확실한 샷(티샷 → OB티 등)은 구간 선·거리를 그리지 않는다.
   shotTrusted = () => true,
@@ -52,27 +56,44 @@ export default function HoleMapModal({
     })),
     {
       id: GREEN_SLOT, label: finalLabel, point: gpsGreen,
-      locked: !gpsPoints[fieldShots - 1],
+      locked: !greenOpen && !gpsPoints[fieldShots - 1],
     },
     // 핀은 샷 순서와 무관하다. 티에서 그린을 보고 미리 찍어야 홀 전장과
     // 잔여거리가 나오므로 순차 잠금에서 뺀다.
     { id: PIN_SLOT, label: '핀', point: gpsPin || null, locked: false },
   ];
   const firstOpen = slots.find((s) => !s.point && !s.locked);
-  const [selected, setSelected] = useState(firstOpen ? firstOpen.id : 0);
+  const [pickedId, setSelected] = useState(firstOpen ? firstOpen.id : 0);
+  // 샷을 지우면(− 취소) 골라 둔 지점이 사라질 수 있다. 사라진 지점 번호를 그대로 쥐면
+  // 화면에는 다른 지점(티샷)이 선택된 것처럼 보이는데 기록은 사라진 번호로 들어간다.
+  // 그럴 때는 다음으로 찍을 지점(없으면 마지막 샷)으로 옮긴다.
+  const selected = slots.some((s) => s.id === pickedId)
+    ? pickedId
+    : (slots.find((s) => s.id !== PIN_SLOT && !s.point && !s.locked)?.id ?? Math.max(0, fieldShots - 1));
   const selectedSlot = slots.find((s) => s.id === selected) ?? slots[0];
 
   // 선택된 지점이 아직 차례가 아님 — 찍기 버튼을 막는다.
   const blockedSlot = !!selectedSlot?.locked && !selectedSlot?.point;
 
-  // 거리를 재는 기준이 되는 직전 지점. 핀은 티박스 기준이라 그 거리가 홀 전장이다.
+  // 마지막으로 찍은 지점 (티 → … → 그린 랜딩 순서상 가장 뒤). 핀은 그날그날 위치가 달라서
+  // 그 자리에 서서 실제 핀을 보고 고쳐 찍는 흐름이다. 그러니 핀을 잡을 때 거리의 기준은
+  // 티박스가 아니라 지금 서 있는 곳, 곧 마지막으로 찍은 자리다.
+  const lastMarked = (() => {
+    if (gpsGreen) return { point: gpsGreen, label: finalLabel };
+    for (let i = fieldShots - 1; i >= 0; i--) {
+      if (gpsPoints[i]) return { point: gpsPoints[i], label: shotLabel(i) };
+    }
+    return null;
+  })();
+
+  // 거리를 재는 기준이 되는 직전 지점. 핀은 마지막으로 찍은 지점 기준이다.
   const prevPointOf = (slotId) => {
-    if (slotId === PIN_SLOT) return gpsPoints[0] || null;
+    if (slotId === PIN_SLOT) return lastMarked?.point ?? null;
     if (slotId === GREEN_SLOT) return gpsPoints[fieldShots - 1] || null;
     return slotId > 0 ? (gpsPoints[slotId - 1] || null) : null;
   };
   const prevLabelOf = (slotId) => {
-    if (slotId === PIN_SLOT) return '홀 전장';
+    if (slotId === PIN_SLOT) return lastMarked?.label ?? null;
     if (slotId === GREEN_SLOT) return shotLabel(fieldShots - 1);
     return slotId > 0 ? shotLabel(slotId - 1) : null;
   };
@@ -345,30 +366,48 @@ export default function HoleMapModal({
   // 확정 전 미리보기 거리 — 드래그하는 동안 실시간으로 갱신된다.
   //   draftDistance : 직전 지점 → 임시 위치 (그 샷이 날아간 거리)
   //   draftToPin    : 임시 위치 → 핀 (거기서 남는 거리)
-  // 핀 자리를 잡는 중이면 "임시 위치 → 핀"이 성립하지 않으므로, 대신 티박스
-  // 기준 거리 하나(= 그날 홀 전장)만 보여준다.
+  // 핀 자리를 잡는 중이면 "임시 위치 → 핀"이 성립하지 않는다(임시 위치가 곧 핀). 대신
+  //   draftDistance : 마지막으로 찍은 지점 → 새 핀 자리 (= 거기서 핀까지 남은 거리)
+  //   draftHoleLen  : 티박스 → 새 핀 자리 (= 그날 홀 전장, 마지막 지점이 티가 아닐 때만 따로)
   const draftDistance = haversine(draftPrevPoint, draft);
   const draftToPin = selected === PIN_SLOT ? null : haversine(draft, gpsPin);
+  const pinFromTee = selected === PIN_SLOT && !!gpsPoints[0] && !!lastMarked && lastMarked.point !== gpsPoints[0];
+  const draftHoleLen = pinFromTee ? haversine(gpsPoints[0], draft) : null;
 
   const quality = gpsQuality(pos?.acc);
   const liveDistance = haversine(pos, selectedSlot?.point);
   const liveDistanceAcc = combinedAccuracy(pos, selectedSlot?.point);
   const liveToPin = haversine(pos, gpsPin);
 
-  // 거리 요약.
-  //   shotDist[i]  = (i+1)번째 샷이 날아간 거리
-  //   toPinArr[i]  = (i+1)번째 샷을 치는 자리에서 핀까지 남은 거리
-  // 따라서 샷 n의 "볼이 멈춘 자리에서 핀까지"는 toPinArr[n]이고, 마지막 샷은
-  // 볼이 그린에 있으므로 그린 도착점 → 핀이 된다(= 첫 퍼팅 거리).
+  // 지금 이 자리에서 찍으면 기록될 '직전 지점 → 여기' 거리 — 핀까지 거리와 나란히 보여
+  // 준다. 티샷이 떨어진 자리에서 세컨샷을 치려는 순간 "티샷이 몇 m 갔고 핀까지 몇 m
+  // 남았는지"를 한눈에 본다. 핀 자리를 잡는 중이면 티박스 기준 홀 전장이 된다.
+  // 벌타로 멈춘 자리가 불확실한 샷(티샷 → OB티 등)은 거리를 보여주지 않는다.
+  const livePrevShot = selected === PIN_SLOT ? null : selected === GREEN_SLOT ? fieldShots - 1 : selected - 1;
+  const livePrevTrusted = selected === PIN_SLOT || (livePrevShot != null && livePrevShot >= 0 && shotTrusted(livePrevShot));
+  const livePrev = livePrevTrusted ? haversine(draftPrevPoint, pos) : null;
+
+  // 거리 요약 — 지점마다 '직전 지점에서 온 거리'와 '거기서 핀까지 남은 거리'를 함께 보여준다.
+  //   shotDist[i]  = (i+1)번째 샷이 날아간 거리 = (i+1)번째 지점까지 온 거리
+  //   toPinArr[i]  = (i+1)번째 샷을 치는 자리(= i번째 지점)에서 핀까지 남은 거리
+  // 예) 세컨샷 지점 → 티샷에서 245m · 핀까지 155m / 써드샷 지점 → 세컨샷에서 120m · 핀까지 35m.
+  // 마지막 지점(그린 도착)의 핀까지는 첫 퍼팅 거리다.
   const shotDist = shotDistances(gpsPoints, gpsGreen, fieldShots);
   const toPinArr = pinDistances(gpsPoints, gpsPin, fieldShots);
   const holeLength = toPinArr[0] ?? null;   // 티박스 → 핀 = 그날의 홀 전장
 
-  const summaryRows = Array.from({ length: fieldShots }, (_, i) => ({
-    label: shotLabel(i),
-    shot: shotTrusted(i) ? (shotDist[i] ?? null) : null,
-    toPin: i + 1 < fieldShots ? (toPinArr[i + 1] ?? null) : haversine(gpsGreen, gpsPin),
-  })).filter((r) => r.shot != null || r.toPin != null);
+  const pointRows = [
+    ...Array.from({ length: Math.max(0, fieldShots - 1) }, (_, k) => k + 1).map((i) => ({
+      key: String(i), label: `${shotLabel(i)} 지점`, fromLabel: shotLabel(i - 1),
+      arrived: shotTrusted(i - 1) ? (shotDist[i - 1] ?? null) : null,
+      toPin: toPinArr[i] ?? null,
+    })),
+    {
+      key: GREEN_SLOT, label: finalLabel, fromLabel: shotLabel(fieldShots - 1),
+      arrived: shotTrusted(fieldShots - 1) ? (shotDist[fieldShots - 1] ?? null) : null,
+      toPin: haversine(gpsGreen, gpsPin),
+    },
+  ].filter((r) => r.arrived != null || r.toPin != null);
 
   // ── 키 입력 화면 (탈출구) ───────────────────────────────────────────────────
   if (!apiKey || showKeyForm) {
@@ -509,32 +548,43 @@ export default function HoleMapModal({
           <span style={{ fontSize: 11, fontWeight: 700, color: quality?.color ?? '#4d5a78' }}>
             {posError ? '측위 불가' : pos ? `내 위치 ${fmtAcc(pos.acc)} ${quality?.label ?? ''}` : '측위 중…'}
           </span>
-          {liveToPin != null ? (
-            <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>⛳ 핀까지</span>
-              <span style={{ fontSize: 20, fontWeight: 900, color: COLOR.gold, lineHeight: 1 }}>
-                {Math.round(liveToPin)}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+            {/* 직전 지점 → 내 위치 (그 샷이 간 거리) */}
+            {livePrev != null && (
+              <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
+                {prerequisiteLabel}에서{' '}
+                <span style={{ fontSize: 15, fontWeight: 900 }}>{Math.round(livePrev)}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>m</span>
               </span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>m</span>
-            </span>
-          ) : liveDistance != null ? (
-            <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
-              {selectedSlot.label}까지 {Math.round(liveDistance)}m
-              {liveDistanceAcc != null && (
-                <span style={{ fontSize: 10, fontWeight: 600, color: COLOR.dim, marginLeft: 4 }}>
-                  {fmtAcc(liveDistanceAcc)}
+            )}
+            {/* 내 위치 → 핀 (남은 거리) */}
+            {liveToPin != null ? (
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>⛳ 핀까지</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: COLOR.gold, lineHeight: 1 }}>
+                  {Math.round(liveToPin)}
                 </span>
-              )}
-            </span>
-          ) : null}
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>m</span>
+              </span>
+            ) : livePrev == null && liveDistance != null ? (
+              <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
+                {selectedSlot.label}까지 {Math.round(liveDistance)}m
+                {liveDistanceAcc != null && (
+                  <span style={{ fontSize: 10, fontWeight: 600, color: COLOR.dim, marginLeft: 4 }}>
+                    {fmtAcc(liveDistanceAcc)}
+                  </span>
+                )}
+              </span>
+            ) : null}
+          </div>
         </div>
 
         {posError && (
           <div style={{ padding: '0 14px 7px', fontSize: 10, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
         )}
 
-        {/* 거리 요약 — 홀 전장과 샷별 거리/잔여거리 */}
-        {summaryRows.length > 0 && (
+        {/* 거리 요약 — 홀 전장, 그리고 지점마다 '직전 지점에서 온 거리 · 핀까지 남은 거리' */}
+        {(holeLength != null || pointRows.length > 0) && (
           <div style={{ padding: '0 14px 8px' }}>
             {holeLength != null && (
               <div style={{
@@ -550,20 +600,20 @@ export default function HoleMapModal({
                 </span>
               </div>
             )}
-            {summaryRows.map((r) => (
-              <div key={r.label} style={{
+            {pointRows.map((r) => (
+              <div key={r.key} style={{
                 display: 'flex', alignItems: 'baseline', gap: 8,
                 padding: '3px 9px', borderBottom: '1px solid rgba(255,255,255,0.04)',
               }}>
                 <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: COLOR.dim }}>{r.label}</span>
-                {r.shot != null && (
-                  <span style={{ fontSize: 13, fontWeight: 800, color: COLOR.line }}>
-                    {Math.round(r.shot)}m
+                {r.arrived != null && (
+                  <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
+                    {r.fromLabel}에서 {Math.round(r.arrived)}m
                   </span>
                 )}
                 {r.toPin != null && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.gold, minWidth: 74, textAlign: 'right' }}>
-                    핀까지 {Math.round(r.toPin)}m
+                  <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.gold, minWidth: 82, textAlign: 'right' }}>
+                    ⛳ 핀까지 {Math.round(r.toPin)}m
                   </span>
                 )}
               </div>
@@ -616,7 +666,12 @@ export default function HoleMapModal({
                 )}
                 {s.id === fieldShots - 1 && onUndoShot && (
                   <button
-                    onClick={() => { setDraft(null); setPlaceMode(false); onUndoShot(); }}
+                    onClick={() => {
+                      setDraft(null); setPlaceMode(false);
+                      onUndoShot();
+                      // 지운 샷 자리를 선택으로 남겨 두지 않는다 (위 selected 계산이 다음 지점을 고른다).
+                      setSelected(null);
+                    }}
                     style={{
                       flexShrink: 0, padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
                       border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
@@ -645,24 +700,37 @@ export default function HoleMapModal({
               </div>
               <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
-                    {prerequisiteLabel ?? '직전 지점'}
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: COLOR.line, lineHeight: 1 }}>
+                  {selected === PIN_SLOT ? (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.gold, marginBottom: 2 }}>
+                      ⛳ {lastMarked ? `${lastMarked.label}에서 핀까지` : '핀까지'}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
+                      {prerequisiteLabel ?? '직전 지점'}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 22, fontWeight: 900, color: selected === PIN_SLOT ? COLOR.gold : COLOR.line, lineHeight: 1 }}>
                     {draftDistance != null ? Math.round(draftDistance) : '—'}
                     <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
                   </div>
                 </div>
-                <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
-                    ⛳ 핀까지
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: COLOR.gold, lineHeight: 1 }}>
-                    {draftToPin != null ? Math.round(draftToPin) : '—'}
-                    <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
-                  </div>
-                </div>
+                {/* 핀 조정 중에는 오른쪽 칸을 홀 전장(티 → 핀)으로 쓴다. 마지막 지점이 티박스 자체면
+                    왼쪽 숫자가 곧 홀 전장이라 따로 두지 않는다. */}
+                {(selected !== PIN_SLOT || pinFromTee) && (
+                  <>
+                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
+                        {selected === PIN_SLOT ? '홀 전장 (티 → 핀)' : '⛳ 핀까지'}
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: selected === PIN_SLOT ? COLOR.line : COLOR.gold, lineHeight: 1 }}>
+                        {(selected === PIN_SLOT ? draftHoleLen : draftToPin) != null
+                          ? Math.round(selected === PIN_SLOT ? draftHoleLen : draftToPin) : '—'}
+                        <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 7 }}>

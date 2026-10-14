@@ -113,6 +113,18 @@ export default function GpsShotPoint({
   const distanceAcc = combinedAccuracy(prevPoint, point);
   const toPin = haversine(point, pinPoint);
 
+  // 측위 중에는 지금까지 잡은 가장 좋은 fix 기준으로 같은 두 숫자를 미리 보여준다 —
+  // 볼 앞에 서서 "직전 샷이 몇 m 갔고 핀까지 몇 m 남았는지" 기다리는 동안 바로 본다.
+  const liveDistance = busy && live ? haversine(prevPoint, live) : null;
+  const liveToPin = busy && live ? haversine(live, pinPoint) : null;
+  const livePreview = (liveDistance != null || liveToPin != null) ? (
+    <div style={{ marginTop: 6, textAlign: 'center', fontSize: 12, fontWeight: 800, color: '#8ca4bc' }}>
+      {liveDistance != null && <span>{prevLabel}에서 {Math.round(liveDistance)}m</span>}
+      {liveDistance != null && liveToPin != null && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
+      {liveToPin != null && <span style={{ color: '#c9a228' }}>⛳ 핀까지 {Math.round(liveToPin)}m</span>}
+    </div>
+  ) : null;
+
   return (
     <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid #0e1320' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -128,14 +140,14 @@ export default function GpsShotPoint({
       {point ? (
         <>
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '4px 8px',
             padding: '11px 12px', borderRadius: 9, marginBottom: 6,
             border: '1.5px solid rgba(61,184,122,0.45)', background: 'rgba(61,184,122,0.1)',
           }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: '#3db87a' }}>✓</span>
             {distance != null && (
               <span style={{ fontSize: 13, fontWeight: 800, color: '#e8edf8' }}>
-                {prevLabel} {Math.round(distance)}m
+                {prevLabel}에서 {Math.round(distance)}m
                 {distanceAcc != null && (
                   <span style={{ fontSize: 10, fontWeight: 600, color: '#8896b0', marginLeft: 3 }}>
                     {fmtAcc(distanceAcc)}
@@ -145,7 +157,7 @@ export default function GpsShotPoint({
             )}
             {toPin != null && (
               <span style={{ fontSize: 12, fontWeight: 800, color: '#c9a228' }}>
-                ⛳ {Math.round(toPin)}m
+                ⛳ 핀까지 {Math.round(toPin)}m
               </span>
             )}
             {distance == null && toPin == null && (
@@ -177,6 +189,7 @@ export default function GpsShotPoint({
               }}
             >✕</button>
           </div>
+          {livePreview}
         </>
       ) : locked ? (
         onOpenMap ? (
@@ -218,6 +231,7 @@ export default function GpsShotPoint({
             : '📍 여기서 위치 찍기'}
         </button>
       )}
+      {!point && !locked && livePreview}
 
       {error && (
         <div style={{ marginTop: 7, fontSize: 10, lineHeight: 1.5, color: '#ef5350' }}>{error}</div>

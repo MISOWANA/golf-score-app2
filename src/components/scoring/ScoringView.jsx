@@ -1110,6 +1110,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const isPar5 = hole.par === 5;
   const isSimpleMode = round.players.length > 1;
 
+  // 벌타가 기록된 홀은 티샷이 그린에 한 번에 올라갔다(1온·파3 티샷 온그린·홀인원)고 기록할 수 없다.
+  // 벌타를 넣을 때는 그 표시가 풀리는데, 반대 순서(벌타 → 1온)를 막지 않으면 1온 표시와 벌타가
+  // 함께 남아 화면은 1온인데 타수는 벌타 기준으로 계산되는 모순이 된다. 벌타를 먼저 지워야 한다.
+  const penaltyBlocksTeeOnGreen = penaltyCount(playerScore) > 0;
+  const teeOnGreenBlockedHint = (
+    <div style={{ fontSize:11, color:'#6e84a8', lineHeight:1.5, marginTop:6, textAlign:'center' }}>
+      벌타가 기록돼 있어 티샷 한 번에 올린 것으로 기록할 수 없어요 · 벌타를 먼저 지워 주세요
+    </div>
+  );
+
   // ─── 그린 랜딩 방향 (필수) ────────────────────────────────────────────────────
   // 볼이 그린에 올라간 홀은 온그린 랜딩 방향을 골라야 퍼팅 입력이 열린다. 홀인원·칩인은
   // 볼이 그린에 멈추지 않으므로 해당 없다. 확정한 홀·예전 라운드는 막지 않는다(strictRequired).
@@ -1567,7 +1577,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     }
     const newScore = { ...playerScore, [field]: newVal, penalties };
     const hasPenalty = penaltyCount(newScore) > 0;
-    const extra = hasPenalty && playerScore.teeGIR ? { teeGIR: false } : {};
+    // 벌타가 생기면 티샷이 그린에 한 번에 올라갔다는 표시(파4·5 1온, 파3 티샷 온그린)는 풀린다
+    const extra = {};
+    if (hasPenalty) {
+      if (playerScore.teeGIR) extra.teeGIR = false;
+      if (hole.par === 3 && par3TeeOnGreen(playerScore)) Object.assign(extra, { teeOnGreen: false, gir: false, girAuto: false });
+    }
     // 직접 고친 스코어(벌타 포함 총 스코어)가 있으면 벌타 횟수만 기록하고 스코어는 그대로 둔다.
     if (playerScore.strokesManual) {
       updateFields({ [field]: newVal, penalties, ...extra });
@@ -1604,6 +1619,9 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       else Object.assign(fields, { teeOnGreen: false, gir: false, girAuto: false });
       clearTimeout(shotPageTimeoutRef.current);
     } else if (slot === 1) {
+      // 세컨샷에서 벌타가 났다면 티샷은 그린에 못 올라간 것이다
+      if (hole.par === 3 && par3TeeOnGreen(playerScore)) Object.assign(fields, { teeOnGreen: false, gir: false, girAuto: false });
+      if (hole.par > 3 && playerScore.teeGIR) fields.teeGIR = false;
       if (extraShots.length === 0) {
         fields.extraShots = [emptyShot()];
         if (hole.par === 3) fields.onGreen = false;
@@ -2320,15 +2338,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             {/* 성공 / 실패 */}
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {/* teeOnGreen: 티샷 결과를 따로 남긴다 — gir는 홀 확정 때 다시 계산돼 바뀐다 */}
-              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===true || (playerScore.teeOnGreen==null && playerScore.gir===true && !playerScore.girAuto)?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+              <button disabled={penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true}
+                style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===true || (playerScore.teeOnGreen==null && playerScore.gir===true && !playerScore.girAuto)?{ border:'2px solid #3db87a', color:'#3db87a' }:{}),
+                  ...(penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true ? { opacity:0.35, cursor:'not-allowed' } : {}) }}
                 onClick={()=>{ updateFields({ gir: true, girAuto: false, teeOnGreen: true }); setShotPage(1); }}>성공</button>
               <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===false || (playerScore.teeOnGreen==null && playerScore.gir===false)?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
                 onClick={()=>{ updateFields({ gir: false, girAuto: false, teeOnGreen: false }); setSecondShotExpanded(true); setShotPage(0); scrollDown(); }}>실패</button>
             </div>
-            {/* 홀인원 풀와이드 */}
+            {/* 홀인원 풀와이드 — 벌타가 있으면 홀인원일 수 없다 */}
             <button
+              disabled={penaltyBlocksTeeOnGreen && !hioSelected}
               style={{
-                width:'100%', padding:'13px 16px', borderRadius:8, cursor:'pointer',
+                width:'100%', padding:'13px 16px', borderRadius:8,
+                cursor: penaltyBlocksTeeOnGreen && !hioSelected ? 'not-allowed' : 'pointer',
+                opacity: penaltyBlocksTeeOnGreen && !hioSelected ? 0.35 : 1,
                 display:'flex', alignItems:'center', justifyContent:'center', gap:8,
                 border: hioSelected ? '2px solid #c9a228' : '1.5px solid #252f4a',
                 background: hioSelected
@@ -2349,6 +2372,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <span>홀인원</span>
               {hioSelected && <span style={{ fontSize:16 }}>⭐</span>}
             </button>
+            {penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true && teeOnGreenBlockedHint}
           </div>
         );})()}
         {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && penaltyRow(0)}
@@ -2387,10 +2411,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 </button>
               ))}
             </div>
-            {/* G 그린(1온) 풀와이드 버튼 */}
+            {/* G 그린(1온) 풀와이드 버튼 — 벌타가 있으면 1온으로 기록할 수 없다 */}
             <button
+              disabled={penaltyBlocksTeeOnGreen && !playerScore.teeGIR}
               style={{
-                width:'100%', padding:'13px 16px', borderRadius:8, cursor:'pointer',
+                width:'100%', padding:'13px 16px', borderRadius:8,
+                cursor: penaltyBlocksTeeOnGreen && !playerScore.teeGIR ? 'not-allowed' : 'pointer',
+                opacity: penaltyBlocksTeeOnGreen && !playerScore.teeGIR ? 0.35 : 1,
                 display:'flex', alignItems:'center', justifyContent:'center', gap:10,
                 border: playerScore.teeGIR ? '1.5px solid #c9a228' : '1.5px solid #252f4a',
                 background: playerScore.teeGIR ? 'linear-gradient(135deg, rgba(201,162,40,0.22) 0%, rgba(201,162,40,0.08) 100%)' : '#1a2235',
@@ -2413,6 +2440,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               <span style={{ fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>그린  (1온)</span>
               {playerScore.teeGIR && <span style={{ fontSize:14, marginLeft:4 }}>⛳</span>}
             </button>
+            {penaltyBlocksTeeOnGreen && !playerScore.teeGIR && teeOnGreenBlockedHint}
           </div>
         )}
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && penaltyRow(0)}

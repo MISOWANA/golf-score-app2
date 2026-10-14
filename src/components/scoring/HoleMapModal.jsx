@@ -398,7 +398,7 @@ export default function HoleMapModal({
 
   const pointRows = [
     ...Array.from({ length: Math.max(0, fieldShots - 1) }, (_, k) => k + 1).map((i) => ({
-      key: String(i), label: `${shotLabel(i)} 지점`, fromLabel: shotLabel(i - 1),
+      key: String(i), label: shotLabel(i), fromLabel: shotLabel(i - 1),
       arrived: shotTrusted(i - 1) ? (shotDist[i - 1] ?? null) : null,
       toPin: toPinArr[i] ?? null,
     })),
@@ -408,6 +408,14 @@ export default function HoleMapModal({
       toPin: haversine(gpsGreen, gpsPin),
     },
   ].filter((r) => r.arrived != null || r.toPin != null);
+
+  // 표의 첫 줄은 티샷 — 티박스에서 핀까지가 곧 그날의 홀 전장이다.
+  const summaryRows = [
+    ...(holeLength != null
+      ? [{ key: 'tee', label: shotLabel(0), note: '홀 전장 (티 → 핀)', arrived: null, toPin: holeLength }]
+      : []),
+    ...pointRows,
+  ];
 
   // ── 키 입력 화면 (탈출구) ───────────────────────────────────────────────────
   if (!apiKey || showKeyForm) {
@@ -539,90 +547,79 @@ export default function HoleMapModal({
       </div>
 
       {/* 하단 조작부 */}
-      <div style={{ flexShrink: 0, borderTop: '1px solid #1b2238', background: '#0d1220' }}>
-        {/* 현재 위치 → 핀: 라운드 중 가장 자주 보는 숫자라 제일 크게 */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 10, padding: '9px 14px 7px',
-        }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: quality?.color ?? '#4d5a78' }}>
+      {/* 화면이 작을 때도 지도가 사라지지 않게 하단 조작부는 높이를 제한하고 스크롤시킨다 */}
+      <div style={{
+        flexShrink: 0, borderTop: '1px solid #1b2238', background: '#0d1220',
+        maxHeight: '62vh', overflowY: 'auto', textAlign: 'left',
+      }}>
+        {/* 내 위치 상태 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px 8px' }}>
+          <span style={{
+            width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+            background: posError ? COLOR.red : (quality?.color ?? '#4d5a78'),
+          }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: posError ? COLOR.red : (quality?.color ?? COLOR.dim) }}>
             {posError ? '측위 불가' : pos ? `내 위치 ${fmtAcc(pos.acc)} ${quality?.label ?? ''}` : '측위 중…'}
           </span>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-            {/* 직전 지점 → 내 위치 (그 샷이 간 거리) */}
-            {livePrev != null && (
-              <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
-                {prerequisiteLabel}에서{' '}
-                <span style={{ fontSize: 15, fontWeight: 900 }}>{Math.round(livePrev)}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>m</span>
-              </span>
-            )}
-            {/* 내 위치 → 핀 (남은 거리) */}
-            {liveToPin != null ? (
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>⛳ 핀까지</span>
-                <span style={{ fontSize: 20, fontWeight: 900, color: COLOR.gold, lineHeight: 1 }}>
-                  {Math.round(liveToPin)}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim }}>m</span>
-              </span>
-            ) : livePrev == null && liveDistance != null ? (
-              <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
-                {selectedSlot.label}까지 {Math.round(liveDistance)}m
-                {liveDistanceAcc != null && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: COLOR.dim, marginLeft: 4 }}>
-                    {fmtAcc(liveDistanceAcc)}
-                  </span>
-                )}
-              </span>
-            ) : null}
-          </div>
         </div>
 
         {posError && (
-          <div style={{ padding: '0 14px 7px', fontSize: 10, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
+          <div style={{ padding: '0 14px 8px', fontSize: 12, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
         )}
 
-        {/* 거리 요약 — 홀 전장, 그리고 지점마다 '직전 지점에서 온 거리 · 핀까지 남은 거리' */}
-        {(holeLength != null || pointRows.length > 0) && (
-          <div style={{ padding: '0 14px 8px' }}>
-            {holeLength != null && (
-              <div style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                padding: '5px 9px', borderRadius: 6, marginBottom: 4,
-                background: 'rgba(201,162,40,0.1)', border: '1px solid rgba(201,162,40,0.28)',
-              }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: COLOR.gold, letterSpacing: '0.1em' }}>
-                  홀 전장 (티 → 핀)
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 900, color: COLOR.gold }}>
-                  {Math.round(holeLength)}m
-                </span>
-              </div>
-            )}
-            {pointRows.map((r) => (
+        {/* 지금 서 있는 자리의 거리 — 직전 지점에서 여기까지, 여기서 핀까지.
+            마커를 놓아 조정하는 중이면 아래 조정 패널이 같은 숫자를 보여주므로 가린다. */}
+        {!draft && (livePrev != null || liveToPin != null || liveDistance != null) && (
+          <div style={{ padding: '0 14px 10px' }}>
+            <MetricPanel>
+              {livePrev != null && (
+                <Metric label={`${prerequisiteLabel}에서 여기까지`} value={livePrev} />
+              )}
+              {liveToPin != null && (
+                <Metric label="⛳ 여기서 핀까지" value={liveToPin} tone="gold" />
+              )}
+              {livePrev == null && liveToPin == null && liveDistance != null && (
+                <Metric
+                  label={`${selectedSlot.label} 지점까지${liveDistanceAcc != null ? ` (${fmtAcc(liveDistanceAcc)})` : ''}`}
+                  value={liveDistance}
+                />
+              )}
+            </MetricPanel>
+          </div>
+        )}
+
+        {/* 거리 요약 표 — 지점마다 '직전 지점에서 온 거리'와 '핀까지 남은 거리'.
+            조정 중에는 조정 패널에 집중하도록 가린다. */}
+        {!draft && summaryRows.length > 0 && (
+          <div style={{
+            margin: '0 14px 10px', borderRadius: 10, overflow: 'hidden',
+            border: '1px solid #1b2238', background: '#0f1626',
+          }}>
+            <div style={{ ...TABLE_ROW, padding: '6px 12px', background: '#131c30' }}>
+              <span style={{ ...TABLE_HEAD, flex: 1 }}>지점</span>
+              <span style={{ ...TABLE_HEAD, width: 92, textAlign: 'right' }}>이전 지점에서</span>
+              <span style={{ ...TABLE_HEAD, width: 74, textAlign: 'right', color: COLOR.gold }}>⛳ 핀까지</span>
+            </div>
+            {summaryRows.map((r, i) => (
               <div key={r.key} style={{
-                display: 'flex', alignItems: 'baseline', gap: 8,
-                padding: '3px 9px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                ...TABLE_ROW, padding: '8px 12px',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent',
               }}>
-                <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: COLOR.dim }}>{r.label}</span>
-                {r.arrived != null && (
-                  <span style={{ fontSize: 12, fontWeight: 800, color: COLOR.line }}>
-                    {r.fromLabel}에서 {Math.round(r.arrived)}m
-                  </span>
-                )}
-                {r.toPin != null && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.gold, minWidth: 82, textAlign: 'right' }}>
-                    ⛳ 핀까지 {Math.round(r.toPin)}m
-                  </span>
-                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.line }}>{r.label}</div>
+                  {r.note && <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.dim, marginTop: 1 }}>{r.note}</div>}
+                </div>
+                <TableNumber value={r.arrived} width={92} color={COLOR.line} />
+                <TableNumber value={r.toPin} width={74} color={COLOR.gold} />
               </div>
             ))}
           </div>
         )}
 
         {/* 지점 선택 */}
-        <div style={{ display: 'flex', gap: 6, padding: '0 14px 9px', overflowX: 'auto' }}>
+        {/* 지점이 많아도 모두 보이게 줄바꿈한다 — 가로 스크롤이면 '핀' 같은 뒤쪽 칩이 화면 밖에 숨는다 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 14px 10px' }}>
           {slots.map((s) => {
             const on = s.id === selected;
             // 아직 차례가 아닌 지점은 고를 수 없다. 이미 찍힌 지점은 언제든
@@ -642,13 +639,13 @@ export default function HoleMapModal({
                   }}
                   disabled={blocked}
                   style={{
-                    flexShrink: 0, padding: '7px 11px', borderRadius: 8,
+                    flexShrink: 0, padding: '9px 13px', borderRadius: 9,
                     cursor: blocked ? 'default' : 'pointer',
                     opacity: blocked ? 0.4 : 1,
-                    border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#252f4a'}`,
+                    border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#2c3855'}`,
                     background: on ? 'rgba(201,162,40,0.18)' : '#1a2235',
-                    color: on ? COLOR.gold : s.point ? COLOR.green : COLOR.dim,
-                    fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    color: on ? COLOR.gold : s.point ? COLOR.green : '#b4c0d6',
+                    fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                   }}
                 >{s.point ? '✓ ' : blocked ? '🔒 ' : ''}{s.label}</button>
 
@@ -658,9 +655,9 @@ export default function HoleMapModal({
                   <button
                     onClick={addShot}
                     style={{
-                      flexShrink: 0, padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+                      flexShrink: 0, padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
                       border: '1.5px dashed #3a4e72', background: 'transparent',
-                      color: '#8ec0ff', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                      color: '#8ec0ff', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
                   >＋ 샷</button>
                 )}
@@ -673,9 +670,9 @@ export default function HoleMapModal({
                       setSelected(null);
                     }}
                     style={{
-                      flexShrink: 0, padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
-                      border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
-                      color: 'rgba(239,83,80,0.7)', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                      flexShrink: 0, padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
+                      border: '1px solid rgba(239,83,80,0.4)', background: 'transparent',
+                      color: 'rgba(239,83,80,0.9)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
                   >− 취소</button>
                 )}
@@ -686,82 +683,53 @@ export default function HoleMapModal({
 
         {draft ? (
           /* 확정 대기 — 마커를 끌어 맞춘 뒤 눌러 기록한다 */
-          <div style={{ padding: '0 14px 12px' }}>
-            {/* 끄는 동안 양쪽 거리가 같이 움직인다 — 어디에 놓을지 이 숫자로 정한다 */}
-            <div style={{
-              padding: '8px 12px', borderRadius: 8, marginBottom: 7,
-              background: 'rgba(142,192,255,0.1)', border: '1px solid rgba(142,192,255,0.3)',
-            }}>
-              <div style={{
-                fontSize: 10, fontWeight: 700, color: '#8ec0ff',
-                letterSpacing: '0.1em', marginBottom: 5, textAlign: 'center',
-              }}>
-                {selectedSlot?.label} 위치 조정 중
-              </div>
-              <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  {selected === PIN_SLOT ? (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.gold, marginBottom: 2 }}>
-                      ⛳ {lastMarked ? `${lastMarked.label}에서 핀까지` : '핀까지'}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
-                      {prerequisiteLabel ?? '직전 지점'}
-                    </div>
-                  )}
-                  <div style={{ fontSize: 22, fontWeight: 900, color: selected === PIN_SLOT ? COLOR.gold : COLOR.line, lineHeight: 1 }}>
-                    {draftDistance != null ? Math.round(draftDistance) : '—'}
-                    <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
-                  </div>
-                </div>
-                {/* 핀 조정 중에는 오른쪽 칸을 홀 전장(티 → 핀)으로 쓴다. 마지막 지점이 티박스 자체면
-                    왼쪽 숫자가 곧 홀 전장이라 따로 두지 않는다. */}
-                {(selected !== PIN_SLOT || pinFromTee) && (
-                  <>
-                    <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
-                    <div style={{ flex: 1, textAlign: 'center' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: COLOR.dim, marginBottom: 2 }}>
-                        {selected === PIN_SLOT ? '홀 전장 (티 → 핀)' : '⛳ 핀까지'}
-                      </div>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: selected === PIN_SLOT ? COLOR.line : COLOR.gold, lineHeight: 1 }}>
-                        {(selected === PIN_SLOT ? draftHoleLen : draftToPin) != null
-                          ? Math.round(selected === PIN_SLOT ? draftHoleLen : draftToPin) : '—'}
-                        <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.dim, marginLeft: 2 }}>m</span>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+          <div style={{ padding: '0 14px 14px' }}>
+            {/* 끄는 동안 양쪽 거리가 같이 움직인다 — 어디에 놓을지 이 숫자로 정한다.
+                핀: 마지막으로 찍은 지점에서 핀까지(+ 홀 전장). 그 외: 직전 지점에서 여기까지, 여기서 핀까지. */}
+            <MetricPanel accent title={`${selectedSlot?.label} 위치 조정 중`}>
+              {selected === PIN_SLOT ? [
+                <Metric
+                  key="a"
+                  label={lastMarked ? `⛳ ${lastMarked.label}에서 핀까지` : '⛳ 핀까지'}
+                  value={draftDistance} tone="gold"
+                />,
+                pinFromTee && <Metric key="b" label="홀 전장 (티 → 핀)" value={draftHoleLen} />,
+              ] : [
+                draftPrevPoint && (
+                  <Metric key="a" label={`${prerequisiteLabel ?? '직전 지점'}에서 여기까지`} value={draftDistance} />
+                ),
+                <Metric key="b" label="⛳ 여기서 핀까지" value={draftToPin} tone="gold" />,
+              ]}
+            </MetricPanel>
             <div style={{ display: 'flex', gap: 7 }}>
               <button
                 onClick={confirmDraft}
                 style={{
-                  flex: 2, padding: '14px 10px', borderRadius: 10, cursor: 'pointer',
+                  flex: 2, padding: '15px 10px', borderRadius: 11, cursor: 'pointer',
                   border: 'none', background: COLOR.gold, color: COLOR.ink,
-                  fontSize: 14, fontWeight: 800,
+                  fontSize: 16, fontWeight: 800,
                 }}
               >✓ 이 위치로 확정</button>
               <button
                 onClick={cancelDraft}
                 style={{
-                  flex: 1, padding: '14px 8px', borderRadius: 10, cursor: 'pointer',
+                  flex: 1, padding: '15px 8px', borderRadius: 11, cursor: 'pointer',
                   border: '1.5px solid #3a4e72', background: 'transparent',
-                  color: '#c4cfe0', fontSize: 12, fontWeight: 700,
+                  color: '#d4dcec', fontSize: 14, fontWeight: 700,
                 }}
               >취소</button>
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: 7, padding: '0 14px 12px' }}>
+          <div style={{ display: 'flex', gap: 7, padding: '0 14px 14px' }}>
             <button
               onClick={markHere}
               disabled={!pos || blockedSlot}
               style={{
-                flex: 2, padding: '14px 10px', borderRadius: 10,
+                flex: 2, padding: '15px 10px', borderRadius: 11,
                 cursor: pos && !blockedSlot ? 'pointer' : 'default',
                 border: 'none', background: pos && !blockedSlot ? COLOR.gold : '#252f4a',
-                color: pos && !blockedSlot ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
+                color: pos && !blockedSlot ? COLOR.ink : '#7d8aa6', fontSize: 16, fontWeight: 800,
               }}
             >
               {blockedSlot
@@ -772,20 +740,20 @@ export default function HoleMapModal({
               onClick={() => setPlaceMode((v) => !v)}
               disabled={blockedSlot}
               style={{
-                flex: 1, padding: '14px 8px', borderRadius: 10,
+                flex: 1, padding: '15px 8px', borderRadius: 11,
                 cursor: blockedSlot ? 'default' : 'pointer', opacity: blockedSlot ? 0.4 : 1,
                 border: `1.5px solid ${placeMode ? COLOR.gold : '#3a4e72'}`,
                 background: placeMode ? 'rgba(201,162,40,0.18)' : 'transparent',
-                color: placeMode ? COLOR.gold : '#c4cfe0', fontSize: 12, fontWeight: 700,
+                color: placeMode ? COLOR.gold : '#d4dcec', fontSize: 14, fontWeight: 700,
               }}
             >{placeMode ? '취소' : '지도에서'}</button>
             {selectedSlot?.point && (
               <button
                 onClick={() => commitPoint(selected, null)}
                 style={{
-                  width: 48, borderRadius: 10, cursor: 'pointer',
-                  border: '1px solid rgba(239,83,80,0.35)', background: 'transparent',
-                  color: 'rgba(239,83,80,0.75)', fontSize: 13, fontWeight: 700,
+                  width: 50, borderRadius: 11, cursor: 'pointer',
+                  border: '1px solid rgba(239,83,80,0.45)', background: 'transparent',
+                  color: 'rgba(239,83,80,0.95)', fontSize: 15, fontWeight: 700,
                 }}
               >✕</button>
             )}
@@ -793,6 +761,72 @@ export default function HoleMapModal({
         )}
       </div>
     </Shell>
+  );
+}
+
+// ─── 거리 표시 조각 ───────────────────────────────────────────────────────────
+//
+// 숫자는 크게(28px), 설명은 그 위에 12px 이상으로 둔다. 야외 햇빛 아래에서 한 손으로
+// 보는 화면이라 작은 글자·옅은 색을 피하고, 칸마다 같은 구조를 써서 눈이 같은 자리를 본다.
+
+function Metric({ label, value, tone = 'line' }) {
+  const color = tone === 'gold' ? COLOR.gold : COLOR.line;
+  return (
+    <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#b4c0d6', marginBottom: 5, lineHeight: 1.3 }}>
+        {label}
+      </div>
+      <div style={{ color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 30, fontWeight: 900 }}>{value != null ? Math.round(value) : '—'}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>m</span>
+      </div>
+    </div>
+  );
+}
+
+// Metric 여러 개를 가운데 세로선으로 나눠 담는 상자. accent면 위치 조정(파란) 톤.
+function MetricPanel({ children, title, accent = false }) {
+  const items = (Array.isArray(children) ? children : [children]).flat(Infinity).filter(Boolean);
+  const border = accent ? 'rgba(142,192,255,0.4)' : '#1f2a44';
+  return (
+    <div style={{
+      padding: '12px 10px', borderRadius: 12, marginBottom: accent ? 10 : 0,
+      background: accent ? 'rgba(142,192,255,0.08)' : '#111a2e',
+      border: `1px solid ${border}`,
+    }}>
+      {title && (
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#8ec0ff', textAlign: 'center', marginBottom: 10 }}>
+          {title}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+        {items.map((child, i) => (
+          <Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', margin: '2px 4px' }} />}
+            {child}
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 요약 표 — 칸 너비를 고정해 줄마다 숫자 자리가 맞게 한다.
+const TABLE_ROW = { display: 'flex', alignItems: 'center', gap: 8 };
+const TABLE_HEAD = { fontSize: 11, fontWeight: 700, color: '#9aa8c2', letterSpacing: '0.04em' };
+
+function TableNumber({ value, width, color }) {
+  return (
+    <span style={{ width, textAlign: 'right', color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+      {value != null ? (
+        <>
+          <span style={{ fontSize: 17, fontWeight: 800 }}>{Math.round(value)}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#9aa8c2', marginLeft: 1 }}>m</span>
+        </>
+      ) : (
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#56637f' }}>—</span>
+      )}
+    </span>
   );
 }
 

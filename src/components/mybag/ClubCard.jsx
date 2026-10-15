@@ -111,8 +111,10 @@ export default function ClubCard({
         {gripHandle}
         {renderName()}
         <div style={styles.clubCardHeaderRight}>
-          {run > 0 && !isEditing && (
-            <div style={styles.clubRunBadge}>런 +{run}m</div>
+          {run !== 0 && !isEditing && (
+            <div style={run > 0 ? styles.clubRunBadge : { ...styles.clubRunBadge, ...styles.clubRunBadgeBack }}>
+              런 {run > 0 ? '+' : '−'}{Math.abs(run)}m
+            </div>
           )}
           {canDelete && !isEditing && (
             <button
@@ -151,7 +153,7 @@ export default function ClubCard({
           suffix="m"
           onDecrement={() => onUpdate('total', -5)}
           onIncrement={() => onUpdate('total', 5)}
-          canDecrement={(club.total ?? 0) > (club.carry ?? 0)}
+          canDecrement={(club.total ?? 0) > 0}
           canIncrement={(club.total ?? 0) < 350}
           highlight
         />

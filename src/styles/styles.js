@@ -2658,6 +2658,12 @@ const styles = {
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
   },
+  // 토탈이 캐리보다 짧은 클럽(백스핀) — 금색 대신 차분한 톤
+  clubRunBadgeBack: {
+    background: C.surface3,
+    color: C.textSecondary,
+    border: `1px solid ${C.border}`,
+  },
   clubFieldRow: {
     display: 'flex',
     alignItems: 'center',
@@ -2747,6 +2753,11 @@ const styles = {
     height: '10px',
     borderRadius: '2px',
   },
+  distanceLegendMark: {
+    width: '2px',
+    height: '10px',
+    background: C.textPrimary,
+  },
   distanceChart: {
     background: C.surface1,
     border: `1px solid ${C.border}`,
@@ -2796,6 +2807,15 @@ const styles = {
     transition: 'width 0.4s ease',
     zIndex: 1,
     opacity: 0.75,
+  },
+  // 토탈 < 캐리일 때 캐리 막대 위에 토탈 위치를 찍는 표시선
+  distanceBarTotalMark: {
+    position: 'absolute',
+    top: 0,
+    height: '100%',
+    width: '2px',
+    background: C.textPrimary,
+    zIndex: 2,
   },
   distanceValues: {
     width: '68px',

@@ -191,16 +191,8 @@ export default function MyBagView({ currentUser, onBack }) {
       const curr = c[field] ?? 0;
       let next = Math.max(0, Math.min(350, curr + delta));
 
-      const newClub = { ...c, [field]: next };
-
-      if (field === 'carry' && newClub.total !== undefined && next > newClub.total) {
-        newClub.total = next;
-      }
-      if (field === 'total' && newClub.carry !== undefined && next < newClub.carry) {
-        newClub.carry = next;
-      }
-
-      return newClub;
+      // 토탈이 캐리보다 짧을 수 있다 (백스핀·역경사·젖은 그린). 둘은 독립적으로 조정한다.
+      return { ...c, [field]: next };
     });
     saveClubs(updated);
   };
@@ -381,13 +373,19 @@ export default function MyBagView({ currentUser, onBack }) {
               <span style={{ ...styles.distanceLegendDot, background: '#0e1c14' }} />
               <span>토탈</span>
             </div>
+            {clubs.some(c => c.type !== 'Putter' && c.carry != null && c.total != null && c.total < c.carry) && (
+              <div style={styles.distanceLegendItem}>
+                <span style={styles.distanceLegendMark} />
+                <span>토탈 위치</span>
+              </div>
+            )}
           </div>
           <div style={styles.distanceChart}>
             {clubs
               .filter(c => c.type !== 'Putter' && c.carry != null && c.total != null)
               .sort((a, b) => b.total - a.total)
               .map(club => {
-                const maxDist = Math.max(1, ...clubs.filter(c => c.type !== 'Putter' && c.total != null).map(c => c.total));
+                const maxDist = Math.max(1, ...clubs.filter(c => c.type !== 'Putter' && c.total != null).map(c => Math.max(c.total, c.carry ?? 0)));
                 const totalPct = (club.total / maxDist) * 100;
                 const carryPct = (club.carry / maxDist) * 100;
                 return (
@@ -402,6 +400,9 @@ export default function MyBagView({ currentUser, onBack }) {
                         ...styles.distanceBarFillCarry,
                         width: `${carryPct}%`,
                       }} />
+                      {club.total < club.carry && (
+                        <div style={{ ...styles.distanceBarTotalMark, left: `calc(${totalPct}% - 1px)` }} />
+                      )}
                     </div>
                     <div style={styles.distanceValues}>
                       <div style={styles.distanceValueCarry}>{club.carry}</div>

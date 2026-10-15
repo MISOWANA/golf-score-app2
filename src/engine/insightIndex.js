@@ -30,6 +30,21 @@ export const sortInsights = (list) =>
 // 매일 나오는 평범한 좋은 소식 — 복기에서는 보이지만 리포트의 '잘한 점'에서는 뺀다
 const ROUTINE_POSITIVE = new Set(['fairway_hit', 'gir_success', 'textbook_par', 'par3_gir']);
 
+// 홀 배지의 점수·±가 이미 말하는 내용을 문장으로 되풀이하는 카드 — 복기·리포트에서는 숨기고 검색에서만 찾을 수 있게 둔다
+const RESTATES_SCORE = new Set(['bogey_clean', 'double_no_penalty']);
+
+// 같은 홀의 카드는 가장 구체적인(정렬상 앞선) 1장만 남긴다
+const onePerHole = (list) => {
+  const seen = new Set();
+  return list.filter(i => {
+    if (i.scope !== 'hole' || i.grouped || i.holeNumber == null) return true;
+    const k = `${i.roundId}:${i.holeNumber}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+};
+
 // ─── 라운드 복기 ───────────────────────────────────────────────────────────────
 export function buildRoundReplay(round) {
   const player = round.players[0];
@@ -56,7 +71,8 @@ export function buildRoundReplay(round) {
       puttCause: pa.cause,
       puttCauseLabel: pa.causeLabel,
       memo: s.memo || '',
-      insights: sortInsights(holeInsights[i] || []),
+      insights: sortInsights(holeInsights[i] || []),          // 검색 색인용 (전체)
+      shown: sortInsights((holeInsights[i] || []).filter(x => !RESTATES_SCORE.has(x.insightType))),   // 복기 화면용
     };
   });
 
@@ -239,8 +255,11 @@ export function buildInsightReport(rounds, mode = 'round') {
   const target = mode === 'career' ? solo : [solo[0]];
   const replays = target.map(buildRoundReplay);
 
-  const holeInsights = replays.flatMap(r => r.holes.flatMap(h => h.insights.map(i => ({ ...i, roundId: r.roundId }))));
-  const roundInsights = replays.flatMap(r => r.roundInsights.map(i => ({ ...i, roundId: r.roundId })));
+  const holeInsights = replays.flatMap(r => r.holes.flatMap(h => h.shown.map(i => ({ ...i, roundId: r.roundId }))));
+  const hasHoleFourPutt = holeInsights.some(i => i.insightType === 'four_putt');
+  const roundInsights = replays.flatMap(r => r.roundInsights.map(i => ({ ...i, roundId: r.roundId })))
+    // '4퍼트 이상 발생'은 홀 카드(퍼트 거리열 포함)가 같은 말을 하므로 라운드 요약은 생략한다
+    .filter(i => !(hasHoleFourPutt && i.insightType === 'four_putt_round'));
   const careerInsights = mode === 'career' ? buildCareerInsights(solo) : [];
 
   // 같은 종류는 한 번만 — 누적에서는 횟수를 센다
@@ -265,11 +284,11 @@ export function buildInsightReport(rounds, mode = 'round') {
   const all = group([...roundInsights, ...careerInsights, ...holeInsights]);
 
   const scopeRank = (i) => (i.scope === 'hole' ? 1 : 0);   // 라운드·누적 요약이 홀 단위보다 먼저
-  const strengths = all.filter(i => i.severity === 'positive' && !ROUTINE_POSITIVE.has(i.insightType))
-    .sort((a, b) => scopeRank(a) - scopeRank(b) || (a.priority ?? 0) - (b.priority ?? 0) || b.count - a.count).slice(0, 4);
-  const issues = all.filter(i => i.severity === 'critical' || i.severity === 'warning')
+  const strengths = onePerHole(all.filter(i => i.severity === 'positive' && !ROUTINE_POSITIVE.has(i.insightType))
+    .sort((a, b) => scopeRank(a) - scopeRank(b) || (a.priority ?? 0) - (b.priority ?? 0) || b.count - a.count)).slice(0, 4);
+  const issues = onePerHole(all.filter(i => i.severity === 'critical' || i.severity === 'warning')
     .sort((a, b) => (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || scopeRank(a) - scopeRank(b)
-      || b.count - a.count || (b.priority ?? 0) - (a.priority ?? 0)).slice(0, 5);
+      || b.count - a.count || (b.priority ?? 0) - (a.priority ?? 0))).slice(0, 5);
 
   // 다음 라운드 포커스: 가장 큰 손실 카테고리 + 3퍼트 원인 조언 + 기록 보완
   const totals = { penalty: 0, putting: 0, tee: 0, approach: 0, shortGame: 0 };
@@ -279,11 +298,11 @@ export function buildInsightReport(rounds, mode = 'round') {
   if (ranked.length) {
     const [cat, strokes] = ranked[0];
     const FOCUS_TEXT = {
-      penalty: '위험 지역이 있는 홀의 공략 루트를 미리 정하기 — 티샷 클럽을 한 단계 낮추고 안전한 방향으로',
-      putting: '퍼팅: 롱 퍼트는 1m 원에 세우고, 1.5m 이내는 루틴을 지켜 마무리하기',
-      tee: '티샷: 거리보다 페어웨이 확보 — 미스가 나는 쪽의 반대쪽으로 목표선 이동',
-      approach: '어프로치: 핀보다 그린 중앙을 목표로 하고 남은 거리에 맞는 클럽 한 번 더 확인',
-      shortGame: '숏게임: 그린 주변에서 첫 퍼트를 2m 안에 남기는 샷 선택',
+      penalty: '위험 지역이 있는 홀의 공략 루트를 미리 정하고, 티샷 클럽을 한 단계 낮춰 안전한 방향으로',
+      putting: '롱 퍼트는 1m 원에 세우고, 1.5m 이내는 루틴을 지켜 마무리하기',
+      tee: '거리보다 페어웨이 확보 — 미스가 나는 쪽의 반대쪽으로 목표선 이동',
+      approach: '핀보다 그린 중앙을 목표로 하고 남은 거리에 맞는 클럽을 한 번 더 확인',
+      shortGame: '그린 주변에서 첫 퍼트를 2m 안에 남기는 샷 선택',
     };
     focus.push({ category: cat, text: `${CATEGORY_LABEL[cat]} 손실이 가장 큼 (${strokes}타) → ${FOCUS_TEXT[cat]}` });
   }

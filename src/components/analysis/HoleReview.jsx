@@ -84,10 +84,12 @@ function Row({ badge, badgeColor, title, sub, meta, value, valueColor, result, r
         {meta && <div style={{ fontSize: 13, color: LABEL, marginTop: 3, lineHeight: 1.4 }}>{meta}</div>}
       </div>
 
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: valueColor, lineHeight: 1.1 }}>{value}</div>
-        {result && <div style={{ fontSize: 12, fontWeight: 800, color: resultColor, marginTop: 4 }}>{result}</div>}
-      </div>
+      {(value != null || result) && (
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          {value != null && <div style={{ fontSize: 20, fontWeight: 900, color: valueColor, lineHeight: 1.1 }}>{value}</div>}
+          {result && <div style={{ fontSize: 12, fontWeight: 800, color: resultColor, marginTop: value != null ? 4 : 0 }}>{result}</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -235,6 +237,9 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
   const name = scoreName(review.strokes, review.diff);
   const nameTone = review.strokes === 1 ? C.goldBright : scoreTone(review.diff);
   const puttSummary = review.puttCount > 0 && review.putts.length === 0;
+  // 거리 값이 하나도 없는 홀은 오른쪽 값 칸을 숨긴다 (줄마다 '—'가 반복되지 않게)
+  const hasAnyDistance = review.shots.some(s => s.distance != null)
+    || review.putts.some((p, i) => (p.distance ?? (i === 0 ? review.approachProximity : null)) != null);
 
   const navBtn = (enabled) => ({
     flex: 1, padding: '13px', borderRadius: 12, cursor: enabled ? 'pointer' : 'default',
@@ -411,7 +416,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                 title={s.name}
                 sub={s.club ?? '클럽 미입력'}
                 meta={meta || null}
-                value={m(s.distance)}
+                value={hasAnyDistance ? m(s.distance) : null}
                 valueColor={s.distance != null ? C.goldBright : MUTED}
                 result={s.result?.text}
                 resultColor={tone}
@@ -429,7 +434,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                 badgeColor={tone === MUTED ? LABEL : tone}
                 title={`${p.no}번째 퍼팅`}
                 meta={p.lie || null}
-                value={m1(displayDist)}
+                value={hasAnyDistance ? m1(displayDist) : null}
                 valueColor={displayDist != null ? C.line : MUTED}
                 result={p.holein === 'success' ? '홀인' : p.holein === 'fail' ? '실패' : null}
                 resultColor={tone}

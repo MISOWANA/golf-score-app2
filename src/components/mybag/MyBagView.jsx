@@ -297,7 +297,7 @@ export default function MyBagView({ currentUser, onBack }) {
           <div style={styles.bagBannerValue}>
             {totalCount}
             <span style={styles.bagBannerSub}>
-              {' / 14 clubs'}
+              {'개 (최대 14)'}
               {overLimit && ' · 규정 초과'}
             </span>
           </div>
@@ -331,7 +331,7 @@ export default function MyBagView({ currentUser, onBack }) {
                   aria-label={`${type} 추가`}
                 >
                   <Plus size={14} strokeWidth={2.5} />
-                  <span>추가</span>
+                  <span>{{ Wood: '우드', Hybrid: '하이브리드', Iron: '아이언', Wedge: '웨지' }[type] ?? ''} 추가</span>
                 </button>
               )}
             </div>

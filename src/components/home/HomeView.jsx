@@ -133,11 +133,10 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
       )}
 
       <div style={styles.heroCard}>
-        <div style={styles.heroLabel}>TODAY</div>
-        <h1 style={styles.heroTitle}>새 라운드<br/>시작하기</h1>
+        <h1 style={styles.heroTitle}>새 라운드</h1>
         <button style={styles.heroButton} onClick={onNewRound}>
           <Plus size={18} strokeWidth={2.5} />
-          <span>Start Round</span>
+          <span>시작하기</span>
         </button>
       </div>
 

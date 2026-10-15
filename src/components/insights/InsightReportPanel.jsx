@@ -2,10 +2,8 @@ import { useMemo } from 'react';
 import InsightCard from './InsightCard.jsx';
 import { buildInsightReport } from '../../engine/insightIndex.js';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
-import { CATEGORY_LABEL } from '../../engine/scoreBreakdown.js';
 
 const CAUSE_COLOR = { lag: '#c9a228', short: '#ef5350', both: '#c04a3e', mid: '#6b8cae', close: '#8a6fb0', unknown: '#4d5a78' };
-const CATEGORY_COLOR = { penalty: '#ef5350', putting: '#c9a228', tee: '#6b8cae', approach: '#8a6fb0', shortGame: '#d98e3e' };
 
 const Section = ({ title, sub, children }) => (
   <div style={{ marginBottom: 22 }}>
@@ -18,19 +16,31 @@ const Section = ({ title, sub, children }) => (
 );
 
 // 인사이트 리포트 — 이번 라운드(또는 누적)의 핵심만 한 장으로.
-export default function InsightReportPanel({ rounds, mode = 'round' }) {
+export default function InsightReportPanel({ rounds, mode = 'round', onModeChange = null }) {
   const rep = useMemo(() => buildInsightReport(rounds, mode), [rounds, mode]);
   if (!rep) return null;
   const single = rep.replays.length === 1 ? rep.replays[0] : null;
   const c = rep.causes;
-  const lossTotal = Object.values(rep.totals).reduce((a, b) => a + b, 0);
 
   return (
     <div data-panel="report">
       {/* 한 줄 요약 */}
-      <div style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 8, padding: '16px 16px 14px', marginBottom: 22 }}>
-        <div style={{ fontSize: 10, color: '#8ca4bc', letterSpacing: '0.2em', marginBottom: 6 }}>
-          {single ? `${single.courseName ?? ''} 리포트` : `${rep.stats.rounds}라운드 누적 리포트`}
+      <div style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 8, padding: '14px 16px 14px', marginBottom: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: '#8ca4bc', letterSpacing: '0.2em' }}>
+            {single ? `${single.courseName ?? ''} 리포트` : `${rep.stats.rounds}라운드 누적 리포트`}
+          </div>
+          {onModeChange && (
+            <div role="group" aria-label="분석 기간" style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,0.25)', borderRadius: 999, padding: 2, flexShrink: 0 }}>
+              {[['round', '이번 라운드'], ['career', `${rounds.filter(r => r.players.length === 1).length}라운드 누적`]].map(([k, l]) => (
+                <button key={k} aria-pressed={mode === k} onClick={() => onModeChange(k)}
+                  style={{
+                    border: 'none', cursor: 'pointer', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    background: mode === k ? '#c9a228' : 'transparent', color: mode === k ? '#0b0e18' : '#8ca4bc',
+                  }}>{l}</button>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }} data-role="report-headline">
           {single
@@ -50,23 +60,6 @@ export default function InsightReportPanel({ rounds, mode = 'round' }) {
           ? <div style={{ fontSize: 12, color: '#3db87a' }}>눈에 띄는 약점 신호가 없습니다.</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rep.issues.map(i => <InsightCard key={i.insightType} insight={i} />)}</div>}
       </Section>
-
-      {/* 손실 구성 */}
-      {lossTotal > 0 && (
-        <Section title="LOSS · 어디서 잃었나" sub={`총 ${lossTotal}타`}>
-          <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px' }}>
-            {rep.ranked.map(([cat, n]) => (
-              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                <div style={{ width: 70, fontSize: 12, color: '#b4c0d8' }}>{CATEGORY_LABEL[cat]}</div>
-                <div style={{ flex: 1, height: 8, background: '#1b2238', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ width: `${(n / lossTotal) * 100}%`, height: '100%', background: CATEGORY_COLOR[cat] }} />
-                </div>
-                <div style={{ width: 54, textAlign: 'right', fontSize: 12, fontWeight: 800, color: '#e8edf8' }}>{n}타</div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
 
       {/* 3퍼트 원인 */}
       {c.total > 0 && (

@@ -138,12 +138,12 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>OVERVIEW</div>
         <div style={styles.keyStatsGrid}>
-          <StatTile label="Rounds" value={rounds.length} sub="played" />
-          <StatTile label="Best" value={bestScore} sub="lowest score" />
-          <StatTile label="Average" value={avgScore} sub="per round" />
-          <StatTile label="GIR" value={`${avgGir}%`} sub="average" />
-          <StatTile label="Putts" value={puttsPerGir != null ? puttsPerGir.toFixed(2) : '–'} sub="per GIR" />
-          <StatTile label="FW" value={avgFairway != null ? `${avgFairway}%` : '—'} sub={avgFairway != null ? 'hit rate' : '기록 없음'} />
+          <StatTile label="라운드" value={rounds.length} sub="기록한 횟수" />
+          <StatTile label="베스트" value={bestScore} sub="최저 스코어" />
+          <StatTile label="평균" value={avgScore} sub="라운드당 타수" />
+          <StatTile label="GIR" value={`${avgGir}%`} sub="그린 적중률" />
+          <StatTile label="퍼팅" value={puttsPerGir != null ? puttsPerGir.toFixed(2) : '–'} sub="GIR 홀 평균" />
+          <StatTile label="페어웨이" value={avgFairway != null ? `${avgFairway}%` : '—'} sub={avgFairway != null ? '적중률' : '기록 없음'} />
         </div>
       </div>
 

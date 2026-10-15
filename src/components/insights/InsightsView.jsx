@@ -308,21 +308,12 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={rounds} /></div>}
 
       {tab === 'report' && <>
-      {rounds.length > 1 && (
-        <div style={styles.riToggleRow}>
-          <button
-            style={{ ...styles.riToggleBtn, ...(mode === 'round' ? styles.riToggleBtnActive : {}) }}
-            onClick={() => setMode('round')}
-          >이번 라운드</button>
-          <button
-            style={{ ...styles.riToggleBtn, ...(mode === 'career' ? styles.riToggleBtnActive : {}) }}
-            onClick={() => setMode('career')}
-          >{rounds.length}라운드 누적</button>
-        </div>
-      )}
-
       <div style={{ marginBottom: 8 }}>
-        <InsightReportPanel rounds={rounds} mode={isCareerMode ? 'career' : 'round'} />
+        <InsightReportPanel
+          rounds={rounds}
+          mode={isCareerMode ? 'career' : 'round'}
+          onModeChange={rounds.length > 1 ? setMode : null}
+        />
       </div>
 
       {/* ── 스코어 5단계 분해 ─────────────────────────────────────────────── */}
@@ -599,7 +590,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       })()}
 
       {/* ── 반복 패턴 (룰 엔진) — 이번 라운드/누적 토글에 연동 ─────────────────── */}
-      {patternInsights.length > 0 && (
+      {isCareerMode && patternInsights.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>
             PATTERN INSIGHTS · {isCareerMode ? `${rounds.length}라운드 누적 반복 패턴 분석` : '이번 라운드 반복 패턴 분석'}

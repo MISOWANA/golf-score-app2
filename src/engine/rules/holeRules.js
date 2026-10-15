@@ -267,7 +267,7 @@ const RAW_HOLE_RULES = [
     },
   },
   {
-    id: 'H040', scope: 'hole', priority: 86, enabled: true,
+    id: 'H040', scope: 'hole', priority: 77, enabled: true,
     conditions: [{ field: 'putts', operator: 'gte', value: 4 }],
     result: {
       insightType: 'four_putt', severity: 'critical', category: 'putting',

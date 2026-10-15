@@ -30,6 +30,7 @@ export default function InsightSearchPanel({ rounds }) {
   const [scope, setScope] = useState('all');
   const [roundId, setRoundId] = useState('');
   const [limit, setLimit] = useState(PAGE);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const toggle = (arr, setArr, v) => { setArr(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]); setLimit(PAGE); };
   const results = useMemo(
@@ -73,7 +74,26 @@ export default function InsightSearchPanel({ rounds }) {
         ))}
       </div>
 
-      {/* 필터 */}
+      {/* 필터 — 가끔만 쓰므로 접어 두고, 선택한 개수만 보여 준다 */}
+      <button
+        aria-expanded={filtersOpen}
+        onClick={() => setFiltersOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '10px 12px',
+          marginBottom: filtersOpen ? 8 : 12, cursor: 'pointer', color: '#e8edf8', fontSize: 13, fontWeight: 700,
+        }}>
+        <span>
+          필터
+          {activeFilterCount > 0 && (
+            <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: 'rgba(201,162,40,0.18)', color: '#c9a228', fontSize: 11 }}>
+              {activeFilterCount}개 선택
+            </span>
+          )}
+        </span>
+        <span style={{ color: '#6e84a8' }}>{filtersOpen ? '▴' : '▾'}</span>
+      </button>
+      {filtersOpen && (
       <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6 }}>심각도</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -107,6 +127,7 @@ export default function InsightSearchPanel({ rounds }) {
           )}
         </div>
       </div>
+      )}
 
       {/* 결과 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -128,7 +149,7 @@ export default function InsightSearchPanel({ rounds }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {results.slice(0, limit).map(it => (
-            <InsightCard key={it.key} insight={it} showContext highlight={query} />
+            <InsightCard key={it.key} insight={it} showContext hideCategory highlight={query} />
           ))}
           {results.length > limit && (
             <button onClick={() => setLimit(limit + PAGE)}

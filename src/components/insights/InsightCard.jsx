@@ -16,7 +16,11 @@ const dateLabel = (d) => {
 // 인사이트 한 장. 검색·복기·리포트에서 같은 모양으로 쓴다.
 //   showContext  어느 라운드·홀의 것인지 칩으로 보여준다 (검색 결과 등)
 //   compact      권장 문구를 접어 둔다 (복기의 홀 목록)
-export default function InsightCard({ insight, showContext = false, compact = false, highlight = '', hideHole = false }) {
+// 홀 칩·홀 배지가 이미 홀을 알려 주므로 본문 앞의 "5번 홀에서 / 5번 파3 홀은 / 5번 홀(파4)에서"는 뺀다
+const stripHolePrefix = (t) => String(t).replace(/^\d+번 (?:파\d )?홀(?:\([^)]*\))?(?:에서|은|는)?\s+/, '');
+
+export default function InsightCard({ insight, showContext = false, compact = false, highlight = '', hideHole = false, hideCategory = false }) {
+  const summary = insight.holeNumber != null ? stripHolePrefix(insight.summary) : insight.summary;
   const color = SEVERITY_COLOR[insight.severity] ?? '#8896b0';
   const bg = SEVERITY_BG[insight.severity] ?? 'rgba(136,150,176,0.10)';
   const hl = (text) => {
@@ -40,7 +44,7 @@ export default function InsightCard({ insight, showContext = false, compact = fa
     }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 7 }}>
         <span style={chip(color, bg)}>{SEVERITY_BADGE[insight.severity]} {SEVERITY_LABEL[insight.severity] ?? ''}</span>
-        {insight.category && <span style={chip('#a9b8d6', 'rgba(255,255,255,0.05)')}>{INSIGHT_CATEGORY_LABEL[insight.category] ?? insight.category}</span>}
+        {insight.category && !hideCategory && <span style={chip('#a9b8d6', 'rgba(255,255,255,0.05)')}>{INSIGHT_CATEGORY_LABEL[insight.category] ?? insight.category}</span>}
         {insight.holeNumber != null && !hideHole && (
           <span style={chip('#c9a228', 'rgba(201,162,40,0.10)')}>HOLE {insight.holeNumber}{insight.par ? ` · PAR ${insight.par}` : ''}</span>
         )}
@@ -52,7 +56,7 @@ export default function InsightCard({ insight, showContext = false, compact = fa
         {insight.count > 1 && <span style={chip('#e8edf8', 'rgba(255,255,255,0.08)')}>{insight.grouped ? `${insight.count}개 홀` : `×${insight.count}`}</span>}
       </div>
       <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, marginBottom: 4 }}>{hl(insight.title)}</div>
-      <div style={{ fontSize: 12.5, color: '#b4c0d8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{hl(insight.summary)}</div>
+      <div style={{ fontSize: 12.5, color: '#b4c0d8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{hl(summary)}</div>
       {!compact && insight.recommendation && (
         <div style={{ fontSize: 12, color: '#7f8db0', lineHeight: 1.55, marginTop: 6, wordBreak: 'keep-all' }}>
           <span style={{ color, fontWeight: 700 }}>제안 </span>{hl(insight.recommendation)}

@@ -163,7 +163,7 @@ function SwipeDistance({ value, start, min = 1, max = 300, onChange, step = 1, d
         <span style={{ fontSize: 34, fontWeight: 900, color: empty ? '#4d5a78' : '#e8edf8', lineHeight: 1 }}>{display}</span>
         <span style={{ fontSize: 13, color: '#8896b0', marginLeft: 4 }}>{unit}</span>
         {empty && (
-          <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>미입력 · 탭하면 {clamp(base)}{unit}부터</div>
+          <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>탭하면 {clamp(base)}{unit}부터 · 밀어서 조정</div>
         )}
       </div>
       <button style={fMiniBtn} onClick={() => onChange(clamp(base + step))}>+</button>
@@ -310,16 +310,16 @@ function WindInput({ direction, strength, onDir, onStrength }) {
 }
 
 // 선택 입력 섹션 (라이·바람) — 쓰는 사람이 적어 기본은 접어 둔다. 클럽을 고르기
-// 전에는 회색으로 두되 눌러서 펼칠 수는 있다(막지 않는다). 클럽을 고르면 금색
-// 테두리로 바뀌어 "이제 이것도 입력할 수 있다"를 알린다. 입력한 값은 접힌
-// 상태에서도 헤더에 요약한다.
+// 전에는 더 흐리게 두되 눌러서 펼칠 수는 있다(막지 않는다). 값이 없을 때는 중립색
+// 테두리라 필수 항목(빨강)보다 눈에 띄지 않는다. 입력한 값이 있으면 금색으로 바뀌고
+// 접힌 상태에서도 헤더에 요약한다.
 // children(close) — 선택이 끝나면 섹션을 접을 수 있도록 close를 넘긴다.
 // required — 필수 선택. 값이 없으면 처음부터 펼쳐 두고 빨간 '필수'로 표시한다.
 function OptionalSection({ icon, label, enabled, summary, required = false, children }) {
   const [open, setOpen] = useState(required && !summary);
   const hasValue = !!summary;
   const missing = required && !hasValue;
-  const accent = missing ? '#ef5350' : enabled ? '#c9a228' : '#4d5a78';
+  const accent = missing ? '#ef5350' : hasValue ? '#c9a228' : enabled ? '#8896b0' : '#4d5a78';
   return (
     <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
       <button
@@ -327,13 +327,13 @@ function OptionalSection({ icon, label, enabled, summary, required = false, chil
         style={{
           width:'100%', display:'flex', alignItems:'center', gap:8, padding:'10px 12px', borderRadius:9,
           cursor:'pointer', textAlign:'left',
-          border:`1.5px solid ${missing ? '#ef5350' : enabled ? '#c9a228' : '#252f4a'}`,
+          border:`1.5px solid ${missing ? '#ef5350' : hasValue ? '#c9a228' : enabled ? '#2c3a5c' : '#1d2740'}`,
           background: missing ? 'rgba(239,83,80,0.08)'
-            : enabled ? (open || hasValue ? 'rgba(201,162,40,0.12)' : 'rgba(201,162,40,0.05)') : 'transparent',
+            : hasValue ? 'rgba(201,162,40,0.12)' : 'transparent',
         }}
       >
         <span style={{ ...fIcon, color: accent }}>{icon}</span>
-        <span style={{ ...fLbl, color: missing ? '#ef5350' : enabled ? '#e8c45a' : '#4d5a78' }}>{label}</span>
+        <span style={{ ...fLbl, color: missing ? '#ef5350' : hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#4d5a78' }}>{label}</span>
         <span style={{ flex:1, minWidth:0, fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {hasValue ? summary
             : <span style={{ color: missing ? '#ef5350' : enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
@@ -2201,7 +2201,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
         <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
           <div style={{ flex:1 }} />
-          <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>패널티</span>
+          <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>벌타 합계</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {penaltyCount(playerScore) > 0 && (
               <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
@@ -2233,6 +2233,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             </div>
           ))}
         </div>
+        {/* 샷별로 넣으면 구제 방식까지 기록된다는 안내 (합계로만 넣은 벌타가 없을 때) */}
+        {penaltyCount(playerScore) <= (playerScore.penalties || []).length && (
+          <div style={{ fontSize:10, color:'#6e84a8', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
+            샷 아래 [벌타]에서 넣으면 구제 방식까지 기록돼요
+          </div>
+        )}
         {/* 어느 샷인지 모르는 벌타(위쪽 칸으로만 넣은 것)가 있을 때만 안내한다 */}
         {penaltyCount(playerScore) > (playerScore.penalties || []).length && (
           <div style={{ fontSize:11, color:'#8896b0', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
@@ -2296,7 +2302,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 () => updateFields({ teeDistance: measuredTee, teeDistanceAppliedM: measuredTee }))}
             </div>
             <SwipeDistance value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
-            <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>
+            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
           </div>
         )}
 
@@ -2467,12 +2473,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             >{label}</button>
           ))}
         </div>
-        {!teeComplete && (
+        {!teeComplete && playerScore.teeClub && (
           <div style={{ padding:'8px 16px', textAlign:'center' }}>
             <span style={{ fontSize:11, color:'#6e84a8', letterSpacing:'0.06em' }}>
-              {playerScore.teeClub
-                ? `티샷을 마치면 입력할 수 있어요 · 남은 항목: ${teeMissing.join(' · ')}`
-                : '티샷 완료 후 입력 가능합니다'}
+              {`티샷을 마치면 입력할 수 있어요 · 남은 항목: ${teeMissing.join(' · ')}`}
             </span>
           </div>
         )}
@@ -2514,7 +2518,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               () => updateFields({ remainingDistance: measuredSecond, remainingAppliedM: measuredSecond, remainingSource: null }))}
           </div>
           <SwipeDistance value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null })} />
-          <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>
+          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
         </div>
 
         {/* 세컨샷 클럽 */}
@@ -2629,7 +2633,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                       () => updateExtraShot(idx, { remainingDistance: measuredExtra(idx), remainingAppliedM: measuredExtra(idx), remainingSource: null }))}
                   </div>
                   <SwipeDistance value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null })} />
-                  <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>
+                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
                 </div>
 
                 {/* 클럽 */}

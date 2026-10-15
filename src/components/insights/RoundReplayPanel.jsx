@@ -35,8 +35,8 @@ export default function RoundReplayPanel({ rounds }) {
     return <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 13, padding: '28px 12px' }}>복기할 라운드가 없어요.</div>;
   }
 
-  const hasIssue = (h) => h.insights.some(i => i.severity === 'critical' || i.severity === 'warning');
-  const hasGood = (h) => h.insights.some(i => i.severity === 'positive');
+  const hasIssue = (h) => h.shown.some(i => i.severity === 'critical' || i.severity === 'warning');
+  const hasGood = (h) => h.shown.some(i => i.severity === 'positive');
   const visible = replay.holes.filter(h => {
     if (!h.touched && filter !== 'all') return false;
     if (filter === 'issues') return hasIssue(h);
@@ -152,8 +152,8 @@ export default function RoundReplayPanel({ rounds }) {
         )}
         {visible.map(h => {
           const isOpen = !!open[h.holeNumber];
-          const shown = isOpen ? h.insights : h.insights.slice(0, 2);
-          const rest = h.insights.length - shown.length;
+          const shown = isOpen ? h.shown : h.shown.slice(0, 2);
+          const rest = h.shown.length - shown.length;
           return (
             <div key={h.holeNumber} id={`replay-hole-${h.holeNumber}`} data-hole={h.holeNumber}
               style={{ background: '#0d1424', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 12px 10px' }}>
@@ -197,13 +197,13 @@ export default function RoundReplayPanel({ rounds }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {shown.map(ins => <InsightCard key={ins.id} insight={ins} compact={!isOpen} hideHole />)}
               </div>
-              {(rest > 0 || (isOpen && h.insights.length > 2)) && (
+              {(rest > 0 || (isOpen && h.shown.length > 2)) && (
                 <button onClick={() => setOpen(o => ({ ...o, [h.holeNumber]: !isOpen }))}
                   style={{ marginTop: 8, background: 'none', border: 'none', color: '#c9a228', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                   {isOpen ? '접기' : `인사이트 ${rest}개 더 보기`}
                 </button>
               )}
-              {!isOpen && h.insights.length > 0 && rest === 0 && h.insights.some(i => i.recommendation) && (
+              {!isOpen && h.shown.length > 0 && rest === 0 && h.shown.some(i => i.recommendation) && (
                 <button onClick={() => setOpen(o => ({ ...o, [h.holeNumber]: true }))}
                   style={{ marginTop: 8, background: 'none', border: 'none', color: '#c9a228', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                   제안 보기

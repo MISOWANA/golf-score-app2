@@ -2999,7 +2999,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={styles.modalTitle}>{shotLabel(penaltyChoice.slot)} {PENALTY_LABEL[penaltyChoice.type]}</div>
             <div style={{ ...styles.modalText, marginBottom: 14, wordBreak: 'keep-all' }}>
               {penaltyChoice.type === 'ob'
-                ? <>OB 처리를 어떻게 했나요?<br/>어느 쪽이든 스코어는 +2타예요 (1벌타 + 다시 친 샷 · 2벌타)</>
+                ? <>OB 처리를 어떻게 했나요?<br/>어느 쪽이든 스코어는 +2타예요 (1벌타 + 다시 친 샷)</>
                 : <>어떤 구제 방식을 썼나요?<br/>어느 방식이든 1벌타(+1타)예요</>}
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

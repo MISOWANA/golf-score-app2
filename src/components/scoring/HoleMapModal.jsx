@@ -466,33 +466,34 @@ export default function HoleMapModal({
               fontSize: 13, marginBottom: 10,
             }}
           />
-          <button
-            onClick={() => {
-              const v = keyDraft.trim();
-              if (!v) return;
-              if (!setVWorldKey(v)) { setPosError('이 브라우저에서는 키를 저장할 수 없습니다.'); return; }
-              setApiKey(v);
-              setShowKeyForm(false);
-              setTileError(false);
-            }}
-            disabled={!keyDraft.trim()}
-            style={{
-              width: '100%', padding: '13px', borderRadius: 9, cursor: 'pointer',
-              border: 'none', background: keyDraft.trim() ? COLOR.gold : '#252f4a',
-              color: keyDraft.trim() ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
-            }}
-          >저장하고 지도 열기</button>
-
-          {apiKey && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            {apiKey && (
+              <button
+                onClick={() => { setShowKeyForm(false); setKeyDraft(''); }}
+                style={{
+                  flex: 1, padding: '13px 8px', borderRadius: 9, cursor: 'pointer',
+                  border: '1px solid #3a4e72', background: 'transparent', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                  color: COLOR.dim, fontSize: 13, fontWeight: 700,
+                }}
+              >취소하고 지도로 돌아가기</button>
+            )}
             <button
-              onClick={() => { setShowKeyForm(false); setKeyDraft(''); }}
-              style={{
-                width: '100%', marginTop: 8, padding: '11px', borderRadius: 9, cursor: 'pointer',
-                border: '1px solid #3a4e72', background: 'transparent',
-                color: COLOR.dim, fontSize: 13, fontWeight: 700,
+              onClick={() => {
+                const v = keyDraft.trim();
+                if (!v) return;
+                if (!setVWorldKey(v)) { setPosError('이 브라우저에서는 키를 저장할 수 없습니다.'); return; }
+                setApiKey(v);
+                setShowKeyForm(false);
+                setTileError(false);
               }}
-            >취소하고 지도로 돌아가기</button>
-          )}
+              disabled={!keyDraft.trim()}
+              style={{
+                flex: 1, padding: '13px 8px', borderRadius: 9, cursor: 'pointer',
+                border: '1px solid transparent', background: keyDraft.trim() ? COLOR.gold : '#252f4a', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                color: keyDraft.trim() ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
+              }}
+            >저장하고 지도 열기</button>
+          </div>
 
           <div style={{ marginTop: 14, fontSize: 10, lineHeight: 1.7, color: '#4d5a78' }}>
             여기서 넣은 키는 이 기기에만 저장되고 서버로 전송되지 않습니다.

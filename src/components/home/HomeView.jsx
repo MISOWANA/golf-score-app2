@@ -171,10 +171,10 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             <div style={{ fontSize:13, color:'#8896b0', textAlign:'center', lineHeight:1.6, marginBottom:20 }}>
               현재까지 저장된 모든 라운드 데이터를<br/>JSON 파일로 내보냅니다.
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={{ padding:'13px', borderRadius:10, border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
                 onClick={() => setShowExportConfirm(false)}>취소</button>
-              <button style={{ padding:'13px', borderRadius:10, border:'none', background:'#c9a228', color:'#0b0e18', fontSize:14, fontWeight:700, cursor:'pointer' }}
+              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#c9a228', color:'#0b0e18', fontSize:14, fontWeight:700, cursor:'pointer' }}
                 onClick={() => { setShowExportConfirm(false); onExportData(); }}>내보내기</button>
             </div>
           </div>
@@ -194,10 +194,10 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             <div style={{ fontSize:12, color:'#ef5350', textAlign:'center', background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>
               기존 기록은 지우지 않고 합칩니다.<br/>같은 라운드는 파일 내용으로 바뀌어요.
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={{ padding:'13px', borderRadius:10, border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
+            <div style={{ display:'flex', gap:8 }}>
+              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
                 onClick={() => setShowImportConfirm(false)}>취소</button>
-              <button style={{ padding:'13px', borderRadius:10, border:'none', background:'#3db87a', color:'#0b0e18', fontSize:14, fontWeight:700, cursor:'pointer' }}
+              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#3db87a', color:'#0b0e18', fontSize:14, fontWeight:700, cursor:'pointer' }}
                 onClick={() => { setShowImportConfirm(false); fileInputRef.current?.click(); }}>파일 선택</button>
             </div>
           </div>
@@ -227,14 +227,14 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
                 다시 로그인하면 이어서 기록할 수 있어요.
               </div>
             )}
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ display:'flex', gap:8 }}>
               <button
-                style={{ padding:'13px', borderRadius:10, border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
+                style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:14, fontWeight:600, cursor:'pointer' }}
                 onClick={() => setShowLogoutConfirm(false)}>
                 취소
               </button>
               <button
-                style={{ padding:'13px', borderRadius:10, border:'none', background:'#ef5350', color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer' }}
+                style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#ef5350', color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer' }}
                 onClick={() => { setShowLogoutConfirm(false); onSwitchUser(); }}>
                 나가기
               </button>

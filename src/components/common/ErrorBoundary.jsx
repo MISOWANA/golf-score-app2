@@ -24,7 +24,7 @@ export default class ErrorBoundary extends React.Component {
     if (!error) return this.props.children;
 
     const btn = {
-      width: '100%', padding: '14px', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+      flex: 1, padding: '14px 8px', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer',
     };
     return (
       <div style={{
@@ -40,10 +40,10 @@ export default class ErrorBoundary extends React.Component {
             저장된 기록은 그대로 있어요.<br />
             아래 버튼으로 다시 시도해 주세요.
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             {this.props.onHome && (
               <button
-                style={{ ...btn, border: 'none', background: '#c9a228', color: '#0b0e18' }}
+                style={{ ...btn, border: '1.5px solid transparent', background: '#c9a228', color: '#0b0e18' }}
                 onClick={() => { this.setState({ error: null }); this.props.onHome(); }}
               >홈으로</button>
             )}

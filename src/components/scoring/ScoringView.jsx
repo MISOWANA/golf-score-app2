@@ -2970,7 +2970,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 {missing.map(i => `${i + 1}`).join(', ')}번 홀<br/>
                 그대로 완료하면 이 홀들은 파(2퍼트)로 저장돼요
               </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <div style={styles.modalActions}>
                 <button style={styles.modalBtnCancel} onClick={() => { setPendingFinish(null); goToHole(missing[0]); }}>
                   {missing[0] + 1}번 홀 입력하러 가기
                 </button>
@@ -2994,15 +2994,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 <><br/>찍어 둔 위치(GPS)는 어느 쪽이든 그대로 남아요</>
               )}
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={styles.modalBtnPrimary} onClick={() => { const to = pendingSkip; setPendingSkip(null); confirmAndGoToHole(to); }}>
-                파로 기록하고 다음 홀
-              </button>
+            <div style={styles.modalActions}>
               <button style={styles.modalBtnCancel} onClick={() => { const to = pendingSkip; setPendingSkip(null); goToHole(to); }}>
                 기록하지 않고 넘어가기
               </button>
-              <button style={styles.modalBtnCancel} onClick={() => setPendingSkip(null)}>취소</button>
+              <button style={styles.modalBtnPrimary} onClick={() => { const to = pendingSkip; setPendingSkip(null); confirmAndGoToHole(to); }}>
+                파로 기록하고 다음 홀
+              </button>
             </div>
+            <button style={{ ...styles.modalBtnCancel, flex:'none', width:'100%', marginTop:8 }} onClick={() => setPendingSkip(null)}>취소</button>
           </div>
         </div>
       )}
@@ -3090,12 +3090,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                 ? '티샷이 어디로 갔는지가 방향성 분석에 쓰여요'
                 : '그린 어프로치 분석에 쓰여요'}
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              <button style={styles.modalBtnPrimary} onClick={() => goFillLanding(landingAsk.miss)}>
-                입력하러 가기
-              </button>
+            <div style={styles.modalActions}>
               <button style={styles.modalBtnCancel} onClick={skipLandingAndGo}>
                 {landingAsk.finish ? '그대로 완료' : '그대로 다음 홀'}
+              </button>
+              <button style={styles.modalBtnPrimary} onClick={() => goFillLanding(landingAsk.miss)}>
+                입력하러 가기
               </button>
             </div>
           </div>
@@ -3109,7 +3109,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
             <div style={styles.modalIcon}>⚠️</div>
             <div style={styles.modalTitle}>라운드를 그만두시겠어요?</div>
             <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#ef5350' }}>삭제</b>합니다</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 기록하기</button>
               <button style={styles.modalBtnCancel} onClick={()=>{ setShowExitConfirm(false); onGoHome(); }}>기록 유지하고 홈으로</button>
               <button style={styles.modalBtnPrimary} onClick={()=>{ setShowExitConfirm(false); onGoToSetup(); }}>삭제하고 세팅 다시하기</button>

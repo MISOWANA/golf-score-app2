@@ -201,19 +201,19 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
               라운드 {pendingDelete.rounds ?? '…'}개, MY BAG 설정, 진행 중인 라운드가<br />
               이 기기에서 영구히 삭제돼요. 되돌릴 수 없어요.
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => setPendingDelete(null)}
-                style={{ padding: 13, borderRadius: 10, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '13px 8px', borderRadius: 10, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >취소</button>
               <button
                 type="button"
                 disabled={deleting || pendingDelete.rounds == null}
                 onClick={confirmDelete}
                 style={{
-                  padding: 13, borderRadius: 10, border: 'none', background: '#ef5350', color: '#fff',
+                  flex: 1, padding: '13px 8px', borderRadius: 10, border: '1.5px solid transparent', background: '#ef5350', color: '#fff',
                   fontSize: 14, fontWeight: 800, cursor: 'pointer',
                   opacity: deleting || pendingDelete.rounds == null ? 0.5 : 1,
                 }}

@@ -391,7 +391,7 @@ export default function GolfScoringApp() {
           <div
             style={{
               background: '#0f1825', borderRadius: 16, padding: '28px 22px', textAlign: 'center',
-              width: '100%', maxWidth: 320, border: '1px solid #1b2744', boxShadow: '0 8px 40px rgba(0,0,0,0.6)'
+              width: '100%', maxWidth: 340, border: '1px solid #1b2744', boxShadow: '0 8px 40px rgba(0,0,0,0.6)'
             }}
             onClick={e => e.stopPropagation()}
           >
@@ -405,27 +405,29 @@ export default function GolfScoringApp() {
             <div style={{ fontSize: 13, color: '#8896b0', marginBottom: 20 }}>
               {currentRound.currentHole + 1}홀 진행 중 · {currentRound.players.join(', ')}
             </div>
-            <button
-              onClick={handleResumeRound}
-              style={{
-                width: '100%', padding: '13px', marginBottom: 8,
-                background: '#c9a228', color: '#0b0e18', border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer'
-              }}
-            >
-              이어서 기록하기
-            </button>
-            <button
-              onClick={handleDiscardAndSetup}
-              style={{
-                width: '100%', padding: '13px',
-                background: 'transparent', color: '#ef5350',
-                border: '1.5px solid rgba(239,83,80,0.5)', borderRadius: 10,
-                fontSize: 14, fontWeight: 700, cursor: 'pointer'
-              }}
-            >
-              기존 기록 삭제하고 새 라운드
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+              <button
+                onClick={handleResumeRound}
+                style={{
+                  flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                  background: '#c9a228', color: '#0b0e18', border: '1.5px solid transparent',
+                  borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer'
+                }}
+              >
+                이어서 기록하기
+              </button>
+              <button
+                onClick={handleDiscardAndSetup}
+                style={{
+                  flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                  background: 'transparent', color: '#ef5350',
+                  border: '1.5px solid rgba(239,83,80,0.5)', borderRadius: 10,
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                기존 기록 삭제하고 새 라운드
+              </button>
+            </div>
           </div>
         </div>
       )}

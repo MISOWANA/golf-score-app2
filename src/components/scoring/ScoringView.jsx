@@ -834,9 +834,16 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       // 바꾸지 않는다 — 상세 입력 홀의 퍼팅 수는 기록이다.
       if (playerScore.puttsManual || playerScore.teeClub) {
         // 퍼팅 수를 사용자가 직접 지정한 뒤라면 스코어 변경이 그 값을 덮어쓰지 않는다.
-        // 유효 범위(퍼팅 < 스코어)를 벗어날 때만 클램프한다.
+        // 유효 범위(퍼팅 < 스코어)를 벗어날 때만 클램프한다. 클램프로 잘린 퍼팅 수는 기억해 두었다가
+        // (puttsHeld) 점수를 다시 올리면 되돌린다 — −를 눌렀다 +로 되돌렸을 때 퍼팅 기록이 사라지지 않게.
         const maxPutts = Math.max(0, value - 1);
-        if ((playerScore.putts || 0) > maxPutts) np.putts = maxPutts;
+        const curPutts = playerScore.putts || 0;
+        const held = playerScore.puttsHeld;
+        const basePutts = held && curPutts === held.clamped ? held.value : curPutts;   // 잘린 값 그대로일 때만 원래 값 기준
+        const nextPutts = Math.min(basePutts, maxPutts);
+        if (nextPutts !== curPutts) np.putts = nextPutts;
+        if (nextPutts < basePutts) np.puttsHeld = { value: basePutts, clamped: nextPutts };
+        else delete np.puttsHeld;
         if (girIsAuto) {
           const ag = calculateGir(value, np.putts, hole.par);
           if (ag !== null) { np.gir = ag; np.girAuto = true; }
@@ -975,7 +982,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     setPuttAsk(null);
     if (!ask) return;
     const details = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    const fresh = withAutoStrokes({ ...playerScore, putts: n, puttDetails: details, puttsManual: true, touched: true });
+    const fresh = withAutoStrokes({ ...playerScore, putts: n, puttDetails: details, puttsManual: true, puttsHeld: null, touched: true });
     if (ask.finish) finishWith(fresh); else confirmAndGoToHole(ask.next, fresh);
   };
 
@@ -1564,7 +1571,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     // 스코어 자동 계산 중이면 GIR은 홀을 확정할 때 샷 기록으로 다시 계산한다.
     const ag = !autoScoreOn(playerScore) && playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par) : null;
     const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
-    updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, ...girFields });
+    updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, puttsHeld: null, ...girFields });
   };
 
   // 위쪽 벌타 칸(홀 합계). 샷을 모르고 넣은 벌타는 OB티 기준으로 계산된다.
@@ -2079,7 +2086,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               // 상세 입력 홀에서 직접 고친 값을 버리고 샷 기록 계산으로 되돌린다
               playerScore.strokesManual && (
                 <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
-                  onClick={()=>updateFields({ strokesManual: false })}>자동 계산</button>
+                  onClick={()=>{
+                    // 점수를 퍼팅 수 밑으로 내려 잘려 나간 퍼팅 기록이 있으면 함께 되돌린다
+                    const hd = playerScore.puttsHeld;
+                    updateFields(hd && (playerScore.putts || 0) === hd.clamped
+                      ? { strokesManual: false, putts: hd.value, puttsHeld: null }
+                      : { strokesManual: false });
+                  }}>자동 계산</button>
               )
             ) : (
               <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}

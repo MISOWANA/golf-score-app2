@@ -11,11 +11,16 @@ const TONE = (diff) => {
   return { color: '#ef5350', bg: 'rgba(239,83,80,0.16)', border: 'rgba(239,83,80,0.5)' };
 };
 
+// 입력하지 않은 홀(touched 아님) — 저장된 기본값(파)이 합계에는 들어간다. 같은 값을 보여주되 점선으로 구분한다.
+const DEFAULT_TONE = { color: '#8ca4bc', bg: '#101a30', border: '#33415f' };
+
 export default function HoleReviewGrid({ round, player, onSelectHole }) {
   const rows = [
     { label: round.outCourseName || 'OUT', from: 0 },
     { label: round.inCourseName || 'IN', from: 9 },
   ];
+
+  const defaultCount = round.holes.filter((h) => !h.scores?.[player]?.touched).length;
 
   const gpsCount = round.holes.filter((h) => {
     const s = h.scores?.[player];
@@ -46,17 +51,20 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
             {round.holes.slice(from, from + 9).map((h, i) => {
               const idx = from + i;
               const s = h.scores?.[player];
-              const strokes = s?.touched ? s.strokes : null;
+              const entered = !!s?.touched;
+              // 입력하지 않은 홀도 합계에는 저장된 스코어(파)가 들어가므로 같은 값을 보여준다
+              const strokes = s?.strokes != null ? s.strokes : null;
               const diff = strokes != null ? strokes - h.par : null;
-              const t = TONE(diff);
+              const t = entered ? TONE(diff) : DEFAULT_TONE;
               const hasGps = (s?.gpsPoints || []).some(Boolean) || !!s?.gpsGreen || !!s?.gpsPin;
               return (
                 <button
                   key={idx}
                   onClick={() => onSelectHole(idx)}
+                  title={entered ? undefined : '입력 없이 파(2퍼트)로 저장된 홀'}
                   style={{
                     position: 'relative', padding: '7px 0 8px', borderRadius: 9,
-                    border: `1.5px solid ${t.border}`, background: t.bg,
+                    border: `1.5px ${entered ? 'solid' : 'dashed'} ${t.border}`, background: t.bg,
                     cursor: 'pointer', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', gap: 2,
                   }}
@@ -78,6 +86,12 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
           </div>
         </div>
       ))}
+
+      {defaultCount > 0 && (
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#6e84a8', lineHeight: 1.5, textAlign: 'right' }}>
+          점선 칸 {defaultCount}개: 입력 없이 파(2퍼트)로 저장된 홀
+        </div>
+      )}
     </div>
   );
 }

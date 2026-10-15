@@ -5,6 +5,7 @@ import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
 import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
+import { offGreenShots, offGreenCount, offGreenAfter, OFF_GREEN_CLUBS } from '../../engine/offGreen.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -736,9 +737,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const handleBackClick = () => { if (hasProgress) setShowExitConfirm(true); else onGoToSetup(); };
 
-  const calculateGir = (strokes, putts, par) => {
+  // offGreenChips: 퍼트가 그린 밖으로 나간 뒤 다시 친 칩 수 — 그린에 오른 뒤의 샷이라 GIR 계산에서 뺀다
+  const calculateGir = (strokes, putts, par, offGreenChips = 0) => {
     if (strokes == null || putts == null) return null;
-    return (strokes - putts) <= par - 2;
+    return (strokes - putts - offGreenChips) <= par - 2;
   };
 
   const inferStatsFromStrokes = (strokes, par) => {
@@ -783,7 +785,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     // 해저드·언플레이어블 1회 = 벌타 1타뿐 — 드롭(또는 다시 치기) 후 이어 치는 샷은 사용자가
     // 다음 샷으로 기록한다.
     const field = effectiveTeeGIR ? 0 : baseField + phantomStrokes(score) + (score.extraShots?.length || 0);
-    return 1 + field + (score.putts || 0) + ob + hazard + unplayable;
+    // 퍼트가 그린 밖으로 나가 다시 친 칩은 퍼팅이 아니지만 스코어에는 들어간다
+    return 1 + field + (score.putts || 0) + offGreenCount(score) + ob + hazard + unplayable;
   };
 
   // ─── 스코어 자동 계산 ───────────────────────────────────────────────────────
@@ -801,7 +804,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 퍼팅 수를 알고 있는지 — 위쪽 퍼팅 수를 골랐거나, 퍼팅 홀인 성공·실패를 눌렀거나,
   // 칩인·홀인원으로 끝났거나, 이미 확정한 홀.
   const puttsKnown = (s) => !!(s.puttsManual || s.confirmed || isHoledOut(s)
-    || (Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success' || p?.holein === 'fail')));
+    || (Array.isArray(s.puttDetails) && s.puttDetails.some(p => p?.holein === 'success' || p?.holein === 'fail' || p?.holein === 'offgreen')));
   // 상세 입력 중이고 퍼팅을 아직 모르는 홀. 스코어를 2퍼트로 가정해 보여주면 GIR을
   // 놓치는 순간 보기로 보이지만 1퍼트로 막을 수도 있다 — 그래서 스코어 대신
   // '온그린까지 N타 · 퍼팅 남음'을 보여주고, 퍼팅을 입력하면 확정한다.
@@ -815,7 +818,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const finalizeScore = (s, par) => {
     if (!s.teeClub || s.strokesManual) return { ...s, touched: true, confirmed: true };
     const autoStrokes = calcAutoStrokes(s, par);
-    const autoGir = (autoStrokes - (s.putts || 0)) <= par - 2;
+    const autoGir = (autoStrokes - (s.putts || 0) - offGreenCount(s)) <= par - 2;
     return { ...s, strokes: autoStrokes, gir: autoGir, girAuto: true, touched: true, confirmed: true };
   };
 
@@ -845,7 +848,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         if (nextPutts < basePutts) np.puttsHeld = { value: basePutts, clamped: nextPutts };
         else delete np.puttsHeld;
         if (girIsAuto) {
-          const ag = calculateGir(value, np.putts, hole.par);
+          const ag = calculateGir(value, np.putts, hole.par, offGreenCount(np));
           if (ag !== null) { np.gir = ag; np.girAuto = true; }
         }
       } else {
@@ -856,7 +859,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       }
     }
     if (field === 'putts' && girIsAuto) {
-      const ag = calculateGir(np.strokes, value, hole.par);
+      const ag = calculateGir(np.strokes, value, hole.par, offGreenCount(np));
       if (ag !== null) { np.gir = ag; np.girAuto = true; }
     }
     if (field === 'gir') np.girAuto = false;
@@ -982,7 +985,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     setPuttAsk(null);
     if (!ask) return;
     const details = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    const fresh = withAutoStrokes({ ...playerScore, putts: n, puttDetails: details, puttsManual: true, puttsHeld: null, touched: true });
+    const keptOffGreen = offGreenShots({ putts: n, puttDetails: details, offGreen: playerScore.offGreen });
+    const fresh = withAutoStrokes({ ...playerScore, putts: n, puttDetails: details, offGreen: keptOffGreen, puttsManual: true, puttsHeld: null, touched: true });
     if (ask.finish) finishWith(fresh); else confirmAndGoToHole(ask.next, fresh);
   };
 
@@ -1001,7 +1005,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updated.currentHole = idx; setHoleIdx(idx); onUpdate(updated);
   };
 
-  const triggerChipIn = (freshScore) => {
+  // info: 퍼트가 그린 밖으로 나간 뒤의 칩인이면 { putts, onCount } — 기본은 필드샷 칩인(퍼팅 0)
+  const triggerChipIn = (freshScore, info = null) => {
     if (holeInModalPendingRef.current) return;
     holeInModalPendingRef.current = true;
     holeInCbRef.current = () => {
@@ -1021,15 +1026,15 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       isLastHole,
       scoreName: getScoreName(freshScore.strokes, hole.par),
       strokes: freshScore.strokes,
-      putts: 0,
-      onCount: freshScore.strokes,
+      putts: info?.putts ?? 0,
+      onCount: info?.onCount ?? freshScore.strokes,
     });
   };
 
   // 세컨샷이 바로 홀에 들어간 경우 (파3 그린 놓친 뒤 칩인, 파4 세컨샷 이글 등).
   // 세컨샷 결과는 onGreen에 'chip-in'으로 남긴다 — 써드샷 이후의 칩인과 같은 표기.
   const secondShotChipIn = () => {
-    const base = { ...playerScore, onGreen: 'chip-in', putts: 0, puttDetails: [] };
+    const base = { ...playerScore, onGreen: 'chip-in', putts: 0, puttDetails: [], offGreen: [] };
     // 직접 고친 스코어가 있으면 그 값을 유지한다 (base가 strokes·strokesManual을 그대로 들고 있다)
     triggerChipIn(playerScore.strokesManual
       ? { ...base, touched: true }
@@ -1460,7 +1465,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 처음 상태인 gir=true·자동으로 돌려야 성공/실패 어느 쪽도 눌린 것으로 보이지 않는다.)
   const withResultCleared = (fields, extras, slot) => {
     if (slot === 1) {
-      const ag = playerScore.strokesManual ? calculateGir(playerScore.strokes, playerScore.putts, hole.par) : null;
+      const ag = playerScore.strokesManual ? calculateGir(playerScore.strokes, playerScore.putts, hole.par, offGreenCount(playerScore)) : null;
       const second = hole.par === 3 ? { onGreen: null } : { onGreen: null, gir: ag ?? true, girAuto: true };
       return { fields: { ...fields, ...second }, extras };
     }
@@ -1569,9 +1574,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
     // GIR을 사용자가 직접 선택한 뒤에는(girAuto:false) 퍼팅 수 변경이 그 선택을 덮어쓰지 않는다.
     // 스코어 자동 계산 중이면 GIR은 홀을 확정할 때 샷 기록으로 다시 계산한다.
-    const ag = !autoScoreOn(playerScore) && playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par) : null;
+    const keptOffGreen = offGreenShots({ putts: clamped, puttDetails: newDetails, offGreen: playerScore.offGreen });
+    const ag = !autoScoreOn(playerScore) && playerScore.girAuto !== false ? calculateGir(playerScore.strokes, clamped, hole.par, keptOffGreen.length) : null;
     const girFields = ag !== null ? { gir: ag, girAuto: true } : {};
-    updateFields({ putts: clamped, puttDetails: newDetails, puttsManual: true, puttsHeld: null, ...girFields });
+    updateFields({ putts: clamped, puttDetails: newDetails, offGreen: keptOffGreen, puttsManual: true, puttsHeld: null, ...girFields });
   };
 
   // 위쪽 벌타 칸(홀 합계). 샷을 모르고 넣은 벌타는 OB티 기준으로 계산된다.
@@ -1749,6 +1755,47 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
+
+  // 퍼트가 그린 밖으로 나갔다 — 그 퍼트는 퍼팅 1타, 다시 친 칩은 퍼팅이 아닌 1타로 스코어에만 더한다.
+  // 칩 뒤에 퍼트가 하나 더 있어야 하므로 퍼팅 칸을 하나 늘린다 (칩인이면 아래 칩 카드에서 끝낸다).
+  // 이미 그린 밖으로 표시한 퍼트를 다시 누르면 되돌린다.
+  const markOffGreen = (puttIdx) => {
+    const current = playerScore.putts || 0;
+    const existing = offGreenAfter(playerScore, puttIdx);
+    const keep = offGreenShots(playerScore).filter(r => r.after !== puttIdx);
+    if (existing) {
+      const details = puttDetails.map((p, i) => i === puttIdx ? { ...p, holein: puttIdx < current - 1 ? 'fail' : null } : p);
+      updateFields({ puttDetails: details, offGreen: keep });
+      return;
+    }
+    const newPutts = Math.max(current, puttIdx + 2);
+    const newDetails = Array.from({ length: newPutts }, (_, i) =>
+      i === puttIdx ? { ...puttDetails[i], holein: 'offgreen' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
+    );
+    updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: [...keep, { after: puttIdx, club: null }] });
+    setExpandedPutt(puttIdx + 1);
+    scrollDown();
+  };
+
+  const setOffGreenClub = (puttIdx, club) => {
+    const list = offGreenShots(playerScore).map(r => r.after === puttIdx ? { ...r, club: r.club === club ? null : club } : r);
+    updateField('offGreen', list);
+  };
+
+  // 퍼트가 그린 밖으로 나간 뒤 칩이 그대로 들어갔다 — 그 퍼트까지가 퍼팅이고 홀이 끝난다.
+  const offGreenChipIn = (puttIdx) => {
+    if (holeInModalPendingRef.current) return;
+    const puttsUsed = puttIdx + 1;
+    const details = puttDetails.slice(0, puttsUsed);
+    const kept = offGreenShots({ putts: puttsUsed, puttDetails: details, offGreen: playerScore.offGreen });
+    const manual = !!playerScore.strokesManual;
+    const base = { ...playerScore, putts: puttsUsed, puttDetails: details, offGreen: kept };
+    const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes(base, hole.par);
+    triggerChipIn(
+      { ...base, strokes: freshStrokes, touched: true, strokesManual: manual },
+      { putts: puttsUsed, onCount: freshStrokes - puttsUsed - kept.length },
+    );
+  };
 
   const updatePlayerStrokes = (player, newStrokes) => {
     const updated = { ...round };
@@ -2168,6 +2215,12 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           })}
         </div>
 
+        {offGreenCount(playerScore) > 0 && (
+          <div data-role="off-green-note" style={{ marginTop:6, fontSize:11, color:'#e6b94a', textAlign:'center', lineHeight:1.5 }}>
+            그린 밖으로 나가 다시 친 칩 {offGreenCount(playerScore)}타는 스코어에만 들어가요
+          </div>
+        )}
+
         {showPuttsDropdown && (() => {
           // 스코어가 높아 퍼팅 8개를 넘어야 하는 경우도 선택 가능하도록 상한까지 확장
           const upper = Math.max(8, Math.min(maxPuttsAllowed, 15));
@@ -2384,7 +2437,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
               }}
               onClick={() => {
                 const freshStrokes = calcAutoStrokes({ ...playerScore, teeOnGreen: true, putts: 0 }, hole.par);
-                const freshScore = { ...playerScore, gir: true, girAuto: false, teeOnGreen: true, putts: 0, strokes: freshStrokes, puttDetails: [], touched: true, strokesManual: false };
+                const freshScore = { ...playerScore, gir: true, girAuto: false, teeOnGreen: true, putts: 0, strokes: freshStrokes, puttDetails: [], offGreen: [], touched: true, strokesManual: false };
                 triggerChipIn(freshScore);
               }}>
               {hioSelected && <span style={{ fontSize:16 }}>⭐</span>}
@@ -2700,7 +2753,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                         const freshPlayerScore = { ...playerScore, extraShots: updatedShots, gpsPoints: gpsPoints.slice(0, idx + 3), putts: 0 };
                         const manual = !!playerScore.strokesManual;   // 직접 고친 스코어가 우선
                         const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes(freshPlayerScore, hole.par);
-                        const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], touched: true, strokesManual: manual };
+                        const freshScore = { ...freshPlayerScore, strokes: freshStrokes, puttDetails: [], offGreen: [], touched: true, strokesManual: manual };
                         triggerChipIn(freshScore);
                       }}>칩인</button>
                   </div>
@@ -2841,11 +2894,13 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                           const puttsUsed = puttIdx + 1;
                           // 직접 고친 스코어가 있으면 그 값이 우선 (퍼팅 수만 기록하고 타수는 유지)
                           const manual = !!playerScore.strokesManual;
-                          const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes({ ...playerScore, putts: puttsUsed }, hole.par);
                           const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
                             i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
                           );
-                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, touched: true, strokesManual: manual };
+                          // 홀인한 퍼트 뒤에는 칩이 있을 수 없다
+                          const keptOffGreen = offGreenShots({ putts: puttsUsed, puttDetails: newDetails, offGreen: playerScore.offGreen });
+                          const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes({ ...playerScore, putts: puttsUsed, puttDetails: newDetails, offGreen: keptOffGreen }, hole.par);
+                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, offGreen: keptOffGreen, touched: true, strokesManual: manual };
                           holeInCbRef.current = () => {
                             if (isLastHole) {
                               const u = { ...round }; u.holes = [...round.holes];
@@ -2859,7 +2914,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                               confirmAndGoToHole(holeIdx + 1, freshScore);
                             }
                           };
-                          const onCount = freshStrokes - puttsUsed;
+                          const onCount = freshStrokes - puttsUsed - keptOffGreen.length;
                           openHoleInModal({
                             isLastHole,
                             scoreName: getScoreName(freshStrokes, hole.par),
@@ -2876,14 +2931,49 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                           const newDetails = Array.from({ length: newPutts }, (_, i) =>
                             i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
                           );
-                          updateFields({ putts: newPutts, puttDetails: newDetails });
+                          updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: offGreenShots({ putts: newPutts, puttDetails: newDetails, offGreen: playerScore.offGreen }) });
                           setExpandedPutt(puttIdx + 1);
                           scrollDown();
                         }}
                       >실패</button>
+                      <button
+                        data-role="off-green"
+                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='offgreen'?{ border:'2px solid #e6b94a', color:'#e6b94a' }:{}) }}
+                        onClick={() => markOffGreen(puttIdx)}
+                      >그린 밖</button>
                     </div>
                   </div>
                 </>)}
+
+                {/* 그린 밖으로 나간 퍼트 뒤의 칩 — 퍼팅이 아니라 스코어에만 1타 더해진다 */}
+                {(() => {
+                  const og = offGreenAfter(playerScore, puttIdx);
+                  if (!og) return null;
+                  const holed = puttIdx === (playerScore.putts || 0) - 1;
+                  return (
+                    <div data-role="off-green-chip" style={{ padding:'10px 16px 12px', borderBottom:'1px solid #0e1320', background:'rgba(230,185,74,0.05)' }}>
+                      <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:11, fontWeight:700, color:'#e6b94a', letterSpacing:'0.14em' }}>그린 밖 → 칩 +1타</span>
+                        <span style={{ fontSize:11, color:'#8896b0' }}>퍼팅 수에는 들어가지 않아요</span>
+                      </div>
+                      <div style={{ display:'flex', gap:6, marginBottom:8 }}>
+                        {OFF_GREEN_CLUBS.map(c => (
+                          <button key={c.id}
+                            style={{ ...fChipWide, flex:1, minWidth:0, padding:'8px 0', fontSize:12, ...(og.club===c.id?{ border:'2px solid #e6b94a', color:'#e6b94a' }:{}) }}
+                            onClick={() => setOffGreenClub(puttIdx, c.id)}>{c.label}</button>
+                        ))}
+                      </div>
+                      <div style={{ display:'flex', gap:8 }}>
+                        <button
+                          style={{ ...fChipWide, flex:1, padding:'9px 0', fontSize:12, ...(holed?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
+                          onClick={() => { if (!holed) offGreenChipIn(puttIdx); }}>{holed ? '칩인 ✓' : '칩인'}</button>
+                        <button
+                          style={{ ...fChipWide, flex:1, padding:'9px 0', fontSize:12, color:'rgba(239,83,80,0.75)' }}
+                          onClick={() => markOffGreen(puttIdx)}>✕ 칩 삭제</button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </React.Fragment>
             );
           })}

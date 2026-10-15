@@ -117,7 +117,9 @@ export function buildDerivedHoleMetrics(h) {
   const teePenaltyNonDriver = teePenalty === true && teeClub != null && teeClub !== 'driver';
 
   const putts = h.putts ?? null;
-  const onGreenStrokes = putts != null && putts > 0 ? h.score - putts : null; // 온그린까지 타수
+  const offGreenChips = h.offGreenChips ?? 0;
+  // 온그린까지 타수 — 그린 밖으로 나간 퍼트 뒤에 다시 친 칩은 온그린 이후의 샷이다
+  const onGreenStrokes = putts != null && putts > 0 ? h.score - putts - offGreenChips : null;
 
   const teeMiss = getTeeMissCategory(h);
   const fairwayHole = h.par >= 4;
@@ -161,7 +163,10 @@ export function buildDerivedHoleMetrics(h) {
     approachFar,
     birdieChanceMissed,
     upAndDown:           h.gir === false && scoreToPar <= 0 && putts === 1 && !hasPenalty,
-    chipIn:              putts === 0 && h.score > 1,
+    chipIn:              (putts === 0 || h.offGreenChipIn === true) && h.score > 1,
+    offGreenPutt:        offGreenChips > 0,
+    offGreenChips,
+    offGreenChipIn:      h.offGreenChipIn === true,
     shortGameFail:       h.gir === false && scoreToPar >= 1 && !hasPenalty && (putts ?? 2) >= 2,
 
     // ── 페널티 위치 ──
@@ -273,6 +278,7 @@ export function buildRoundMetrics(holes) {
   const obReplayCount = metrics.reduce((s, x) => s + x.m.obReplayCount, 0);
   const upAndDownCount = metrics.filter(x => x.m.upAndDown).length;
   const chipInCount = metrics.filter(x => x.m.chipIn).length;
+  const offGreenPuttCount = metrics.filter(x => x.m.offGreenPutt).length;
 
   // 페어웨이 적중/미스에 따른 GIR
   const withFw = fairwayRecorded.filter(h => h.gir != null);
@@ -351,7 +357,7 @@ export function buildRoundMetrics(holes) {
     // 숏게임·전환
     scrambleAttempts, scrambleSaves, scrambleRate: safe(scrambleSaves, scrambleAttempts),
     girBirdieCount, girBirdieRate: safe(girBirdieCount, girConvertAttempts),
-    upAndDownCount, chipInCount,
+    upAndDownCount, chipInCount, offGreenPuttCount,
     girAfterFairwayN, girAfterMissN, girAfterFairwayRate, girAfterMissRate,
     girFairwayGap: girAfterFairwayRate - girAfterMissRate,
     // 흐름

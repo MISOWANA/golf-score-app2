@@ -1,4 +1,5 @@
 import { buildDerivedHoleMetrics, buildRoundMetrics } from './metrics.js';
+import { offGreenCount, offGreenHoled } from './offGreen.js';
 
 // ─── App data → engine format ─────────────────────────────────────────────────
 
@@ -21,6 +22,9 @@ export function toHoleInput(h, player) {
     memo:               s.memo        ?? null,
     // ── 샷 단위 상세 (없으면 해당 지표는 판단 보류) ──
     puttDetails:        Array.isArray(s.puttDetails) ? s.puttDetails : [],
+    // 퍼트가 그린 밖으로 나간 뒤 다시 친 칩 — 스코어에는 들어가고 퍼팅 수·GIR에서는 빠진다
+    offGreenChips:      offGreenCount(s),
+    offGreenChipIn:     offGreenHoled(s),
     penalties:          Array.isArray(s.penalties) ? s.penalties : [],
     teeClub:            s.teeClub     ?? null,
     secondClub:         s.secondClub  ?? null,

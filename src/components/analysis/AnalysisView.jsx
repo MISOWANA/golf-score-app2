@@ -7,6 +7,7 @@ import ScorecardTable from './ScorecardTable';
 import Insights from './Insights';
 import HoleReview from './HoleReview';
 import HoleReviewGrid from './HoleReviewGrid';
+import { offGreenShots } from '../../engine/offGreen.js';
 
 export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
@@ -60,14 +61,17 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
     const holes = round.holes.map((h, i) => {
       if (i !== holeIdx) return h;
       const s = h.scores[activePlayer];
+      const puttDetails = putts === s.putts ? s.puttDetails : [];
+      // 퍼팅 수를 바꾸면 퍼팅별 상세와 함께 그린 밖 칩 기록도 비워진다
+      const offGreen = offGreenShots({ putts, puttDetails, offGreen: s.offGreen });
       return {
         ...h,
         scores: {
           ...h.scores,
           [activePlayer]: {
             ...s, strokes, putts,
-            puttDetails: putts === s.putts ? s.puttDetails : [],
-            gir: strokes - putts <= h.par - 2, girAuto: true,
+            puttDetails, offGreen,
+            gir: strokes - putts - offGreen.length <= h.par - 2, girAuto: true,
             strokesManual: true, touched: true,
           },
         },

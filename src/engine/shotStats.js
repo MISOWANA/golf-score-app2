@@ -110,7 +110,7 @@ export function buildPuttingStats(rounds) {
           bySlope[slope].total++; if (made) bySlope[slope].made++;
           byBreak[brk].total++; if (made) byBreak[brk].made++;
         }
-        if (i === 0 && putt.distance >= 5 && putts[1]?.distance != null) {
+        if (i === 0 && putt.distance >= 5 && putt.holein !== 'offgreen' && putts[1]?.distance != null) {
           ratioSamples.push(putts[1].distance / putt.distance);
         }
       });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { buildHoleReview } from '../../engine/holeReview.js';
@@ -21,6 +21,7 @@ const TONE = { great: C.goldBright, good: C.green, bad: C.red };
 // C.dim(#8896b0)은 작은 글씨에서 대비가 부족해 라벨용 밝은 회색을 따로 쓴다.
 const LABEL = '#a8b6cc';
 const MUTED = '#4d5a78';
+const OFF_GREEN = '#e6b94a';   // 그린 밖으로 나간 퍼트·칩
 const CARD = '#121a2e';
 const BORDER = '#1e2840';
 const DIVIDER = 'rgba(255,255,255,0.06)';
@@ -425,20 +426,37 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
           })}
 
           {review.putts.map((p, i) => {
-            const tone = p.holein === 'success' ? C.green : p.holein === 'fail' ? C.red : MUTED;
+            const off = p.holein === 'offgreen';
+            const tone = p.holein === 'success' ? C.green : p.holein === 'fail' ? C.red : off ? OFF_GREEN : MUTED;
             const displayDist = p.distance ?? (i === 0 ? review.approachProximity : null);
             return (
-              <Row
-                key={`p${p.no}`}
-                badge={`P${p.no}`}
-                badgeColor={tone === MUTED ? LABEL : tone}
-                title={`${p.no}번째 퍼팅`}
-                meta={p.lie || null}
-                value={hasAnyDistance ? m1(displayDist) : null}
-                valueColor={displayDist != null ? C.line : MUTED}
-                result={p.holein === 'success' ? '홀인' : p.holein === 'fail' ? '실패' : null}
-                resultColor={tone}
-              />
+              <Fragment key={`p${p.no}`}>
+                <Row
+                  badge={`P${p.no}`}
+                  badgeColor={tone === MUTED ? LABEL : tone}
+                  title={`${p.no}번째 퍼팅`}
+                  meta={p.lie || null}
+                  value={hasAnyDistance ? m1(displayDist) : null}
+                  valueColor={displayDist != null ? C.line : MUTED}
+                  result={p.holein === 'success' ? '홀인' : p.holein === 'fail' ? '실패' : off ? '그린 밖' : null}
+                  resultColor={tone}
+                />
+                {/* 그린 밖으로 나간 퍼트 뒤에 다시 친 칩 — 퍼팅이 아니라 1타로만 더해진다 */}
+                {p.chip && (
+                  <div data-role="off-green-chip">
+                    <Row
+                      badge="칩"
+                      badgeColor={OFF_GREEN}
+                      title="그린 밖에서 칩"
+                      sub={p.chip.club}
+                      meta="스코어 +1타 · 퍼팅 수 제외"
+                      value={null}
+                      result={p.chip.holed ? '칩인' : '온그린'}
+                      resultColor={p.chip.holed ? C.goldBright : C.green}
+                    />
+                  </div>
+                )}
+              </Fragment>
             );
           })}
 

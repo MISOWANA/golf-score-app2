@@ -12,6 +12,8 @@
 // 다섯 카테고리(penalty·putting·tee·approach·shortGame)의 합은 항상 홀손실과
 // 정확히 일치한다. 이 항등식이 깨지면 진단 카드의 숫자가 실제 스코어와 어긋난다.
 
+import { offGreenCount } from './offGreen.js';
+
 export function toBreakdownInput(hole, player) {
   const s = hole.scores?.[player] ?? {};
   return {
@@ -19,6 +21,7 @@ export function toBreakdownInput(hole, player) {
     par: hole.par,
     score: s.strokes ?? hole.par,
     putts: s.putts ?? 2,
+    offGreenChips: Array.isArray(s.offGreen) ? offGreenCount(s) : 0,
     ob: s.ob ?? 0,
     hazard: s.hazard ?? 0,
     unplayable: s.unplayable ?? 0,
@@ -50,7 +53,7 @@ function getLandingZone(input) {
 
 export function buildHoleBreakdown(input) {
   const holeLoss = input.score - input.par;
-  const puttLoss = input.putts - 2;
+  const puttLoss = input.putts + (input.offGreenChips ?? 0) - 2;
   const overGreenExcess = holeLoss - puttLoss;
   const penaltyStrokes = input.ob * 2 + input.hazard + (input.unplayable ?? 0);
   const penaltyLoss = Math.min(Math.max(0, overGreenExcess), penaltyStrokes);

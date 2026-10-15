@@ -702,6 +702,34 @@ const RAW_HOLE_RULES = [
     },
   },
   {
+    id: 'H061', scope: 'hole', priority: 66, enabled: true,
+    conditions: [
+      { field: 'offGreenPutt', operator: 'eq', value: true },
+      { field: 'offGreenChipIn', operator: 'eq', value: false },
+    ],
+    result: {
+      insightType: 'putt_off_green', severity: 'warning', category: 'putting',
+      title: '퍼트가 그린 밖으로 나감',
+      summaryTemplate: '{holeNumber}번 홀에서 퍼트가 그린 밖으로 나가 칩으로 다시 올렸습니다 (스코어에 {offGreenChips}타 추가).',
+      recommendationTemplate: '경사가 큰 그린이나 핀이 가장자리에 있을 때는 홀을 노리기보다 그린 안에 세우는 속도를 먼저 정하세요. 그린 밖으로 나간 퍼트는 퍼팅 손실로 계산됩니다.',
+      tags: ['putting', 'green_reading'],
+    },
+  },
+  {
+    id: 'H062', scope: 'hole', priority: 18, enabled: true, supersedes: ['H047'],
+    conditions: [
+      { field: 'offGreenPutt', operator: 'eq', value: true },
+      { field: 'offGreenChipIn', operator: 'eq', value: true },
+    ],
+    result: {
+      insightType: 'putt_off_green_chip_in', severity: 'positive', category: 'shortgame',
+      title: '퍼트가 그린 밖으로 나갔지만 칩인',
+      summaryTemplate: '{holeNumber}번 홀에서 퍼트가 그린 밖으로 나갔지만 칩으로 바로 홀인했습니다.',
+      recommendationTemplate: '실수를 칩인으로 만회했습니다. 다만 퍼트가 그린 밖으로 나간 원인(속도·경사 판단)은 짚어 두세요.',
+      tags: ['short_game', 'chip_in'],
+    },
+  },
+  {
     id: 'H060', scope: 'hole', priority: 99, enabled: true,
     conditions: [{ field: 'hasMemo', operator: 'eq', value: true }],
     result: {

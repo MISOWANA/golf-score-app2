@@ -758,6 +758,17 @@ const RAW_ROUND_RULES = [
       tags: ['score', 'birdie'],
     },
   },
+  {
+    id: 'R064', scope: 'round', priority: 64, enabled: true, careerApplicable: false,
+    conditions: [{ field: 'offGreenPuttCount', operator: 'gte', value: 2 }],
+    result: {
+      insightType: 'putt_off_green_pattern', severity: 'warning', category: 'putting',
+      title: '퍼트가 그린 밖으로 나간 홀',
+      summaryTemplate: '퍼트가 그린 밖으로 나가 칩으로 다시 올린 홀이 {offGreenPuttCount}개 있었습니다.',
+      recommendationTemplate: '그린 가장자리 핀이나 큰 경사에서는 홀 뒤 거리보다 그린 안에 세우는 속도를 우선하세요. 이런 홀은 퍼팅 수가 아니라 퍼팅 손실로 잡힙니다.',
+      tags: ['putting', 'green_reading'],
+    },
+  },
 ];
 
 export const ROUND_RULES = RAW_ROUND_RULES.map(withCategory);

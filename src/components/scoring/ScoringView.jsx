@@ -1670,40 +1670,40 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     updateFields(fields);
   };
 
-  // 벌타 처리 방법 선택 창의 선택지 — 룰에 맞춰 방법마다 몇 벌타이고 다음 샷이 몇 번째 샷인지 보여준다.
-  //   OB: 두 가지뿐 — 스트로크와 거리(Rule 18.2, 1벌타·직전 샷 지점에서 다시 치기) / OB티(국내 관행, 2벌타 상당)
-  //   해저드(17.1d): 어느 방법이든 1벌타 — 볼이 들어간 지점 기준 드롭, 해저드 티, 제자리 다시 치기
-  //   언플레이어블(19.2): 어느 방법이든 1벌타 — 후방 드롭, 측면 드롭, 제자리 다시 치기
+  // 벌타 처리 방법 선택 창의 선택지 — 규칙집(Rules of Golf)의 구제 방식 이름을 영문과 함께 그대로 보여주고,
+  // 벌타 뒤 다음 샷이 몇 번째 샷인지(next)를 크게 강조한다.
+  //   OB: 스트로크와 거리 구제(18.2, 1벌타) / OB티(국내 관행, 2벌타 상당)
+  //   해저드(17.1d): 후방선·측면(레드만)·스트로크와 거리 구제, 해저드 티(드롭존, 로컬룰) — 모두 1벌타
+  //   언플레이어블(19.2): 후방선·측면·스트로크와 거리 구제 — 모두 1벌타
   const penaltyOptions = (slot, type) => {
     const n = strokeNumberOf(playerScore, slot);   // 벌타가 난 샷이 몇 타째인지
     const next1 = n + 2;                           // +1벌타 뒤 다음 샷의 타수
-    const replay = {
-      mode: 'replay', title: '제자리에서 다시 치기',
-      sub: `직전 샷을 친 자리에서 · 다시 친 샷 = ${next1}번째 샷 · 클럽·위치도 기록`,
-    };
+    const opt = (mode, ko, en, rule, penalty, where, next, tag = null) => ({ mode, ko, en, rule, penalty, where, next, tag });
+    const replayWhere = '직전 샷을 친 자리에서 다시 치기 · 다시 친 샷의 클럽·위치도 기록';
     if (type === 'ob') {
       return [
-        { mode: 'replay', primary: true, title: '스트로크와 거리',
-          sub: `Rule 18.2 · 1벌타 · 직전 샷 지점에서 다시 치기 · 다시 친 샷 = ${next1}번째 샷` },
-        { mode: 'forward', title: 'OB티',
-          sub: `국내 골프장 관행 · 2벌타 상당 · ${slot === 0 ? '지정된 특설티에서' : '지정된 특설티 (없으면 OB 지점 근처 드롭)'} · 다음 샷 = ${n + 3}번째 샷` },
+        opt('replay', '스트로크와 거리 구제', 'Stroke-and-Distance Relief', 'Rule 18.2', '1벌타', replayWhere, next1),
+        opt('forward', 'OB티', 'OB Tee · Local Rule', '국내 골프장 관행', '2벌타 상당',
+          slot === 0 ? '지정된 특설티에서 치기' : '지정된 특설티에서 치기 (없으면 OB 지점 근처 드롭)', n + 3),
       ];
     }
     if (type === 'hazard') {
       return [
-        { mode: 'drop', primary: true, title: '볼이 들어간 지점 기준 드롭',
-          sub: `홀과 일직선 뒤쪽(후방) · 레드는 2클럽 측면도 가능 · 다음 샷 = ${next1}번째 샷` },
-        { mode: 'tee', title: '해저드 티에서 치기',
-          sub: `코스에 해저드 티(드롭존)가 있을 때 · 다음 샷 = ${next1}번째 샷` },
-        replay,
+        opt('back', '후방선 구제', 'Back-on-the-Line Relief', 'Rule 17.1d(2)', '1벌타',
+          '홀과 볼이 경계를 마지막으로 넘은 지점을 잇는 선 뒤쪽 · 거리 제한 없음', next1),
+        opt('lateral', '측면 구제', 'Lateral Relief', 'Rule 17.1d(3)', '1벌타',
+          '볼이 경계를 마지막으로 넘은 지점에서 2클럽 이내 · 홀에 가깝지 않게', next1, '레드만'),
+        opt('replay', '스트로크와 거리 구제', 'Stroke-and-Distance Relief', 'Rule 17.1d(1)', '1벌타', replayWhere, next1),
+        opt('tee', '해저드 티', 'Drop Zone', '코스 로컬룰', '1벌타',
+          '코스에 해저드 티(드롭존)가 있을 때 그곳에서 치기', next1),
       ];
     }
     return [
-      { mode: 'back', primary: true, title: '후방 드롭',
-        sub: `볼 자리와 홀을 잇는 선의 뒤쪽 · 거리 제한 없음 · 다음 샷 = ${next1}번째 샷` },
-      { mode: 'lateral', title: '측면 드롭',
-        sub: `볼 자리에서 2클럽 이내, 홀에 가깝지 않게 · 다음 샷 = ${next1}번째 샷` },
-      replay,
+      opt('back', '후방선 구제', 'Back-on-the-Line Relief', 'Rule 19.2b', '1벌타',
+        '볼 자리와 홀을 잇는 선 뒤쪽 · 거리 제한 없음', next1),
+      opt('lateral', '측면 구제', 'Lateral Relief', 'Rule 19.2c', '1벌타',
+        '볼 자리에서 2클럽 이내 · 홀에 가깝지 않게', next1),
+      opt('replay', '스트로크와 거리 구제', 'Stroke-and-Distance Relief', 'Rule 19.2a', '1벌타', replayWhere, next1),
     ];
   };
 
@@ -2990,29 +2990,50 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         </div>
       )}
 
-      {/* 벌타 처리 방법 선택 — OB(스트로크와 거리·OB티) / 해저드(드롭·해저드 티·다시 치기) / 언플레이어블(후방·측면 드롭·다시 치기) */}
+      {/* 벌타 처리 방법 선택 — 구제 방식 정식 명칭(영문 병기) + 다음 샷 번호 강조 */}
       {penaltyChoice != null && (
         <div style={styles.modalOverlay} onClick={() => setPenaltyChoice(null)}>
-          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalIcon}>⚠️</div>
+          <div style={{ ...styles.modalCard, maxWidth: 380, padding: '20px 14px 14px', maxHeight: '92vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ ...styles.modalIcon, fontSize: 30, marginBottom: 4 }}>⚠️</div>
             <div style={styles.modalTitle}>{shotLabel(penaltyChoice.slot)} {PENALTY_LABEL[penaltyChoice.type]}</div>
-            <div style={styles.modalText}>
+            <div style={{ ...styles.modalText, marginBottom: 14, wordBreak: 'keep-all' }}>
               {penaltyChoice.type === 'ob'
-                ? <>OB 처리를 어떻게 했나요?<br/>스트로크와 거리는 1벌타 + 다시 친 샷, OB티는 2벌타 — 스코어는 둘 다 +2타예요</>
-                : <>다음 샷을 어떻게 쳤나요?<br/>방법은 달라도 모두 1벌타(+1타)예요</>}
+                ? <>OB 처리를 어떻게 했나요?<br/>어느 쪽이든 스코어는 +2타예요 (1벌타 + 다시 친 샷 · 2벌타)</>
+                : <>어떤 구제 방식을 썼나요?<br/>어느 방식이든 1벌타(+1타)예요</>}
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {penaltyOptions(penaltyChoice.slot, penaltyChoice.type).map((o) => (
-                <button key={o.mode} style={o.primary ? styles.modalBtnPrimary : styles.modalBtnCancel}
-                  onClick={() => choosePenaltyMode(o.mode)}>
-                  {o.title}
-                  <div style={obChoiceSub}>{o.sub}</div>
+                <button key={o.mode} style={reliefCard} onClick={() => choosePenaltyMode(o.mode)}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={reliefKoRow}>
+                      <span style={reliefKo}>{o.ko}</span>
+                      {o.tag && <span style={{ ...reliefChip, ...reliefChipTag }}>{o.tag}</span>}
+                    </div>
+                    <div style={reliefEn}>({o.en})</div>
+                    <div style={reliefMeta}>
+                      <span style={reliefChip}>{o.rule}</span>
+                      <span style={{ ...reliefChip, ...reliefChipPen }}>{o.penalty}</span>
+                    </div>
+                    <div style={reliefWhere}>{o.where}</div>
+                  </div>
+                  <div style={reliefNext}>
+                    <span style={reliefNextLabel}>다음 샷</span>
+                    <span style={reliefNextNum}>{o.next}</span>
+                    <span style={reliefNextUnit}>번째 샷</span>
+                  </div>
                 </button>
               ))}
-              <button style={styles.modalBtnCancel} onClick={() => setPenaltyChoice(null)}>취소</button>
+              <button style={{ ...styles.modalBtnCancel, flex:'none', width:'100%', marginTop:2 }}
+                onClick={() => setPenaltyChoice(null)}>취소</button>
             </div>
+            {penaltyChoice.type === 'hazard' && (
+              <div style={reliefNote}>
+                노란 말뚝(옐로 페널티구역)은 측면 구제를 쓸 수 없어요 — 후방선·스트로크와 거리 구제만 가능해요.
+              </div>
+            )}
             {penaltyChoice.type === 'unplayable' && (
-              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 10, textAlign: 'left' }}>
+              <div style={reliefNote}>
                 벙커 안에서 선언하고 벙커 밖에서 치면 2벌타예요 — 위쪽 패널티의 언플레이어블 +를 한 번 더 눌러 주세요.
               </div>
             )}
@@ -3217,7 +3238,32 @@ const fChip = { padding:'5px 9px', borderRadius:6, border:'1.5px solid #252f4a',
 const fChipOn = { border:'2px solid #c9a228', background:'rgba(201,162,40,0.18)', color:'#c9a228' };
 const fChipWide = { minWidth:52, padding:'7px 12px', borderRadius:8, border:'1.5px solid #252f4a', background:'#1a2235', color:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' };
 
-const obChoiceSub = { fontSize: 12, fontWeight: 600, marginTop: 3, opacity: 0.85, wordBreak: 'keep-all', lineHeight: 1.45 };
+// 벌타 구제 방식 카드 — 왼쪽: 정식 명칭(영문) · 근거/벌타 · 설명, 오른쪽: 다음 샷 번호 (모든 카드에서 같은 너비로 줄을 맞춘다)
+const reliefCard = {
+  display: 'flex', alignItems: 'stretch', gap: 12, width: '100%', boxSizing: 'border-box',
+  padding: '11px 11px 11px 14px', background: '#1a2235', border: '1px solid #2c3a5c', borderRadius: 10,
+  textAlign: 'left', cursor: 'pointer', color: '#e8edf8', fontFamily: 'inherit',
+};
+const reliefKoRow = { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 };
+const reliefKo = { fontSize: 16, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.01em', color: '#e8edf8' };
+const reliefEn = { fontSize: 12, fontWeight: 600, lineHeight: 1.3, marginTop: 2, color: '#8896b0' };
+const reliefMeta = { display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 };
+const reliefChip = {
+  fontSize: 11, fontWeight: 700, lineHeight: 1.2, padding: '3px 7px', borderRadius: 999,
+  color: '#a9b8d6', background: 'rgba(255,255,255,0.04)', border: '1px solid #33425f', whiteSpace: 'nowrap',
+};
+const reliefChipPen = { color: '#ef8a87', background: 'rgba(239,83,80,0.10)', border: '1px solid rgba(239,83,80,0.38)' };
+const reliefChipTag = { color: '#e6b94a', background: 'rgba(230,185,74,0.10)', border: '1px solid rgba(230,185,74,0.38)' };
+const reliefWhere = { marginTop: 7, fontSize: 12, fontWeight: 500, lineHeight: 1.5, color: '#9aa8c4', wordBreak: 'keep-all', textWrap: 'balance' };
+const reliefNext = {
+  flex: '0 0 68px', width: 68, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+  gap: 1, padding: '8px 4px', borderRadius: 9, boxSizing: 'border-box',
+  background: 'rgba(201,162,40,0.13)', border: '1px solid rgba(201,162,40,0.55)',
+};
+const reliefNextLabel = { fontSize: 11, fontWeight: 700, color: '#d8b640', letterSpacing: '0.02em' };
+const reliefNextNum = { fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: '#f3d36b', fontVariantNumeric: 'tabular-nums' };
+const reliefNextUnit = { fontSize: 11, fontWeight: 700, color: '#d8b640' };
+const reliefNote = { fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
 
 const fMiniBtn = { width:32, height:32, borderRadius:7, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
 

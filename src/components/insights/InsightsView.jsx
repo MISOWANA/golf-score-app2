@@ -3,6 +3,9 @@ import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
 import GreenMissSelector from '../scoring/GreenMissSelector';
 import ConfidenceBadge from './ConfidenceBadge';
+import InsightReportPanel from './InsightReportPanel';
+import RoundReplayPanel from './RoundReplayPanel';
+import InsightSearchPanel from './InsightSearchPanel';
 import { toHoleInput, matchRoundInsightRules } from '../../engine/engine.js';
 import { buildRoundMetrics } from '../../engine/metrics.js';
 import { ROUND_RULES } from '../../engine/rules/roundRules.js';
@@ -53,6 +56,7 @@ function clockToQuadrant(clock) {
 
 export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
+  const [tab, setTab] = useState('report');   // 'report' | 'replay' | 'search' — 리포트 · 라운드 복기 · 검색
 
   if (rounds.length === 0) {
     return (
@@ -290,6 +294,20 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </div>
       </div>
 
+      {/* 인사이트를 보는 세 가지 방식 — 리포트(요약) · 라운드 복기(홀 순서) · 검색(찾아보기) */}
+      <div style={{ ...styles.riToggleRow, marginBottom: 14 }} role="tablist" aria-label="인사이트 보기 방식">
+        {[['report', '리포트'], ['replay', '라운드 복기'], ['search', '검색']].map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={tab === k}
+            style={{ ...styles.riToggleBtn, ...(tab === k ? styles.riToggleBtnActive : {}) }}
+            onClick={() => setTab(k)}
+          >{l}</button>
+        ))}
+      </div>
+
+      {tab === 'replay' && <div style={{ padding: '0 0 24px' }}><RoundReplayPanel rounds={rounds} /></div>}
+      {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={rounds} /></div>}
+
+      {tab === 'report' && <>
       {rounds.length > 1 && (
         <div style={styles.riToggleRow}>
           <button
@@ -302,6 +320,10 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           >{rounds.length}라운드 누적</button>
         </div>
       )}
+
+      <div style={{ marginBottom: 8 }}>
+        <InsightReportPanel rounds={rounds} mode={isCareerMode ? 'career' : 'round'} />
+      </div>
 
       {/* ── 스코어 5단계 분해 ─────────────────────────────────────────────── */}
       <div style={styles.section}>
@@ -674,6 +696,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           </div>
         );
       })()}
+      </>}
     </div>
   );
 }

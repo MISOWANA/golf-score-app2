@@ -6,27 +6,43 @@
 
 import { toBreakdownInput, buildRoundBreakdown } from './scoreBreakdown.js';
 import { penaltyCount } from './penalties.js';
-
-function firstPuttDistance(hole, player) {
-  return hole.scores?.[player]?.puttDetails?.[0]?.distance ?? null;
-}
+import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 
 function puttingDirective(round, player, breakdownHoles) {
   const threePuttHoles = breakdownHoles.filter(h => h.categories.putting > 0);
   if (threePuttHoles.length > 0) {
-    const withFirstPuttDist = threePuttHoles
-      .map(h => firstPuttDistance(round.holes[h.holeNumber - 1], player))
-      .filter(d => d != null);
-    const longStarts = withFirstPuttDist.filter(d => d >= 5).length;
-    if (withFirstPuttDist.length > 0 && longStarts / withFirstPuttDist.length >= 0.6) {
+    // 3퍼트 원인은 퍼트 거리로 구분한다 — 거리 기록이 없으면 거리감 탓으로 단정하지 않는다.
+    const analyses = threePuttHoles.map(h => analyzePutts(round.holes[h.holeNumber - 1].scores?.[player]));
+    const sum = summarizePuttCauses(analyses);
+    const n = threePuttHoles.length;
+    if (sum.known === 0) {
       return {
-        observation: `3퍼트 ${threePuttHoles.length}회 중 ${longStarts}회가 5m 이상 거리에서 시작됐습니다.`,
-        directive: '롱퍼트 거리 컨트롤',
+        observation: `3퍼트 ${n}회가 있었지만 퍼트 거리가 기록되지 않아 거리감인지 숏퍼트 미스인지 구분할 수 없습니다.`,
+        directive: '3퍼트 원인 구분',
       };
     }
+    const parts = [];
+    if (sum.counts.lag > 0) parts.push(`거리감 ${sum.counts.lag}회`);
+    if (sum.counts.short > 0) parts.push(`숏퍼트 미스 ${sum.counts.short}회`);
+    if (sum.counts.both > 0) parts.push(`둘 다 ${sum.counts.both}회`);
+    if (sum.counts.mid > 0) parts.push(`중거리 ${sum.counts.mid}회`);
+    if (sum.counts.close > 0) parts.push(`가까운 거리 ${sum.counts.close}회`);
+    if (sum.counts.unknown > 0) parts.push(`판단 보류 ${sum.counts.unknown}회`);
+    const DIRECTIVE = {
+      lag: '롱퍼트 거리 컨트롤',
+      short: '숏퍼트 마무리',
+      both: '롱퍼트 거리 컨트롤과 숏퍼트 마무리',
+      mid: '중거리 퍼트 라인·속도',
+      close: '가까운 거리 퍼트 속도',
+    };
+    const dominant = sum.lagTotal > 0 && sum.lagTotal >= sum.shortTotal && sum.lagTotal >= sum.counts.mid && sum.lagTotal >= sum.counts.close
+      ? 'lag'
+      : sum.shortTotal > 0 && sum.shortTotal >= sum.counts.mid && sum.shortTotal >= sum.counts.close
+        ? 'short'
+        : sum.dominant;
     return {
-      observation: `이번 라운드 3퍼트가 ${threePuttHoles.length}회 발생했습니다.`,
-      directive: '3퍼트 이후 다음 퍼트 루틴',
+      observation: `3퍼트 ${n}회 — ${parts.join(' · ')} (퍼트 거리 기록 기준).`,
+      directive: DIRECTIVE[dominant] ?? '3퍼트 이후 다음 퍼트 루틴',
     };
   }
 

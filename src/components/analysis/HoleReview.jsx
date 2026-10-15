@@ -437,6 +437,16 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
             );
           })}
 
+          {/* 3퍼트 이상 — 퍼트 거리로 본 원인 (거리가 없으면 판단 보류) */}
+          {review.puttAnalysis && (
+            <div data-role="putt-cause" style={{ padding: '12px 14px', borderTop: `1px solid ${C.line}22`, fontSize: 14, lineHeight: 1.7, color: '#d6dfec' }}>
+              <div style={{ fontWeight: 800, color: review.puttAnalysis.cause === 'unknown' ? MUTED : C.goldBright, marginBottom: 2 }}>
+                3퍼트 원인 · {review.puttAnalysis.label}
+              </div>
+              <div>{review.puttAnalysis.detail}</div>
+            </div>
+          )}
+
           {/* 퍼팅 수만 있고 상세가 없는 홀 */}
           {puttSummary && (
             <Row

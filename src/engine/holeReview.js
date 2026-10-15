@@ -6,6 +6,7 @@
 
 import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted } from './geo.js';
 import { penaltyAt, penaltyCount, penaltyResultText, shotTitle } from './penalties.js';
+import { analyzePutts } from './puttAnalysis.js';
 
 const CLUB_LABEL = { driver: 'DRIVER', wood: 'WOOD', hybrid: 'HYBRID', iron: 'IRON', wedge: 'WEDGE' };
 
@@ -144,6 +145,8 @@ export function buildHoleReview(hole, player, holeIdx) {
   }));
 
   const penalty = penaltyCount(s);
+  // 3퍼트 이상이면 퍼트 거리로 원인을 구분한다 (거리 기록이 없으면 판단 보류)
+  const pa = analyzePutts(s);
 
   return {
     holeIdx, holeNo: holeIdx + 1, par,
@@ -163,6 +166,9 @@ export function buildHoleReview(hole, player, holeIdx) {
     // 커질 수 있다. 입력이 없을 때만 그린 도착점↔핀 실측으로 대체.
     approachProximity: firstPuttDistance(s) ?? haversine(s.gpsGreen, s.gpsPin),
     holedOut: isHoledOut(s),
+    puttAnalysis: pa.isThreePutt
+      ? { cause: pa.cause, label: pa.causeLabel, detail: pa.detail, advice: pa.advice, confidence: pa.confidence, line: pa.hasDistance ? pa.line : '' }
+      : null,
     shots,
     putts,
     gps: {

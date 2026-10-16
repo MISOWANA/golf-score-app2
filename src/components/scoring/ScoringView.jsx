@@ -315,12 +315,11 @@ function WindInput({ direction, strength, onDir, onStrength }) {
 // 테두리라 필수 항목(빨강)보다 눈에 띄지 않는다. 입력한 값이 있으면 금색으로 바뀌고
 // 접힌 상태에서도 헤더에 요약한다.
 // children(close) — 선택이 끝나면 섹션을 접을 수 있도록 close를 넘긴다.
-// required — 필수 선택. 값이 없으면 처음부터 펼쳐 두고 빨간 '필수'로 표시한다.
+// required — 꼭 골라야 하는 선택. 값이 없으면 처음부터 펼쳐 둔다 ('필수' 표시는 따로 하지 않는다).
 function OptionalSection({ icon, label, enabled, summary, required = false, children }) {
   const [open, setOpen] = useState(required && !summary);
   const hasValue = !!summary;
-  const missing = required && !hasValue;
-  const accent = missing ? '#ef5350' : hasValue ? '#c9a228' : enabled ? '#8896b0' : '#4d5a78';
+  const accent = hasValue ? '#c9a228' : enabled ? '#8896b0' : '#4d5a78';
   return (
     <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
       <button
@@ -328,17 +327,16 @@ function OptionalSection({ icon, label, enabled, summary, required = false, chil
         style={{
           width:'100%', display:'flex', alignItems:'center', gap:8, padding:'10px 12px', borderRadius:9,
           cursor:'pointer', textAlign:'left',
-          border:`1.5px solid ${missing ? '#ef5350' : hasValue ? '#c9a228' : enabled ? '#2c3a5c' : '#1d2740'}`,
-          background: missing ? 'rgba(239,83,80,0.08)'
-            : hasValue ? 'rgba(201,162,40,0.12)' : 'transparent',
+          border:`1.5px solid ${hasValue ? '#c9a228' : enabled ? '#2c3a5c' : '#1d2740'}`,
+          background: hasValue ? 'rgba(201,162,40,0.12)' : 'transparent',
         }}
       >
         <span style={{ ...fIcon, color: accent }}>{icon}</span>
-        <span style={{ ...fLbl, color: missing ? '#ef5350' : hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#4d5a78' }}>{label}</span>
+        <span style={{ ...fLbl, color: hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#4d5a78' }}>{label}</span>
         <span style={{ flex:1, minWidth:0, fontSize:12, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {hasValue ? summary
-            : <span style={{ color: missing ? '#ef5350' : enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
-                {required ? '필수 선택' : enabled ? '선택 입력' : '클럽 선택 후 입력'}
+            : <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
+                {enabled ? '선택 입력' : '클럽 선택 후 입력'}
               </span>}
         </span>
         <span style={{ fontSize:12, fontWeight:800, color: accent }}>{open ? '접기 ▴' : '펼치기 ▾'}</span>
@@ -1213,11 +1211,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const clubs = hole.par === 3
     ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
     : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
-
-  // 필수 선택 표시 — applies: 이 홀에서 필수인지, done: 이미 골랐는지. 안 골랐을 때만 붙는다.
-  const requiredTag = (applies, done) => (applies && !done ? (
-    <span style={{ fontSize:9, fontWeight:800, color:'#ef5350', border:'1px solid rgba(239,83,80,0.45)', borderRadius:4, padding:'1px 5px', letterSpacing:'0.08em' }}>필수</span>
-  ) : null);
 
   const secHdr = (label, onDelete, state = 'idle') => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
@@ -2575,7 +2568,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
-              {requiredTag(!penaltyAt(playerScore, 0) && !playerScore.teeGIR, playerScore.fairway != null)}
             </div>
             <div style={{ display:'flex', gap:8 }}>
               {/* 1온(G)이면 볼이 그린 위라 페어웨이 O는 성립하지 않는다 — G를 먼저 해제해야 고를 수 있다 */}
@@ -2592,7 +2584,6 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
-              {requiredTag(!penaltyAt(playerScore, 0) && !playerScore.teeGIR, playerScore.fairwayHit != null)}
             </div>
             {/* L / C / R 3분할 */}
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
@@ -3184,13 +3175,28 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           </button>
 
           {/* 홀 지도 */}
+          {(() => {
+            const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
+            return (
           <button
-            style={{ ...styles.tabBarBtn, color: (gpsPoints.some(Boolean) || gpsGreen) ? '#c9a228' : '#4d5a78' }}
+            data-role="map-button"
+            style={{
+              ...styles.tabBarBtn,
+              color: mapUsed ? '#c9a228' : '#f0c93a',
+              // 아직 지도를 안 썼으면 눌러 보라고 금색 테두리와 맥박 효과로 강조한다
+              ...(mapUsed ? {} : {
+                margin: '6px 4px', borderRadius: 12, minHeight: 44,
+                border: '1.5px solid rgba(240,201,58,0.7)', background: 'rgba(201,162,40,0.16)',
+                animation: 'goldPulse 1.8s ease-in-out infinite',
+              }),
+            }}
             onClick={() => setShowHoleMap(true)}
           >
-            <MapIcon size={20} strokeWidth={1.8} />
-            <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>지도</span>
+            <MapIcon size={mapUsed ? 20 : 22} strokeWidth={mapUsed ? 1.8 : 2.2} />
+            <span style={{ ...styles.tabBarLabel, fontWeight: mapUsed ? '500' : '800' }}>{mapUsed ? '지도' : '지도 찍기'}</span>
           </button>
+            );
+          })()}
 
           {/* 홈 */}
           <button

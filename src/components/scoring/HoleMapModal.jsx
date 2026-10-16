@@ -184,8 +184,15 @@ export default function HoleMapModal({
     mapRef.current = map;
     // 모달이 그려진 직후엔 컨테이너 크기가 0일 수 있다.
     setTimeout(() => map.invalidateSize(), 60);
+    // 하단 조작부 높이가 바뀌면(샷이 늘거나 위치 조정으로 들어가면) 지도 영역도 달라진다
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => map.invalidateSize({ animate: false }));
+      ro.observe(containerRef.current);
+    }
 
     return () => {
+      ro?.disconnect();
       map.remove();
       mapRef.current = null; draftRef.current = null; draftLineRef.current = null;
     };
@@ -508,7 +515,8 @@ export default function HoleMapModal({
   // ── 지도 화면 ───────────────────────────────────────────────────────────────
   return (
     <Shell holeNo={holeNo} par={par} onClose={close}>
-      <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+      {/* 지도는 샷이 많아져도 화면 높이의 50% 아래로 줄지 않는다 — 하단 조작부가 나머지 높이 안에서 스크롤한다 */}
+      <div style={{ position: 'relative', flex: '1 1 0', minHeight: '50%' }}>
         <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: COLOR.ink }} />
 
         {placeMode && (
@@ -555,12 +563,13 @@ export default function HoleMapModal({
         >◎</button>
       </div>
 
-      {/* 하단 조작부 */}
-      {/* 화면이 작을 때도 지도가 사라지지 않게 하단 조작부는 높이를 제한하고 스크롤시킨다 */}
+      {/* 하단 조작부 — 지도가 화면의 절반 이상을 유지하도록 남는 높이만 쓴다.
+          위쪽(내 위치·거리·지점 선택·거리 표)은 스크롤하고, 맨 아래 조작 줄은 고정한다. */}
       <div style={{
-        flexShrink: 0, borderTop: '1px solid #1b2238', background: '#0d1220',
-        maxHeight: '62vh', overflowY: 'auto', textAlign: 'left',
+        flex: '0 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        borderTop: '1px solid #1b2238', background: '#0d1220', textAlign: 'left',
       }}>
+        <div data-role="map-scroll" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
         {/* 내 위치 상태 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px 8px' }}>
           <span style={{
@@ -574,6 +583,27 @@ export default function HoleMapModal({
 
         {posError && (
           <div style={{ padding: '0 14px 8px', fontSize: 12, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
+        )}
+
+        {/* 위치를 조정하는 중이면 조정 숫자를 맨 위에 둔다 — 스크롤하지 않고도 보이게 */}
+        {draft && (
+          <div style={{ padding: '0 14px 4px' }}>
+            <MetricPanel accent title={`${selectedSlot?.label} 위치 조정 중`}>
+              {selected === PIN_SLOT ? [
+                <Metric
+                  key="a"
+                  label={lastMarked ? `⛳ ${lastMarked.label}에서 핀까지` : '⛳ 핀까지'}
+                  value={draftDistance} tone="gold"
+                />,
+                pinFromTee && <Metric key="b" label="홀 전장 (티 → 핀)" value={draftHoleLen} />,
+              ] : [
+                draftPrevPoint && (
+                  <Metric key="a" label={`${prerequisiteLabel ?? '직전 지점'}에서 여기까지`} value={draftDistance} />
+                ),
+                <Metric key="b" label="⛳ 여기서 핀까지" value={draftToPin} tone="gold" />,
+              ]}
+            </MetricPanel>
+          </div>
         )}
 
         {/* 지금 서 있는 자리의 거리 — 직전 지점에서 여기까지, 여기서 핀까지.
@@ -599,35 +629,6 @@ export default function HoleMapModal({
                 지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
               </div>
             )}
-          </div>
-        )}
-
-        {/* 거리 요약 표 — 지점마다 '직전 지점에서 온 거리'와 '핀까지 남은 거리'.
-            조정 중에는 조정 패널에 집중하도록 가린다. */}
-        {!draft && summaryRows.length > 0 && (
-          <div style={{
-            margin: '0 14px 10px', borderRadius: 10, overflow: 'hidden',
-            border: '1px solid #1b2238', background: '#0f1626',
-          }}>
-            <div style={{ ...TABLE_ROW, padding: '6px 12px', background: '#131c30' }}>
-              <span style={{ ...TABLE_HEAD, flex: 1 }}>지점</span>
-              <span style={{ ...TABLE_HEAD, width: 92, textAlign: 'right' }}>이전 지점에서</span>
-              <span style={{ ...TABLE_HEAD, width: 74, textAlign: 'right', color: COLOR.gold }}>⛳ 핀까지</span>
-            </div>
-            {summaryRows.map((r, i) => (
-              <div key={r.key} style={{
-                ...TABLE_ROW, padding: '8px 12px',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-                background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent',
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.line }}>{r.label}</div>
-                  {r.note && <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.dim, marginTop: 1 }}>{r.note}</div>}
-                </div>
-                <TableNumber value={r.arrived} width={92} color={COLOR.line} />
-                <TableNumber value={r.toPin} width={74} color={COLOR.gold} />
-              </div>
-            ))}
           </div>
         )}
 
@@ -695,47 +696,61 @@ export default function HoleMapModal({
           })}
         </div>
 
-        {draft ? (
-          /* 확정 대기 — 마커를 끌어 맞춘 뒤 눌러 기록한다 */
-          <div style={{ padding: '0 14px 14px' }}>
-            {/* 끄는 동안 양쪽 거리가 같이 움직인다 — 어디에 놓을지 이 숫자로 정한다.
-                핀: 마지막으로 찍은 지점에서 핀까지(+ 홀 전장). 그 외: 직전 지점에서 여기까지, 여기서 핀까지. */}
-            <MetricPanel accent title={`${selectedSlot?.label} 위치 조정 중`}>
-              {selected === PIN_SLOT ? [
-                <Metric
-                  key="a"
-                  label={lastMarked ? `⛳ ${lastMarked.label}에서 핀까지` : '⛳ 핀까지'}
-                  value={draftDistance} tone="gold"
-                />,
-                pinFromTee && <Metric key="b" label="홀 전장 (티 → 핀)" value={draftHoleLen} />,
-              ] : [
-                draftPrevPoint && (
-                  <Metric key="a" label={`${prerequisiteLabel ?? '직전 지점'}에서 여기까지`} value={draftDistance} />
-                ),
-                <Metric key="b" label="⛳ 여기서 핀까지" value={draftToPin} tone="gold" />,
-              ]}
-            </MetricPanel>
-            <div style={{ display: 'flex', gap: 7 }}>
-              <button
-                onClick={confirmDraft}
-                style={{
-                  flex: 2, padding: '15px 10px', borderRadius: 11, cursor: 'pointer',
-                  border: 'none', background: COLOR.gold, color: COLOR.ink,
-                  fontSize: 16, fontWeight: 800,
-                }}
-              >✓ 이 위치로 확정</button>
-              <button
-                onClick={cancelDraft}
-                style={{
-                  flex: 1, padding: '15px 8px', borderRadius: 11, cursor: 'pointer',
-                  border: '1.5px solid #3a4e72', background: 'transparent',
-                  color: '#d4dcec', fontSize: 14, fontWeight: 700,
-                }}
-              >취소</button>
+        {/* 거리 요약 표 — 지점마다 '직전 지점에서 온 거리'와 '핀까지 남은 거리'.
+            조정 중에는 조정 패널에 집중하도록 가린다. */}
+        {!draft && summaryRows.length > 0 && (
+          <div style={{
+            margin: '0 14px 10px', borderRadius: 10, overflow: 'hidden',
+            border: '1px solid #1b2238', background: '#0f1626',
+          }}>
+            <div style={{ ...TABLE_ROW, padding: '6px 12px', background: '#131c30' }}>
+              <span style={{ ...TABLE_HEAD, flex: 1 }}>지점</span>
+              <span style={{ ...TABLE_HEAD, width: 92, textAlign: 'right' }}>이전 지점에서</span>
+              <span style={{ ...TABLE_HEAD, width: 74, textAlign: 'right', color: COLOR.gold }}>⛳ 핀까지</span>
             </div>
+            {summaryRows.map((r, i) => (
+              <div key={r.key} style={{
+                ...TABLE_ROW, padding: '8px 12px',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.line }}>{r.label}</div>
+                  {r.note && <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.dim, marginTop: 1 }}>{r.note}</div>}
+                </div>
+                <TableNumber value={r.arrived} width={92} color={COLOR.line} />
+                <TableNumber value={r.toPin} width={74} color={COLOR.gold} />
+              </div>
+            ))}
+          </div>
+        )}
+
+
+        </div>
+
+        {/* 고정 조작 줄 */}
+        <div data-role="map-actions" style={{ flexShrink: 0, padding: '10px 14px 14px', borderTop: '1px solid #1b2238', background: '#0d1220' }}>
+        {draft ? (
+          <div style={{ display: 'flex', gap: 7 }}>
+            <button
+              onClick={confirmDraft}
+              style={{
+                flex: 2, padding: '15px 10px', borderRadius: 11, cursor: 'pointer',
+                border: 'none', background: COLOR.gold, color: COLOR.ink,
+                fontSize: 16, fontWeight: 800,
+              }}
+            >✓ 이 위치로 확정</button>
+            <button
+              onClick={cancelDraft}
+              style={{
+                flex: 1, padding: '15px 8px', borderRadius: 11, cursor: 'pointer',
+                border: '1.5px solid #3a4e72', background: 'transparent',
+                color: '#d4dcec', fontSize: 14, fontWeight: 700,
+              }}
+            >취소</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: 7, padding: '0 14px 14px' }}>
+          <div style={{ display: 'flex', gap: 7 }}>
             <button
               onClick={markHere}
               disabled={!pos || blockedSlot}
@@ -773,6 +788,7 @@ export default function HoleMapModal({
             )}
           </div>
         )}
+        </div>
       </div>
     </Shell>
   );

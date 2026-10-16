@@ -7,7 +7,7 @@
 import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted } from './geo.js';
 import { penaltyAt, penaltyCount, penaltyResultText, shotTitle } from './penalties.js';
 import { analyzePutts } from './puttAnalysis.js';
-import { offGreenShots, offGreenClubLabel } from './offGreen.js';
+import { offGreenShots } from './offGreen.js';
 
 const CLUB_LABEL = { driver: 'DRIVER', wood: 'WOOD', hybrid: 'HYBRID', iron: 'IRON', wedge: 'WEDGE' };
 
@@ -140,8 +140,9 @@ export function buildHoleReview(hole, player, holeIdx) {
   // 퍼트가 그린 밖으로 나간 뒤 다시 친 칩 — 그 퍼트 바로 뒤에 붙는다
   const offGreen = offGreenShots(s).map((r) => ({
     after: r.after,
-    club: offGreenClubLabel(r.club),
-    holed: r.after === (s.putts ?? 0) - 1,
+    club: clubLabel(r.club, r.subClub),
+    // 'chip-in' | 'on'(온그린) | 'miss'(그린 놓침) | null(결과 미입력)
+    result: r.onGreen === 'chip-in' ? 'chip-in' : r.onGreen === true ? 'on' : r.onGreen === false ? 'miss' : null,
   }));
   const putts = (s.puttDetails || []).map((p, i) => ({
     no: i + 1,
@@ -149,7 +150,7 @@ export function buildHoleReview(hole, player, holeIdx) {
     aimDistance: p?.aimDistance ?? null,
     lie: lieLabel(p?.lie),
     holein: p?.holein ?? null,
-    chip: offGreen.find((o) => o.after === i) ?? null,
+    chips: offGreen.filter((o) => o.after === i),
   }));
 
   const penalty = penaltyCount(s);

@@ -442,20 +442,20 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                   resultColor={tone}
                 />
                 {/* 그린 밖으로 나간 퍼트 뒤에 다시 친 칩 — 퍼팅이 아니라 1타로만 더해진다 */}
-                {p.chip && (
-                  <div data-role="off-green-chip">
+                {p.chips.map((chip, k) => (
+                  <div key={k} data-role="off-green-chip">
                     <Row
                       badge="칩"
                       badgeColor={OFF_GREEN}
-                      title="그린 밖에서 칩"
-                      sub={p.chip.club}
+                      title={p.chips.length > 1 ? `그린 밖 칩 ${k + 1}` : '그린 밖에서 칩'}
+                      sub={chip.club}
                       meta="스코어 +1타 · 퍼팅 수 제외"
                       value={null}
-                      result={p.chip.holed ? '칩인' : '온그린'}
-                      resultColor={p.chip.holed ? C.goldBright : C.green}
+                      result={chip.result === 'chip-in' ? '칩인' : chip.result === 'on' ? '온그린' : chip.result === 'miss' ? '그린 놓침' : null}
+                      resultColor={chip.result === 'chip-in' ? C.goldBright : chip.result === 'miss' ? C.red : C.green}
                     />
                   </div>
-                )}
+                ))}
               </Fragment>
             );
           })}

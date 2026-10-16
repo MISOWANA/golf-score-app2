@@ -5,7 +5,7 @@ import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
 import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
-import { offGreenShots, offGreenCount, offGreenAfter, OFF_GREEN_CLUBS } from '../../engine/offGreen.js';
+import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, emptyOffGreenShot, OFF_GREEN_CLUBS } from '../../engine/offGreen.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -686,6 +686,8 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const [expandedPutt, setExpandedPutt] = useState(0);
   const [expandedExtraShot, setExpandedExtraShot] = useState(0);
   const [shotPage, setShotPage] = useState(0);
+  // 필드샷 탭에서 펼친 그린 밖 칩 카드 — null이면 결과를 아직 안 넣은 칩(없으면 마지막)을 연다
+  const [expandedOffGreen, setExpandedOffGreen] = useState(null);
   const [teeClubInteracting, setTeeClubInteracting] = useState(false);
   const [teeExpanded, setTeeExpanded] = useState(true);
   const [secondShotExpanded, setSecondShotExpanded] = useState(true);
@@ -881,6 +883,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const updateOnGreen = (val) => updateFields({ onGreen: val });
 
   const extraShotTopRef = useRef(null);
+  const offGreenTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
   const shotPageTimeoutRef = useRef(null);
 
@@ -1554,6 +1557,20 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     );
   })();
 
+  // 그린 밖으로 나간 퍼트 뒤의 칩 (필드샷 탭에서 기록한다)
+  const offGreenList = offGreenShots(playerScore);
+  const offGreenPending = offGreenPendingAfter(playerScore);
+  const offGreenDefaultOpen = (() => {
+    const i = offGreenList.findIndex(r => r.onGreen == null);
+    return i >= 0 ? i : offGreenList.length - 1;
+  })();
+  const puttVisibleCount = offGreenPending == null ? puttDetails.length : offGreenPending + 1;
+  const offGreenClubText = (c) => {
+    const base = OFF_GREEN_CLUBS.find(x => x.id === c.club)?.label;
+    if (!base) return null;
+    return c.subClub ? `${base} ${/^\d+$/.test(String(c.subClub)) ? c.subClub + '°' : c.subClub}` : base;
+  };
+
   // 퍼팅 거리 슬라이더의 시작값. 첫 퍼팅은 5m, 이후는 직전 퍼팅 거리의 절반
   // (0.5m 단위, 최소 0.5m) — 5m를 놓치면 보통 그보다 훨씬 짧게 남는다.
   // 직전 퍼팅도 입력 전이면 그 시작값을 기준으로 이어서 줄인다.
@@ -1756,45 +1773,97 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   const updatePutt = (idx, key, val) =>
     updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
 
-  // 퍼트가 그린 밖으로 나갔다 — 그 퍼트는 퍼팅 1타, 다시 친 칩은 퍼팅이 아닌 1타로 스코어에만 더한다.
-  // 칩 뒤에 퍼트가 하나 더 있어야 하므로 퍼팅 칸을 하나 늘린다 (칩인이면 아래 칩 카드에서 끝낸다).
-  // 이미 그린 밖으로 표시한 퍼트를 다시 누르면 되돌린다.
+  // ─── 그린 밖으로 나간 퍼트 뒤의 칩 ───────────────────────────────────────────
+  // 퍼트가 그린 밖으로 나가면 그 퍼트는 퍼팅 1타, 다시 올리는 칩은 퍼팅이 아닌 필드샷 1타다.
+  // 칩은 필드샷 탭에서 클럽과 온그린 결과를 받는다 (온그린 → 퍼팅 탭, 실패 → 다시 칩,
+  // 칩인 → 홀 끝). 퍼팅 탭에는 요약만 남는다. (engine/offGreen.js 참고)
   const markOffGreen = (puttIdx) => {
     const current = playerScore.putts || 0;
-    const existing = offGreenAfter(playerScore, puttIdx);
-    const keep = offGreenShots(playerScore).filter(r => r.after !== puttIdx);
-    if (existing) {
+    const others = offGreenList.filter(r => r.after !== puttIdx);
+    if (offGreenChain(playerScore, puttIdx).length > 0) {
+      // 이미 그린 밖으로 표시한 퍼트를 다시 누르면 되돌린다
       const details = puttDetails.map((p, i) => i === puttIdx ? { ...p, holein: puttIdx < current - 1 ? 'fail' : null } : p);
-      updateFields({ puttDetails: details, offGreen: keep });
+      updateFields({ puttDetails: details, offGreen: others });
       return;
     }
+    // 칩이 올라간 뒤 칠 퍼트가 하나 더 있어야 하므로 퍼팅 칸을 하나 늘려 둔다
     const newPutts = Math.max(current, puttIdx + 2);
     const newDetails = Array.from({ length: newPutts }, (_, i) =>
       i === puttIdx ? { ...puttDetails[i], holein: 'offgreen' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
     );
-    updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: [...keep, { after: puttIdx, club: null }] });
-    setExpandedPutt(puttIdx + 1);
-    scrollDown();
+    const list = offGreenShots({ putts: newPutts, puttDetails: newDetails, offGreen: [...others, emptyOffGreenShot(puttIdx)] });
+    updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: list });
+    // 다음에 칠 샷은 칩 — 필드샷 탭에서 그 칩을 입력한다
+    setShotPage(0);
+    setExpandedOffGreen(list.findIndex(r => r.after === puttIdx));
+    setTimeout(() => offGreenTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160);
   };
 
-  const setOffGreenClub = (puttIdx, club) => {
-    const list = offGreenShots(playerScore).map(r => r.after === puttIdx ? { ...r, club: r.club === club ? null : club } : r);
+  const openOffGreenCard = (idx) => {
+    setShotPage(0);
+    setExpandedOffGreen(idx);
+    setTimeout(() => offGreenTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160);
+  };
+
+  const updateOffGreenShot = (idx, patch) =>
+    updateField('offGreen', offGreenList.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  // 온그린 성공 → 퍼팅 탭에서 이 칩 뒤의 퍼트를 기록한다
+  const offGreenLanded = (idx) => {
+    const target = offGreenList[idx];
+    // 이 칩이 그린에 올라갔으면 같은 퍼트 뒤의 다음 칩은 있을 수 없다 ('실패'를 잘못 눌러 생긴 칩 정리)
+    const list = offGreenList
+      .filter((r, i) => !(r.after === target.after && i > idx))
+      .map((r, i) => (i === idx ? { ...r, onGreen: true } : r));
     updateField('offGreen', list);
+    setExpandedPutt(target.after + 1);
+    setShotPage(1);
   };
 
-  // 퍼트가 그린 밖으로 나간 뒤 칩이 그대로 들어갔다 — 그 퍼트까지가 퍼팅이고 홀이 끝난다.
-  const offGreenChipIn = (puttIdx) => {
+  // 온그린 실패 → 같은 자리에서 다시 칩
+  const offGreenMissed = (idx) => {
+    const target = offGreenList[idx];
+    const marked = offGreenList.map((r, i) => (i === idx ? { ...r, onGreen: false } : r));
+    const next = offGreenList[idx + 1];
+    if (next && next.after === target.after) {           // 뒤에 이미 칩이 있으면 그게 후속타다
+      updateField('offGreen', marked);
+      setExpandedOffGreen(idx + 1);
+      return;
+    }
+    const list = [...marked.slice(0, idx + 1), emptyOffGreenShot(target.after), ...marked.slice(idx + 1)];
+    updateField('offGreen', list);
+    setExpandedOffGreen(idx + 1);
+  };
+
+  // 칩인 → 그 퍼트까지가 퍼팅이고 홀이 끝난다
+  const offGreenHoledAt = (idx) => {
     if (holeInModalPendingRef.current) return;
-    const puttsUsed = puttIdx + 1;
+    const target = offGreenList[idx];
+    const puttsUsed = target.after + 1;
     const details = puttDetails.slice(0, puttsUsed);
-    const kept = offGreenShots({ putts: puttsUsed, puttDetails: details, offGreen: playerScore.offGreen });
+    const chain = offGreenList
+      .filter((r, i) => r.after < target.after || (r.after === target.after && i <= idx))
+      .map((r) => (r === target ? { ...r, onGreen: 'chip-in' } : r));
+    const base = { ...playerScore, putts: puttsUsed, puttDetails: details, offGreen: chain };
+    const kept = offGreenShots(base);
     const manual = !!playerScore.strokesManual;
-    const base = { ...playerScore, putts: puttsUsed, puttDetails: details, offGreen: kept };
-    const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes(base, hole.par);
+    const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes({ ...base, offGreen: kept }, hole.par);
     triggerChipIn(
-      { ...base, strokes: freshStrokes, touched: true, strokesManual: manual },
+      { ...base, offGreen: kept, strokes: freshStrokes, touched: true, strokesManual: manual },
       { putts: puttsUsed, onCount: freshStrokes - puttsUsed - kept.length },
     );
+  };
+
+  // 이 칩과 그 뒤에 이어진 칩을 지운다. 그 퍼트의 첫 칩이면 '그린 밖' 표시도 함께 풀린다.
+  const removeOffGreenShot = (idx) => {
+    const target = offGreenList[idx];
+    if (offGreenList.findIndex(r => r.after === target.after) === idx) { markOffGreen(target.after); return; }
+    const prev = offGreenList[idx - 1];
+    const list = offGreenList
+      .filter((r, i) => !(r.after === target.after && i >= idx))
+      .map((r) => (r === prev ? { ...r, onGreen: null } : r));
+    updateField('offGreen', list);
+    setExpandedOffGreen(idx - 1);
   };
 
   const updatePlayerStrokes = (player, newStrokes) => {
@@ -1823,7 +1892,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
   useEffect(() => {
     clearTimeout(shotPageTimeoutRef.current);
-    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false);
+    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); setExpandedOffGreen(null); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false);
   }, [holeIdx]);
 
   useEffect(() => {
@@ -2775,6 +2844,73 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
 
         </>}
 
+        {/* ── 그린 밖으로 나간 퍼트 뒤의 칩 — 필드샷이므로 클럽과 온그린 결과를 여기서 받는다 ── */}
+        {teeComplete && shotPage === 0 && offGreenList.length > 0 && (<>
+          <div ref={offGreenTopRef} data-role="off-green-section" />
+          {offGreenList.map((chip, idx) => {
+            const chain = offGreenList.filter(r => r.after === chip.after);
+            const nth = chain.indexOf(chip) + 1;
+            const openIdx = expandedOffGreen != null ? expandedOffGreen : offGreenDefaultOpen;
+            const isOpen = openIdx === idx;
+            const hdr = HDR[chip.onGreen != null ? 'done' : 'active'];
+            const title = `${chip.after + 1}번째 퍼트 뒤 칩${chain.length > 1 ? ` ${nth}` : ''}`;
+            return (
+              <React.Fragment key={`og-${chip.after}-${nth}`}>
+                <button
+                  data-role="off-green-header"
+                  onClick={() => setExpandedOffGreen(isOpen ? -1 : idx)}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isOpen ? 'none' : '1px solid #0e1320' }}
+                >
+                  <div style={{ height:1, flex:1, background: hdr.line }} />
+                  <span style={{ fontSize:12, fontWeight:800, color: hdr.label, letterSpacing:'0.18em', flexShrink:0 }}>
+                    {chip.onGreen != null && '✓ '}{title}
+                  </span>
+                  <div style={{ height:1, flex:1, background: hdr.line }} />
+                  <span style={{ fontSize:11, color: hdr.arrow, flexShrink:0 }}>{isOpen ? '▲' : '▼'}</span>
+                </button>
+
+                {isOpen && (
+                  <div data-role="off-green-card">
+                    <div style={{ padding:'0 16px 6px', fontSize:11, color:'#8896b0', lineHeight:1.5 }}>
+                      퍼트가 그린 밖으로 나간 뒤 친 칩 — 스코어에는 +1타, 퍼팅 수에는 들어가지 않아요
+                    </div>
+
+                    <ClubSelector
+                      icon="〽" label="클럽" categories={OFF_GREEN_CLUBS}
+                      value={chip.club} subValue={chip.subClub}
+                      onCategory={v => updateOffGreenShot(idx, { club: v, subClub: null })}
+                      onSub={v => updateOffGreenShot(idx, { subClub: v })}
+                      stacked
+                    />
+
+                    {/* 온그린 성공 / 실패 / 칩인 — 클럽 없이도 고를 수 있다 */}
+                    <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+                      <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
+                      <div style={{ display:'flex', gap:6, flex:1 }}>
+                        <button
+                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                          onClick={() => offGreenLanded(idx)}>성공</button>
+                        <button
+                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                          onClick={() => offGreenMissed(idx)}>실패</button>
+                        <button
+                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+                          onClick={() => { if (chip.onGreen !== 'chip-in') offGreenHoledAt(idx); }}>칩인</button>
+                      </div>
+                    </div>
+
+                    <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+                      <button
+                        style={{ width:'100%', padding:'8px', borderRadius:7, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                        onClick={() => removeOffGreenShot(idx)}>✕ {title} 삭제</button>
+                    </div>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </>)}
+
         {teeComplete && shotPage === 1 && <>
 
         {/* ── 그린 ── */}
@@ -2834,7 +2970,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
         ) : playerScore.putts > 0 && (<>
 
           {/* 퍼팅별 상세 (아코디언) */}
-          {puttDetails.map((putt, puttIdx) => {
+          {puttDetails.slice(0, puttVisibleCount).map((putt, puttIdx) => {
             const isOpen = expandedPutt === puttIdx;
             const lieLabel = putt.lie
               ? (putt.lie === 'flat' ? '평지' : PUTT_LIE_DIRS.find(d => d.id === putt.lie)?.label ?? putt.lie)
@@ -2945,32 +3081,28 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   </div>
                 </>)}
 
-                {/* 그린 밖으로 나간 퍼트 뒤의 칩 — 퍼팅이 아니라 스코어에만 1타 더해진다 */}
+                {/* 그린 밖으로 나간 퍼트 뒤의 칩 — 요약만. 입력·수정은 필드샷 탭의 칩 카드에서 한다 */}
                 {(() => {
-                  const og = offGreenAfter(playerScore, puttIdx);
-                  if (!og) return null;
-                  const holed = puttIdx === (playerScore.putts || 0) - 1;
+                  const chain = offGreenList.filter(r => r.after === puttIdx);
+                  if (chain.length === 0) return null;
+                  const last = chain[chain.length - 1];
+                  const pending = last.onGreen !== true && last.onGreen !== 'chip-in';
+                  const resultText = last.onGreen === 'chip-in' ? '칩인' : last.onGreen === true ? '온그린'
+                    : last.onGreen === false ? '그린 놓침' : '결과 입력 전';
+                  const clubs = chain.map(offGreenClubText).filter(Boolean);
+                  const firstIdx = offGreenList.findIndex(r => r.after === puttIdx);
+                  const openIdx = pending ? firstIdx + chain.length - 1 : firstIdx;
                   return (
-                    <div data-role="off-green-chip" style={{ padding:'10px 16px 12px', borderBottom:'1px solid #0e1320', background:'rgba(230,185,74,0.05)' }}>
-                      <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8, flexWrap:'wrap' }}>
-                        <span style={{ fontSize:11, fontWeight:700, color:'#e6b94a', letterSpacing:'0.14em' }}>그린 밖 → 칩 +1타</span>
-                        <span style={{ fontSize:11, color:'#8896b0' }}>퍼팅 수에는 들어가지 않아요</span>
+                    <div data-role="off-green-chip" style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', borderBottom:'1px solid #0e1320', background:'rgba(230,185,74,0.05)' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'#e6b94a' }}>그린 밖 → 칩 {chain.length}타 · {resultText}</div>
+                        <div style={{ fontSize:11, color:'#8896b0', marginTop:2, lineHeight:1.5 }}>
+                          {clubs.length ? clubs.join(' → ') : '클럽 미입력'} · 퍼팅 수에는 들어가지 않아요
+                        </div>
+                        {pending && <div style={{ fontSize:11, color:'#c4cfe0', marginTop:2 }}>칩이 그린에 오르면 다음 퍼트를 기록해요</div>}
                       </div>
-                      <div style={{ display:'flex', gap:6, marginBottom:8 }}>
-                        {OFF_GREEN_CLUBS.map(c => (
-                          <button key={c.id}
-                            style={{ ...fChipWide, flex:1, minWidth:0, padding:'8px 0', fontSize:12, ...(og.club===c.id?{ border:'2px solid #e6b94a', color:'#e6b94a' }:{}) }}
-                            onClick={() => setOffGreenClub(puttIdx, c.id)}>{c.label}</button>
-                        ))}
-                      </div>
-                      <div style={{ display:'flex', gap:8 }}>
-                        <button
-                          style={{ ...fChipWide, flex:1, padding:'9px 0', fontSize:12, ...(holed?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
-                          onClick={() => { if (!holed) offGreenChipIn(puttIdx); }}>{holed ? '칩인 ✓' : '칩인'}</button>
-                        <button
-                          style={{ ...fChipWide, flex:1, padding:'9px 0', fontSize:12, color:'rgba(239,83,80,0.75)' }}
-                          onClick={() => markOffGreen(puttIdx)}>✕ 칩 삭제</button>
-                      </div>
+                      <button style={{ ...fChipWide, minWidth:0, padding:'8px 12px', fontSize:12, ...(pending ? { border:'2px solid #e6b94a', color:'#e6b94a' } : {}) }}
+                        onClick={() => openOffGreenCard(openIdx)}>{pending ? '칩 결과 입력' : '수정'}</button>
                     </div>
                   );
                 })()}

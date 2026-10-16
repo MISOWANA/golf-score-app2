@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, cloneElement } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { haversine, combinedAccuracy, gpsQuality, shotDistances, pinDistances } from '../../engine/geo.js';
@@ -513,10 +513,55 @@ export default function HoleMapModal({
   }
 
   // ── 지도 화면 ───────────────────────────────────────────────────────────────
+  // 거리 정보는 헤더 바로 아래에 고정한다 — 스크롤해도, 샷이 많아져도 늘 보인다.
+  //   위치를 조정하는 중이면 조정 중인 마커의 거리, 아니면 지금 서 있는 자리의 거리.
+  const hasLiveMetric = livePrev != null || liveToPin != null || liveDistance != null;
+  const topStrip = (
+    <div data-role="map-top" style={{ flexShrink: 0, padding: '8px 14px 10px', borderBottom: '1px solid #1b2238', background: '#0d1220' }}>
+      {draft ? (
+        <MetricPanel accent compact title={`${selectedSlot?.label} 위치 조정 중`}>
+          {selected === PIN_SLOT ? [
+            <Metric
+              key="a"
+              label={lastMarked ? `⛳ ${lastMarked.label}에서 핀까지` : '⛳ 핀까지'}
+              value={draftDistance} tone="gold"
+            />,
+            pinFromTee && <Metric key="b" label="홀 전장 (티 → 핀)" value={draftHoleLen} />,
+          ] : [
+            draftPrevPoint && (
+              <Metric key="a" label={`${prerequisiteLabel ?? '직전 지점'}에서 여기까지`} value={draftDistance} />
+            ),
+            <Metric key="b" label="⛳ 여기서 핀까지" value={draftToPin} tone="gold" />,
+          ]}
+        </MetricPanel>
+      ) : hasLiveMetric ? (
+        <MetricPanel compact>
+          {livePrev != null && (
+            <Metric label={`${prerequisiteLabel}에서 여기까지`} value={livePrev} />
+          )}
+          {liveToPin != null && (
+            <Metric label="⛳ 여기서 핀까지" value={liveToPin} tone="gold" />
+          )}
+          {livePrev == null && liveToPin == null && liveDistance != null && (
+            <Metric
+              label={`${selectedSlot.label} 지점까지${liveDistanceAcc != null ? ` (${fmtAcc(liveDistanceAcc)})` : ''}`}
+              value={liveDistance}
+            />
+          )}
+        </MetricPanel>
+      ) : (
+        <div style={{ padding: '14px 0', textAlign: 'center', fontSize: 13, fontWeight: 700, color: posError ? COLOR.red : COLOR.dim }}>
+          {posError ? '측위 불가 — 지도에서 위치를 직접 찍을 수 있어요' : '측위 중… 내 위치가 잡히면 거리가 여기에 표시돼요'}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <Shell holeNo={holeNo} par={par} onClose={close}>
-      {/* 지도는 샷이 많아져도 화면 높이의 50% 아래로 줄지 않는다 — 하단 조작부가 나머지 높이 안에서 스크롤한다 */}
-      <div style={{ position: 'relative', flex: '1 1 0', minHeight: '50%' }}>
+    <Shell holeNo={holeNo} par={par} onClose={close} topExtra={topStrip}>
+      {/* 지도는 샷이 많아져도 화면 높이의 40% 아래로 줄지 않는다 — 나머지는 상단 거리 띠와
+          하단 조작부가 쓴다 (하단 조작부는 남는 높이 안에서 스크롤한다) */}
+      <div style={{ position: 'relative', flex: '1 1 0', minHeight: '40%' }}>
         <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: COLOR.ink }} />
 
         {placeMode && (
@@ -563,8 +608,8 @@ export default function HoleMapModal({
         >◎</button>
       </div>
 
-      {/* 하단 조작부 — 지도가 화면의 절반 이상을 유지하도록 남는 높이만 쓴다.
-          위쪽(내 위치·거리·지점 선택·거리 표)은 스크롤하고, 맨 아래 조작 줄은 고정한다. */}
+      {/* 하단 조작부 — 지도가 화면의 40% 이상을 유지하도록 남는 높이만 쓴다.
+          위쪽(내 위치·지점 선택·거리 표)은 스크롤하고, 맨 아래 조작 줄은 고정한다. */}
       <div style={{
         flex: '0 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
         borderTop: '1px solid #1b2238', background: '#0d1220', textAlign: 'left',
@@ -585,50 +630,10 @@ export default function HoleMapModal({
           <div style={{ padding: '0 14px 8px', fontSize: 12, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
         )}
 
-        {/* 위치를 조정하는 중이면 조정 숫자를 맨 위에 둔다 — 스크롤하지 않고도 보이게 */}
-        {draft && (
-          <div style={{ padding: '0 14px 4px' }}>
-            <MetricPanel accent title={`${selectedSlot?.label} 위치 조정 중`}>
-              {selected === PIN_SLOT ? [
-                <Metric
-                  key="a"
-                  label={lastMarked ? `⛳ ${lastMarked.label}에서 핀까지` : '⛳ 핀까지'}
-                  value={draftDistance} tone="gold"
-                />,
-                pinFromTee && <Metric key="b" label="홀 전장 (티 → 핀)" value={draftHoleLen} />,
-              ] : [
-                draftPrevPoint && (
-                  <Metric key="a" label={`${prerequisiteLabel ?? '직전 지점'}에서 여기까지`} value={draftDistance} />
-                ),
-                <Metric key="b" label="⛳ 여기서 핀까지" value={draftToPin} tone="gold" />,
-              ]}
-            </MetricPanel>
-          </div>
-        )}
-
-        {/* 지금 서 있는 자리의 거리 — 직전 지점에서 여기까지, 여기서 핀까지.
-            마커를 놓아 조정하는 중이면 아래 조정 패널이 같은 숫자를 보여주므로 가린다. */}
-        {!draft && (livePrev != null || liveToPin != null || liveDistance != null) && (
-          <div style={{ padding: '0 14px 10px' }}>
-            <MetricPanel>
-              {livePrev != null && (
-                <Metric label={`${prerequisiteLabel}에서 여기까지`} value={livePrev} />
-              )}
-              {liveToPin != null && (
-                <Metric label="⛳ 여기서 핀까지" value={liveToPin} tone="gold" />
-              )}
-              {livePrev == null && liveToPin == null && liveDistance != null && (
-                <Metric
-                  label={`${selectedSlot.label} 지점까지${liveDistanceAcc != null ? ` (${fmtAcc(liveDistanceAcc)})` : ''}`}
-                  value={liveDistance}
-                />
-              )}
-            </MetricPanel>
-            {fill && (
-              <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
-                지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
-              </div>
-            )}
+        {/* 지도를 닫을 때 남은 거리에 먼저 들어갈 값 안내 (거리 숫자는 위쪽 고정 띠에 있다) */}
+        {!draft && fill && (
+          <div style={{ padding: '0 14px 10px', fontSize: 12, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
+            지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
           </div>
         )}
 
@@ -799,15 +804,15 @@ export default function HoleMapModal({
 // 숫자는 크게(28px), 설명은 그 위에 12px 이상으로 둔다. 야외 햇빛 아래에서 한 손으로
 // 보는 화면이라 작은 글자·옅은 색을 피하고, 칸마다 같은 구조를 써서 눈이 같은 자리를 본다.
 
-function Metric({ label, value, tone = 'line' }) {
+function Metric({ label, value, tone = 'line', compact = false }) {
   const color = tone === 'gold' ? COLOR.gold : COLOR.line;
   return (
     <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#b4c0d6', marginBottom: 5, lineHeight: 1.3 }}>
+      <div style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: '#b4c0d6', marginBottom: compact ? 3 : 5, lineHeight: 1.3 }}>
         {label}
       </div>
       <div style={{ color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ fontSize: 30, fontWeight: 900 }}>{value != null ? Math.round(value) : '—'}</span>
+        <span style={{ fontSize: compact ? 28 : 30, fontWeight: 900 }}>{value != null ? Math.round(value) : '—'}</span>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>m</span>
       </div>
     </div>
@@ -815,17 +820,17 @@ function Metric({ label, value, tone = 'line' }) {
 }
 
 // Metric 여러 개를 가운데 세로선으로 나눠 담는 상자. accent면 위치 조정(파란) 톤.
-function MetricPanel({ children, title, accent = false }) {
+function MetricPanel({ children, title, accent = false, compact = false }) {
   const items = (Array.isArray(children) ? children : [children]).flat(Infinity).filter(Boolean);
   const border = accent ? 'rgba(142,192,255,0.4)' : '#1f2a44';
   return (
     <div style={{
-      padding: '12px 10px', borderRadius: 12, marginBottom: accent ? 10 : 0,
+      padding: compact ? '8px 10px' : '12px 10px', borderRadius: 12, marginBottom: accent && !compact ? 10 : 0,
       background: accent ? 'rgba(142,192,255,0.08)' : '#111a2e',
       border: `1px solid ${border}`,
     }}>
       {title && (
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#8ec0ff', textAlign: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#8ec0ff', textAlign: 'center', marginBottom: compact ? 6 : 10 }}>
           {title}
         </div>
       )}
@@ -833,7 +838,7 @@ function MetricPanel({ children, title, accent = false }) {
         {items.map((child, i) => (
           <Fragment key={i}>
             {i > 0 && <div style={{ width: 1, background: 'rgba(255,255,255,0.12)', margin: '2px 4px' }} />}
-            {child}
+            {compact && child && child.type === Metric ? cloneElement(child, { compact: true }) : child}
           </Fragment>
         ))}
       </div>
@@ -862,7 +867,7 @@ function TableNumber({ value, width, color }) {
 
 // ─── 공통 껍데기 ──────────────────────────────────────────────────────────────
 
-function Shell({ holeNo, par, onClose, children }) {
+function Shell({ holeNo, par, onClose, topExtra = null, children }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1200,
@@ -889,6 +894,7 @@ function Shell({ holeNo, par, onClose, children }) {
           }}
         >✕</button>
       </div>
+      {topExtra}
       {children}
     </div>
   );

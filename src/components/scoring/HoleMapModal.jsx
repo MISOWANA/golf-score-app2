@@ -9,6 +9,8 @@ import { getVWorldKey, setVWorldKey, VWORLD_SIGNUP_URL } from '../../engine/mapT
 const INITIAL_ZOOM = 17;
 const GREEN_SLOT = 'green';
 const PIN_SLOT = 'pin';
+// 핀 아이콘(깃발)을 탭했거나 핀 자리 근처(이 픽셀 안)를 탭하면 그 위치를 핀 좌표 그대로 쓴다
+const PIN_SNAP_PX = 26;
 
 const COLOR = {
   gold: '#c9a228', green: '#3db87a', red: '#ef5350',
@@ -110,6 +112,7 @@ export default function HoleMapModal({
   const didCenterRef = useRef(false);
   const placeModeRef = useRef(placeMode);
   const selectedRef = useRef(selected);
+  const gpsPinRef = useRef(gpsPin);
   const commitRef = useRef(null);
   const draftRef = useRef(null);
   const draftLineRef = useRef(null);
@@ -157,6 +160,7 @@ export default function HoleMapModal({
   // 그 전 기록을 지워버린다. 그래서 셋 다 ref로 최신값을 건넨다.
   useEffect(() => { placeModeRef.current = placeMode; }, [placeMode]);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
+  useEffect(() => { gpsPinRef.current = gpsPin; }, [gpsPin]);
   useEffect(() => { commitRef.current = commitAndAdvance; });
 
   // ── 지도 생성 (한 번만) ─────────────────────────────────────────────────────
@@ -178,6 +182,16 @@ export default function HoleMapModal({
     // 탭은 임시 위치를 놓기만 한다. 확정은 아래 "위치 확정" 버튼에서.
     map.on('click', (e) => {
       if (!placeModeRef.current) return;
+      // 핀 자리를 정확히 짚기는 어렵다 — 핀 근처를 탭하면 핀 좌표(0m)에 놓는다.
+      // 핀 자체를 지정하는 중에는 해당 없다.
+      const pin = gpsPinRef.current;
+      if (pin && selectedRef.current !== PIN_SLOT && e.containerPoint) {
+        const pinPoint = map.latLngToContainerPoint([pin.lat, pin.lng]);
+        if (pinPoint.distanceTo(e.containerPoint) <= PIN_SNAP_PX) {
+          setDraft({ lat: pin.lat, lng: pin.lng });
+          return;
+        }
+      }
       setDraft({ lat: e.latlng.lat, lng: e.latlng.lng });
     });
 
@@ -289,7 +303,12 @@ export default function HoleMapModal({
       L.marker([s.point.lat, s.point.lng], { icon: pointIcon(s.label) }).addTo(layer);
     });
     if (gpsPin) {
-      L.marker([gpsPin.lat, gpsPin.lng], { icon: pinIcon() }).addTo(layer);
+      const pinMarker = L.marker([gpsPin.lat, gpsPin.lng], { icon: pinIcon() }).addTo(layer);
+      // 핀(깃발)을 탭하면 그 자리가 곧 핀이다 — 지도에서 위치를 지정하는 중이면 핀 좌표 그대로(0m) 놓는다
+      pinMarker.on('click', () => {
+        if (!placeModeRef.current || selectedRef.current === PIN_SLOT) return;
+        setDraft({ lat: gpsPin.lat, lng: gpsPin.lng });
+      });
     }
 
     // 각 샷 지점에서 핀까지 — 남은 거리를 눈으로 보도록 가는 실선으로 잇는다.

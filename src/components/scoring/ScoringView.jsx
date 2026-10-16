@@ -782,7 +782,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       : (par3TeeOnGreen(score) ? 0 : 1);
     // OB 1회 = 벌타 1타 + 다시 치는 샷 1타.
     //   OB티로 이동(앞으로 나가서 치기)이나 어느 샷인지 모르는 OB는 다시 치는 샷을 치지
-    //   않으므로 여기서 1타씩 더한다(phantomStrokes). 제자리에서 다시 친 OB는 그 샷이
+    //   않으므로 여기서 1타씩 더한다(phantomStrokes). 직전 샷 위치에서 다시 친 OB는 그 샷이
     //   다음 샷으로 기록되므로 더하지 않는다.
     // 해저드·언플레이어블 1회 = 벌타 1타뿐 — 드롭(또는 다시 치기) 후 이어 치는 샷은 사용자가
     // 다음 샷으로 기록한다.
@@ -873,10 +873,56 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
   // 상세 입력 필드를 바꾸는 경로는 모두 여기를 지난다 — 스코어 자동 계산을 함께 반영한다.
   const updateField = (field, value) => updateFields({ [field]: value });
 
+  // ─── 직전 샷 위치에서 다시 치기 → 남은 거리는 직전 샷과 같다 ──────────────────────────
+  // 벌타 처리를 '스트로크와 거리 구제(다시 치기)'로 하면 다시 친 샷은 벌타가 난 샷과 같은
+  // 자리에서 친다 — 핀까지 남은 거리도 같다. 다시 친 샷의 남은 거리가 비어 있으면 벌타가 난
+  // 샷의 값(슬라이더 값, 없으면 지도 실측, 티샷이면 티샷 거리)을 넣고, 사용자가 직접 정하기
+  // 전까지(replayCopied) 앞 샷의 값을 따라간다. 처리 방법을 다시 치기가 아닌 것으로 바꾸면
+  // 넣어 둔 값을 비운다.
+  const syncReplayRemaining = (s) => {
+    const pens = s.penalties || [];
+    const exs = s.extraShots || [];
+    if (pens.length === 0 && !s.replayCopied && !exs.some(x => x?.replayCopied)) return s;
+    const out = { ...s };
+    const extras = exs.map(x => ({ ...x }));
+    const measured = pinDistances(s.gpsPoints, s.gpsPin, extras.length + 2).map(saneRemaining);
+    const rnd = (d) => (d == null ? null : Math.round(d));
+    const shotAt = (slot) => (slot === 1 ? out : extras[slot - 2]);   // 1=세컨샷, 2 이상=익스트라샷
+    let changed = false;
+    for (let slot = 0; slot <= extras.length; slot++) {
+      const target = shotAt(slot + 1);
+      if (!target) continue;
+      const replay = pens.find(p => p.slot === slot && p.mode === 'replay');
+      if (!replay) {
+        if (target.replayCopied) {
+          target.remainingDistance = null; target.remainingAppliedM = undefined; target.remainingSource = null;
+          delete target.replayCopied;
+          changed = true;
+        }
+        continue;
+      }
+      let val; let applied; let source = null;
+      if (slot === 0) {
+        val = hole.par === 3 ? (s.teeDistance ?? null) : rnd(measured[0]);   // 티 → 핀 = 그날 전장
+      } else {
+        const prev = shotAt(slot);
+        val = prev.remainingDistance ?? rnd(measured[slot]);
+        applied = prev.remainingAppliedM; source = prev.remainingSource ?? null;
+      }
+      if (val == null) continue;
+      if (target.remainingDistance == null || target.replayCopied) {
+        if (target.remainingDistance !== val || !target.replayCopied) changed = true;
+        target.remainingDistance = val; target.remainingAppliedM = applied; target.remainingSource = source;
+        target.replayCopied = true;
+      }
+    }
+    return changed ? { ...out, extraShots: extras } : s;
+  };
+
   const updateFields = (fields) => {
     const updated = { ...round };
     updated.holes = [...round.holes];
-    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: withAutoStrokes({ ...playerScore, ...fields, touched: true }) } };
+    updated.holes[holeIdx] = { ...hole, scores: { ...hole.scores, [activePlayer]: withAutoStrokes(syncReplayRemaining({ ...playerScore, ...fields, touched: true })) } };
     onUpdate(updated);
   };
 
@@ -1284,6 +1330,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       patch.remainingDistance = measuredSecond;
       patch.remainingAppliedM = measuredSecond;
       patch.remainingSource = null;
+      patch.replayCopied = false;
     }
     if (measuredTee != null && measuredTee !== playerScore.teeDistance
         && mapManaged(playerScore.teeDistance, playerScore.teeDistanceAppliedM, null)) {
@@ -1295,7 +1342,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       const d = measuredExtra(k);
       if (d != null && d !== shot.remainingDistance && mapManaged(shot.remainingDistance, shot.remainingAppliedM, shot.remainingSource)) {
         extrasChanged = true;
-        return { ...shot, remainingDistance: d, remainingAppliedM: d, remainingSource: null };
+        return { ...shot, remainingDistance: d, remainingAppliedM: d, remainingSource: null, replayCopied: false };
       }
       return shot;
     });
@@ -1303,6 +1350,11 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     if (Object.keys(patch).length > 0) updateGpsFields(patch);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measuredKey]);
+
+  // 직전 샷 위치에서 다시 친 샷의 남은 거리가 직전 샷 값을 그대로 쓴 경우
+  const replayTag = (copied) => (copied
+    ? <span style={{ fontSize: 9, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 4, color: '#e6b94a', border: '1px solid rgba(230,185,74,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
+    : null);
 
   // 남은 거리·티샷 거리 옆 표시 — 값이 지도 거리와 같으면 'GPS 실측', 사용자가 정한 값이 달라서
   // 지도 거리가 따로 있으면 그 거리를 보여 주고 한 번에 바꿀 수 있게 한다. 현재 위치 기준으로
@@ -1663,7 +1715,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       if (k === extraShots.length - 1) next.push(emptyShot());
       fields.extraShots = next;
     }
-    // 제자리에서 다시 치기(OB·해저드·언플레이어블 공통) — 다시 친 샷은 같은 자리에서 친다.
+    // 직전 샷 위치에서 다시 치기(OB·해저드·언플레이어블 공통) — 다시 친 샷은 직전 샷과 같은 자리에서 친다.
     // 그 자리를 찍어 뒀으면 옮겨 적는다.
     if (mode === 'replay' && gpsPoints[slot] && !gpsPoints[slot + 1]) {
       const pts = [...gpsPoints];
@@ -1709,7 +1761,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
     const n = strokeNumberOf(playerScore, slot);   // 벌타가 난 샷이 몇 타째인지
     const next1 = n + 2;                           // +1벌타 뒤 다음 샷의 타수
     const opt = (mode, ko, en, rule, penalty, where, next, tag = null) => ({ mode, ko, en, rule, penalty, where, next, tag });
-    const replayWhere = '직전 샷을 친 자리에서 다시 치기 · 다시 친 샷의 클럽·위치도 기록';
+    const replayWhere = '직전 샷 위치에서 다시 치기 · 다시 친 샷의 클럽·위치도 기록';
     if (type === 'ob') {
       return [
         opt('replay', '스트로크와 거리 구제', 'Stroke-and-Distance Relief', 'Rule 18.2', '1벌타', replayWhere, next1),
@@ -2637,9 +2689,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           <div style={{ ...fLeft, marginBottom:10 }}>
             <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
             {mapDistanceTag(measuredSecond, playerScore.remainingDistance, playerScore.remainingSource,
-              () => updateFields({ remainingDistance: measuredSecond, remainingAppliedM: measuredSecond, remainingSource: null }))}
+              () => updateFields({ remainingDistance: measuredSecond, remainingAppliedM: measuredSecond, remainingSource: null, replayCopied: false }))}
+            {replayTag(playerScore.replayCopied)}
           </div>
-          <SwipeDistance value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null })} />
+          <SwipeDistance value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
           {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
         </div>
 
@@ -2752,9 +2805,10 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   <div style={{ ...fLeft, marginBottom:10 }}>
                     <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
                     {mapDistanceTag(measuredExtra(idx), shot.remainingDistance, shot.remainingSource,
-                      () => updateExtraShot(idx, { remainingDistance: measuredExtra(idx), remainingAppliedM: measuredExtra(idx), remainingSource: null }))}
+                      () => updateExtraShot(idx, { remainingDistance: measuredExtra(idx), remainingAppliedM: measuredExtra(idx), remainingSource: null, replayCopied: false }))}
+                    {replayTag(shot.replayCopied)}
                   </div>
-                  <SwipeDistance value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null })} />
+                  <SwipeDistance value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
                   {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:10, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
                 </div>
 

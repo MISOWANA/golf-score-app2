@@ -6,18 +6,18 @@
 //   mode : 그다음 샷을 어떻게 쳤는지 (룰 기준 — 모두 아래 벌타 후 '다음 샷'이 실제로 친 샷이다)
 //
 //   OB — 선택지는 두 가지뿐이다
-//     'replay'  = 스트로크와 거리 (Rule 18.2) — 직전 샷 지점에서 다시 치기, 1벌타. 다시 친 샷이 3번째 샷
+//     'replay'  = 스트로크와 거리 (Rule 18.2) — 직전 샷 위치에서 다시 치기, 1벌타. 다시 친 샷이 3번째 샷
 //     'forward' = OB티 (국내 골프장 관행 · 로컬룰 E-5) — 지정된 특설티, 2벌타 상당. 다음 샷이 4번째 샷
 //   해저드 = 페널티구역 (Rule 17.1d) — 어느 방법이든 1벌타, 다음 샷이 3번째 샷
 //     'back'    = 후방선 구제 Back-on-the-Line Relief (17.1d(2)) — 경계를 넘은 지점과 홀을 잇는 선 뒤쪽
 //     'lateral' = 측면 구제 Lateral Relief (17.1d(3), 레드만) — 경계를 넘은 지점에서 2클럽 이내
-//     'replay'  = 스트로크와 거리 구제 Stroke-and-Distance Relief (17.1d(1)) — 직전 샷 지점에서 다시 치기
+//     'replay'  = 스트로크와 거리 구제 Stroke-and-Distance Relief (17.1d(1)) — 직전 샷 위치에서 다시 치기
 //     'tee'     = 해저드 티(드롭존)에서 치기 — 코스 로컬룰
 //     'drop'    = (예전 기록) 볼이 경계를 넘은 지점 기준 드롭 — 후방/측면을 구분하지 않았다
 //   언플레이어블 (Rule 19.2) — 어느 방법이든 1벌타, 다음 샷이 3번째 샷
 //     'back'    = 후방선 구제 (19.2b, 볼 자리와 홀을 잇는 선 뒤쪽, 거리 제한 없음)
 //     'lateral' = 측면 구제 (19.2c, 볼 자리 2클럽 이내, 홀에 가깝지 않게)
-//     'replay'  = 스트로크와 거리 구제 (19.2a, 직전 샷 지점에서 다시 치기)
+//     'replay'  = 스트로크와 거리 구제 (19.2a, 직전 샷 위치에서 다시 치기)
 //
 // 위쪽 벌타 칸(score.ob · score.hazard · score.unplayable)은 홀 합계로 그대로 둔다 — 통계·
 // 인사이트가 그 값을 쓴다. 어느 샷인지 모르고 합계만 넣은 벌타는 예전 방식(OB는 OB티 기준)
@@ -34,7 +34,7 @@ export const penaltyCount = (score) =>
   (score?.ob || 0) + (score?.hazard || 0) + (score?.unplayable || 0);
 
 // 다시 치지 않고 1타로 세는 샷 수 — OB티로 이동한 OB와, 어느 샷인지 모르는 OB.
-// (제자리에서 다시 친 OB는 그 샷이 기록되므로 빠진다.)
+// (직전 샷 위치에서 다시 친 OB는 그 샷이 기록되므로 빠진다.)
 export function phantomStrokes(score) {
   const ob = score?.ob || 0;
   const replays = (score?.penalties || []).filter((p) => p.type === 'ob' && p.mode === 'replay').length;

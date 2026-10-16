@@ -502,7 +502,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'ob_stroke_distance', severity: 'neutral', category: 'penalty',
       title: 'OB — 스트로크와 거리',
-      summaryTemplate: '{holeNumber}번 홀 OB 후 직전 샷 지점에서 다시 쳤습니다 (1벌타 + 다시 친 샷).',
+      summaryTemplate: '{holeNumber}번 홀 OB 후 직전 샷 위치에서 다시 쳤습니다 (1벌타 + 다시 친 샷).',
       recommendationTemplate: '다시 치는 샷은 같은 클럽을 반복하기보다 안전한 클럽으로 페어웨이를 먼저 확보하는 편이 낫습니다.',
       tags: ['penalty', 'ob', 'relief'],
     },

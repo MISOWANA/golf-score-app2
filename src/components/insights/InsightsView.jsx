@@ -12,7 +12,8 @@ import { ROUND_RULES } from '../../engine/rules/roundRules.js';
 import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from '../../engine/scoreBreakdown.js';
 import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
-import { buildTeeBias, buildApproachProximity, buildPuttingStats, buildScrambling } from '../../engine/shotStats.js';
+import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
+import { BOOK_SOURCE, GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 
 const SEVERITY_COLOR = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
@@ -259,6 +260,17 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const scrambling = buildScrambling(rounds);
   const clubStats = buildClubDistanceStats(rounds);
 
+  // ── 책(Broadie) 기준 지표 — 이번 라운드/누적 토글을 따른다 ────────────────────────
+  const benchRounds = isCareerMode ? rounds : [latestRound];
+  const girp = buildGirp(benchRounds);
+  const awful = buildAwfulShots(benchRounds);
+  const awfulPoints = isCareerMode ? awful.avgPoints : awful.points;
+  const awfulOverLimit = awful.avgScore != null
+    && awful.avgScore >= AWFUL_LIMIT_SCORE_RANGE[0] && awful.avgScore <= AWFUL_LIMIT_SCORE_RANGE[1]
+    && awfulPoints > AWFUL_CONSISTENCY_LIMIT;
+  const approachAll = buildApproachProximityAll(rounds);
+  const driverStat = clubStats.find(c => c.club === 'driver' && !c.subClub);
+
   const roundPar = latestRound.pars.reduce((a, b) => a + b, 0);
   const roundScore = latestRound.holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
 
@@ -485,6 +497,43 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </div>
       </div>
 
+      {/* ── 책 기준으로 보기 (Broadie, Every Shot Counts) — GIRP · 끔찍한 샷 ─────────── */}
+      {girp.holes > 0 && (
+        <div style={styles.section} data-role="book-benchmark">
+          <div style={styles.sectionTitle}>
+            BENCHMARK · 책 기준으로 보기 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
+          </div>
+          <div style={styles.styleMetrics}>
+            <div style={styles.styleMetric}>
+              <div style={styles.styleMetricLabel}>GIRP</div>
+              <div data-role="girp-value" style={{ ...styles.styleMetricValue, ...(girp.per18 >= GIRP_STEADY_100 ? { color: '#3db87a' } : {}) }}>
+                {isCareerMode ? `${girp.per18.toFixed(1)}/18` : `${girp.girp}/${girp.holes}`}
+              </div>
+            </div>
+            <div style={styles.styleMetricDivider} />
+            <div style={styles.styleMetric}>
+              <div style={styles.styleMetricLabel}>끔찍한 샷</div>
+              <div data-role="awful-value" style={{ ...styles.styleMetricValue, ...(awfulOverLimit ? { color: '#ef5350' } : {}) }}>
+                {isCareerMode ? `${awfulPoints.toFixed(1)}점/R` : `${awfulPoints}점`}
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6, marginTop: 10 }}>
+            <b style={{ color: '#b4c0d8' }}>GIRP</b> — 그린에 규정 타수 + 1타 이내로 도달한 홀이에요 (프린지는 따로 기록하지 않아 그린만 셉니다).
+            라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.
+            {!isCareerMode && girp.holes < 18 && ` 입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}
+          </div>
+          <div style={{ fontSize: 12, color: awfulOverLimit ? '#ef8a87' : '#8896b0', lineHeight: 1.6, marginTop: 8 }}>
+            <b style={{ color: awfulOverLimit ? '#ef8a87' : '#b4c0d8' }}>끔찍한 샷</b> — OB {awful.ob}회 × 2점 + 해저드·언플레이어블 {awful.hazard + awful.unplayable}회 × 1점
+            {isCareerMode ? ` (${awful.rounds}라운드 합계, 라운드 평균 ${awfulPoints.toFixed(1)}점)` : ''}.
+            페널티만 센 점수라 뒤땅·토핑 같은 미스샷은 빠져 있어요.
+            {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 큰 실수 줄이기가 먼저예요
+            {awfulOverLimit ? ' — 이번 기록이 그 기준을 넘었습니다.' : '.'}
+          </div>
+          <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 8 }}>{BOOK_SOURCE} (2014)</div>
+        </div>
+      )}
+
       {/* ── 티샷 딥다이브 (§3) ────────────────────────────────────────────── */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>TEE · 티샷</div>
@@ -520,6 +569,29 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           ))}
           {approachProximity.every(b => b.n === 0) && (
             <div style={{ fontSize: 12, color: '#8896b0' }}>거리구간별 데이터가 아직 없습니다.</div>
+          )}
+
+          {/* 위 근접도는 그린에 올린 샷만 센다. 책의 지표는 그린을 놓친 샷까지 센 것이라 같은 기준으로 한 번 더. */}
+          {approachAll.some(b => b.n > 0) && (
+            <div style={{ marginTop: 14 }} data-role="approach-all">
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+                전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
+              </div>
+              {approachAll.filter(b => b.n > 0).map(b => (
+                <div key={b.id} style={styles.riStatRow}>
+                  <div style={styles.riStatRowLabel}>{b.label}</div>
+                  <div style={styles.riStatRowBarTrack}>
+                    <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 25) * 100)}%` }} />
+                  </div>
+                  <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
+                  <ConfidenceBadge tier={b.tier} n={b.n} />
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
+                참고 — 125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m
+                ({BOOK_SOURCE}). 110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -565,6 +637,13 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
               <ConfidenceBadge tier={c.tier} n={c.n} />
             </div>
           ))}
+          {driverStat && driverStat.n >= 5 && (
+            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }} data-role="driver-value">
+              참고 — 드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
+              90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다 ({BOOK_SOURCE}).
+              내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
+            </div>
+          )}
         </div>
       )}
 

@@ -5,6 +5,8 @@
 
 import { extractClubShots } from './clubDistance.js';
 import { median, iqr, rateTier, distanceTier } from './stats.js';
+import { offGreenCount } from './offGreen.js';
+import { AWFUL_POINTS } from './bookBenchmarks.js';
 
 // ─── §3-5 티샷 좌우 편향 ───────────────────────────────────────────────────────
 // 편향지수 = (R횟수 - L횟수) / (L+C+R). par>3 홀의 페어웨이 랜딩 칩만 사용.
@@ -66,6 +68,101 @@ export function buildApproachProximity(rounds, windowSize = 20) {
     iqr: iqr(b.proximities),
     tier: distanceTier(b.proximities),
   }));
+}
+
+// 어프로치 근접도 — 전체 샷 기준 (책 p.14). 위 근접도는 그린에 올린 샷만 세서, 그린을 놓친
+// 샷까지 센 책의 지표보다 좋게 나온다. 여기서는 어프로치 뒤 핀까지 남은 거리를 그대로 쓴다:
+//   · 그린에 올렸으면 첫 퍼트 거리
+//   · 못 올렸으면 바로 다음 샷의 남은 거리 (다음 샷이 곧바로 이어진 경우만)
+// 어느 쪽도 기록되지 않았거나 벌타로 멈춘 자리가 불확실한 샷은 뺀다 (extractClubShots 규칙).
+// par 3 티샷은 체인에 없어 들어가지 않는다.
+export function buildApproachProximityAll(rounds, windowSize = 20) {
+  const samples = APPROACH_BUCKETS.map(b => ({ ...b, ends: [] }));
+
+  rounds.slice(0, windowSize).forEach(r => {
+    const p = r.players[0];
+    r.holes.forEach(h => {
+      const s = h.scores?.[p];
+      if (!s) return;
+      const chain = extractClubShots(h, p);
+      chain.forEach((shot, i) => {
+        if (shot.fromDistance == null) return;
+        const next = chain[i + 1];
+        let end = null;
+        if (next) {
+          if (next.shotNo === shot.shotNo + 1) end = next.fromDistance;
+        } else if (shot.onGreen === true) {
+          end = s.puttDetails?.[0]?.distance ?? null;
+        }
+        if (end == null) return;
+        const bucket = samples.find(b => shot.fromDistance >= b.min && shot.fromDistance < b.max);
+        if (bucket) bucket.ends.push(end);
+      });
+    });
+  });
+
+  return samples.map(b => ({
+    id: b.id, label: b.label, n: b.ends.length,
+    median: median(b.ends),
+    tier: distanceTier(b.ends),
+  }));
+}
+
+// ─── GIRP (책 p.26) ───────────────────────────────────────────────────────────
+// 그린 또는 프린지에 규정 타수 + 1타 이내로 도달한 홀. GIR(파 − 2타 이내)보다 한 타 더 허용해서
+// 보기 플레이 골퍼도 의미 있는 숫자가 나온다. 그린까지 쓴 타수 = 스코어 − 퍼트 − 퍼트 뒤 칩.
+// 프린지는 따로 기록하지 않아 그린에 올린 홀만 센다. 직접 고른 GIR 표시는 GIRP에 포함한다 —
+// GIRP는 늘 GIR 이상이다. 입력한(touched) 홀만 센다 (입력 없이 저장된 파는 도달 여부를 모른다).
+export function isGirp(score, par) {
+  if (score?.gir === true) return true;
+  const strokes = score?.strokes ?? par;
+  const putts = score?.putts ?? 2;
+  const chips = Array.isArray(score?.offGreen) ? offGreenCount(score) : 0;
+  return strokes - putts - chips <= par - 1;
+}
+
+export function buildGirp(rounds) {
+  let holes = 0, girp = 0;
+  rounds.forEach(r => {
+    const p = r.players[0];
+    r.holes.forEach(h => {
+      const s = h.scores?.[p];
+      if (!s || !s.touched) return;
+      holes++;
+      if (isGirp(s, h.par)) girp++;
+    });
+  });
+  // 18홀로 환산 — 일부 홀만 입력한 라운드나 여러 라운드 평균을 같은 눈금으로 본다
+  return { holes, girp, per18: holes > 0 ? (girp / holes) * 18 : null };
+}
+
+// ─── 끔찍한 샷 점수 (책 p.26, 페널티 기준 근사) ────────────────────────────────
+// OB 2점 · 해저드/언플레이어블 1점. 뒤땅·토핑 같은 미스샷은 기록하지 않아 빠지므로 실제
+// 점수는 이보다 높을 수 있다 — 책의 기준(6점)은 '이 점수만으로도 넘었는가'의 하한으로 본다.
+// OB·해저드·언플 횟수는 인사이트 화면의 이벤트 칩과 같은 필드를 쓴다.
+export function buildAwfulShots(rounds) {
+  const perRound = rounds.map(r => {
+    const p = r.players[0];
+    let ob = 0, hazard = 0, unplayable = 0, score = 0;
+    r.holes.forEach(h => {
+      const s = h.scores?.[p];
+      if (!s) return;
+      ob += s.ob ?? 0;
+      hazard += s.hazard ?? 0;
+      unplayable += s.unplayable ?? 0;
+      score += s.strokes ?? h.par;
+    });
+    return { ob, hazard, unplayable, score, points: ob * AWFUL_POINTS.ob + hazard * AWFUL_POINTS.hazard + unplayable * AWFUL_POINTS.unplayable };
+  });
+  const n = perRound.length;
+  const sum = (k) => perRound.reduce((a, r) => a + r[k], 0);
+  return {
+    rounds: n,
+    ob: sum('ob'), hazard: sum('hazard'), unplayable: sum('unplayable'),
+    points: sum('points'),
+    avgPoints: n > 0 ? sum('points') / n : null,
+    avgScore: n > 0 ? sum('score') / n : null,
+  };
 }
 
 // ─── §3-3 퍼팅 성공률 (거리 / 세로경사 / 좌우브레이크 — 3개의 1축 분해) ────────

@@ -8,6 +8,8 @@ import Insights from './Insights';
 import HoleReview from './HoleReview';
 import HoleReviewGrid from './HoleReviewGrid';
 import { offGreenShots } from '../../engine/offGreen.js';
+import GreenSpeedPicker from '../common/GreenSpeedPicker';
+import { validSpeed } from '../../engine/greenSpeed.js';
 
 export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
@@ -90,6 +92,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       inCourseName: round.inCourseName || 'IN',
       players: [...round.players],
       pars: [...round.pars],
+      greenSpeed: validSpeed(round.greenSpeed) ? round.greenSpeed : null,
     });
     setEditError(null);
     setShowEditModal(true);
@@ -148,6 +151,8 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       players: nextNames,
       pars: editDraft.pars,
       holes: updatedHoles,
+      // 그린 스피드는 1인 라운드에서만 다룬다 (퍼팅 분석 대상)
+      ...(round.players.length === 1 ? { greenSpeed: editDraft.greenSpeed ?? null } : {}),
     };
 
     setRound(updatedRound);
@@ -410,6 +415,14 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 
             {editError && (
               <div style={{ fontSize: 12, color: '#ef5350', marginTop: -8, marginBottom: 14, lineHeight: 1.6 }}>{editError}</div>
+            )}
+
+            {/* 그린 스피드 — 지난 라운드에도 나중에 넣을 수 있다 */}
+            {round.players.length === 1 && (
+              <div style={{ marginBottom: '16px' }} data-role="edit-green-speed">
+                <div style={{ ...editSectionLabel, marginBottom: '8px' }}>그린 스피드</div>
+                <GreenSpeedPicker value={editDraft.greenSpeed} onChange={(v) => setEditDraft({ ...editDraft, greenSpeed: v })} />
+              </div>
             )}
 
             {/* 파 설정 */}

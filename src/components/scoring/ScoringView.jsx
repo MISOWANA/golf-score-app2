@@ -9,6 +9,8 @@ import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, empt
 import { CLUB_SUBS, recommendClubs, clubLabelOf, fitText, reachText } from '../../engine/clubRecommend.js';
 import ClubSuggestions from './ClubSuggestions';
 import { useBagClubs } from './useBagClubs';
+import GreenSpeedPicker from '../common/GreenSpeedPicker';
+import { validSpeed, speedLabel } from '../../engine/greenSpeed.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -704,6 +706,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [holeInModalData, setHoleInModalData] = useState(null);
   const [showPuttsDropdown, setShowPuttsDropdown] = useState(false);
   const [showHoleMap, setShowHoleMap] = useState(false);
+  // 그날의 그린 스피드 — 라운드 시작 때 못 정했거나 라운드 중 알게 된 값을 퍼팅 화면에서 고친다
+  const [showGreenSpeed, setShowGreenSpeed] = useState(false);
+  const [speedDraft, setSpeedDraft] = useState(null);
+  const roundSpeed = validSpeed(round.greenSpeed) ? round.greenSpeed : null;
   const holeInCbRef = useRef(null);
   // 홀인/칩인 모달이 화면에 그려지기 전 빠른 연속 탭으로 완료 콜백이 두 번
   // 실행(저장/이동 중복)되는 것을 막는 가드.
@@ -3004,6 +3010,20 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* ── 그린 ── */}
         {secHdr('그 린', null, turnState('green', !!playerScore.onGreenLanding))}
 
+        {/* 그날의 그린 스피드 — 탭하면 바꿀 수 있다. 인사이트·리포트의 퍼팅 분석에 쓰인다 */}
+        {round.players.length === 1 && (
+          <button
+            data-role="green-speed-bar"
+            onClick={() => { setSpeedDraft(roundSpeed); setShowGreenSpeed(true); }}
+            style={{ ...fRow, width:'100%', background:'none', border:'none', borderBottom:'1px solid #0e1320', cursor:'pointer', textAlign:'left' }}
+          >
+            <div style={fLeft}><span style={fIcon}>≋</span><span style={fLbl}>그린 스피드</span></div>
+            <span style={{ fontSize:13, fontWeight:700, color: roundSpeed != null ? '#e8edf8' : '#c9a228' }}>
+              {roundSpeed != null ? speedLabel(roundSpeed) : '설정하기'} ›
+            </span>
+          </button>
+        )}
+
         {/* 그린 도착 지점 — 마지막 필드샷의 거리가 여기서 확정된다.
             퍼팅 거리는 GPS 오차(두 점 합성 ±5~10m)보다 짧아 측정 대상이 아니다. */}
         <GpsShotPoint
@@ -3541,6 +3561,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           clubHintFor={clubHintFor}
           onClose={closeMapAndFill}
         />
+      )}
+
+      {showGreenSpeed && (
+        <div style={styles.modalOverlay} onClick={() => setShowGreenSpeed(false)} data-role="green-speed-modal">
+          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:16, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:4 }}>그린 스피드</div>
+            <div style={{ fontSize:12, color:'#8896b0', textAlign:'center', lineHeight:1.5, marginBottom:14, wordBreak:'keep-all' }}>
+              오늘 그린의 빠르기를 고르면 퍼팅 분석에 반영돼요
+            </div>
+            <GreenSpeedPicker value={speedDraft} onChange={setSpeedDraft} />
+            <div style={{ ...styles.modalActions, marginTop:16 }}>
+              <button style={styles.modalBtnCancel} onClick={() => setShowGreenSpeed(false)}>취소</button>
+              <button style={styles.memoSaveBtn} data-role="green-speed-save"
+                onClick={() => { onUpdate({ ...round, greenSpeed: speedDraft }); setShowGreenSpeed(false); }}>저장</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showMemoModal && (

@@ -21,6 +21,7 @@ import HistoryView from './components/history/HistoryView';
 import StatsView from './components/stats/StatsView';
 import InsightsView from './components/insights/InsightsView';
 import MyBagView from './components/mybag/MyBagView';
+import { validSpeed } from './engine/greenSpeed.js';
 
 export default function GolfScoringApp() {
   const [view, setView] = useState('login');
@@ -130,7 +131,7 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate, clubRecommend) => {
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate, clubRecommend, greenSpeed) => {
     const newRound = {
       id: Date.now().toString(),
       date: roundDate || new Date().toISOString(),
@@ -169,6 +170,8 @@ export default function GolfScoringApp() {
       trackConfirm: true,
       // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한다. 이 값이 없는 예전 라운드는 켜짐으로 본다.
       clubRecommend: clubRecommend !== false,
+      // 그날의 그린 스피드(스팀프 피트). 설정하지 않았으면 null — 퍼팅 분석에서 속도별 비교에 쓴다.
+      greenSpeed: validSpeed(greenSpeed) ? greenSpeed : null,
     };
     setCurrentRound(newRound);
     saveActiveRound(currentUser.userId, newRound).catch(console.error);

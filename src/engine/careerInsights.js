@@ -4,6 +4,7 @@
 
 import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 import { penaltyCount } from './penalties.js';
+import { greenSpeedCareerInsights } from './greenSpeed.js';
 
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const std = (a) => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
@@ -161,6 +162,9 @@ export function buildCareerInsights(rounds) {
       '같은 홀에서 반복되는 손실은 공략 전략을 바꿔야 하는 신호입니다. 티샷 클럽·목표 지점을 한 번 정해 두세요.',
       ['score', 'repeat', 'course']));
   }
+
+  // ── 그린 스피드별 퍼팅 (속도를 기록한 라운드끼리)
+  out.push(...greenSpeedCareerInsights(rounds));
 
   return out;
 }

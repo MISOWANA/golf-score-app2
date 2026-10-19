@@ -13,6 +13,7 @@ import { analyzePutts, summarizePuttCauses, PUTT_CAUSE_LABEL } from './puttAnaly
 import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from './scoreBreakdown.js';
 import { buildCareerInsights, roundStats } from './careerInsights.js';
 import { penaltyCount } from './penalties.js';
+import { greenSpeedRoundInsights, buildGreenSpeedReport, GREEN_SPEED_TIPS } from './greenSpeed.js';
 
 export const SEVERITY_ORDER = { critical: 0, warning: 1, neutral: 2, positive: 3 };
 export const SEVERITY_LABEL = { critical: '심각', warning: '주의', neutral: '참고', positive: '좋은 점' };
@@ -94,11 +95,12 @@ export function buildRoundReplay(round) {
   const worstHoles = ranked.slice(0, 3);
   const bestHoles = best.slice(0, 3);
 
-  const sortedRound = sortInsights(roundInsights);
+  // 그날의 그린 스피드를 설정했으면 퍼팅 인사이트(빠른·느린 그린)를 더한다 — 리포트·검색도 이 복기를 쓴다
+  const sortedRound = sortInsights([...roundInsights, ...greenSpeedRoundInsights(round)]);
   const headline = buildHeadline({ score, par, front, back, frontPar, backPar, breakdown, causes, penalties, threePutts });
 
   return {
-    roundId: round.id, date: round.date, courseName: round.courseName, player,
+    roundId: round.id, date: round.date, courseName: round.courseName, player, greenSpeed: round.greenSpeed ?? null,
     score, par, diff: score - par, front, back, frontPar, backPar,
     holes, roundInsights: sortedRound,
     breakdown, causes, penalties, threePutts,
@@ -173,6 +175,8 @@ const SYNONYMS = {
   '티샷': ['티샷', 'tee_shot', '페어웨이'],
   '어프로치': ['어프로치', 'approach', 'gir', '그린'],
   '그린': ['그린', 'gir', 'green'],
+  '그린스피드': ['그린 스피드', '스팀프', 'green_speed'],
+  '스팀프': ['스팀프', '그린 스피드', 'green_speed'],
   '퍼팅': ['퍼팅', '퍼트', 'putting'],
   '퍼트': ['퍼트', '퍼팅', 'putting'],
   '벌타': ['페널티', '벌타', 'penalty'],
@@ -320,6 +324,12 @@ export function buildInsightReport(rounds, mode = 'round') {
       focus.push({ category: 'putting', text: `3퍼트 원인: ${parts.join(' · ')}${causeSum.counts.unknown ? ` (판단 보류 ${causeSum.counts.unknown}회)` : ''}` });
     }
   }
+  // 그린 스피드: 이번 라운드(또는 누적)의 속도별 퍼팅 요약. 최근 라운드가 빠르거나 느린 그린이었고 3퍼트가 났으면 포커스에 요령을 넣는다
+  const greenSpeed = buildGreenSpeedReport(solo, mode);
+  if (mode === 'round' && greenSpeed?.latest?.band && greenSpeed.latest.three >= 1) {
+    const tip = GREEN_SPEED_TIPS[greenSpeed.latest.band.id];
+    if (tip) focus.push({ category: 'putting', text: `${greenSpeed.latest.band.label} 그린(스팀프 ${greenSpeed.latest.speed.toFixed(1)}) — ${tip}` });
+  }
   const dataGap = replays.reduce((a, r) => a + r.defaultHoles, 0);
   if (dataGap > 0) focus.push({ category: 'data', text: `입력하지 않은 홀 ${dataGap}개 — 홀 단위 분석에서 제외됨(점수는 파로 저장)` });
 
@@ -332,7 +342,7 @@ export function buildInsightReport(rounds, mode = 'round') {
     penalties: sum(r => r.penalties),
     holes: sum(r => r.holes.length),
   };
-  return { mode, replays, strengths, issues, focus, stats, causes: causeSum, totals, ranked };
+  return { mode, replays, strengths, issues, focus, stats, causes: causeSum, totals, ranked, greenSpeed };
 }
 
 export { PUTT_CAUSE_LABEL, roundStats };

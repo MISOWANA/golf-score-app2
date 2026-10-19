@@ -5,7 +5,7 @@ import { SEVERITY_COLOR } from './insightTheme.js';
 import { buildInsightIndex, searchInsights, countByCategory, SEVERITY_LABEL } from '../../engine/insightIndex.js';
 import { INSIGHT_CATEGORY_LABEL, INSIGHT_CATEGORY_ORDER } from '../../engine/rules/category.js';
 
-const QUICK = ['3퍼트', '숏퍼트', '거리감', 'OB', '해저드', '드라이버', '업앤다운', '버디', '후반', '연속'];
+const QUICK = ['3퍼트', '숏퍼트', '그린스피드', '거리감', 'OB', '해저드', '드라이버', '업앤다운', '버디', '후반', '연속'];
 const PAGE = 30;
 
 const pill = (active, color = '#c9a228') => ({

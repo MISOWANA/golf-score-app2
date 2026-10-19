@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
 import GreenMissSelector from '../scoring/GreenMissSelector';
 import ConfidenceBadge from './ConfidenceBadge';
+import GreenSpeedPanel from './GreenSpeedPanel';
 import InsightReportPanel from './InsightReportPanel';
 import RoundReplayPanel from './RoundReplayPanel';
 import InsightSearchPanel from './InsightSearchPanel';
@@ -13,6 +14,7 @@ import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from '../../eng
 import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
+import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
 import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
 import { BASELINE_SOURCE } from '../../data/baseline.js';
 import { BOOK_SOURCE, GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
@@ -271,6 +273,8 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
     && awful.avgScore >= AWFUL_LIMIT_SCORE_RANGE[0] && awful.avgScore <= AWFUL_LIMIT_SCORE_RANGE[1]
     && awfulPoints > AWFUL_CONSISTENCY_LIMIT;
   const approachAll = buildApproachProximityAll(rounds);
+  // 그린 스피드별 퍼팅 — 리포트 탭과 같은 계산을 쓴다
+  const greenSpeedReport = buildGreenSpeedReport(rounds, isCareerMode ? 'career' : 'round');
   // ── Strokes Gained (투어 평균 대비) — 이번 라운드 합계 / 누적은 라운드당 평균 ─────────
   const sg = aggregateSG(benchRounds);
   const sgDiv = isCareerMode ? Math.max(1, sg.rounds) : 1;
@@ -680,6 +684,16 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
               스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#e8edf8', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
             </div>
             <ConfidenceBadge tier={scrambling.tier} n={scrambling.attempts} />
+          </div>
+        )}
+
+        {/* 그날의 그린 스피드에 따른 퍼팅 — 이번 라운드 / 누적 토글에 연동 */}
+        {greenSpeedReport && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
+              GREEN SPEED · 그린 스피드{isCareerMode ? ' (구간별 라운드 평균)' : ''}
+            </div>
+            <GreenSpeedPanel report={greenSpeedReport} />
           </div>
         )}
       </div>

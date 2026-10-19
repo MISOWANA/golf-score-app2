@@ -4,6 +4,7 @@ import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
 import { bagCoverage } from '../../engine/clubRecommend.js';
 import { useBagClubs } from '../scoring/useBagClubs';
+import GreenSpeedPicker from '../common/GreenSpeedPicker';
 
 // 거리별 클럽 추천을 받을지 마지막으로 고른 값 — 매 라운드마다 다시 끄지 않아도 되게 기기에 기억한다.
 // 기본은 켜짐. 저장소를 못 쓰는 환경이어도 이번 라운드 선택에는 영향이 없다.
@@ -34,6 +35,8 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [pars, setPars] = useState(Array(18).fill(4));
   const [teeBox, setTeeBox] = useState(null);
   const [clubRecommend, setClubRecommend] = useState(readClubRecommendPref);
+  // 그날의 그린 스피드(스팀프 피트) — 선택 입력. 날마다 다르니 지난 값을 기억하지 않는다.
+  const [greenSpeed, setGreenSpeed] = useState(null);
   const bagClubs = useBagClubs(currentUser);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -448,6 +451,19 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         </div>
       </div>
 
+      {/* 그린 스피드 — 퍼팅 분석(인사이트·리포트)에서 그날의 그린 상태로 쓴다. 1인 라운드만 분석한다 */}
+      {players.length === 1 && (
+        <div style={styles.formSection} data-role="setup-green-speed">
+          <div style={styles.formLabelRow}>
+            <label style={styles.formLabel}>그린 스피드 (선택)</label>
+          </div>
+          <GreenSpeedPicker value={greenSpeed} onChange={setGreenSpeed} />
+          <div style={{ fontSize: 11, color: '#6e84a8', marginTop: 8, lineHeight: 1.6, wordBreak: 'keep-all' }}>
+            코스 안내나 캐디가 알려 주는 그날의 값을 넣어 두면 퍼팅 분석에서 빠른 날·느린 날을 나눠 봐요. 라운드 중에도 바꿀 수 있어요.
+          </div>
+        </div>
+      )}
+
       {/* 거리별 클럽 추천 — 샷 상세 입력은 1인 라운드에서만 하므로 그때만 묻는다 */}
       {players.length === 1 && (
         <div style={styles.formSection}>
@@ -557,7 +573,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString(), clubRecommend)}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString(), clubRecommend, players.length === 1 ? greenSpeed : null)}
       >
         라운드 시작하기
       </button>

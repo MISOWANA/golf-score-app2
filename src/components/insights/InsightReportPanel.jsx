@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import InsightCard from './InsightCard.jsx';
+import GreenSpeedPanel from './GreenSpeedPanel.jsx';
 import { buildInsightReport } from '../../engine/insightIndex.js';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
 
@@ -84,6 +85,13 @@ export default function InsightReportPanel({ rounds, mode = 'round', onModeChang
                 : '모든 3퍼트의 원인을 퍼트 거리 기록으로 구분했습니다.'}
             </div>
           </div>
+        </Section>
+      )}
+
+      {/* 그린 스피드 — 그날의 그린이 빠르거나 느렸는지에 따라 퍼팅을 나눠 본다 */}
+      {rep.greenSpeed && (
+        <Section title="GREEN SPEED · 그린 스피드" sub={rep.mode === 'career' ? `${rep.greenSpeed.speedRounds}/${rep.greenSpeed.rounds}라운드 기록` : undefined}>
+          <GreenSpeedPanel report={rep.greenSpeed} />
         </Section>
       )}
 

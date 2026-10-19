@@ -85,6 +85,27 @@ const globalCSS = `
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
 
+  /* 진행 중 라운드 표시등 — 초록 점이 은은하게 퍼지는 링 */
+  @keyframes livePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(61,184,122,0.55); }
+    70%  { box-shadow: 0 0 0 7px rgba(61,184,122,0); }
+    100% { box-shadow: 0 0 0 0 rgba(61,184,122,0); }
+  }
+
+  /* 눌렀을 때 살짝 눌리는 터치 피드백 (홈의 카드·버튼) */
+  .bb-press {
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .bb-press:active {
+    transform: scale(0.985);
+    filter: brightness(1.1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bb-live-dot { animation: none !important; }
+    .bb-press, .bb-press:active { transition: none; transform: none; }
+  }
+
   /* Gold accent bar sweep — for premium panel decoration */
   @keyframes goldSweep {
     from { transform: translateX(-100%); }

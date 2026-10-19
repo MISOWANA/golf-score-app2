@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Download, Upload, LogOut, PlayCircle } from 'lucide-react';
+import { Download, Upload, LogOut } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
+import { NewRoundCard, ActiveRoundCard, StatsPanel } from './HomeCards';
 import { myPlayer } from '../../engine/players.js';
 
 export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onViewStats, onSwitchUser, onExportData, onImportData, loading }) {
@@ -48,13 +49,14 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
     : '—';
 
   return (
-    <div style={styles.container}>
-      <header style={{ ...styles.header, position: 'relative' }}>
-        {/* 배포된 버전 확인용 — 마지막 커밋 시각(KST). vite.config.js 의 appVersion */}
-        <span style={{
-          position: 'absolute', top: 2, right: 0,
-          fontSize: 10, color: '#5a6a88', letterSpacing: '0.02em', pointerEvents: 'none',
-        }}>{__APP_VERSION__}</span>
+    <div style={{
+      ...styles.container,
+      // 머리 위에서 은은하게 퍼지는 금빛 — 배경이 평평해 보이지 않도록
+      backgroundImage: 'radial-gradient(ellipse 75% 100% at 50% 0%, rgba(201,162,40,0.07) 0%, rgba(201,162,40,0) 100%)',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: '100% 300px',
+    }}>
+      <header style={styles.header}>
         <div style={styles.headerTop}>
           <div style={styles.logo}>
             <div style={{ ...styles.logoMark, cursor: 'pointer' }} onClick={handleLogoClick} title="3번 연속 클릭하면 강력 새로고침">⛳</div>
@@ -65,14 +67,16 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
           </div>
           <div style={styles.headerActions}>
             <button
+              className="bb-press"
               style={styles.actionButton}
               onClick={() => setShowExportConfirm(true)}
               title="데이터 백업 (내보내기)"
+              aria-label="데이터 백업 (내보내기)"
             >
-              <Upload size={18} />
+              <Upload size={16} />
             </button>
-            <button style={styles.actionButton} title="데이터 복원 (가져오기)" onClick={() => setShowImportConfirm(true)}>
-              <Download size={18} />
+            <button className="bb-press" style={styles.actionButton} title="데이터 복원 (가져오기)" aria-label="데이터 복원 (가져오기)" onClick={() => setShowImportConfirm(true)}>
+              <Download size={16} />
             </button>
             <input
               ref={fileInputRef}
@@ -86,75 +90,34 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
                 }
               }}
             />
-            <span style={styles.userName}>{currentUser.userName}</span>
-            <button style={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)} title="다른 사용자로 로그인">
-              <LogOut size={18} />
-            </button>
+            <div style={styles.userChip}>
+              <span style={styles.userName}>{currentUser.userName}</span>
+              <button style={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)} title="다른 사용자로 로그인" aria-label="다른 사용자로 로그인">
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
         </div>
-        <div style={styles.dateLine}>
-          {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+        <div style={styles.dateRow}>
+          <div style={styles.dateLine}>
+            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+          </div>
+          {/* 배포된 버전 확인용 — 마지막 커밋 시각(KST). vite.config.js 의 appVersion */}
+          <span style={styles.versionTag}>{__APP_VERSION__}</span>
         </div>
       </header>
 
-      {activeRound && (
-        <div style={{
-          background: 'linear-gradient(135deg, #0e1c14 0%, #1a3028 100%)',
-          borderRadius: '4px', padding: '16px 18px', marginBottom: '12px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          border: '1px solid #1a3028',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.4)'
-        }}>
-          <div>
-            <div style={{ fontSize: '10px', color: '#c9a228', fontWeight: 700, letterSpacing: '0.2em', marginBottom: '4px', textTransform: 'uppercase' }}>
-              진행 중인 라운드
-            </div>
-            <div style={{ fontSize: '15px', color: '#e8edf8', fontWeight: 700, marginBottom: '2px' }}>
-              {activeRound.courseName}
-            </div>
-            <div style={{ fontSize: '12px', color: '#8896b0' }}>
-              {activeRound.currentHole + 1}홀 진행 중 · {activeRound.players.join(', ')}
-            </div>
-          </div>
-          <button
-            onClick={onResume}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              background: 'rgba(201,162,40,0.15)', color: '#c9a228',
-              border: '1px solid rgba(201,162,40,0.5)',
-              borderRadius: '4px', padding: '8px 14px',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
-            }}
-          >
-            <PlayCircle size={15} />
-            이어서
-          </button>
-        </div>
-      )}
+      {/* 새 라운드는 항상 맨 위에 고정 — 진행 중인 라운드는 그 아래 */}
+      <NewRoundCard onNewRound={onNewRound} />
 
-      <div style={styles.heroCard}>
-        <h1 style={styles.heroTitle}>새 라운드</h1>
-        <button style={styles.heroButton} onClick={onNewRound}>
-          <Plus size={18} strokeWidth={2.5} />
-          <span>시작하기</span>
-        </button>
-      </div>
+      {activeRound && <ActiveRoundCard round={activeRound} onResume={onResume} />}
 
-      <div style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <div style={styles.statLabel}>누적 라운드</div>
-          <div style={styles.statValue}>{loading ? '—' : totalRounds}</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statLabel}>평균 스코어</div>
-          <div style={styles.statValue}>{loading ? '—' : avgScore}</div>
-        </div>
-      </div>
+      <StatsPanel loading={loading} totalRounds={totalRounds} avgScore={avgScore} />
 
       {recentRound && (
         <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <div style={styles.sectionTitle}>최근 라운드</div>
+          <div style={styles.homeSectionHeader}>
+            <div style={styles.homeSectionTitle}>최근 라운드</div>
             <button style={styles.textLink} onClick={onViewHistory}>전체보기</button>
           </div>
           <RoundRow round={recentRound} userName={currentUser.userName} onClick={() => { onViewHistory(); }} />

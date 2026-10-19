@@ -4,7 +4,7 @@
 // clubDistance.js 의 extractClubShots 는 통계용이라 거리를 못 구한 샷을 버리지만,
 // 복기에서는 클럽만 입력된 샷도 그대로 보여야 하므로 별도로 조립한다.
 
-import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted } from './geo.js';
+import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted, hasHoleMap } from './geo.js';
 import { penaltyAt, penaltyCount, penaltyResultText, shotTitle } from './penalties.js';
 import { analyzePutts } from './puttAnalysis.js';
 import { offGreenShots } from './offGreen.js';
@@ -187,7 +187,7 @@ export function buildHoleReview(hole, player, holeIdx) {
       pin: s.gpsPin || null,
       fieldShots: n,
       trusted,                                    // 샷별 구간 거리를 그려도 되는지
-      hasAny: (s.gpsPoints || []).some(Boolean) || !!s.gpsGreen || !!s.gpsPin,
+      hasAny: hasHoleMap(s),
     },
   };
 }

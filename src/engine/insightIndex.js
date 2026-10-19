@@ -13,6 +13,7 @@ import { analyzePutts, summarizePuttCauses, PUTT_CAUSE_LABEL } from './puttAnaly
 import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from './scoreBreakdown.js';
 import { buildCareerInsights, roundStats } from './careerInsights.js';
 import { penaltyCount } from './penalties.js';
+import { hasHoleMap } from './geo.js';
 import { greenSpeedRoundInsights, buildGreenSpeedReport, GREEN_SPEED_TIPS } from './greenSpeed.js';
 
 export const SEVERITY_ORDER = { critical: 0, warning: 1, neutral: 2, positive: 3 };
@@ -58,6 +59,8 @@ export function buildRoundReplay(round) {
     const pa = analyzePutts(s);
     const strokes = s.strokes ?? h.par;
     return {
+      idx: i,                                   // round.holes 안의 위치 — 지도 복기(HoleReview)가 이 번호로 연다
+      hasMap: hasHoleMap(s),                    // 저장된 지도 기록이 있는 홀
       holeNumber: h.holeNumber,
       par: h.par,
       strokes,
@@ -106,6 +109,7 @@ export function buildRoundReplay(round) {
     breakdown, causes, penalties, threePutts,
     worstHoles, bestHoles,
     headline,
+    mapHoles: holes.filter(h => h.hasMap).length,
     enteredHoles: touchedHoles.length,
     defaultHoles: holes.length - touchedHoles.length,
   };

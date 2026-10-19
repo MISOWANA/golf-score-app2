@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import InsightCard from './InsightCard.jsx';
+import HoleReview from '../analysis/HoleReview';
 import { buildRoundReplay } from '../../engine/insightIndex.js';
 import { PUTT_CAUSE_LABEL } from '../../engine/puttAnalysis.js';
 
@@ -28,6 +29,8 @@ export default function RoundReplayPanel({ rounds }) {
   const [roundIdx, setRoundIdx] = useState(0);
   const [filter, setFilter] = useState('all');       // all | issues | good
   const [open, setOpen] = useState({});              // holeNumber → 펼침
+  // 지도·샷 목록 복기(히스토리의 홀별 복기와 같은 화면)를 열어 둔 홀 — round.holes 안의 위치, 없으면 null
+  const [mapHole, setMapHole] = useState(null);
   const round = solo[Math.min(roundIdx, solo.length - 1)];
   const replay = useMemo(() => (round ? buildRoundReplay(round) : null), [round]);
 
@@ -37,7 +40,9 @@ export default function RoundReplayPanel({ rounds }) {
 
   const hasIssue = (h) => h.shown.some(i => i.severity === 'critical' || i.severity === 'warning');
   const hasGood = (h) => h.shown.some(i => i.severity === 'positive');
+  const firstMapHole = replay.holes.find(h => h.hasMap);
   const visible = replay.holes.filter(h => {
+    if (filter === 'map') return h.hasMap;      // 지도 기록은 입력하지 않은 홀에도 있을 수 있다
     if (!h.touched && filter !== 'all') return false;
     if (filter === 'issues') return hasIssue(h);
     if (filter === 'good') return hasGood(h);
@@ -60,7 +65,7 @@ export default function RoundReplayPanel({ rounds }) {
             const sc = rp ? rp.score : r.holes.reduce((a, h) => a + (h.scores[r.players[0]]?.strokes || 0), 0);
             const pr = r.pars.reduce((a, b) => a + b, 0);
             return (
-              <button key={r.id} style={pill(i === roundIdx)} onClick={() => { setRoundIdx(i); setOpen({}); }}>
+              <button key={r.id} style={pill(i === roundIdx)} onClick={() => { setRoundIdx(i); setOpen({}); setMapHole(null); }}>
                 {dateLabel(r.date)} {r.courseName} · {sc} ({sign(sc - pr)})
               </button>
             );
@@ -93,9 +98,23 @@ export default function RoundReplayPanel({ rounds }) {
             }}>
             <span style={{ fontSize: 10, color: '#8ca4bc', fontWeight: 700 }}>{h.holeNumber}</span>
             <span style={{ fontSize: 16, fontWeight: 900, color: h.touched ? diffColor(h.diff) : '#8ca4bc' }}>{h.strokes}</span>
+            {/* 지도 기록이 있는 홀은 점 하나로 표시 — 히스토리의 홀별 복기 그리드와 같은 표시 */}
+            <span data-role={h.hasMap ? 'flow-map-dot' : undefined} style={{ width: 5, height: 5, borderRadius: '50%', background: h.hasMap ? '#5b9cf6' : 'transparent' }} />
           </button>
         ))}
       </div>
+      {replay.mapHoles > 0 && (
+        <div data-role="replay-map-legend" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8 }}>
+          <span style={{ fontSize: 11, color: '#8ca4bc' }}>
+            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#5b9cf6', marginRight: 5 }} />
+            {replay.mapHoles}개 홀에 지도 기록
+          </span>
+          <button data-role="replay-map-start" onClick={() => setMapHole(firstMapHole.idx)}
+            style={{ ...pill(false), border: '1px solid rgba(91,156,246,0.5)', color: '#8ec0ff', background: 'rgba(91,156,246,0.08)' }}>
+            🗺 지도로 홀 흐름 보기
+          </button>
+        </div>
+      )}
       {replay.defaultHoles > 0 && (
         <div style={{ fontSize: 11, color: '#6e84a8', textAlign: 'right', marginTop: 4 }}>점선 칸 {replay.defaultHoles}개: 입력 없이 파로 저장된 홀 (홀 분석 제외)</div>
       )}
@@ -140,7 +159,7 @@ export default function RoundReplayPanel({ rounds }) {
       {/* 홀별 */}
       {label('HOLE BY HOLE · 홀별 복기')}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-        {[['all', '전체'], ['issues', '주의·심각'], ['good', '좋은 점']].map(([v, l]) => (
+        {[['all', '전체'], ['issues', '주의·심각'], ['good', '좋은 점'], ...(replay.mapHoles > 0 ? [['map', '🗺 지도 있는 홀']] : [])].map(([v, l]) => (
           <button key={v} style={pill(filter === v)} onClick={() => setFilter(v)}>{l}</button>
         ))}
       </div>
@@ -181,6 +200,12 @@ export default function RoundReplayPanel({ rounds }) {
                       ].filter(Boolean).join(' · ')}
                   </div>
                 </div>
+                {h.hasMap && (
+                  <button data-role="replay-map-btn" aria-label={`${h.holeNumber}번 홀 지도 보기`} onClick={() => setMapHole(h.idx)}
+                    style={{ ...pill(false), padding: '5px 9px', fontSize: 11, flexShrink: 0, border: '1px solid rgba(91,156,246,0.5)', color: '#8ec0ff', background: 'rgba(91,156,246,0.08)' }}>
+                    🗺 지도
+                  </button>
+                )}
                 {h.puttCause && (
                   <span style={{
                     fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 999, whiteSpace: 'nowrap',
@@ -213,6 +238,17 @@ export default function RoundReplayPanel({ rounds }) {
           );
         })}
       </div>
+
+      {/* 지도 복기 — 히스토리의 홀별 복기와 같은 화면. 홀 이동(← →)으로 홀 흐름을 따라가며 본다 */}
+      {mapHole != null && (
+        <HoleReview
+          round={round}
+          player={replay.player}
+          holeIdx={mapHole}
+          onNav={setMapHole}
+          onClose={() => setMapHole(null)}
+        />
+      )}
 
       {/* 라운드 전체 */}
       {replay.roundInsights.length > 0 && (<>

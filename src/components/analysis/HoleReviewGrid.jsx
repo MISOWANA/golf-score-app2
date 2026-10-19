@@ -1,3 +1,5 @@
+import { hasHoleMap } from '../../engine/geo.js';
+
 // ROUND REPORT 상단의 홀별 복기 진입 그리드.
 // 스코어카드의 작은 숫자를 누르게 하는 대신, 홀 번호와 스코어를 큼직하게 깔아
 // "어느 홀을 되짚을지" 고르는 것이 이 화면의 첫 동작이 되게 한다.
@@ -22,10 +24,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
 
   const defaultCount = round.holes.filter((h) => !h.scores?.[player]?.touched).length;
 
-  const gpsCount = round.holes.filter((h) => {
-    const s = h.scores?.[player];
-    return (s?.gpsPoints || []).some(Boolean) || s?.gpsGreen || s?.gpsPin;
-  }).length;
+  const gpsCount = round.holes.filter((h) => hasHoleMap(h.scores?.[player])).length;
 
   return (
     <div>
@@ -56,7 +55,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
               const strokes = s?.strokes != null ? s.strokes : null;
               const diff = strokes != null ? strokes - h.par : null;
               const t = entered ? TONE(diff) : DEFAULT_TONE;
-              const hasGps = (s?.gpsPoints || []).some(Boolean) || !!s?.gpsGreen || !!s?.gpsPin;
+              const hasGps = hasHoleMap(s);
               return (
                 <button
                   key={idx}

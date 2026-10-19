@@ -68,6 +68,11 @@ export function pinDistances(gpsPoints, gpsPin, fieldShotCount) {
   return out;
 }
 
+// 이 홀에 저장된 지도 기록(샷 지점·그린 도착 지점·핀 중 하나라도)이 있는지.
+// 홀별 복기·히스토리 그리드·인사이트 라운드 복기가 모두 이 기준으로 '지도 있는 홀'을 가른다.
+export const hasHoleMap = (score) =>
+  (score?.gpsPoints || []).some(Boolean) || !!score?.gpsGreen || !!score?.gpsPin;
+
 // 한 홀에서 실제로 친 "필드샷"(퍼팅 제외) 개수.
 //
 //   홀인원(파3·파4 모두)        → 1 (티샷 하나로 끝)

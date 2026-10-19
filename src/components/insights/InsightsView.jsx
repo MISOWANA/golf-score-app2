@@ -4,7 +4,9 @@ import styles from '../../styles/styles';
 import GreenMissSelector from '../scoring/GreenMissSelector';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
-import InsightReportPanel from './InsightReportPanel';
+import Chapter, { ChapterNav } from './Chapter';
+import { ReportHeader, ReportFindings, ThreePuttCause, NextFocus, Section } from './InsightReportPanel';
+import { LossShareCard, BigMissesCard, SkillHeader, PracticeCard } from './StoryPanels';
 import RoundReplayPanel from './RoundReplayPanel';
 import InsightSearchPanel from './InsightSearchPanel';
 import { toHoleInput, matchRoundInsightRules } from '../../engine/engine.js';
@@ -15,6 +17,8 @@ import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
 import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
+import { buildInsightReport } from '../../engine/insightIndex.js';
+import { buildLossShares, buildTeePenalty, buildPuttZone, buildPrescriptions } from '../../engine/roundStory.js';
 import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
@@ -283,6 +287,27 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const sgMaxAbs = Math.max(0.5, ...sgRows.map(r => Math.abs(r.value)));
   const driverStat = clubStats.find(c => c.club === 'driver' && !c.subClub);
 
+  // ── 리포트의 흐름(장)에 필요한 파생 값 ───────────────────────────────────────
+  const reportMode = isCareerMode ? 'career' : 'round';
+  const rep = tab === 'report' ? buildInsightReport(rounds, reportMode) : null;
+  const lossShares = buildLossShares(sg);
+  const teePen = buildTeePenalty(benchRounds);
+  const puttZone = buildPuttZone(rounds);
+  // 어프로치 표는 100야드(91m) 밖, 80m 안은 숏게임 표로 나눈다 (책의 부문 경계에 가깝게 80m에서 자른다)
+  const approachRows = approachProximity.filter(b => b.n > 0 && b.id !== 'lt80');
+  const approachAllRows = approachAll.filter(b => b.n > 0 && b.id !== 'lt80');
+  const shortRows = [
+    { key: 'hit', label: '그린 적중', ...approachProximity.find(b => b.id === 'lt80') },
+    { key: 'all', label: '전체 샷', ...approachAll.find(b => b.id === 'lt80') },
+  ].filter(r => r.n > 0);
+  const approach110 = approachAll.find(b => b.id === '110to140')?.median ?? null;
+  const prescriptions = rep
+    ? buildPrescriptions({
+      sg, ranked: activeBreakdown.ranked, awful, awfulOverLimit, teePen, puttZone,
+      puttCauses: rep.causes, approach110, scrambling, teeBias,
+    })
+    : null;
+
   const roundPar = latestRound.pars.reduce((a, b) => a + b, 0);
   const roundScore = latestRound.holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
 
@@ -332,17 +357,75 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={rounds} /></div>}
 
       {tab === 'report' && <>
-      <div style={{ marginBottom: 8 }}>
-        <InsightReportPanel
-          rounds={rounds}
-          mode={isCareerMode ? 'career' : 'round'}
-          onModeChange={rounds.length > 1 ? setMode : null}
-        />
-      </div>
+      <ChapterNav />
+
+      {/* ── 1장 · 한눈에 보기 ─────────────────────────────────────────────── */}
+      <Chapter no={1} />
+      <ReportHeader rep={rep} rounds={rounds} mode={reportMode} onModeChange={rounds.length > 1 ? setMode : null} />
+      <ReportFindings rep={rep} />
+
+      {/* ── 2장 · 어디서 잃고 벌었나 — 공통 단위(타수)로 비교 ───────────────────── */}
+      <Chapter no={2} />
+      {/* ── STROKES GAINED — 샷마다 거리·라이별 투어 평균과 비교 (Broadie 5장) ────────── */}
+      {sg.holes > 0 && (
+        <div style={styles.section} data-role="strokes-gained">
+          <div style={styles.sectionTitle}>
+            STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : '(이번 라운드)'}
+          </div>
+          {sg.holesWithData === 0 ? (
+            <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+              샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요.
+              (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: '#8896b0' }}>측정된 샷 합계</div>
+                <div data-role="sg-total" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: sgValue(sg.total) >= 0 ? '#3db87a' : '#ef5350' }}>
+                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 12, fontWeight: 700, color: '#8896b0', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
+                </div>
+              </div>
+              {sgRows.map(r => (
+                <div key={r.cat} style={styles.riStatRow} data-role={`sg-${r.cat}`}>
+                  <div style={styles.riStatRowLabel}>{SG_LABEL[r.cat]}</div>
+                  {/* 가운데가 0 — 오른쪽(초록)은 투어 평균보다 잘 침, 왼쪽(빨강)은 잃음 */}
+                  <div style={{ ...styles.riStatRowBarTrack, position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#3a4e72' }} />
+                    <div style={{
+                      position: 'absolute', top: 0, bottom: 0,
+                      [r.value >= 0 ? 'left' : 'right']: '50%',
+                      width: `${Math.min(50, (Math.abs(r.value) / sgMaxAbs) * 50)}%`,
+                      background: r.cat === 'mixed' ? '#6b7a99' : r.value >= 0 ? '#3db87a' : '#ef5350',
+                      borderRadius: 3,
+                    }} />
+                  </div>
+                  <div style={{ ...styles.riStatRowValue, color: r.value >= 0 ? '#3db87a' : '#ef5350' }}>{r.segments > 0 ? fmtSigned(r.value) : '–'}</div>
+                  {r.segments > 0 && r.cat !== 'mixed' ? <ConfidenceBadge tier={sgTier(r.strokes)} n={r.strokes} /> : <div style={{ width: 52 }} />}
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }} data-role="sg-coverage">
+                측정된 {sg.measuredStrokes}타 / 입력한 홀 전체 {sg.strokes}타 ({Math.round(sg.coverage * 100)}%).
+                {sg.categories.mixed.segments > 0 && ` 분류 불가 ${sg.categories.mixed.strokes}타는 남은 거리·퍼트 거리가 없어 여러 샷이 한 구간으로 묶인 값이에요.`}
+              </div>
+              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
+                투어 평균이 0이라 아마추어는 대부분 마이너스예요 — 숫자 크기보다 카테고리끼리의 차이를 보세요.
+                세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
+                20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 롱게임·숏게임·퍼팅이 잃은 타수에서 차지하는 비중 */}
+      <LossShareCard shares={lossShares} coverage={sg.coverage} />
 
       {/* ── 스코어 5단계 분해 ─────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>SCORE BREAKDOWN · 스코어 분해</div>
+        <div style={styles.sectionTitle}>SCORE BREAKDOWN · 스코어 기준 손실 (파 대비)</div>
+        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginBottom: 10 }}>
+          위 SG와 달리 입력이 적어도 늘 계산돼요. 파를 기준으로 퍼팅 · 티샷 · 어프로치 · 숏게임 · 페널티에서 몇 타를 잃었는지 나눕니다.
+        </div>
 
         {totalLossForBar > 0 ? (
           <>
@@ -410,56 +493,241 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </div>
       )}
 
-      {/* ── STROKES GAINED — 샷마다 거리·라이별 투어 평균과 비교 (Broadie 5장) ────────── */}
-      {sg.holes > 0 && (
-        <div style={styles.section} data-role="strokes-gained">
-          <div style={styles.sectionTitle}>
-            STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : '(이번 라운드)'}
+      {/* ── 3장 · 큰 숫자부터 — 나쁜 샷의 대가가 더 크다 ───────────────────────── */}
+      <Chapter no={3} />
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>
+          BIG MISSES · 큰 실수 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
+        </div>
+        <BigMissesCard
+          career={isCareerMode} rounds={rounds.length}
+          awful={awful} awfulPoints={awfulPoints} awfulOverLimit={awfulOverLimit}
+          teePen={teePen}
+          doublePlus={(isCareerMode ? careerScoreDistribution : scoreDistribution).doublePlus}
+          holes={isCareerMode ? allHoles.length : timelineHoles.length}
+          threePutt={(isCareerMode ? careerEvents : events).threePutt}
+        />
+      </div>
+
+      {/* ── 4장 · 부문별 진단 — 티샷 → 어프로치 → 숏게임 → 퍼팅 ───────────────────── */}
+      <Chapter no={4} />
+
+      {/* ── 티샷 (드라이빙) ─────────────────────────────────────────────── */}
+      <div style={styles.section}>
+        <div style={styles.sectionTitle}>TEE · 티샷</div>
+        <SkillHeader cat="tee" sg={sg} career={isCareerMode} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, color: '#e8edf8' }}>
+            좌 <span style={{ fontWeight: 800 }}>{teeBias.L}</span> · 중 <span style={{ fontWeight: 800 }}>{teeBias.C}</span> · 우 <span style={{ fontWeight: 800 }}>{teeBias.R}</span>
+            {teeBias.G > 0 && <> · 1온 <span style={{ fontWeight: 800 }}>{teeBias.G}</span></>}
           </div>
-          {sg.holesWithData === 0 ? (
-            <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
-              샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요.
-              (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)
+          {teeBiasTier && <ConfidenceBadge tier={teeBiasTier} n={teeBias.total} />}
+        </div>
+        {teeBias.total > 0 ? (
+          <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+            편향지수 {fmtSigned(teeBias.biasIndex)} ({teeBias.biasIndex > 0.15 ? '우측 경향' : teeBias.biasIndex < -0.15 ? '좌측 경향' : '중립'}) — 최근 10라운드 기준
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없습니다.</div>
+        )}
+        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
+          티샷은 정확도보다 거리가 스코어에 더 크게 기여하는 경향이 있어요 (아주 좁은 코스는 예외). 티샷 OB율은 위 3장에 있어요.
+        </div>
+        {driverStat && driverStat.n >= 5 && (
+          <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }} data-role="driver-value">
+            참고 — 드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
+            90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
+            내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
+          </div>
+        )}
+      </div>
+
+      {/* ── 어프로치 — 100야드(약 91m) 밖 샷 ─────────────────────────────────── */}
+      <div style={styles.section} data-role="approach-section">
+        <div style={styles.sectionTitle}>APPROACH · 어프로치</div>
+        <SkillHeader cat="approach" sg={sg} career={isCareerMode} />
+        {girp.holes > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div style={{ fontSize: 12, color: '#8896b0' }}>GIRP · 규정 타수+1타 이내 그린 도달 {isCareerMode ? '(라운드 평균)' : ''}</div>
+              <div data-role="girp-value" style={{ fontSize: 18, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: girp.per18 >= GIRP_STEADY_100 ? '#3db87a' : '#e8edf8' }}>
+                {isCareerMode ? `${girp.per18.toFixed(1)}/18` : `${girp.girp}/${girp.holes}`}
+              </div>
             </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 12, color: '#8896b0' }}>측정된 샷 합계</div>
-                <div data-role="sg-total" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: sgValue(sg.total) >= 0 ? '#3db87a' : '#ef5350' }}>
-                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 12, fontWeight: 700, color: '#8896b0', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
+            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6 }}>
+              프린지는 따로 기록하지 않아 그린만 셉니다. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.
+              {!isCareerMode && girp.holes < 18 && ` 입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}
+            </div>
+          </div>
+        )}
+        {stage >= 3 && approachRows.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 근접도 — 그린에 올린 샷의 첫 퍼트 거리 (최근 20R)</div>
+            {approachRows.map(b => (
+              <div key={b.id} style={styles.riStatRow}>
+                <div style={styles.riStatRowLabel}>{b.label}</div>
+                <div style={styles.riStatRowBarTrack}>
+                  <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 15) * 100)}%` }} />
                 </div>
+                <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
+                <ConfidenceBadge tier={b.tier} n={b.n} />
               </div>
-              {sgRows.map(r => (
-                <div key={r.cat} style={styles.riStatRow} data-role={`sg-${r.cat}`}>
-                  <div style={styles.riStatRowLabel}>{SG_LABEL[r.cat]}</div>
-                  {/* 가운데가 0 — 오른쪽(초록)은 투어 평균보다 잘 침, 왼쪽(빨강)은 잃음 */}
-                  <div style={{ ...styles.riStatRowBarTrack, position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#3a4e72' }} />
-                    <div style={{
-                      position: 'absolute', top: 0, bottom: 0,
-                      [r.value >= 0 ? 'left' : 'right']: '50%',
-                      width: `${Math.min(50, (Math.abs(r.value) / sgMaxAbs) * 50)}%`,
-                      background: r.cat === 'mixed' ? '#6b7a99' : r.value >= 0 ? '#3db87a' : '#ef5350',
-                      borderRadius: 3,
-                    }} />
-                  </div>
-                  <div style={{ ...styles.riStatRowValue, color: r.value >= 0 ? '#3db87a' : '#ef5350' }}>{r.segments > 0 ? fmtSigned(r.value) : '–'}</div>
-                  {r.segments > 0 && r.cat !== 'mixed' ? <ConfidenceBadge tier={sgTier(r.strokes)} n={r.strokes} /> : <div style={{ width: 52 }} />}
+            ))}
+          </div>
+        )}
+        {stage >= 3 && approachRows.length === 0 && (
+          <div style={{ fontSize: 12, color: '#8896b0' }}>거리구간별 데이터가 아직 없습니다.</div>
+        )}
+
+        {/* 위 근접도는 그린에 올린 샷만 센다. 그린을 놓친 샷까지 센 같은 기준으로 한 번 더 — 그래야 투어·90타 골퍼와 견줄 수 있다. */}
+        {stage >= 3 && approachAllRows.length > 0 && (
+          <div style={{ marginTop: 14 }} data-role="approach-all">
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+              전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
+            </div>
+            {approachAllRows.map(b => (
+              <div key={b.id} style={styles.riStatRow}>
+                <div style={styles.riStatRowLabel}>{b.label}</div>
+                <div style={styles.riStatRowBarTrack}>
+                  <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 25) * 100)}%` }} />
                 </div>
-              ))}
-              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }} data-role="sg-coverage">
-                측정된 {sg.measuredStrokes}타 / 입력한 홀 전체 {sg.strokes}타 ({Math.round(sg.coverage * 100)}%).
-                {sg.categories.mixed.segments > 0 && ` 분류 불가 ${sg.categories.mixed.strokes}타는 남은 거리·퍼트 거리가 없어 여러 샷이 한 구간으로 묶인 값이에요.`}
+                <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
+                <ConfidenceBadge tier={b.tier} n={b.n} />
               </div>
-              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
-                투어 평균이 0이라 아마추어는 대부분 마이너스예요 — 숫자 크기보다 카테고리끼리의 차이를 보세요.
-                세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
-                20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
+            ))}
+            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
+              참고 — 125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.
+              110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 클럽 거리 (§3-1, 10라운드+ 부터) ─────────────────────────────────── */}
+      {stage >= 4 && clubStats.length > 0 && (
+        <div style={styles.section}>
+          <div style={styles.sectionTitle}>CLUB DISTANCE · 클럽별 거리 (최근 20R)</div>
+          {clubStats.map(c => (
+            <div key={c.label} style={styles.riStatRow}>
+              <div style={styles.riStatRowLabel}>{c.label}</div>
+              <div style={styles.riStatRowBarTrack}>
+                <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (c.median / 200) * 100)}%` }} />
               </div>
-            </>
-          )}
+              <div style={styles.riStatRowValue}>{c.median?.toFixed(0)}m</div>
+              <ConfidenceBadge tier={c.tier} n={c.n} />
+            </div>
+          ))}
         </div>
       )}
+
+      {/* ── 온그린 랜딩 분포 ─────────────────────────────────────────────── */}
+      {(() => {
+        const counts = { long: 0, short: 0, left: 0, right: 0 };
+        let total = 0;
+        rounds.forEach(r => {
+          const p = r.players[0];
+          r.holes.forEach(h => {
+            const q = clockToQuadrant(h.scores?.[p]?.onGreenLanding);
+            if (q) { counts[q]++; total++; }
+          });
+        });
+        if (total === 0) return null;
+        return (
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>GREEN APPROACH · 그린 랜딩 분포</div>
+            <GreenMissSelector stats={{ ...counts, total }} />
+            <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 12, marginTop: 8 }}>총 {total}회 기록</div>
+          </div>
+        );
+      })()}
+
+      {/* ── 숏게임 — 그린 밖 100야드(약 91m) 안 샷 ──────────────────────────── */}
+      <div style={styles.section} data-role="shortgame-section">
+        <div style={styles.sectionTitle}>SHORT GAME · 숏게임</div>
+        <SkillHeader cat="shortGame" sg={sg} career={isCareerMode} />
+        {scrambling.attempts > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: '#8896b0' }}>
+              스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#e8edf8', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
+              <span style={{ marginLeft: 6, color: '#6e84a8' }}>({scrambling.saves}/{scrambling.attempts}홀)</span>
+            </div>
+            <ConfidenceBadge tier={scrambling.tier} n={scrambling.attempts} />
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: '#8896b0', marginBottom: 10 }}>그린을 놓친 홀이 아직 없어요.</div>
+        )}
+        {stage >= 3 && shortRows.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>80m 안 샷의 근접도</div>
+            {shortRows.map(r => (
+              <div key={r.key} style={styles.riStatRow}>
+                <div style={styles.riStatRowLabel}>{r.label}</div>
+                <div style={styles.riStatRowBarTrack}>
+                  <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (r.median / 15) * 100)}%` }} />
+                </div>
+                <div style={styles.riStatRowValue}>{r.median?.toFixed(1)}m</div>
+                <ConfidenceBadge tier={r.tier} n={r.n} />
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
+              첫 줄은 그린에 올린 샷의 첫 퍼트 거리, 둘째 줄은 그린을 놓친 샷까지 센 샷 뒤 핀까지 남은 거리예요.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 퍼팅 — 그린 위의 샷 ───────────────────────────────────────────── */}
+      <div style={styles.section} data-role="putting-section">
+        <div style={styles.sectionTitle}>PUTTING · 퍼팅</div>
+        <SkillHeader cat="putting" sg={sg} career={isCareerMode} />
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
+        {puttingStats.byDistance.filter(b => b.total > 0).map(b => (
+          <div key={b.id} style={styles.riStatRow}>
+            <div style={styles.riStatRowLabel}>{b.label}</div>
+            <div style={styles.riStatRowBarTrack}>
+              <div style={{ ...styles.riStatRowBarFill, width: `${b.ratePct ?? 0}%`, background: '#3db87a' }} />
+            </div>
+            <div style={styles.riStatRowValue}>{b.ratePct?.toFixed(0)}%</div>
+            <ConfidenceBadge tier={b.tier} n={b.total} />
+          </div>
+        ))}
+        {puttingStats.byDistance.every(b => b.total === 0) && (
+          <div style={{ fontSize: 12, color: '#8896b0' }}>퍼팅 상세 기록이 아직 없습니다.</div>
+        )}
+        {puttZone.total >= 3 && (
+          <div style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
+            퍼팅 실력이 가장 많이 갈리는 <b>1~2m(3~7피트)</b> 구간 성공률 <b style={{ color: '#e8edf8' }}>{Math.round(puttZone.ratePct)}%</b> ({puttZone.made}/{puttZone.total}).
+            <span style={{ color: '#6e84a8' }}> 최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</span>
+          </div>
+        )}
+        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
+          퍼트 수는 첫 퍼트 거리와 함께 봐야 해요 — 60피트(18m)에서 2퍼트는 잘한 것이고 2피트(0.6m)에서 2퍼트는 실수지만 둘 다 '2퍼트'로 세어지거든요. 위 SG가 그 거리를 반영한 값이에요.
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <ThreePuttCause rep={rep} />
+        </div>
+
+        {/* 그날의 그린 스피드에 따른 퍼팅 — 이번 라운드 / 누적 토글에 연동 */}
+        {greenSpeedReport && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
+              GREEN SPEED · 그린 스피드{isCareerMode ? ' (구간별 라운드 평균)' : ''}
+            </div>
+            <GreenSpeedPanel report={greenSpeedReport} />
+          </div>
+        )}
+      </div>
+
+      {/* ── 5장 · 다음 라운드 — 무엇을 연습할까 ───────────────────────────────── */}
+      <Chapter no={5} />
+      <NextFocus rep={rep} />
+      <Section title="PRACTICE · 연습 처방">
+        <PracticeCard prescriptions={prescriptions} />
+      </Section>
+
+      {/* ── 6장 · 기록으로 보기 — 참고 자료 ─────────────────────────────────── */}
+      <Chapter no={6} />
 
       {/* ── 홀 결과 분포 + 이벤트 하이라이트 (이번 라운드 / 누적 분리) ──────────── */}
       <div style={styles.section}>
@@ -559,186 +827,6 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           </div>
         </div>
       </div>
-
-      {/* ── 책 기준으로 보기 (Broadie, Every Shot Counts) — GIRP · 끔찍한 샷 ─────────── */}
-      {girp.holes > 0 && (
-        <div style={styles.section} data-role="benchmark">
-          <div style={styles.sectionTitle}>
-            BENCHMARK · 기준 비교 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
-          </div>
-          <div style={styles.styleMetrics}>
-            <div style={styles.styleMetric}>
-              <div style={styles.styleMetricLabel}>GIRP</div>
-              <div data-role="girp-value" style={{ ...styles.styleMetricValue, ...(girp.per18 >= GIRP_STEADY_100 ? { color: '#3db87a' } : {}) }}>
-                {isCareerMode ? `${girp.per18.toFixed(1)}/18` : `${girp.girp}/${girp.holes}`}
-              </div>
-            </div>
-            <div style={styles.styleMetricDivider} />
-            <div style={styles.styleMetric}>
-              <div style={styles.styleMetricLabel}>끔찍한 샷</div>
-              <div data-role="awful-value" style={{ ...styles.styleMetricValue, ...(awfulOverLimit ? { color: '#ef5350' } : {}) }}>
-                {isCareerMode ? `${awfulPoints.toFixed(1)}점/R` : `${awfulPoints}점`}
-              </div>
-            </div>
-          </div>
-          <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6, marginTop: 10 }}>
-            <b style={{ color: '#b4c0d8' }}>GIRP</b> — 그린에 규정 타수 + 1타 이내로 도달한 홀이에요 (프린지는 따로 기록하지 않아 그린만 셉니다).
-            라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.
-            {!isCareerMode && girp.holes < 18 && ` 입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}
-          </div>
-          <div style={{ fontSize: 12, color: awfulOverLimit ? '#ef8a87' : '#8896b0', lineHeight: 1.6, marginTop: 8 }}>
-            <b style={{ color: awfulOverLimit ? '#ef8a87' : '#b4c0d8' }}>끔찍한 샷</b> — OB {awful.ob}회 × 2점 + 해저드·언플레이어블 {awful.hazard + awful.unplayable}회 × 1점
-            {isCareerMode ? ` (${awful.rounds}라운드 합계, 라운드 평균 ${awfulPoints.toFixed(1)}점)` : ''}.
-            페널티만 센 점수라 뒤땅·토핑 같은 미스샷은 빠져 있어요.
-            {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 큰 실수 줄이기가 먼저예요
-            {awfulOverLimit ? ' — 이번 기록이 그 기준을 넘었습니다.' : '.'}
-          </div>
-        </div>
-      )}
-
-      {/* ── 티샷 딥다이브 (§3) ────────────────────────────────────────────── */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>TEE · 티샷</div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 13, color: '#e8edf8' }}>
-            좌 <span style={{ fontWeight: 800 }}>{teeBias.L}</span> · 중 <span style={{ fontWeight: 800 }}>{teeBias.C}</span> · 우 <span style={{ fontWeight: 800 }}>{teeBias.R}</span>
-            {teeBias.G > 0 && <> · 1온 <span style={{ fontWeight: 800 }}>{teeBias.G}</span></>}
-          </div>
-          {teeBiasTier && <ConfidenceBadge tier={teeBiasTier} n={teeBias.total} />}
-        </div>
-        {teeBias.total > 0 ? (
-          <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
-            편향지수 {fmtSigned(teeBias.biasIndex)} ({teeBias.biasIndex > 0.15 ? '우측 경향' : teeBias.biasIndex < -0.15 ? '좌측 경향' : '중립'}) — 최근 10라운드 기준
-          </div>
-        ) : (
-          <div style={{ fontSize: 12, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없습니다.</div>
-        )}
-      </div>
-
-      {/* ── 어프로치 딥다이브 (§4) ────────────────────────────────────────── */}
-      {stage >= 3 && (
-        <div style={styles.section}>
-          <div style={styles.sectionTitle}>APPROACH · 어프로치 (거리구간별 근접도, 최근 20R)</div>
-          {approachProximity.filter(b => b.n > 0).map(b => (
-            <div key={b.id} style={styles.riStatRow}>
-              <div style={styles.riStatRowLabel}>{b.label}</div>
-              <div style={styles.riStatRowBarTrack}>
-                <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 15) * 100)}%` }} />
-              </div>
-              <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
-              <ConfidenceBadge tier={b.tier} n={b.n} />
-            </div>
-          ))}
-          {approachProximity.every(b => b.n === 0) && (
-            <div style={{ fontSize: 12, color: '#8896b0' }}>거리구간별 데이터가 아직 없습니다.</div>
-          )}
-
-          {/* 위 근접도는 그린에 올린 샷만 센다. 책의 지표는 그린을 놓친 샷까지 센 것이라 같은 기준으로 한 번 더. */}
-          {approachAll.some(b => b.n > 0) && (
-            <div style={{ marginTop: 14 }} data-role="approach-all">
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
-                전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
-              </div>
-              {approachAll.filter(b => b.n > 0).map(b => (
-                <div key={b.id} style={styles.riStatRow}>
-                  <div style={styles.riStatRowLabel}>{b.label}</div>
-                  <div style={styles.riStatRowBarTrack}>
-                    <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 25) * 100)}%` }} />
-                  </div>
-                  <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
-                  <ConfidenceBadge tier={b.tier} n={b.n} />
-                </div>
-              ))}
-              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
-                참고 — 125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.
-                110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── 퍼팅 딥다이브 (§5) ────────────────────────────────────────────── */}
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>PUTTING · 퍼팅 성공률 (거리구간, 커리어 누적)</div>
-        {puttingStats.byDistance.filter(b => b.total > 0).map(b => (
-          <div key={b.id} style={styles.riStatRow}>
-            <div style={styles.riStatRowLabel}>{b.label}</div>
-            <div style={styles.riStatRowBarTrack}>
-              <div style={{ ...styles.riStatRowBarFill, width: `${b.ratePct ?? 0}%`, background: '#3db87a' }} />
-            </div>
-            <div style={styles.riStatRowValue}>{b.ratePct?.toFixed(0)}%</div>
-            <ConfidenceBadge tier={b.tier} n={b.total} />
-          </div>
-        ))}
-        {puttingStats.byDistance.every(b => b.total === 0) && (
-          <div style={{ fontSize: 12, color: '#8896b0' }}>퍼팅 상세 기록이 아직 없습니다.</div>
-        )}
-
-        {scrambling.attempts > 0 && (
-          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 12, color: '#8896b0' }}>
-              스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#e8edf8', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
-            </div>
-            <ConfidenceBadge tier={scrambling.tier} n={scrambling.attempts} />
-          </div>
-        )}
-
-        {/* 그날의 그린 스피드에 따른 퍼팅 — 이번 라운드 / 누적 토글에 연동 */}
-        {greenSpeedReport && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
-              GREEN SPEED · 그린 스피드{isCareerMode ? ' (구간별 라운드 평균)' : ''}
-            </div>
-            <GreenSpeedPanel report={greenSpeedReport} />
-          </div>
-        )}
-      </div>
-
-      {/* ── 클럽 거리 (§3-1, 10라운드+ 부터) ─────────────────────────────────── */}
-      {stage >= 4 && clubStats.length > 0 && (
-        <div style={styles.section}>
-          <div style={styles.sectionTitle}>CLUB DISTANCE · 클럽별 거리 (최근 20R)</div>
-          {clubStats.map(c => (
-            <div key={c.label} style={styles.riStatRow}>
-              <div style={styles.riStatRowLabel}>{c.label}</div>
-              <div style={styles.riStatRowBarTrack}>
-                <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (c.median / 200) * 100)}%` }} />
-              </div>
-              <div style={styles.riStatRowValue}>{c.median?.toFixed(0)}m</div>
-              <ConfidenceBadge tier={c.tier} n={c.n} />
-            </div>
-          ))}
-          {driverStat && driverStat.n >= 5 && (
-            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }} data-role="driver-value">
-              참고 — 드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
-              90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
-              내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── 온그린 랜딩 분포 ─────────────────────────────────────────────── */}
-      {(() => {
-        const counts = { long: 0, short: 0, left: 0, right: 0 };
-        let total = 0;
-        rounds.forEach(r => {
-          const p = r.players[0];
-          r.holes.forEach(h => {
-            const q = clockToQuadrant(h.scores?.[p]?.onGreenLanding);
-            if (q) { counts[q]++; total++; }
-          });
-        });
-        if (total === 0) return null;
-        return (
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>GREEN APPROACH · 그린 랜딩 분포</div>
-            <GreenMissSelector stats={{ ...counts, total }} />
-            <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 12, marginTop: 8 }}>총 {total}회 기록</div>
-          </div>
-        );
-      })()}
 
       {/* ── 반복 패턴 (룰 엔진) — 이번 라운드/누적 토글에 연동 ─────────────────── */}
       {isCareerMode && patternInsights.length > 0 && (

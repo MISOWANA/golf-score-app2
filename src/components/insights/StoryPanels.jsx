@@ -1,4 +1,5 @@
 import ConfidenceBadge from './ConfidenceBadge';
+import InfoNote from '../ui/InfoNote';
 import { sgTier, SG_LABEL } from '../../engine/strokesGained.js';
 import { AWFUL_CONSISTENCY_LIMIT } from '../../engine/bookBenchmarks.js';
 
@@ -18,6 +19,10 @@ export function LossShareCard({ shares, coverage }) {
     <div style={{ ...card, marginBottom: 24 }} data-role="loss-shares">
       <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.14em', marginBottom: 10 }}>
         투어 대비 잃은 타수의 구성
+        <InfoNote title="잃은 타수의 구성">
+          <p>골퍼 사이의 스코어 격차는 약 2/3가 100야드 밖 샷(롱게임)에서, 퍼팅은 약 15%에서 나와요. 투어 상위권의 우위도 드라이빙 28% · 어프로치 40% · 숏게임 17% · 퍼팅 15%로 나뉩니다.</p>
+          <p>퍼팅에 연습을 몰아주기 전에 내 구성을 먼저 확인하세요.</p>
+        </InfoNote>
       </div>
       <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: '#1b2238', marginBottom: 10 }}>
         {order.map((id) => {
@@ -39,11 +44,11 @@ export function LossShareCard({ shares, coverage }) {
       <div data-role="share-summary" style={{ fontSize: 13, color: '#e8edf8', lineHeight: 1.6, wordBreak: 'keep-all' }}>
         롱게임(티샷+어프로치) <b>{Math.round(shares.longPct)}%</b> · 숏게임 <b>{Math.round(shares.shortPct)}%</b> · 퍼팅 <b>{Math.round(shares.puttingPct)}%</b>
       </div>
-      <div style={{ ...dim, marginTop: 8 }}>
-        참고 — 골퍼 사이의 스코어 격차는 약 2/3가 100야드 밖 샷(롱게임)에서, 퍼팅은 약 15%에서 나와요. 투어 상위권의 우위도 드라이빙 28% · 어프로치 40% · 숏게임 17% · 퍼팅 15%로 나뉩니다.
-        퍼팅에 연습을 몰아주기 전에 내 구성을 먼저 확인하세요.
-        {coverage != null && coverage < 0.5 && ` 측정된 샷이 전체의 ${Math.round(coverage * 100)}%라 구성비는 참고용이에요.`}
-      </div>
+      {coverage != null && coverage < 0.5 && (
+        <div data-role="share-coverage" style={{ ...dim, marginTop: 8 }}>
+          측정된 샷이 전체의 {Math.round(coverage * 100)}%라 구성비는 참고용이에요.
+        </div>
+      )}
     </div>
   );
 }
@@ -76,18 +81,30 @@ export function BigMissesCard({ career, rounds, awful, awfulPoints, awfulOverLim
           sub={holes > 0 ? `전체 홀의 ${((doublePlus / holes) * 100).toFixed(0)}%` : null} />
         <Tile label="3퍼트 이상" role="threeputt-value" value={per(threePutt)} sub={holes > 0 ? `전체 홀의 ${((threePutt / holes) * 100).toFixed(0)}%` : null} />
       </div>
-      <div style={{ fontSize: 12, color: awfulOverLimit ? '#ef8a87' : '#8896b0', lineHeight: 1.6 }}>
-        <b style={{ color: awfulOverLimit ? '#ef8a87' : '#b4c0d8' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 셉니다.
+      {awfulOverLimit && (
+        <div data-role="awful-warning" style={{ fontSize: 12, color: '#ef8a87', lineHeight: 1.6 }}>
+          끔찍한 샷이 90타 전후 기준({AWFUL_CONSISTENCY_LIMIT}점)을 넘었어요 — 연습보다 큰 실수 줄이기가 먼저예요.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 큰 실수 카드를 읽는 법 — 카드 제목 옆 (!) 버튼으로 열린다.
+export function BigMissesInfo({ career, awful, awfulPoints, teePen }) {
+  return (
+    <InfoNote title="큰 실수 읽는 법">
+      <p>
+        <b style={{ color: '#e8edf8' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 셉니다.
         {career ? ` (${awful.rounds}라운드 합계, 라운드 평균 ${awfulPoints.toFixed(1)}점)` : ''} 페널티만 센 점수라 뒤땅·토핑 같은 미스샷은 빠져 있어요.
-        {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 큰 실수 줄이기가 먼저예요
-        {awfulOverLimit ? ' — 이번 기록이 그 기준을 넘었습니다.' : '.'}
-      </div>
-      <div style={{ ...dim, marginTop: 8 }}>
+        {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 큰 실수 줄이기가 먼저예요.
+      </p>
+      <p>
         OB는 꼬박 2타를 잃지만 러프에 살짝 들어간 공은 그보다 훨씬 적게 잃어요. 페어웨이 적중률이나 평균 비거리는 이 차이를 가리니, OB율은 따로 봅니다.
         티샷 OB율은 프로 1.5% 이하 · 평균 80타 2% · 100타 3% 이하가 좋은 수준이에요.
         {teePen.skipped > 0 && ` 벌타가 난 샷을 기록하지 않은 ${teePen.skipped}회는 제외했어요.`}
-      </div>
-    </div>
+      </p>
+    </InfoNote>
   );
 }
 
@@ -115,7 +132,10 @@ export function SkillHeader({ cat, sg, career }) {
           <ConfidenceBadge tier={sgTier(b.strokes)} n={b.strokes} />
         </div>
       ) : (
-        <div style={{ fontSize: 11, color: '#6e84a8', textAlign: 'right', lineHeight: 1.4, wordBreak: 'keep-all' }}>{SKILL_HINT[cat]}</div>
+        <div data-role={`skill-pending-${cat}`} style={{ fontSize: 11, color: '#6e84a8', textAlign: 'right' }}>
+          측정 전
+          <InfoNote title={`${SG_LABEL[cat]} 계산 조건`}>{SKILL_HINT[cat]}</InfoNote>
+        </div>
       )}
     </div>
   );

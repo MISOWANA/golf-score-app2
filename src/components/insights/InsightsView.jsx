@@ -4,9 +4,10 @@ import styles from '../../styles/styles';
 import GreenMissSelector from '../scoring/GreenMissSelector';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
+import InfoNote from '../ui/InfoNote';
 import Chapter, { ChapterNav } from './Chapter';
 import { ReportHeader, ReportFindings, ThreePuttCause, NextFocus, Section } from './InsightReportPanel';
-import { LossShareCard, BigMissesCard, SkillHeader, PracticeCard } from './StoryPanels';
+import { LossShareCard, BigMissesCard, BigMissesInfo, SkillHeader, PracticeCard } from './StoryPanels';
 import RoundReplayPanel from './RoundReplayPanel';
 import InsightSearchPanel from './InsightSearchPanel';
 import { toHoleInput, matchRoundInsightRules } from '../../engine/engine.js';
@@ -371,12 +372,26 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         <div style={styles.section} data-role="strokes-gained">
           <div style={styles.sectionTitle}>
             STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : '(이번 라운드)'}
+            <InfoNote title="Strokes Gained 읽는 법">
+              {sg.holesWithData === 0 ? (
+                <p>샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요. (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)</p>
+              ) : (
+                <>
+                  <p data-role="sg-coverage">
+                    측정된 {sg.measuredStrokes}타 / 입력한 홀 전체 {sg.strokes}타 ({Math.round(sg.coverage * 100)}%).
+                    {sg.categories.mixed.segments > 0 && ` 분류 불가 ${sg.categories.mixed.strokes}타는 남은 거리·퍼트 거리가 없어 여러 샷이 한 구간으로 묶인 값이에요.`}
+                  </p>
+                  <p>
+                    투어 평균이 0이라 아마추어는 대부분 마이너스예요 — 숫자 크기보다 카테고리끼리의 차이를 보세요.
+                    세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
+                    20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
+                  </p>
+                </>
+              )}
+            </InfoNote>
           </div>
           {sg.holesWithData === 0 ? (
-            <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
-              샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요.
-              (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)
-            </div>
+            <div style={{ fontSize: 12, color: '#8896b0' }}>아직 계산할 수 있는 샷이 없어요.</div>
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -403,15 +418,11 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
                   {r.segments > 0 && r.cat !== 'mixed' ? <ConfidenceBadge tier={sgTier(r.strokes)} n={r.strokes} /> : <div style={{ width: 52 }} />}
                 </div>
               ))}
-              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }} data-role="sg-coverage">
-                측정된 {sg.measuredStrokes}타 / 입력한 홀 전체 {sg.strokes}타 ({Math.round(sg.coverage * 100)}%).
-                {sg.categories.mixed.segments > 0 && ` 분류 불가 ${sg.categories.mixed.strokes}타는 남은 거리·퍼트 거리가 없어 여러 샷이 한 구간으로 묶인 값이에요.`}
-              </div>
-              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
-                투어 평균이 0이라 아마추어는 대부분 마이너스예요 — 숫자 크기보다 카테고리끼리의 차이를 보세요.
-                세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
-                20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
-              </div>
+              {sg.coverage < 0.5 && (
+                <div data-role="sg-low-coverage" style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
+                  측정된 샷이 전체의 {Math.round(sg.coverage * 100)}%라 참고용이에요.
+                </div>
+              )}
             </>
           )}
         </div>
@@ -422,9 +433,11 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
 
       {/* ── 스코어 5단계 분해 ─────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>SCORE BREAKDOWN · 스코어 기준 손실 (파 대비)</div>
-        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginBottom: 10 }}>
-          위 SG와 달리 입력이 적어도 늘 계산돼요. 파를 기준으로 퍼팅 · 티샷 · 어프로치 · 숏게임 · 페널티에서 몇 타를 잃었는지 나눕니다.
+        <div style={styles.sectionTitle}>
+          SCORE BREAKDOWN · 스코어 기준 손실 (파 대비)
+          <InfoNote title="스코어 기준 손실이란?">
+            <p>위 SG와 달리 입력이 적어도 늘 계산돼요. 파를 기준으로 퍼팅 · 티샷 · 어프로치 · 숏게임 · 페널티에서 몇 타를 잃었는지 나눕니다.</p>
+          </InfoNote>
         </div>
 
         {totalLossForBar > 0 ? (
@@ -498,6 +511,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
           BIG MISSES · 큰 실수 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
+          <BigMissesInfo career={isCareerMode} awful={awful} awfulPoints={awfulPoints} teePen={teePen} />
         </div>
         <BigMissesCard
           career={isCareerMode} rounds={rounds.length}
@@ -514,7 +528,19 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
 
       {/* ── 티샷 (드라이빙) ─────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>TEE · 티샷</div>
+        <div style={styles.sectionTitle}>
+          TEE · 티샷
+          <InfoNote title="티샷 읽는 법">
+            <p>티샷은 정확도보다 거리가 스코어에 더 크게 기여하는 경향이 있어요 (아주 좁은 코스는 예외). 티샷 OB율은 위 3장에 있어요.</p>
+            {driverStat && driverStat.n >= 5 && (
+              <p data-role="driver-value">
+                드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
+                90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
+                내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
+              </p>
+            )}
+          </InfoNote>
+        </div>
         <SkillHeader cat="tee" sg={sg} career={isCareerMode} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 13, color: '#e8edf8' }}>
@@ -530,16 +556,6 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         ) : (
           <div style={{ fontSize: 12, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없습니다.</div>
         )}
-        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
-          티샷은 정확도보다 거리가 스코어에 더 크게 기여하는 경향이 있어요 (아주 좁은 코스는 예외). 티샷 OB율은 위 3장에 있어요.
-        </div>
-        {driverStat && driverStat.n >= 5 && (
-          <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }} data-role="driver-value">
-            참고 — 드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
-            90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
-            내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
-          </div>
-        )}
       </div>
 
       {/* ── 어프로치 — 100야드(약 91m) 밖 샷 ─────────────────────────────────── */}
@@ -549,14 +565,16 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         {girp.holes > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ fontSize: 12, color: '#8896b0' }}>GIRP · 규정 타수+1타 이내 그린 도달 {isCareerMode ? '(라운드 평균)' : ''}</div>
+              <div style={{ fontSize: 12, color: '#8896b0' }}>
+                GIRP · 규정 타수+1타 이내 그린 도달 {isCareerMode ? '(라운드 평균)' : ''}
+                <InfoNote title="GIRP란?">
+                  <p>프린지는 따로 기록하지 않아 그린만 셉니다. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.</p>
+                  {!isCareerMode && girp.holes < 18 && <p>{`입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}</p>}
+                </InfoNote>
+              </div>
               <div data-role="girp-value" style={{ fontSize: 18, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: girp.per18 >= GIRP_STEADY_100 ? '#3db87a' : '#e8edf8' }}>
                 {isCareerMode ? `${girp.per18.toFixed(1)}/18` : `${girp.girp}/${girp.holes}`}
               </div>
-            </div>
-            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6 }}>
-              프린지는 따로 기록하지 않아 그린만 셉니다. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.
-              {!isCareerMode && girp.holes < 18 && ` 입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}
             </div>
           </div>
         )}
@@ -584,6 +602,10 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           <div style={{ marginTop: 14 }} data-role="approach-all">
             <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
               전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
+              <InfoNote title="전체 샷 기준 비교">
+                <p>125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.</p>
+                <p>110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.</p>
+              </InfoNote>
             </div>
             {approachAllRows.map(b => (
               <div key={b.id} style={styles.riStatRow}>
@@ -595,10 +617,6 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
                 <ConfidenceBadge tier={b.tier} n={b.n} />
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
-              참고 — 125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.
-              110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.
-            </div>
           </div>
         )}
       </div>
@@ -658,7 +676,12 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         )}
         {stage >= 3 && shortRows.length > 0 && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>80m 안 샷의 근접도</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+              80m 안 샷의 근접도
+              <InfoNote title="근접도 두 줄의 차이">
+                <p>첫 줄은 그린에 올린 샷의 첫 퍼트 거리, 둘째 줄은 그린을 놓친 샷까지 센 샷 뒤 핀까지 남은 거리예요.</p>
+              </InfoNote>
+            </div>
             {shortRows.map(r => (
               <div key={r.key} style={styles.riStatRow}>
                 <div style={styles.riStatRowLabel}>{r.label}</div>
@@ -669,16 +692,18 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
                 <ConfidenceBadge tier={r.tier} n={r.n} />
               </div>
             ))}
-            <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
-              첫 줄은 그린에 올린 샷의 첫 퍼트 거리, 둘째 줄은 그린을 놓친 샷까지 센 샷 뒤 핀까지 남은 거리예요.
-            </div>
           </div>
         )}
       </div>
 
       {/* ── 퍼팅 — 그린 위의 샷 ───────────────────────────────────────────── */}
       <div style={styles.section} data-role="putting-section">
-        <div style={styles.sectionTitle}>PUTTING · 퍼팅</div>
+        <div style={styles.sectionTitle}>
+          PUTTING · 퍼팅
+          <InfoNote title="퍼트 수 읽는 법">
+            <p>퍼트 수는 첫 퍼트 거리와 함께 봐야 해요 — 60피트(18m)에서 2퍼트는 잘한 것이고 2피트(0.6m)에서 2퍼트는 실수지만 둘 다 '2퍼트'로 세어지거든요. 위 SG가 그 거리를 반영한 값이에요.</p>
+          </InfoNote>
+        </div>
         <SkillHeader cat="putting" sg={sg} career={isCareerMode} />
         <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
         {puttingStats.byDistance.filter(b => b.total > 0).map(b => (
@@ -697,12 +722,11 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         {puttZone.total >= 3 && (
           <div style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
             퍼팅 실력이 가장 많이 갈리는 <b>1~2m(3~7피트)</b> 구간 성공률 <b style={{ color: '#e8edf8' }}>{Math.round(puttZone.ratePct)}%</b> ({puttZone.made}/{puttZone.total}).
-            <span style={{ color: '#6e84a8' }}> 최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</span>
+            <InfoNote title="1~2m 구간이 중요한 이유">
+              <p>최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</p>
+            </InfoNote>
           </div>
         )}
-        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
-          퍼트 수는 첫 퍼트 거리와 함께 봐야 해요 — 60피트(18m)에서 2퍼트는 잘한 것이고 2피트(0.6m)에서 2퍼트는 실수지만 둘 다 '2퍼트'로 세어지거든요. 위 SG가 그 거리를 반영한 값이에요.
-        </div>
 
         <div style={{ marginTop: 16 }}>
           <ThreePuttCause rep={rep} />

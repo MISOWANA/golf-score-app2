@@ -101,6 +101,10 @@ const globalCSS = `
     filter: brightness(1.1);
   }
 
+  /* (!) 알림창 본문 — 문단 사이 간격 */
+  .bb-note-body p { margin: 0 0 10px; }
+  .bb-note-body p:last-child { margin-bottom: 0; }
+
   @media (prefers-reduced-motion: reduce) {
     .bb-live-dot { animation: none !important; }
     .bb-press, .bb-press:active { transition: none; transform: none; }

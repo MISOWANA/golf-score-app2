@@ -1,4 +1,5 @@
 import InsightCard from './InsightCard.jsx';
+import InfoNote from '../ui/InfoNote';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
 import { speedLabel } from '../../engine/greenSpeed.js';
 
@@ -11,10 +12,14 @@ import { speedLabel } from '../../engine/greenSpeed.js';
 
 const CAUSE_COLOR = { lag: '#c9a228', short: '#ef5350', both: '#c04a3e', mid: '#6b8cae', close: '#8a6fb0', unknown: '#4d5a78' };
 
-export const Section = ({ title, sub, children }) => (
+// note: 제목 옆 (!) 버튼으로 여는 설명 (noteTitle 은 알림창 제목)
+export const Section = ({ title, sub, note, noteTitle, children }) => (
   <div style={{ marginBottom: 22 }}>
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em' }}>{title}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em' }}>
+        {title}
+        {note && <InfoNote title={noteTitle}>{note}</InfoNote>}
+      </div>
       {sub && <div style={{ fontSize: 11, color: '#6e84a8' }}>{sub}</div>}
     </div>
     {children}
@@ -75,7 +80,12 @@ export function ThreePuttCause({ rep }) {
   const c = rep.causes;
   if (c.total === 0) return null;
   return (
-    <Section title="THREE-PUTT · 3퍼트 원인 (퍼트 거리 기준)" sub={`${c.total}회`}>
+    <Section
+      title="THREE-PUTT · 3퍼트 원인 (퍼트 거리 기준)" sub={`${c.total}회`} noteTitle="3퍼트 원인 구분"
+      note={c.counts.unknown > 0
+        ? '판단 보류는 퍼트 거리가 기록되지 않은 3퍼트입니다 — 거리를 입력하면 거리감 / 숏퍼트 미스로 나눠 보여드려요.'
+        : '모든 3퍼트의 원인을 퍼트 거리 기록으로 구분했습니다.'}
+    >
       <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px' }} data-role="cause-card">
         <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', background: '#1b2238', marginBottom: 12 }}>
           {PUTT_CAUSE_ORDER.filter(k => c.counts[k] > 0).map(k => (
@@ -90,11 +100,6 @@ export function ThreePuttCause({ rep }) {
             <span style={{ width: 40, textAlign: 'right', color: '#6e84a8' }}>{Math.round((c.counts[k] / c.total) * 100)}%</span>
           </div>
         ))}
-        <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
-          {c.counts.unknown > 0
-            ? '판단 보류는 퍼트 거리가 기록되지 않은 3퍼트입니다 — 거리를 입력하면 거리감 / 숏퍼트 미스로 나눠 보여드려요.'
-            : '모든 3퍼트의 원인을 퍼트 거리 기록으로 구분했습니다.'}
-        </div>
       </div>
     </Section>
   );

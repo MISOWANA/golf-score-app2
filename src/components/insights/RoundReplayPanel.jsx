@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import InsightCard from './InsightCard.jsx';
 import HoleReview from '../analysis/HoleReview';
+import InfoNote from '../ui/InfoNote';
 import { buildRoundReplay } from '../../engine/insightIndex.js';
 import { PUTT_CAUSE_LABEL } from '../../engine/puttAnalysis.js';
 
@@ -19,8 +20,9 @@ const pill = (active) => ({
   color: active ? '#c9a228' : '#8896b0', whiteSpace: 'nowrap',
 });
 
-const label = (t) => (
-  <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px' }}>{t}</div>
+// note: 라벨 옆 (!) 버튼 (InfoNote). 없으면 글자만.
+const label = (t, note = null) => (
+  <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px' }}>{t}{note}</div>
 );
 
 // 라운드 복기 — 한 라운드를 홀 순서대로 되짚는다. 어디서 잃었고(분기점), 무엇이 원인이었는지.
@@ -86,7 +88,9 @@ export default function RoundReplayPanel({ rounds }) {
       </div>
 
       {/* 홀 흐름 */}
-      {label('FLOW · 홀 흐름')}
+      {label('FLOW · 홀 흐름', replay.defaultHoles > 0 && (
+        <InfoNote title="점선 칸이란?">{`점선 칸 ${replay.defaultHoles}개: 입력 없이 파로 저장된 홀 (홀 분석 제외)`}</InfoNote>
+      ))}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 4 }}>
         {replay.holes.map(h => (
           <button key={h.holeNumber} onClick={() => jump(h.holeNumber)} aria-label={`${h.holeNumber}번 홀 ${h.strokes}타`}
@@ -115,9 +119,6 @@ export default function RoundReplayPanel({ rounds }) {
           </button>
         </div>
       )}
-      {replay.defaultHoles > 0 && (
-        <div style={{ fontSize: 11, color: '#6e84a8', textAlign: 'right', marginTop: 4 }}>점선 칸 {replay.defaultHoles}개: 입력 없이 파로 저장된 홀 (홀 분석 제외)</div>
-      )}
 
       {/* 분기점 */}
       {(replay.worstHoles.length > 0 || replay.bestHoles.length > 0) && (<>
@@ -140,7 +141,9 @@ export default function RoundReplayPanel({ rounds }) {
 
       {/* 3퍼트 원인 */}
       {replay.threePutts > 0 && (<>
-        {label('THREE-PUTT · 3퍼트 원인')}
+        {label('THREE-PUTT · 3퍼트 원인', c.counts.unknown > 0 && (
+          <InfoNote title="판단 보류란?">판단 보류 = 퍼트 거리가 기록되지 않아 거리감인지 숏퍼트 미스인지 구분할 수 없는 홀입니다.</InfoNote>
+        ))}
         <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px', fontSize: 12.5, color: '#b4c0d8', lineHeight: 1.7 }} data-role="cause-summary">
           {[
             ['lag', c.counts.lag], ['short', c.counts.short], ['both', c.counts.both],
@@ -150,9 +153,6 @@ export default function RoundReplayPanel({ rounds }) {
               <span>{PUTT_CAUSE_LABEL[k]}</span><b style={{ color: k === 'unknown' ? '#8896b0' : '#e8edf8' }}>{n}회</b>
             </div>
           ))}
-          {c.counts.unknown > 0 && (
-            <div style={{ marginTop: 6, fontSize: 11, color: '#6e84a8' }}>판단 보류 = 퍼트 거리가 기록되지 않아 거리감인지 숏퍼트 미스인지 구분할 수 없는 홀입니다.</div>
-          )}
         </div>
       </>)}
 

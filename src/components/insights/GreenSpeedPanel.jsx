@@ -1,4 +1,5 @@
 import ConfidenceBadge from './ConfidenceBadge';
+import InfoNote from '../ui/InfoNote';
 import { speedLabel } from '../../engine/greenSpeed.js';
 
 // 그린 스피드별 퍼팅. 인사이트(PUTTING)와 리포트가 같은 계산(buildGreenSpeedReport)을 받아 같은 숫자를 보여준다.
@@ -30,14 +31,21 @@ export default function GreenSpeedPanel({ report }) {
     return (
       <div style={card} data-role="green-speed-panel">
         {report.speedRounds === 0 ? (
-          <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
-            그린 스피드를 기록한 라운드가 아직 없어요. 라운드를 시작할 때(또는 퍼팅 화면·지난 라운드 수정에서) 그날의 그린 스피드를 정해 두면
-            빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.
+          <div data-role="gs-empty" style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+            그린 스피드를 기록한 라운드가 아직 없어요.
+            <InfoNote title="그린 스피드 기록하기">
+              라운드를 시작할 때(또는 퍼팅 화면·지난 라운드 수정에서) 그날의 그린 스피드를 정해 두면 빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.
+            </InfoNote>
           </div>
         ) : (
           <>
             <div style={{ display: 'flex', fontSize: 10, color: '#6e84a8', padding: '0 0 6px', borderBottom: '1px solid #1b2238' }}>
-              <div style={{ flex: '1 1 78px' }}>구간</div>
+              <div style={{ flex: '1 1 78px' }}>
+                구간
+                <InfoNote title="구간별 평균 보는 법">
+                  라운드당 평균이에요. 퍼팅SG는 투어 평균 대비 퍼팅 Strokes Gained(퍼트 거리를 입력한 라운드만)라 그린이 빠르거나 느린 날의 거리 난이도가 반영돼요.
+                </InfoNote>
+              </div>
               <div style={{ width: 28, textAlign: 'right' }}>R</div>
               <div style={{ width: 42, textAlign: 'right' }}>퍼트</div>
               <div style={{ width: 42, textAlign: 'right' }}>3퍼트</div>
@@ -59,10 +67,11 @@ export default function GreenSpeedPanel({ report }) {
                 <div style={{ width: 48, textAlign: 'right', color: b.sgPutting == null ? '#6e84a8' : b.sgPutting >= 0 ? '#3db87a' : '#ef5350' }}>{sgText(b.sgPutting)}</div>
               </div>
             ))}
-            <div style={{ ...dim, marginTop: 8 }}>
-              라운드당 평균이에요. 퍼팅SG는 투어 평균 대비 퍼팅 Strokes Gained(퍼트 거리를 입력한 라운드만)라 그린이 빠르거나 느린 날의 거리 난이도가 반영돼요.
-              {report.unsetRounds > 0 && ` 그린 스피드를 정하지 않은 ${report.unsetRounds}라운드는 제외했어요.`}
-            </div>
+            {report.unsetRounds > 0 && (
+              <div data-role="gs-unset" style={{ ...dim, marginTop: 8 }}>
+                그린 스피드를 정하지 않은 {report.unsetRounds}라운드는 제외했어요.
+              </div>
+            )}
           </>
         )}
       </div>
@@ -74,7 +83,14 @@ export default function GreenSpeedPanel({ report }) {
   return (
     <div style={card} data-role="green-speed-panel">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 12, color: '#8896b0' }}>오늘 그린</div>
+        <div style={{ fontSize: 12, color: '#8896b0' }}>
+          오늘 그린
+          {r.speed == null && (
+            <InfoNote title="그린 스피드 기록하기">
+              이 라운드는 그린 스피드를 정하지 않았어요. 라운드 설정·퍼팅 화면·지난 라운드 수정에서 정해 두면 빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.
+            </InfoNote>
+          )}
+        </div>
         <div data-role="gs-latest" style={{ fontSize: 13, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#6e84a8' }}>
           {r.speed != null ? speedLabel(r.speed) : '설정 안 함'}
         </div>
@@ -85,11 +101,6 @@ export default function GreenSpeedPanel({ report }) {
         <Stat label="1퍼트" value={r.one} />
         <Stat label="첫 퍼트 평균" value={r.firstDist != null ? `${r.firstDist.toFixed(1)}m` : '–'} />
       </div>
-      {r.speed == null && (
-        <div style={{ ...dim, marginTop: 8 }}>
-          이 라운드는 그린 스피드를 정하지 않았어요. 라운드 설정·퍼팅 화면·지난 라운드 수정에서 정해 두면 빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.
-        </div>
-      )}
       {report.compare && (
         <div data-role="gs-compare" style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginTop: 8 }}>
           {report.compare.label} 평균 대비 퍼트 <b style={{ color: report.compare.dPutts > 0 ? '#ef8a87' : report.compare.dPutts < 0 ? '#3db87a' : '#e8edf8' }}>{signed(report.compare.dPutts)}</b>개 ·

@@ -16,8 +16,6 @@
 const YD = 0.9144;
 const FT = 0.3048;
 
-export const BASELINE_SOURCE = 'Broadie, Every Shot Counts (2014) Table 5.2';
-
 // [야드, 티, 페어웨이, 러프, 벙커, 리커버리] — 값이 없는 칸은 null
 const OFF_GREEN_YD = [
   [20,  null, 2.40, 2.59, 2.53, null],

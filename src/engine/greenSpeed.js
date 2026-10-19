@@ -47,7 +47,7 @@ export function speedLabel(ft) {
 export const GREEN_SPEED_TIPS = {
   slow: '느린 그린은 평소 속도로 치면 짧게 서기 쉬워요. 홀을 지나 30~60cm까지 보낼 세기로 치고, 오르막 롱퍼트는 특히 더 강하게 읽으세요.',
   medium: null,
-  fast: '빠른 그린은 내리막이 크게 달라져요. 스팀프 11·경사 2°에서 6m 내리막 퍼트는 평지 3m처럼, 1.8m 오르막은 2.7m처럼 구릅니다 (Broadie). 롱퍼트는 홀이 아니라 1m 원에 세우세요.',
+  fast: '빠른 그린은 내리막이 크게 달라져요. 스팀프 11·경사 2°에서 6m 내리막 퍼트는 평지 3m처럼, 1.8m 오르막은 2.7m처럼 구릅니다. 롱퍼트는 홀이 아니라 1m 원에 세우세요.',
 };
 GREEN_SPEED_TIPS.veryFast = GREEN_SPEED_TIPS.fast;
 

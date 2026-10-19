@@ -16,8 +16,7 @@ import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
 import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
 import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
-import { BASELINE_SOURCE } from '../../data/baseline.js';
-import { BOOK_SOURCE, GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
+import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 
 const SEVERITY_COLOR = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
@@ -457,7 +456,6 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
                 세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
                 20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
               </div>
-              <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 6 }}>{BASELINE_SOURCE}</div>
             </>
           )}
         </div>
@@ -564,9 +562,9 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
 
       {/* ── 책 기준으로 보기 (Broadie, Every Shot Counts) — GIRP · 끔찍한 샷 ─────────── */}
       {girp.holes > 0 && (
-        <div style={styles.section} data-role="book-benchmark">
+        <div style={styles.section} data-role="benchmark">
           <div style={styles.sectionTitle}>
-            BENCHMARK · 책 기준으로 보기 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
+            BENCHMARK · 기준 비교 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
           </div>
           <div style={styles.styleMetrics}>
             <div style={styles.styleMetric}>
@@ -595,7 +593,6 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
             {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 큰 실수 줄이기가 먼저예요
             {awfulOverLimit ? ' — 이번 기록이 그 기준을 넘었습니다.' : '.'}
           </div>
-          <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 8 }}>{BOOK_SOURCE} (2014)</div>
         </div>
       )}
 
@@ -653,8 +650,8 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
                 </div>
               ))}
               <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
-                참고 — 125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m
-                ({BOOK_SOURCE}). 110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.
+                참고 — 125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.
+                110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.
               </div>
             </div>
           )}
@@ -715,7 +712,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           {driverStat && driverStat.n >= 5 && (
             <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }} data-role="driver-value">
               참고 — 드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
-              90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다 ({BOOK_SOURCE}).
+              90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
               내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
             </div>
           )}

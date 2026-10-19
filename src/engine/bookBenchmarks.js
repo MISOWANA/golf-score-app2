@@ -10,8 +10,6 @@
 const YD = 0.9144;
 const FT = 0.3048;
 
-export const BOOK_SOURCE = 'Broadie, Every Shot Counts';
-
 // 책 p.26 — GIRP(그린 또는 프린지에 규정 타수 + 1타 이내 도달): 라운드당 10개 이상이면
 // 꾸준히 100타를 깨는 골퍼 수준.
 export const GIRP_STEADY_100 = 10;

@@ -13,6 +13,8 @@ import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from '../../eng
 import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
+import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
+import { BASELINE_SOURCE } from '../../data/baseline.js';
 import { BOOK_SOURCE, GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 
@@ -269,6 +271,13 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
     && awful.avgScore >= AWFUL_LIMIT_SCORE_RANGE[0] && awful.avgScore <= AWFUL_LIMIT_SCORE_RANGE[1]
     && awfulPoints > AWFUL_CONSISTENCY_LIMIT;
   const approachAll = buildApproachProximityAll(rounds);
+  // ── Strokes Gained (투어 평균 대비) — 이번 라운드 합계 / 누적은 라운드당 평균 ─────────
+  const sg = aggregateSG(benchRounds);
+  const sgDiv = isCareerMode ? Math.max(1, sg.rounds) : 1;
+  const sgValue = (v) => v / sgDiv;
+  const sgRows = [...SG_CATEGORIES, ...(sg.categories.mixed.segments > 0 ? ['mixed'] : [])]
+    .map(cat => ({ cat, ...sg.categories[cat], value: sgValue(sg.categories[cat].sg) }));
+  const sgMaxAbs = Math.max(0.5, ...sgRows.map(r => Math.abs(r.value)));
   const driverStat = clubStats.find(c => c.club === 'driver' && !c.subClub);
 
   const roundPar = latestRound.pars.reduce((a, b) => a + b, 0);
@@ -395,6 +404,58 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
             <span style={styles.riDiagRowLabel}>관찰</span>
             <span>{rounds.length}라운드 동안 {careerBreakdown.topCause.holeCount}개 홀에서 손실이 발생했습니다.</span>
           </div>
+        </div>
+      )}
+
+      {/* ── STROKES GAINED — 샷마다 거리·라이별 투어 평균과 비교 (Broadie 5장) ────────── */}
+      {sg.holes > 0 && (
+        <div style={styles.section} data-role="strokes-gained">
+          <div style={styles.sectionTitle}>
+            STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : '(이번 라운드)'}
+          </div>
+          {sg.holesWithData === 0 ? (
+            <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+              샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요.
+              (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: '#8896b0' }}>측정된 샷 합계</div>
+                <div data-role="sg-total" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: sgValue(sg.total) >= 0 ? '#3db87a' : '#ef5350' }}>
+                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 12, fontWeight: 700, color: '#8896b0', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
+                </div>
+              </div>
+              {sgRows.map(r => (
+                <div key={r.cat} style={styles.riStatRow} data-role={`sg-${r.cat}`}>
+                  <div style={styles.riStatRowLabel}>{SG_LABEL[r.cat]}</div>
+                  {/* 가운데가 0 — 오른쪽(초록)은 투어 평균보다 잘 침, 왼쪽(빨강)은 잃음 */}
+                  <div style={{ ...styles.riStatRowBarTrack, position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#3a4e72' }} />
+                    <div style={{
+                      position: 'absolute', top: 0, bottom: 0,
+                      [r.value >= 0 ? 'left' : 'right']: '50%',
+                      width: `${Math.min(50, (Math.abs(r.value) / sgMaxAbs) * 50)}%`,
+                      background: r.cat === 'mixed' ? '#6b7a99' : r.value >= 0 ? '#3db87a' : '#ef5350',
+                      borderRadius: 3,
+                    }} />
+                  </div>
+                  <div style={{ ...styles.riStatRowValue, color: r.value >= 0 ? '#3db87a' : '#ef5350' }}>{r.segments > 0 ? fmtSigned(r.value) : '–'}</div>
+                  {r.segments > 0 && r.cat !== 'mixed' ? <ConfidenceBadge tier={sgTier(r.strokes)} n={r.strokes} /> : <div style={{ width: 52 }} />}
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }} data-role="sg-coverage">
+                측정된 {sg.measuredStrokes}타 / 입력한 홀 전체 {sg.strokes}타 ({Math.round(sg.coverage * 100)}%).
+                {sg.categories.mixed.segments > 0 && ` 분류 불가 ${sg.categories.mixed.strokes}타는 남은 거리·퍼트 거리가 없어 여러 샷이 한 구간으로 묶인 값이에요.`}
+              </div>
+              <div style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>
+                투어 평균이 0이라 아마추어는 대부분 마이너스예요 — 숫자 크기보다 카테고리끼리의 차이를 보세요.
+                세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
+                20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
+              </div>
+              <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 6 }}>{BASELINE_SOURCE}</div>
+            </>
+          )}
         </div>
       )}
 

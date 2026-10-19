@@ -6,6 +6,9 @@ import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
 import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
 import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, emptyOffGreenShot, OFF_GREEN_CLUBS } from '../../engine/offGreen.js';
+import { CLUB_SUBS, recommendClubs, clubLabelOf, fitText, reachText } from '../../engine/clubRecommend.js';
+import ClubSuggestions from './ClubSuggestions';
+import { useBagClubs } from './useBagClubs';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -71,23 +74,10 @@ const AFTER_TEE_PENALTY_CLUBS = [{ id: 'driver', label: 'DRIVER' }, ...SECOND_CL
 
 const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 62];
 
-const CLUB_SUBS = {
-  driver: [],
-  wood:   [{ id: '3W', label: '3W' }, { id: '5W', label: '5W' }, { id: '7W', label: '7W' }, { id: '9W', label: '9W' }],
-  hybrid: [{ id: '2H', label: '2H' }, { id: '3H', label: '3H' }, { id: '4H', label: '4H' }, { id: '5H', label: '5H' }],
-  iron:   [{ id: '2I', label: '2I' }, { id: '3I', label: '3I' }, { id: '4I', label: '4I' }, { id: '5I', label: '5I' }, { id: '6I', label: '6I' }, { id: '7I', label: '7I' }, { id: '8I', label: '8I' }, { id: '9I', label: '9I' }],
-  wedge:  [
-    { id: '48', label: '48°' },
-    { id: '50', label: '50°' },
-    { id: '52', label: '52°' },
-    { id: '54', label: '54°' },
-    { id: '56', label: '56°' },
-    { id: '58', label: '58°' },
-    { id: '60', label: '60°' },
-    { id: '62', label: '62°' },
-    { id: 'P',  label: 'P'   },
-  ],
-};
+// 클럽별 세부 선택지(CLUB_SUBS)는 클럽 추천이 마이백 클럽과 맞춰 보는 기준이기도 해서
+// engine/clubRecommend.js 에 둔다.
+
+const ids = (list) => list.map((c) => c.id);
 
 const COMPASS_LABELS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
 const toCompassLabel = (deg) => deg == null ? '—' : COMPASS_LABELS[Math.round(deg / 22.5) % 16];
@@ -427,10 +417,22 @@ function MultiChips({ options, value = [], onChange }) {
   );
 }
 
-function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked }) {
+// suggest: 마이백 거리로 만든 클럽 추천 { rec, onPick } — 칩을 누르면 클럽 종류와 세부 클럽이
+// 한 번에 입력된다. 아래 클럽 버튼에는 추천 클럽에 ★만 붙여 직접 고르는 흐름은 그대로 둔다.
+function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, suggest }) {
   const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => { if (!value) setExpandedId(null); }, [value]);
+
+  const recPick = suggest?.rec?.primary ?? null;
+  const suggestions = suggest && (
+    <ClubSuggestions
+      suggest={suggest}
+      value={value}
+      subValue={subValue}
+      onPick={(club, sub) => { setExpandedId(null); suggest.onPick?.(club, sub); }}
+    />
+  );
 
   const btnChip = stacked
     ? { ...fChip, padding:'10px 8px', fontSize:13, borderRadius:8, width:'100%', textAlign:'center' }
@@ -476,6 +478,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
             onClick={() => handleCategory(c)}
           >
             {displayLabel}
+            {recPick?.club === c.id && !isSelected && <span style={{ color:'#3db87a', marginLeft:3, fontSize:10 }}>★</span>}
           </button>
         );
       })}
@@ -500,6 +503,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
             }}
           >
             {s.label}
+            {!isSel && recPick && recPick.club === value && recPick.subClub === s.id && <span style={{ color:'#3db87a', marginLeft:3, fontSize:10 }}>★</span>}
           </button>
         );
       })}
@@ -513,6 +517,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
           <span style={fIcon}>{icon}</span>
           <span style={fLbl}>{label}</span>
         </div>
+        {suggestions}
         {categoryRow}
         {subRow}
       </div>
@@ -521,6 +526,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
 
   return (
     <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54 }}>
+      {suggestions}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
         <div style={fLeft}>
           <span style={fIcon}>{icon}</span>
@@ -667,7 +673,12 @@ const PUTT_LIE_DIRS = [
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExit, onGoToSetup }) {
+export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup }) {
+  // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한 설정. 값이 없는 예전 라운드는 켜짐.
+  const recommendOn = round.clubRecommend !== false;
+  // 클럽 추천의 재료 — 마이백에 저장한 클럽별 거리. 마이백을 고친 뒤 이 화면으로 돌아오면
+  // 새로 마운트되며 다시 불러온다. 꺼 둔 라운드는 불러오지도 않는다.
+  const bagClubs = useBagClubs(recommendOn ? currentUser : null);
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
   const [activePlayer, setActivePlayer] = useState(round.players[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -1417,6 +1428,35 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
       if (!x || (x.remainingDistance != null && x.remainingSource !== 'live')) return {};
       return { extraShots: s.extraShots.map((e, i) => (i === f.slot - 2 ? { ...e, remainingDistance: f.d, remainingSource: 'live' } : e)) };
     });
+  };
+
+  // ─── 클럽 추천 ──────────────────────────────────────────────────────────────
+  // 남은 거리가 저장돼 있으면 — 슬라이더로 정했든 지도로 채웠든 — 그 거리로 클럽을 추천한다.
+  // 거리를 입력하기 전에는 보여주지 않는다 (눈대중 시작값으로 추천하면 틀린 클럽을 권한다).
+  // slot은 지도의 지점 번호와 같다: 0=티샷, 1=세컨샷, 2 이상=익스트라샷.
+  // 샷마다 고를 수 있는 클럽 종류 안에서만 추천한다. 파4·5 티샷은 거리 입력이 없어 추천하지 않는다.
+  const clubIdsForSlot = (slot) => {
+    if (slot === 0) return hole.par === 3 ? ids(clubs) : null;
+    return ids(slot === 1 && penaltyAt(playerScore, 0) ? AFTER_TEE_PENALTY_CLUBS : SECOND_CLUBS);
+  };
+
+  // ClubSelector의 suggest — 마이백을 불러오는 중이거나 거리가 없으면 null.
+  // 마이백에 저장한 거리가 없으면 추천 대신 안내({ noBag })를 보여준다.
+  const clubSuggest = (slot, distance, onPick) => {
+    const allowed = clubIdsForSlot(slot);
+    if (!recommendOn || bagClubs === undefined || !allowed || !(distance > 0)) return null;
+    if (bagClubs === null) return { noBag: true, distance, onPick };
+    const rec = recommendClubs(bagClubs, distance, allowed);
+    return rec ? { rec, onPick } : null;
+  };
+
+  // 지도 화면에 한 줄로 보여줄 추천 — 마이백 거리가 없으면 안내 없이 비운다 (지도는 이미 빽빽하다).
+  const clubHintFor = (distance, slot) => {
+    const allowed = clubIdsForSlot(slot);
+    if (!recommendOn || !Array.isArray(bagClubs) || !allowed) return null;
+    const rec = recommendClubs(bagClubs, distance, allowed);
+    if (!rec) return null;
+    return { label: clubLabelOf(rec.primary.club, rec.primary.subClub), range: reachText(rec.primary), text: fitText(rec), fit: rec.fit };
   };
 
   // 직전 샷 거리를 보여줄 기준 지점. 벌타 홀에서 멈춘 자리가 불확실한 샷(티샷 →
@@ -2485,6 +2525,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           stacked
           onInteractStart={() => setTeeClubInteracting(true)}
           onInteractEnd={() => setTeeClubInteracting(false)}
+          suggest={clubSuggest(0, playerScore.teeDistance, (club, sub) => { updateFields({ teeClub: club, teeClubSub: sub }); if (club) scrollDown(); })}
         />
 
         {/* 티샷 구질 - 클럽 선택 완료 후 등장 */}
@@ -2697,6 +2738,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onCategory={v => { updateFields({ secondClub: v, secondClubSub: null }); if (v) scrollDown(); }}
           onSub={v => updateField('secondClubSub', v)}
           stacked
+          suggest={clubSuggest(1, playerScore.remainingDistance, (club, sub) => { updateFields({ secondClub: club, secondClubSub: sub }); if (club) scrollDown(); })}
         />
 
         {/* 라이·바람 — 기본 접힘, 세컨샷 클럽을 고르면 금색으로 활성화 */}
@@ -2810,6 +2852,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
                   onCategory={v => { updateExtraShot(idx, { club: v, subClub: null }); if (v) scrollDown(); }}
                   onSub={v => updateExtraShot(idx, { subClub: v })}
                   stacked
+                  suggest={clubSuggest(idx + 2, shot.remainingDistance, (club, sub) => { updateExtraShot(idx, { club, subClub: sub }); if (club) scrollDown(); })}
                 />
 
                 {/* 라이·바람 — 기본 접힘, 클럽을 고르면 금색으로 활성화 */}
@@ -3495,6 +3538,7 @@ export default function ScoringView({ round, onUpdate, onFinish, onGoHome, onExi
           onAddShot={addShotFromMap}
           onUndoShot={lastShotIsEmpty ? undoLastShotFromMap : null}
           fillFor={mapFillFor}
+          clubHintFor={clubHintFor}
           onClose={closeMapAndFill}
         />
       )}

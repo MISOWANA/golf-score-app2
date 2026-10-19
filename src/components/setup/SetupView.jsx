@@ -2,6 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Plus, X } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
+import { bagCoverage } from '../../engine/clubRecommend.js';
+import { useBagClubs } from '../scoring/useBagClubs';
+
+// 거리별 클럽 추천을 받을지 마지막으로 고른 값 — 매 라운드마다 다시 끄지 않아도 되게 기기에 기억한다.
+// 기본은 켜짐. 저장소를 못 쓰는 환경이어도 이번 라운드 선택에는 영향이 없다.
+const CLUB_RECOMMEND_KEY = 'bb.clubRecommend';
+const readClubRecommendPref = () => {
+  try { return localStorage.getItem(CLUB_RECOMMEND_KEY) !== '0'; } catch { return true; }
+};
+const writeClubRecommendPref = (on) => {
+  try { localStorage.setItem(CLUB_RECOMMEND_KEY, on ? '1' : '0'); } catch { /* 기억만 못 할 뿐 */ }
+};
 
 // 로컬 타임존 기준 YYYY-MM-DD (input type="date"가 요구하는 형식). toISOString()은
 // UTC 기준이라 자정 근처에서 하루 밀리는 문제가 있어 로컬 필드로 직접 조립한다.
@@ -21,6 +33,8 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [players, setPlayers] = useState([currentUser?.userName || '']);
   const [pars, setPars] = useState(Array(18).fill(4));
   const [teeBox, setTeeBox] = useState(null);
+  const [clubRecommend, setClubRecommend] = useState(readClubRecommendPref);
+  const bagClubs = useBagClubs(currentUser);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -146,6 +160,25 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const dupPlayer = players.findIndex((p, i) => p.trim() && players.findIndex(q => normPlayer(q) === normPlayer(p)) !== i);
   const hasDupPlayer = dupPlayer >= 0;
   const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim()) && !hasDupPlayer && teeBox;
+
+  const toggleClubRecommend = () => {
+    const next = !clubRecommend;
+    setClubRecommend(next);
+    writeClubRecommendPref(next);
+  };
+
+  // 켜 둔 상태에서 마이백 상황을 미리 알려 준다 — 라운드 중에 "왜 추천이 안 나오지?" 하지 않도록.
+  const coverage = Array.isArray(bagClubs) ? bagCoverage(bagClubs) : null;
+  const bagNote = (() => {
+    if (bagClubs === undefined) return null;   // 불러오는 중
+    if (bagClubs === null) return { warn: true, text: '마이백에 저장된 거리가 없어요. 마이백에서 클럽별 캐리·토탈 거리를 설정하면 추천이 나와요' };
+    if (coverage.usable === 0) return { warn: true, text: '마이백에 추천에 쓸 수 있는 클럽이 없어요. 클럽 이름과 캐리·토탈 거리를 확인해 주세요' };
+    return {
+      warn: false,
+      text: `마이백 ${coverage.usable}개 클럽 거리 기준으로 추천해요`
+        + (coverage.skipped.length > 0 ? ` · 제외: ${coverage.skipped.join(', ')} (스코어 입력에서 고를 수 없거나 거리가 비어 있어요)` : ''),
+    };
+  })();
 
   const chipStyle = (active) => ({
     flex: 1, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
@@ -415,6 +448,40 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         </div>
       </div>
 
+      {/* 거리별 클럽 추천 — 샷 상세 입력은 1인 라운드에서만 하므로 그때만 묻는다 */}
+      {players.length === 1 && (
+        <div style={styles.formSection}>
+          <label style={styles.formLabel}>거리별 클럽 추천</label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={clubRecommend}
+            onClick={toggleClubRecommend}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              padding: '12px 14px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
+              border: `1.5px solid ${clubRecommend ? '#3db87a' : '#252f4a'}`,
+              background: clubRecommend ? 'rgba(61,184,122,0.08)' : '#1a2235',
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: clubRecommend ? '#e8edf8' : '#8896b0' }}>클럽 추천 받기</div>
+              <div style={{ fontSize: 11, color: '#8896b0', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
+                남은 거리를 입력하면 마이백 거리로 알맞은 클럽을 추천해요
+              </div>
+            </div>
+            <span aria-hidden="true" style={{ position: 'relative', flexShrink: 0, width: 44, height: 26, borderRadius: 13, background: clubRecommend ? '#3db87a' : '#252f4a', transition: 'background 0.15s' }}>
+              <span style={{ position: 'absolute', top: 3, left: clubRecommend ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#e8edf8', transition: 'left 0.15s' }} />
+            </span>
+          </button>
+          {clubRecommend && bagNote && (
+            <div data-role="club-recommend-note" style={{ fontSize: 11, marginTop: 8, lineHeight: 1.6, wordBreak: 'keep-all', color: bagNote.warn ? '#e6b94a' : '#8896b0' }}>
+              {bagNote.text}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 파 설정 */}
       <div style={styles.formSection}>
         <label style={styles.formLabel}>파 설정</label>
@@ -490,7 +557,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString())}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString(), clubRecommend)}
       >
         라운드 시작하기
       </button>

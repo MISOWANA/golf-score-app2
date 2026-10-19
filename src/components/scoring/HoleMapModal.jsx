@@ -33,6 +33,9 @@ export default function HoleMapModal({
   // fillFor(pos): 지도를 닫을 때 남은 거리 슬라이더에 먼저 채워질 값 — { label, d } 또는 null.
   // 닫기 전에 "이 거리가 입력된다"를 미리 보여주는 데 쓴다 (계산은 ScoringView가 한다).
   fillFor = null,
+  // clubHintFor(distance, slot): 그 지점(0=티, 1=세컨 …)에서 핀까지 남은 거리로 추천하는 클럽 —
+  // { label, range, text, fit } 또는 null. 마이백에 저장한 거리가 없으면 늘 null이다.
+  clubHintFor = null,
   onSetPoint, onSetGreen, onSetPin, onAddShot, onUndoShot, onClose,
 }) {
   const [apiKey, setApiKey] = useState(getVWorldKey);
@@ -408,6 +411,12 @@ export default function HoleMapModal({
   // 지금 이 위치에서 지도를 닫으면 남은 거리에 채워질 값 (조정 중에는 보여주지 않는다)
   const fill = !draft && pos && fillFor ? fillFor(pos) : null;
 
+  // 클럽 추천 한 줄 — 위치를 놓는 중이면 그 마커 자리에서 칠 클럽, 아니면 지도를 닫을 때
+  // 채워질 거리의 클럽. 샷 지점(티·세컨 …)을 잡을 때만 성립한다 (그린·핀 자리는 해당 없음).
+  const draftHint = draft && clubHintFor && typeof selected === 'number' && draftToPin != null
+    ? clubHintFor(Math.round(draftToPin), selected) : null;
+  const fillHint = fill && clubHintFor ? clubHintFor(fill.d, fill.slot) : null;
+
   const quality = gpsQuality(pos?.acc);
   const liveDistance = haversine(pos, selectedSlot?.point);
   const liveDistanceAcc = combinedAccuracy(pos, selectedSlot?.point);
@@ -573,6 +582,7 @@ export default function HoleMapModal({
           {posError ? '측위 불가 — 지도에서 위치를 직접 찍을 수 있어요' : '측위 중… 내 위치가 잡히면 거리가 여기에 표시돼요'}
         </div>
       )}
+      {draftHint && <ClubHint hint={draftHint} />}
     </div>
   );
 
@@ -653,6 +663,7 @@ export default function HoleMapModal({
         {!draft && fill && (
           <div style={{ padding: '0 14px 10px', fontSize: 12, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
             지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
+            {fillHint && <ClubHint hint={fillHint} />}
           </div>
         )}
 
@@ -822,6 +833,19 @@ export default function HoleMapModal({
 //
 // 숫자는 크게(28px), 설명은 그 위에 12px 이상으로 둔다. 야외 햇빛 아래에서 한 손으로
 // 보는 화면이라 작은 글자·옅은 색을 피하고, 칸마다 같은 구조를 써서 눈이 같은 자리를 본다.
+
+// 마이백 거리로 추천한 클럽 한 줄. 구간 안이면 클럽의 거리 구간을, 아니면 얼마나 모자라거나 긴지를 보여준다.
+function ClubHint({ hint }) {
+  return (
+    <div style={{ marginTop: 6, textAlign: 'center', fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+      <span style={{ color: COLOR.green }}>★ 추천</span>
+      <span style={{ color: COLOR.line, fontWeight: 900, fontSize: 17, margin: '0 6px' }}>{hint.label}</span>
+      <span style={{ color: hint.fit === 'in' ? COLOR.dim : '#e6b94a', fontSize: 12 }}>
+        {hint.fit === 'in' ? hint.range : hint.text}
+      </span>
+    </div>
+  );
+}
 
 function Metric({ label, value, tone = 'line', compact = false }) {
   const color = tone === 'gold' ? COLOR.gold : COLOR.line;

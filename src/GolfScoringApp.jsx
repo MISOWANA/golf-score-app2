@@ -130,7 +130,7 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate) => {
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate, clubRecommend) => {
     const newRound = {
       id: Date.now().toString(),
       date: roundDate || new Date().toISOString(),
@@ -167,6 +167,8 @@ export default function GolfScoringApp() {
       // 진행률·누적 스코어를 '확정한 홀'(confirmed) 기준으로 센다. 이 표시가 없는
       // 예전 진행 중 라운드는 입력한 홀(touched) 기준 그대로 둔다.
       trackConfirm: true,
+      // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한다. 이 값이 없는 예전 라운드는 켜짐으로 본다.
+      clubRecommend: clubRecommend !== false,
     };
     setCurrentRound(newRound);
     saveActiveRound(currentUser.userId, newRound).catch(console.error);
@@ -310,6 +312,7 @@ export default function GolfScoringApp() {
       {view === 'scoring' && currentRound && (
         <ScoringView
           round={currentRound}
+          currentUser={currentUser}
           onUpdate={updateRound}
           onFinish={finishRound}
           onGoHome={() => setView('home')}

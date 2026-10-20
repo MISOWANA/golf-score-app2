@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Plus, X } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
@@ -49,9 +49,9 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [pairReversed, setPairReversed] = useState(false);
 
   const searchRef = useRef(null);
-  // swapOutIn에서 OUT/IN을 바꿀 때는 파를 직접 스왑하므로, 아래 파 자동계산 effect가
+  // swapOutIn에서 OUT/IN을 바꿀 때는 파를 직접 스왑하므로, 아래 파 자동계산이
   // 원본 DB 파 값으로 다시 덮어써서 그 결과(혹은 사용자가 수동 수정한 파)를 지우지 않도록 스킵 신호로 쓴다.
-  const skipParsSyncRef = useRef(false);
+  const [skipParsSync, setSkipParsSync] = useState(false);
 
   useEffect(() => {
     const onClickOutside = (e) => {
@@ -63,18 +63,20 @@ export default function SetupView({ onStart, onBack, currentUser }) {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
-  // OUT/IN 코스 선택될 때마다 파 자동 계산
-  useEffect(() => {
+  // OUT/IN 코스 선택될 때마다 코스 이름과 파를 자동으로 맞춘다 — 선택이 바뀐 그 렌더에서 바로.
+  const [syncedCourses, setSyncedCourses] = useState({ out: null, inn: null });
+  if (syncedCourses.out !== selectedOut || syncedCourses.inn !== selectedIn) {
+    setSyncedCourses({ out: selectedOut, inn: selectedIn });
     if (selectedOut) setOutCourseName(selectedOut.name);
     if (selectedIn)  setInCourseName(selectedIn.name);
     if (selectedOut && selectedIn) {
-      if (skipParsSyncRef.current) {
-        skipParsSyncRef.current = false;
+      if (skipParsSync) {
+        setSkipParsSync(false);
       } else {
         setPars([...selectedOut.pars, ...selectedIn.pars]);
       }
     }
-  }, [selectedOut, selectedIn]);
+  }
 
   const handleCourseNameChange = (val) => {
     setCourseName(val);
@@ -126,7 +128,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const swapOutIn = () => {
     setOutCourseName(inCourseName);
     setInCourseName(outCourseName);
-    if (selectedOut && selectedIn) skipParsSyncRef.current = true;
+    if (selectedOut && selectedIn) setSkipParsSync(true);
     setSelectedOut(selectedIn);
     setSelectedIn(selectedOut);
     setPars(prev => [...prev.slice(9), ...prev.slice(0, 9)]);

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Trash2, Edit3, Check, X, GripVertical } from 'lucide-react';
 import styles from '../../styles/styles';
 import Stepper from './Stepper';

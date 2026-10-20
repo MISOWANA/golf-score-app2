@@ -1,4 +1,3 @@
-import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
 import StatTile from '../analysis/StatTile';

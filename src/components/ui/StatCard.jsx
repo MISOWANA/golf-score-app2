@@ -14,7 +14,6 @@
  *
  * Reused in: AnalysisView key stats grid, StatsView, InsightsView
  */
-import React from 'react';
 import { palette, radii, shadows } from '../../styles/theme.js';
 
 const valueColors = {

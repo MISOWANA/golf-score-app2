@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../../styles/styles';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import { toHoleInput, analyzeRound } from '../../engine/engine.js';

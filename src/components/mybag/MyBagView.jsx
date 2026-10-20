@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { loadClubsByUser, saveClubsForUser, userIdsOf } from '../../db.js';
 import styles from '../../styles/styles';
 import ClubCard from './ClubCard';
+import { nowMs } from '../../engine/clock.js';
 
 const DEFAULT_CLUBS = [
   { id: 'driver', name: 'Driver', type: 'Wood', carry: 200, total: 215 },
@@ -102,7 +103,7 @@ export default function MyBagView({ currentUser, onBack }) {
   };
 
   // keep ref in sync so touch handlers can call it without stale closure
-  saveClubsRef.current = saveClubs;
+  useEffect(() => { saveClubsRef.current = saveClubs; });
 
   // ── touch drag: document-level listeners ─────────────────────────────────
   useEffect(() => {
@@ -165,7 +166,7 @@ export default function MyBagView({ currentUser, onBack }) {
     setDragOverId(id);
   };
 
-  const handleDrop = (id) => {
+  const handleDrop = () => {
     if (!dragId || !dragOverId) return;
     const fromClub = clubs.find(c => c.id === dragId);
     const toClub = clubs.find(c => c.id === dragOverId);
@@ -204,7 +205,7 @@ export default function MyBagView({ currentUser, onBack }) {
     const nextName = suggestions.find(s => !usedNames.includes(s)) || defaults.name;
 
     const newClub = {
-      id: `${type.toLowerCase()}_${Date.now()}`,
+      id: `${type.toLowerCase()}_${nowMs()}`,
       name: nextName,
       type,
       carry: defaults.carry,

@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Download, Upload, LogOut } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
 import { NewRoundCard, ActiveRoundCard, StatsPanel } from './HomeCards';
 import { myPlayer } from '../../engine/players.js';
+import { nowMs } from '../../engine/clock.js';
 
-export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onViewStats, onSwitchUser, onExportData, onImportData, loading }) {
+export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onSwitchUser, onExportData, onImportData, loading }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
@@ -18,7 +19,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
   // 로고 3연속 클릭(700ms 이내) → 강력 새로고침. 배포 후 폰 브라우저가 이전
   // 번들을 그대로 들고 있을 때(캐시) 사용자가 스스로 최신 버전을 받게 하는 탈출구.
   const handleLogoClick = async () => {
-    const now = Date.now();
+    const now = nowMs();
     const prev = logoClickRef.current;
     logoClickRef.current = { count: now - prev.lastAt < 700 ? prev.count + 1 : 1, lastAt: now };
     if (logoClickRef.current.count < 3) return;
@@ -27,14 +28,14 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
   };
 
   const hardRefresh = async () => {
-    const now = Date.now();
+    const now = nowMs();
     setHardRefreshing(true);
     try {
       if (window.caches) {
         const keys = await caches.keys();
         await Promise.all(keys.map(k => caches.delete(k)));
       }
-    } catch (e) { /* 캐시 API 미지원 환경은 무시 */ }
+    } catch { /* 캐시 API 미지원 환경은 무시 */ }
     const url = new URL(window.location.href);
     url.searchParams.set('_r', now.toString());
     window.location.replace(url.toString());

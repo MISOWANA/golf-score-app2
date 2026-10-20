@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function ShotShapeIcon({ shapeId, active, color }) {
   const stroke = active ? '#fff' : color;

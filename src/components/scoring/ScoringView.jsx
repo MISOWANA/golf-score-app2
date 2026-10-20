@@ -21,49 +21,6 @@ const CLOCK_HOURS = Array.from({ length: 12 }, (_, i) => {
   return { hour, label: KEY[hour] || String(hour), isKey: [3,6,9,12].includes(hour), cx: 50 + 40 * Math.cos(angle), cy: 50 + 40 * Math.sin(angle) };
 });
 
-const TERRAIN_OPTIONS = [
-  { id: 'flat',           label: '평지' },
-  { id: 'uphill',         label: '오르막' },
-  { id: 'downhill',       label: '내리막' },
-  { id: 'hook',           label: '훅' },
-  { id: 'slice',          label: '슬라이스' },
-  { id: 'uphill-slice',   label: '오르막 슬라이스' },
-  { id: 'uphill-hook',    label: '오르막 훅' },
-  { id: 'downhill-slice', label: '내리막 슬라이스' },
-  { id: 'downhill-hook',  label: '내리막 훅' },
-];
-
-const LIE_GRID = [
-  null,      'uphill', null,
-  'slice',   'flat',   'hook',
-  null,      'downhill', null,
-];
-
-const PUTT_LIE_OPTIONS = [
-  { id: 'flat',           label: '평지' },
-  { id: 'uphill',         label: '오르막' },
-  { id: 'downhill',       label: '내리막' },
-  { id: 'hook',           label: '훅' },
-  { id: 'slice',          label: '슬라이스' },
-  { id: 'uphill-slice',   label: '오르막 슬라이스' },
-  { id: 'uphill-hook',    label: '오르막 훅' },
-  { id: 'downhill-slice', label: '내리막 슬라이스' },
-  { id: 'downhill-hook',  label: '내리막 훅' },
-];
-
-const PIN_OPTIONS = [
-  { id: 'front',  label: '프론트' },
-  { id: 'back',   label: '백' },
-  { id: 'center', label: '센터' },
-  { id: 'left',   label: '레프트' },
-  { id: 'right',   label: '라이트' },
-  { id: 'back left',  label: '백 레프트' },
-  { id: 'front left',  label: '프론트 레프트' },
-  { id: 'back right',  label: '백 라이트' },
-  { id: 'front right',  label: '프론트 라이트' },
-];
-
-
 const SECOND_CLUBS = [
   { id: 'wood',   label: 'WOOD' },
   { id: 'hybrid', label: 'HYBRID' },
@@ -73,8 +30,6 @@ const SECOND_CLUBS = [
 
 // 티샷 벌타 뒤 다음 샷 — 다시 친 티샷이면 드라이버, 드롭 후면 아이언·웨지일 수 있다.
 const AFTER_TEE_PENALTY_CLUBS = [{ id: 'driver', label: 'DRIVER' }, ...SECOND_CLUBS];
-
-const WEDGE_OPTIONS = [48, 50, 52, 54, 56, 58, 60, 62];
 
 // 클럽별 세부 선택지(CLUB_SUBS)는 클럽 추천이 마이백 클럽과 맞춰 보는 기준이기도 해서
 // engine/clubRecommend.js 에 둔다.
@@ -404,27 +359,17 @@ function ClockDial12({ value, onChange }) {
   );
 }
 
-function MultiChips({ options, value = [], onChange }) {
-  const toggle = id => onChange(value.includes(id) ? value.filter(v => v !== id) : [...value, id]);
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-      {options.map(o => {
-        const sel = value.includes(o.id);
-        return (
-          <button key={o.id} style={{ flex:'1 1 calc(33% - 6px)', padding: '9px 6px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign:'center', border: `1.5px solid ${sel ? '#c9a228' : '#252f4a'}`, background: sel ? 'rgba(201,162,40,0.18)' : '#1a2235', color: sel ? '#c9a228' : '#8896b0' }}
-            onClick={() => toggle(o.id)}>{o.label}</button>
-        );
-      })}
-    </div>
-  );
-}
-
 // suggest: 마이백 거리로 만든 클럽 추천 { rec, onPick } — 칩을 누르면 클럽 종류와 세부 클럽이
 // 한 번에 입력된다. 아래 클럽 버튼에는 추천 클럽에 ★만 붙여 직접 고르는 흐름은 그대로 둔다.
 function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, suggest }) {
   const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => { if (!value) setExpandedId(null); }, [value]);
+  // 선택이 지워지면 펼친 세부 클럽도 접는다 — value 가 바뀐 그 렌더에서 바로 맞춘다
+  const [prevValue, setPrevValue] = useState(value);
+  if (prevValue !== value) {
+    setPrevValue(value);
+    if (!value) setExpandedId(null);
+  }
 
   const recPick = suggest?.rec?.primary ?? null;
   const suggestions = suggest && (
@@ -553,13 +498,6 @@ const HookIcon = () => (
   </svg>
 );
 
-const RADIAL_POS = {
-  up:    { tx:   0, ty: -56 },
-  down:  { tx:   0, ty:  56 },
-  left:  { tx: -96, ty:   0 },
-  right: { tx:  96, ty:   0 },
-};
-
 // alwaysOpen: 접기 버튼 없이 선택지만 보인다 (바깥 섹션이 접기를 맡을 때).
 // openWhenEmpty: false면 선택이 없어도 접힌 채 시작한다 (건너뛸 수 있는 선택 입력).
 function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder, alwaysOpen, openWhenEmpty = true }) {
@@ -570,7 +508,12 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
   const [openState, setOpen] = useState(raw == null && openWhenEmpty);
   const open = alwaysOpen || openState;
 
-  useEffect(() => { setOpen(raw == null && openWhenEmpty); }, [raw, openWhenEmpty]);
+  // 선택값이나 시작 방식이 바뀌면 그 렌더에서 바로 펼침 상태를 다시 맞춘다
+  const [synced, setSynced] = useState({ raw, openWhenEmpty });
+  if (synced.raw !== raw || synced.openWhenEmpty !== openWhenEmpty) {
+    setSynced({ raw, openWhenEmpty });
+    setOpen(raw == null && openWhenEmpty);
+  }
 
   const selDir = dirs.find(d => d.id === raw);
   const selLabel = raw === centerId ? centerLabel : (selDir?.label ?? null);
@@ -581,8 +524,6 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
     onChange(id === raw ? null : id);
     setOpen(false);
   };
-
-  const allOptions = [{ id: centerId, label: centerLabel, icon: null }, ...dirs];
 
   return (
     <div style={{ width:'100%' }}>
@@ -682,7 +623,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 새로 마운트되며 다시 불러온다. 꺼 둔 라운드는 불러오지도 않는다.
   const bagClubs = useBagClubs(recommendOn ? currentUser : null);
   const [holeIdx, setHoleIdx] = useState(round.currentHole || 0);
-  const [activePlayer, setActivePlayer] = useState(round.players[0]);
+  const [activePlayer] = useState(round.players[0]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
   const [pendingSkip, setPendingSkip] = useState(null);       // 입력 없는 홀에서 '다음' — 이동할 홀 번호
@@ -1168,19 +1109,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     return out;
   })();
   const teeComplete = teeMissing.length === 0;
-  const teeShotSummary = [
-    `${playerScore.strokes}타`,
-    hole.par === 3 && playerScore.teeDistance ? `${playerScore.teeDistance}m` : null,
-    playerScore.teeClub
-      ? (playerScore.teeClubSub
-          ? `${playerScore.teeClub.toUpperCase()} ${playerScore.teeClubSub}`
-          : playerScore.teeClub.toUpperCase())
-      : null,
-    playerScore.shotShape,
-    hole.par > 3 ? (playerScore.fairway === true ? 'FW·O' : playerScore.fairway === false ? 'FW·X' : null) : null,
-    hole.par > 3 && playerScore.fairwayHit ? playerScore.fairwayHit : null,
-  ].filter(Boolean).join('  ');
-
   const isLastHole = holeIdx === 17;
   const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
   const isPar5 = hole.par === 5;
@@ -1975,32 +1903,58 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     p.holein == null && p.distance == null && p.aimDistance == null &&
     (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
 
-  useEffect(() => {
+  // 아래 세 덩어리는 이펙트에서 setState 하지 않고, 값이 바뀐 그 렌더에서 바로 상태를 맞춘다
+  // (처음 그릴 때도 한 번 맞추려고 null 에서 시작한다). 순서는 위에서부터 차례로 적용된다.
+
+  // 홀이 바뀌거나 퍼트 수가 달라지면 아직 입력 안 한 첫 퍼트 카드를 연다
+  const puttSyncKey = `${holeIdx}:${puttDetails.length}`;
+  const [syncedPuttKey, setSyncedPuttKey] = useState(null);
+  if (syncedPuttKey !== puttSyncKey) {
+    setSyncedPuttKey(puttSyncKey);
     const firstEmpty = puttDetails.findIndex(isPuttEmpty);
     setExpandedPutt(firstEmpty >= 0 ? firstEmpty : 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [holeIdx, puttDetails.length]);
+  }
 
+  // 홀이 바뀌면 펼침·페이지 상태를 처음으로 되돌린다
+  const [syncedHoleIdx, setSyncedHoleIdx] = useState(null);
+  if (syncedHoleIdx !== holeIdx) {
+    setSyncedHoleIdx(holeIdx);
+    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); setExpandedOffGreen(null); setShowPuttsDropdown(false);
+  }
+
+  // 타이머와 ref 는 렌더 중에 건드릴 수 없어 이펙트에 남긴다
   useEffect(() => {
     clearTimeout(shotPageTimeoutRef.current);
-    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); setExpandedOffGreen(null); prevExtraShotsLenRef.current = 0; setShowPuttsDropdown(false);
+    prevExtraShotsLenRef.current = 0;
   }, [holeIdx]);
 
+  // 직전 렌더의 홀·탭. 홀을 옮겨 올 때 어느 탭에서 왔는지 아래 스크롤 판단에 쓴다.
+  const lastViewRef = useRef({ hole: holeIdx, page: shotPage });
   useEffect(() => {
-    if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current) {
+    // 다른 홀로 옮겨 왔는데 직전 화면이 필드샷 탭이 아니었다면(예: 퍼팅 탭) 이미 있던 추가 샷으로는 스크롤하지 않는다
+    const fromOtherTab = lastViewRef.current.hole !== holeIdx && lastViewRef.current.page !== 0;
+    if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current && !fromOtherTab) {
       setTimeout(() => extraShotTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
     }
     prevExtraShotsLenRef.current = extraShots.length;
+  // holeIdx 를 deps 에 넣으면 홀을 옮길 때마다 다시 돌아 스크롤 시점이 달라진다 — 추가 샷 수가 바뀔 때만 본다
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extraShots.length]);
+  useEffect(() => { lastViewRef.current = { hole: holeIdx, page: shotPage }; });
 
-  useEffect(() => {
+  // 티샷 입력이 끝나면 접고 다음 페이지를 정한다. 남은 항목이 생기면 다시 펼친다
+  // (접힌 채 '남은 항목'만 안내하면 어디를 눌러야 할지 알 수 없다)
+  const [syncedTeeComplete, setSyncedTeeComplete] = useState(null);
+  if (syncedTeeComplete !== teeComplete) {
+    setSyncedTeeComplete(teeComplete);
     if (teeComplete) { setTeeExpanded(false); setShotPage((hole.par === 3 && par3TeeOnGreen(playerScore)) || playerScore.teeGIR ? 1 : 0); }
-    else setTeeExpanded(true);   // 접힌 채 '남은 항목'만 안내하면 어디를 눌러야 할지 알 수 없다
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teeComplete]);
+    else setTeeExpanded(true);
+  }
 
   useEffect(() => { if (shotPage === 1) scrollDown(); }, [shotPage]);
+
+  // 미입력 홀 확인 모달에 보여 줄 홀 번호들
+  const pendingMissing = pendingFinish ? untouchedHoles(pendingFinish) : [];
 
   return (
     <div style={styles.container}>
@@ -3080,9 +3034,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           {/* 퍼팅별 상세 (아코디언) */}
           {puttDetails.slice(0, puttVisibleCount).map((putt, puttIdx) => {
             const isOpen = expandedPutt === puttIdx;
-            const lieLabel = putt.lie
-              ? (putt.lie === 'flat' ? '평지' : PUTT_LIE_DIRS.find(d => d.id === putt.lie)?.label ?? putt.lie)
-              : null;
             return (
               <React.Fragment key={puttIdx}>
                 {/* 아코디언 헤더 */}
@@ -3304,27 +3255,24 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       </div>
 
       {/* 미입력 홀 확인 모달 */}
-      {pendingFinish && (() => {
-        const missing = untouchedHoles(pendingFinish);
-        return (
-          <div style={styles.modalOverlay} onClick={() => setPendingFinish(null)}>
-            <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-              <div style={styles.modalIcon}>📝</div>
-              <div style={styles.modalTitle}>입력하지 않은 홀이 있어요</div>
-              <div style={styles.modalText}>
-                {missing.map(i => `${i + 1}`).join(', ')}번 홀<br/>
-                그대로 완료하면 이 홀들은 파(2퍼트)로 저장돼요
-              </div>
-              <div style={styles.modalActions}>
-                <button style={styles.modalBtnCancel} onClick={() => { setPendingFinish(null); goToHole(missing[0]); }}>
-                  {missing[0] + 1}번 홀 입력하러 가기
-                </button>
-                <button style={styles.modalBtnPrimary} onClick={() => doFinish(pendingFinish)}>그대로 완료</button>
-              </div>
+      {pendingFinish && (
+        <div style={styles.modalOverlay} onClick={() => setPendingFinish(null)}>
+          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalIcon}>📝</div>
+            <div style={styles.modalTitle}>입력하지 않은 홀이 있어요</div>
+            <div style={styles.modalText}>
+              {pendingMissing.map(i => `${i + 1}`).join(', ')}번 홀<br/>
+              그대로 완료하면 이 홀들은 파(2퍼트)로 저장돼요
+            </div>
+            <div style={styles.modalActions}>
+              <button style={styles.modalBtnCancel} onClick={() => { setPendingFinish(null); goToHole(pendingMissing[0]); }}>
+                {pendingMissing[0] + 1}번 홀 입력하러 가기
+              </button>
+              <button style={styles.modalBtnPrimary} onClick={() => doFinish(pendingFinish)}>그대로 완료</button>
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* 입력 없는 홀에서 '다음' 확인 모달 */}
       {pendingSkip != null && (
@@ -3646,6 +3594,3 @@ const reliefNextUnit = { fontSize: 11, fontWeight: 700, color: '#d8b640' };
 const reliefNote = { fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
 
 const fMiniBtn = { width:32, height:32, borderRadius: 10, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
-
-const fPenBox = { flex:1, minHeight:64, background:'#1a2235', border:'1px solid #252f4a', borderRadius:10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, padding:'8px 10px' };
-const fPenLbl = { fontSize:9, color:'#8896b0', fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' };

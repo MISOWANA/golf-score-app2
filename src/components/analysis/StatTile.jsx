@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../../styles/styles';
 
 export default function StatTile({ label, value, sub }) {

@@ -12,7 +12,6 @@
  *
  * Reused in: HomeView, AnalysisView, InsightsView, StatsView, MyBagView
  */
-import React from 'react';
 import { palette, radii, shadows } from '../../styles/theme.js';
 import { tintWash } from './tint.js';
 

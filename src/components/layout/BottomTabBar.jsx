@@ -1,4 +1,3 @@
-import React from 'react';
 import { Home, BookOpen, BarChart3, Zap, Briefcase } from 'lucide-react';
 import styles from '../../styles/styles';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../../styles/styles';
 import { TIER_LABEL } from '../../engine/stats.js';
 

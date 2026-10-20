@@ -6,7 +6,6 @@
  *
  * Reused in: every view (SetupView, ScoringView, AnalysisView, modals, etc.)
  */
-import React from 'react';
 import { palette, radii } from '../../styles/theme.js';
 
 const base = {

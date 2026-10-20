@@ -1,4 +1,3 @@
-import React from 'react';
 
 const S = 200;
 const CX = S / 2;
@@ -75,7 +74,6 @@ export default function GreenMissSelector({ value, onChange, stats }) {
         // 상하/좌우에 따른 텍스트 y 오프셋 조정
         const isTop    = sec.lAngle === 0;
         const isBottom = sec.lAngle === 180;
-        const isHoriz  = !isTop && !isBottom;
 
         const labelY     = isDisplay
                          ? (isTop || isBottom ? lp.y - 14 : lp.y - 16)

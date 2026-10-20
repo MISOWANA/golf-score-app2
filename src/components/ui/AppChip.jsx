@@ -6,7 +6,6 @@
  *
  * Reused in: fairway hit, GIR, shot shape toggles, filter tabs
  */
-import React from 'react';
 import { palette, radii } from '../../styles/theme.js';
 
 const base = {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
 import HistoryCard from './HistoryCard';

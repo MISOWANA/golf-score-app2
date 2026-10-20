@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
   saveActiveRound, loadActiveRound, clearActiveRound,
@@ -33,6 +33,20 @@ export default function GolfScoringApp() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [profiles, setProfiles] = useState([]);   // 이 기기에 기록이 있는 사용자들 (로그인 화면용)
 
+  // 형식이 깨진 라운드는 화면에 넘기지 않는다 (DB에서는 지우지 않음).
+  const loadUserRounds = useCallback(async (user) => {
+    try {
+      const userRounds = await loadRoundsByUser(userIdsOf(user));
+      const valid = userRounds.filter(isValidRound);
+      if (valid.length < userRounds.length) {
+        console.warn(`형식이 맞지 않는 라운드 ${userRounds.length - valid.length}개를 제외했습니다`);
+      }
+      setRounds(valid);
+    } catch (e) {
+      console.error('Load rounds failed', e);
+    }
+  }, []);
+
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -64,21 +78,7 @@ export default function GolfScoringApp() {
       setLoading(false);
     };
     initApp();
-  }, []);
-
-  // 형식이 깨진 라운드는 화면에 넘기지 않는다 (DB에서는 지우지 않음).
-  const loadUserRounds = async (user) => {
-    try {
-      const userRounds = await loadRoundsByUser(userIdsOf(user));
-      const valid = userRounds.filter(isValidRound);
-      if (valid.length < userRounds.length) {
-        console.warn(`형식이 맞지 않는 라운드 ${userRounds.length - valid.length}개를 제외했습니다`);
-      }
-      setRounds(valid);
-    } catch (e) {
-      console.error('Load rounds failed', e);
-    }
-  };
+  }, [loadUserRounds]);
 
   // 같은 이름이면 기존 프로필로 들어간다 — 로그아웃했다 다시 들어와도 기록이 그대로다.
   const handleUserLogin = async (userName) => {
@@ -296,7 +296,6 @@ export default function GolfScoringApp() {
           onNewRound={handleNewRound}
           onResume={handleResumeRound}
           onViewHistory={() => setView('history')}
-          onViewStats={() => setView('stats')}
           onSwitchUser={handleSwitchUser}
           onExportData={handleExportData}
           onImportData={handleImportData}

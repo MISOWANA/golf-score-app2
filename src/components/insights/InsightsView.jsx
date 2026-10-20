@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import styles from '../../styles/styles';
-import GreenMissSelector from '../scoring/GreenMissSelector';
+import LandingRadar from './LandingRadar';
+import { landingCounts } from '../../engine/landing.js';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
@@ -53,15 +54,6 @@ function withEuiGa(word) {
   if (code < 0xac00 || code > 0xd7a3) return `${word}이`;
   const hasFinal = (code - 0xac00) % 28 !== 0;
   return hasFinal ? `${word}이` : `${word}가`;
-}
-
-// 온그린 랜딩(1~12시)을 GreenMissSelector가 쓰는 4분면으로 변환.
-function clockToQuadrant(clock) {
-  if (clock == null) return null;
-  if (clock >= 11 || clock <= 1) return 'long';
-  if (clock >= 2 && clock <= 4) return 'right';
-  if (clock >= 5 && clock <= 7) return 'short';
-  return 'left';
 }
 
 export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
@@ -639,20 +631,12 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
 
       {/* ── 온그린 랜딩 분포 ─────────────────────────────────────────────── */}
       {(() => {
-        const counts = { long: 0, short: 0, left: 0, right: 0 };
-        let total = 0;
-        rounds.forEach(r => {
-          const p = r.players[0];
-          r.holes.forEach(h => {
-            const q = clockToQuadrant(h.scores?.[p]?.onGreenLanding);
-            if (q) { counts[q]++; total++; }
-          });
-        });
+        const { counts, total } = landingCounts(rounds);
         if (total === 0) return null;
         return (
-          <div style={styles.section}>
+          <div style={styles.section} data-role="landing-section">
             <div style={styles.sectionTitle}>GREEN APPROACH · 그린 랜딩 분포</div>
-            <GreenMissSelector stats={{ ...counts, total }} />
+            <LandingRadar counts={counts} />
             <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 12, marginTop: 8 }}>총 {total}회 기록</div>
           </div>
         );

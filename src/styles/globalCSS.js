@@ -111,6 +111,9 @@ const globalCSS = `
   .bb-note-body p { margin: 0 0 10px; }
   .bb-note-body p:last-child { margin-bottom: 0; }
 
+  /* 온그린 랜딩 휠 — 키보드로 조각을 고를 때 보이는 표시 */
+  [data-role="landing-zone"]:focus-visible path { stroke: #f3d36b; stroke-width: 1.5; fill: rgba(243,211,107,0.1); }
+
   @media (prefers-reduced-motion: reduce) {
     .bb-live-dot { animation: none !important; }
     .bb-press, .bb-press:active { transition: none; transform: none; }

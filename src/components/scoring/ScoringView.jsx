@@ -11,15 +11,9 @@ import ClubSuggestions from './ClubSuggestions';
 import { useBagClubs } from './useBagClubs';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import { validSpeed, speedLabel } from '../../engine/greenSpeed.js';
+import LandingWheel from './LandingWheel';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const CLOCK_HOURS = Array.from({ length: 12 }, (_, i) => {
-  const hour = i + 1;
-  const angle = (hour * 30 - 90) * (Math.PI / 180);
-  const KEY = { 12: 'LONG', 6: 'SHORT', 9: 'LEFT', 3: 'RIGHT' };
-  return { hour, label: KEY[hour] || String(hour), isKey: [3,6,9,12].includes(hour), cx: 50 + 40 * Math.cos(angle), cy: 50 + 40 * Math.sin(angle) };
-});
 
 const SECOND_CLUBS = [
   { id: 'wood',   label: 'WOOD' },
@@ -336,26 +330,6 @@ function LieSection({ label = '라이', enabled, value, onChange }) {
         />
       )}
     </OptionalSection>
-  );
-}
-
-function ClockDial12({ value, onChange }) {
-  return (
-    <div style={{ position: 'relative', width: '100%', paddingTop: '90%', maxWidth: 280, margin: '0 auto' }}>
-      <div style={{ position: 'absolute', inset: 0 }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid #252f4a', background: '#111827' }} />
-        {[0,90].map(deg => <div key={deg} style={{ position: 'absolute', left: '50%', top: '50%', width: '80%', height: 1, background: '#1b2238', transform: `translate(-50%, -50%) rotate(${deg}deg)` }} />)}
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: '22%', height: '22%', borderRadius: '50%', background: 'radial-gradient(circle, #173a22 0%, #0e1c14 100%)', border: '2px solid #1a3028', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, zIndex: 2 }}>⛳</div>
-        {CLOCK_HOURS.map(({ hour, cx, cy, label, isKey }) => {
-          const sel = value === hour;
-          const BTN = isKey ? 46 : 36;
-          return (
-            <button key={hour} style={{ position: 'absolute', left: `calc(${cx}% - ${BTN/2}px)`, top: `calc(${cy}% - ${BTN/2}px)`, width: BTN, height: BTN, borderRadius: '50%', border: `2px solid ${sel ? '#c9a228' : isKey ? '#252f4a' : '#1b2238'}`, background: sel ? '#c9a228' : isKey ? '#1a2235' : '#0d1320', color: sel ? '#0b0e18' : isKey ? '#e8edf8' : '#4d5a78', fontSize: isKey ? 8 : 10, fontWeight: 700, cursor: 'pointer', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 2, lineHeight: 1.1, textAlign: 'center' }}
-              onClick={() => onChange(value === hour ? null : hour)}>{label}</button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -3014,12 +2988,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           required={greenLandingRequired}
           summary={playerScore.onGreenLanding ? `${playerScore.onGreenLanding}시 방향` : ''}
         >
-          {(close) => (<>
-            <ClockDial12 value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) close(); }} />
-            <div style={{ textAlign:'center', fontSize:11, color:'#8896b0', marginTop:10, lineHeight:1.6 }}>
-              12시=롱 · 6시=숏 · 9시=레프트 · 3시=라이트 (핀 기준)
-            </div>
-          </>)}
+          {(close) => (
+            <LandingWheel value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) close(); }} />
+          )}
         </OptionalSection>
 
         {/* 퍼팅 상세 */}

@@ -257,8 +257,9 @@ function WindInput({ direction, strength, onDir, onStrength }) {
 // 접힌 상태에서도 헤더에 요약한다.
 // children(close) — 선택이 끝나면 섹션을 접을 수 있도록 close를 넘긴다.
 // required — 꼭 골라야 하는 선택. 값이 없으면 처음부터 펼쳐 둔다 ('필수' 표시는 따로 하지 않는다).
-function OptionalSection({ icon, label, enabled, summary, required = false, children }) {
-  const [open, setOpen] = useState(required && !summary);
+// defaultOpen: 처음부터 펼쳐 둔다 (값이 있어도). 없으면 필수인데 아직 값이 없을 때만 펼친다.
+function OptionalSection({ icon, label, enabled, summary, required = false, defaultOpen, children }) {
+  const [open, setOpen] = useState(defaultOpen ?? (required && !summary));
   const hasValue = !!summary;
   const accent = hasValue ? '#c9a228' : enabled ? '#8896b0' : '#4d5a78';
   return (
@@ -859,10 +860,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const updateOnGreen = (val) => updateFields({ onGreen: val });
 
   const extraShotTopRef = useRef(null);
+  const puttTopRef = useRef(null);   // 퍼팅 영역의 맨 위 — 랜딩을 고르면 화면을 여기로 옮긴다
   const offGreenTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
   const shotPageTimeoutRef = useRef(null);
 
+  const scrollToPutting = () => setTimeout(() => puttTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
 
   // ─── 라운드 완료 ────────────────────────────────────────────────────────────
@@ -2980,20 +2983,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
         )}
 
-        {/* 온그린 랜딩 방향 (12-clock) — 필수 선택. 고르기 전에는 펼쳐 두고,
-            퍼팅 입력도 열리지 않는다 (확정한 홀·홀인은 제외, greenLandingRequired 참고). */}
+        {/* 온그린 랜딩 방향 (12-clock) — 필수 선택. 고르기 전에는 펼쳐 두고, 퍼팅 입력도 열리지 않는다
+            (확정한 홀·홀인은 제외, greenLandingRequired 참고). 이미 고른 홀도, 고른 직후에도 접지 않고
+            펼쳐 둔다 — 잘못 눌렀을 때 바로 고칠 수 있게. 직접 접기 전에는 그대로 두고, 고르면 화면만
+            아래 퍼팅 입력으로 옮긴다. */}
         <OptionalSection
           key={`landing-${holeIdx}-${activePlayer}`}
-          icon="⊙" label="온그린 랜딩 방향" enabled
+          icon="⊙" label="온그린 랜딩 방향" enabled defaultOpen
           required={greenLandingRequired}
           summary={playerScore.onGreenLanding ? `${playerScore.onGreenLanding}시 방향` : ''}
         >
-          {(close) => (
-            <LandingWheel value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) close(); }} />
+          {() => (
+            <LandingWheel value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) scrollToPutting(); }} />
           )}
         </OptionalSection>
 
         {/* 퍼팅 상세 */}
+        <div ref={puttTopRef} data-role="putting-top" />
         {secHdr('퍼 팅', null, turnState('putt', false))}
 
         {greenLandingMissing ? (

@@ -1,5 +1,6 @@
 import { Plus, PlayCircle } from 'lucide-react';
 import styles from '../../styles/styles';
+import { tintWash } from '../ui/tint.js';
 
 // 홈 화면의 카드들 — 새 라운드(항상 맨 위) · 진행 중인 라운드(바로 아래) · 요약.
 
@@ -37,8 +38,7 @@ export function ActiveRoundCard({ round, onResume }) {
   const current = Math.min(total, (round.currentHole ?? 0) + 1);
   const pct = Math.round((current / total) * 100);
   return (
-    <div style={styles.liveCard} data-role="home-active-round">
-      <div style={styles.liveAccent} />
+    <div style={{ ...styles.liveCard, ...tintWash('#3db87a', { strength: 0.17, border: 0.38 }) }} data-role="home-active-round">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={styles.liveLabel}>

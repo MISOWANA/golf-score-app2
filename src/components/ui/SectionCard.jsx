@@ -6,7 +6,7 @@
  *   title      — section label (uppercase overline style)
  *   action     — right-side link/button text
  *   onAction   — callback for action click
- *   accent     — 'gold' | 'green' | none — left accent bar variant
+ *   accent     — 'gold' | 'green' | none — 모서리에서 번지는 틴트 변형
  *   noPad      — skip internal padding (for table-style content)
  *   style      — override wrapper style
  *
@@ -14,6 +14,7 @@
  */
 import React from 'react';
 import { palette, radii, shadows } from '../../styles/theme.js';
+import { tintWash } from './tint.js';
 
 const accentColors = {
   gold:  palette.gold,
@@ -89,9 +90,7 @@ export default function SectionCard({
         background: palette.surface1,
         borderRadius: radii.sm,
         border: `1px solid ${palette.border}`,
-        borderLeft: accent !== 'none'
-          ? `3px solid ${accentColor}`
-          : `1px solid ${palette.border}`,
+        ...(accent !== 'none' ? tintWash(accentColor, { base: palette.surface1, strength: 0.12 }) : null),
         overflow: 'hidden',
         boxShadow: shadows.sm,
         padding: noPad ? '0' : '0',

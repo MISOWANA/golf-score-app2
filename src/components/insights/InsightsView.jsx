@@ -5,6 +5,7 @@ import GreenMissSelector from '../scoring/GreenMissSelector';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
+import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import Chapter, { ChapterNav } from './Chapter';
 import { ReportHeader, ReportFindings, ThreePuttCause, NextFocus, Section } from './InsightReportPanel';
 import { LossShareCard, BigMissesCard, BigMissesInfo, SkillHeader, PracticeCard } from './StoryPanels';
@@ -466,8 +467,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
 
       {/* ── 진단 카드 (§2B, T1.5 최우선 강조) ────────────────────────────────── */}
       {!isCareerMode && diagnosis.top && (
-        <div style={{ ...styles.riDiagCard, marginBottom: 24 }}>
-          <div style={{ ...styles.riDiagCardAccent, background: CATEGORY_COLOR[diagnosis.top.category] }} />
+        <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[diagnosis.top.category], { base: '#1a2235', strength: 0.15 }), marginBottom: 24 }}>
           <div style={styles.riDiagHead}>
             <div>
               <div style={styles.riDiagLabel}>가장 많이 잃은 곳</div>
@@ -488,8 +488,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       )}
 
       {isCareerMode && careerBreakdown.topCause && (
-        <div style={{ ...styles.riDiagCard, marginBottom: 24 }}>
-          <div style={{ ...styles.riDiagCardAccent, background: CATEGORY_COLOR[careerBreakdown.topCause.category] }} />
+        <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[careerBreakdown.topCause.category], { base: '#1a2235', strength: 0.15 }), marginBottom: 24 }}>
           <div style={styles.riDiagHead}>
             <div>
               <div style={styles.riDiagLabel}>누적 · 가장 많이 잃은 곳</div>
@@ -864,7 +863,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
               const bg    = SEVERITY_BG[ins.severity]    ?? 'rgba(136,150,176,0.10)';
               const badge = SEVERITY_BADGE[ins.severity] ?? '·';
               return (
-                <div key={i} style={{ ...styles.insightCard, borderLeftColor: color }}>
+                <div key={i} style={{ ...styles.insightCard, ...tintWash(color, TINT_SOFT) }}>
                   <div style={{ ...styles.insightCardBadge, background: bg, color }}>{badge}</div>
                   <div style={styles.insightCardContent}>
                     <div style={styles.insightCardTitle}>{ins.title}</div>

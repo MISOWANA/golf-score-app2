@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from '../../styles/styles';
+import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import { toHoleInput, analyzeRound } from '../../engine/engine.js';
 import { HOLE_RULES } from '../../engine/rules/holeRules.js';
 import { ROUND_RULES } from '../../engine/rules/roundRules.js';
@@ -50,7 +51,7 @@ export default function Insights({ round, player }) {
         const bg    = SEVERITY_BG[ins.severity]    ?? '#f5f0e6';
         const badge = SEVERITY_BADGE[ins.severity] ?? '·';
         return (
-          <div key={i} style={{ ...styles.insightCard, borderLeftColor: color }}>
+          <div key={i} style={{ ...styles.insightCard, ...tintWash(color, TINT_SOFT) }}>
             <div style={{ ...styles.insightCardBadge, background: bg, color }}>
               {badge}
             </div>

@@ -1,5 +1,6 @@
 import ConfidenceBadge from './ConfidenceBadge';
 import InfoNote from '../ui/InfoNote';
+import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import { sgTier, SG_LABEL } from '../../engine/strokesGained.js';
 import { AWFUL_CONSISTENCY_LIMIT } from '../../engine/bookBenchmarks.js';
 
@@ -162,7 +163,7 @@ export function PracticeCard({ prescriptions }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {cards.map((c) => (
-          <div key={c.id} data-role={`practice-${c.skill}`} style={{ ...card, borderLeft: `3px solid ${SKILL_COLOR[c.skill] ?? '#ef5350'}` }}>
+          <div key={c.id} data-role={`practice-${c.skill}`} style={{ ...card, ...tintWash(SKILL_COLOR[c.skill] ?? '#ef5350', TINT_SOFT) }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', marginBottom: 6 }}>{c.title}</div>
             {c.why && <div style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginBottom: 6, wordBreak: 'keep-all' }}>지금 기록: {c.why}</div>}
             <div style={{ fontSize: 12.5, color: '#e8edf8', lineHeight: 1.6, wordBreak: 'keep-all' }}>{c.drill}</div>

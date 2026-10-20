@@ -290,17 +290,9 @@ const styles = {
     background: C.surface1,
     border: `1px solid ${C.border}`,
     borderRadius: '16px',
-    padding: '14px 16px 14px 19px',
+    padding: '14px 16px',
     marginBottom: '12px',
     boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-  },
-  liveAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '3px',
-    background: `linear-gradient(180deg, ${C.greenAccent} 0%, rgba(61,184,122,0.25) 100%)`,
   },
   liveLabel: {
     display: 'flex',
@@ -458,7 +450,7 @@ const styles = {
     overflow: 'hidden',
     background: C.surface1,
     width: '100%',
-    padding: '15px 14px 15px 19px',
+    padding: '15px 14px 15px 18px',
     borderRadius: '16px',
     border: `1px solid ${C.border}`,
     display: 'flex',
@@ -466,13 +458,6 @@ const styles = {
     gap: '12px',
     textAlign: 'left',
     boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-  },
-  roundAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: '3px',
   },
   roundRowLeft: {
     flex: 1,
@@ -1748,9 +1733,8 @@ const styles = {
     gap: '8px',
   },
   noteCard: {
-    background: C.surface1,
-    border: `1px solid ${C.border}`,
-    borderLeft: `3px solid ${C.gold}`,
+    background: `radial-gradient(120% 150% at 0% 0%, rgba(201,162,40,0.11) 0%, rgba(201,162,40,0) 62%), ${C.surface1}`,
+    border: '1px solid rgba(201,162,40,0.28)',
     borderRadius: '14px',
     padding: '14px 16px',
     boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
@@ -2304,7 +2288,7 @@ const styles = {
   historyCardMain: {
     flex: 1,
     minWidth: 0,
-    padding: '16px 14px 16px 19px',
+    padding: '16px 14px 16px 18px',
     background: 'transparent',
     display: 'flex',
     justifyContent: 'space-between',
@@ -2613,7 +2597,6 @@ const styles = {
   insightCard: {
     background: C.surface1,
     border: `1px solid ${C.border}`,
-    borderLeft: '3px solid',
     borderRadius: '14px',
     padding: '14px 16px',
     display: 'flex',
@@ -3304,11 +3287,6 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
     boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-  },
-  riDiagCardAccent: {
-    position: 'absolute',
-    left: 0, top: 0, bottom: 0,
-    width: '4px',
   },
   riDiagHead: {
     display: 'flex',

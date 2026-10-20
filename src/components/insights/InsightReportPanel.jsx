@@ -30,7 +30,7 @@ export function ReportHeader({ rep, rounds, mode = 'round', onModeChange = null 
   const single = rep.replays.length === 1 ? rep.replays[0] : null;
   const speed = rep.mode === 'round' ? rep.greenSpeed?.latest?.speed : null;
   return (
-    <div data-panel="report" style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 8, padding: '14px 16px 14px', marginBottom: 22 }}>
+    <div data-panel="report" style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 16, padding: '14px 16px 14px', marginBottom: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
         <div style={{ fontSize: 10, color: '#8ca4bc', letterSpacing: '0.2em' }}>
           {single ? `${single.courseName ?? ''} 리포트` : `${rep.stats.rounds}라운드 누적 리포트`}
@@ -86,7 +86,7 @@ export function ThreePuttCause({ rep }) {
         ? '판단 보류는 퍼트 거리가 기록되지 않은 3퍼트입니다 — 거리를 입력하면 거리감 / 숏퍼트 미스로 나눠 보여드려요.'
         : '모든 3퍼트의 원인을 퍼트 거리 기록으로 구분했습니다.'}
     >
-      <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px' }} data-role="cause-card">
+      <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' }} data-role="cause-card">
         <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', background: '#1b2238', marginBottom: 12 }}>
           {PUTT_CAUSE_ORDER.filter(k => c.counts[k] > 0).map(k => (
             <div key={k} style={{ width: `${(c.counts[k] / c.total) * 100}%`, background: CAUSE_COLOR[k] }} />
@@ -108,7 +108,7 @@ export function ThreePuttCause({ rep }) {
 export function NextFocus({ rep }) {
   return (
     <Section title="FOCUS · 다음 라운드 포커스">
-      <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '4px 14px' }}>
+      <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '4px 14px' }}>
         {rep.focus.length === 0
           ? <div style={{ fontSize: 12, color: '#8896b0', padding: '12px 0' }}>지금처럼 루틴을 유지하세요.</div>
           : rep.focus.map((f, i) => (

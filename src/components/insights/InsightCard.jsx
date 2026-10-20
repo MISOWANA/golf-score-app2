@@ -39,9 +39,11 @@ export default function InsightCard({ insight, showContext = false, compact = fa
   };
   return (
     <div data-insight-id={insight.id} style={{
-      background: '#111827', border: '1px solid #1b2238', borderLeft: `3px solid ${color}`,
-      borderRadius: 6, padding: '12px 14px',
+      position: 'relative', overflow: 'hidden', background: '#111827', border: '1px solid #1b2238',
+      borderRadius: 14, padding: '12px 14px 12px 17px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
     }}>
+      {/* 왼쪽 강조선 — 둥근 모서리를 따라 휘지 않게 별도 막대로 그린다 */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: color }} />
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 7 }}>
         <span style={chip(color, bg)}>{SEVERITY_BADGE[insight.severity]} {SEVERITY_LABEL[insight.severity] ?? ''}</span>
         {insight.category && !hideCategory && <span style={chip('#a9b8d6', 'rgba(255,255,255,0.05)')}>{INSIGHT_CATEGORY_LABEL[insight.category] ?? insight.category}</span>}

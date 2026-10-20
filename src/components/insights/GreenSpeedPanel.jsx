@@ -6,7 +6,7 @@ import { speedLabel } from '../../engine/greenSpeed.js';
 //   이번 라운드: 오늘 그린의 속도 · 퍼트 · 3퍼트 · 비교 · 요령
 //   누적: 느림·보통·빠름·매우 빠름 구간별 평균 (속도를 기록한 라운드만)
 
-const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px' };
+const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
 const dim = { fontSize: 11, color: '#6e84a8', lineHeight: 1.6 };
 
 // 라운드 수가 쌓인 만큼의 신뢰도 (stats.js 의 low/mid/high 와 같은 이름)

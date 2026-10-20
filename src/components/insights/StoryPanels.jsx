@@ -6,7 +6,7 @@ import { AWFUL_CONSISTENCY_LIMIT } from '../../engine/bookBenchmarks.js';
 // 리포트의 새 패널들 — 어디서 잃었나(구성비) · 큰 실수 · 부문별 SG 머리줄 · 연습 처방.
 
 const SKILL_COLOR = { tee: '#6b8cae', approach: '#8a6fb0', shortGame: '#d98e3e', putting: '#c9a228' };
-const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px' };
+const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
 const dim = { fontSize: 11, color: '#6e84a8', lineHeight: 1.6 };
 const signed = (v, d = 2) => (v > 0 ? '+' : '') + Number(v).toFixed(d);
 
@@ -56,7 +56,7 @@ export function LossShareCard({ shares, coverage }) {
 // ── 3장: 큰 실수 ────────────────────────────────────────────────────────────────
 function Tile({ label, value, sub, warn, role }) {
   return (
-    <div style={{ flex: '1 1 45%', background: '#0e1424', border: '1px solid #1b2238', borderRadius: 8, padding: '10px 12px' }}>
+    <div style={{ flex: '1 1 45%', background: '#0e1424', border: '1px solid #1b2238', borderRadius: 12, padding: '10px 12px' }}>
       <div style={{ fontSize: 10.5, color: '#8896b0', marginBottom: 4 }}>{label}</div>
       <div data-role={role} style={{ fontSize: 20, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: warn ? '#ef5350' : '#e8edf8' }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, color: '#6e84a8', marginTop: 2 }}>{sub}</div>}
@@ -166,7 +166,7 @@ export function PracticeCard({ prescriptions }) {
             <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', marginBottom: 6 }}>{c.title}</div>
             {c.why && <div style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginBottom: 6, wordBreak: 'keep-all' }}>지금 기록: {c.why}</div>}
             <div style={{ fontSize: 12.5, color: '#e8edf8', lineHeight: 1.6, wordBreak: 'keep-all' }}>{c.drill}</div>
-            <div style={{ marginTop: 8, display: 'inline-block', padding: '4px 9px', borderRadius: 6, background: 'rgba(61,184,122,0.1)', border: '1px solid rgba(61,184,122,0.3)', fontSize: 11.5, color: '#7fd4a6', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+            <div style={{ marginTop: 8, display: 'inline-block', padding: '4px 9px', borderRadius: 8, background: 'rgba(61,184,122,0.1)', border: '1px solid rgba(61,184,122,0.3)', fontSize: 11.5, color: '#7fd4a6', lineHeight: 1.5, wordBreak: 'keep-all' }}>
               목표 · {c.target}
             </div>
           </div>

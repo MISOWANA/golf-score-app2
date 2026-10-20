@@ -23,7 +23,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
           <div style={{ width: 40 }} />
         </header>
         {excludedCount > 0 && (
-        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
           여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
         </div>
       )}
@@ -130,7 +130,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
         <div style={{ width: 40 }} />
       </header>
       {excludedCount > 0 && (
-        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
           여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
         </div>
       )}
@@ -176,7 +176,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
               key={pt.par}
               style={{
                 flex: 1, textAlign: 'center', padding: '12px 6px',
-                background: '#111827', borderRadius: 6,
+                background: '#111827', borderRadius: 14,
                 border: `1px solid ${pt.par === worstParNum ? '#ef5350' : '#1b2238'}`,
               }}
             >
@@ -227,7 +227,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>AFTER GIR · 그린 적중 이후</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1, background: '#111827', border: '1px solid #1b2238', borderRadius: 6, padding: '12px 14px' }}>
+          <div style={{ flex: 1, background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' }}>
             <div style={{ fontSize: 11, color: '#8896b0', marginBottom: 6 }}>버디 이상률</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#3db87a' }}>
               {girConversion.ratePct != null ? `${girConversion.ratePct.toFixed(0)}%` : '–'}
@@ -237,7 +237,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
             </div>
             <div style={{ marginTop: 8 }}><ConfidenceBadge tier={girConversion.tier} n={girConversion.attempts} /></div>
           </div>
-          <div style={{ flex: 1, background: '#111827', border: '1px solid #1b2238', borderRadius: 6, padding: '12px 14px' }}>
+          <div style={{ flex: 1, background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' }}>
             <div style={{ fontSize: 11, color: '#8896b0', marginBottom: 6 }}>스크램블링</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#e8edf8' }}>
               {scrambling.ratePct != null ? `${scrambling.ratePct.toFixed(0)}%` : '–'}
@@ -254,11 +254,11 @@ export default function StatsView({ rounds, onBack, excludedCount = 0 }) {
       <div style={styles.section}>
         <div style={styles.sectionTitle}>PUTTING · 퍼팅</div>
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          <div style={{ flex: 1, textAlign: 'center', padding: '12px 6px', background: '#111827', border: '1px solid #1b2238', borderRadius: 6 }}>
+          <div style={{ flex: 1, textAlign: 'center', padding: '12px 6px', background: '#111827', border: '1px solid #1b2238', borderRadius: 16 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#e8edf8' }}>{threePuttRatePct.toFixed(0)}%</div>
             <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>3퍼트율 ({threePuttCount}/{totalHoles})</div>
           </div>
-          <div style={{ flex: 1, textAlign: 'center', padding: '12px 6px', background: '#111827', border: '1px solid #1b2238', borderRadius: 6 }}>
+          <div style={{ flex: 1, textAlign: 'center', padding: '12px 6px', background: '#111827', border: '1px solid #1b2238', borderRadius: 16 }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#e8edf8' }}>{avgPuttsPerHole.toFixed(2)}</div>
             <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>라운드당 퍼팅</div>
           </div>

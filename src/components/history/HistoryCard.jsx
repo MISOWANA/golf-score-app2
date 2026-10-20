@@ -1,17 +1,20 @@
-import React from 'react';
 import { Trash2 } from 'lucide-react';
 import styles from '../../styles/styles';
+import { scoreTone, diffLabel } from '../ui/scoreTone.js';
 import { myPlayer, totalPar as sumPar } from '../../engine/players.js';
 
+// 홈의 최근 라운드 행과 같은 모양: 파 대비 색 막대 · 점수 · 파 대비 배지. 오른쪽 끝은 삭제.
 export default function HistoryCard({ round, onSelect, onDelete, userName }) {
   const firstPlayer = myPlayer(round, userName);
   const total = round.holes.reduce((s, h) => s + (h.scores[firstPlayer]?.strokes || 0), 0);
   const totalPar = sumPar(round);
   const diff = total - totalPar;
+  const tone = scoreTone(diff);
 
   return (
     <div style={styles.historyCard}>
-      <button style={styles.historyCardMain} onClick={onSelect}>
+      <div style={{ ...styles.roundAccent, background: tone.fg }} />
+      <button className="bb-press" style={styles.historyCardMain} onClick={onSelect}>
         <div style={styles.historyCardLeft}>
           <div style={styles.historyCourse}>{round.courseName}</div>
           <div style={styles.historyMeta}>
@@ -22,12 +25,10 @@ export default function HistoryCard({ round, onSelect, onDelete, userName }) {
         </div>
         <div style={styles.historyCardRight}>
           <div style={styles.historyScore}>{total}</div>
-          <div style={{ ...styles.historyDiff, color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>
-            ({diff > 0 ? `+${diff}` : diff === 0 ? 'E' : diff})
-          </div>
+          <div style={{ ...styles.roundDiff, color: tone.fg, background: tone.bg }}>{diffLabel(diff)}</div>
         </div>
       </button>
-      <button style={styles.deleteBtn} onClick={onDelete}>
+      <button style={styles.deleteBtn} onClick={onDelete} aria-label="라운드 삭제">
         <Trash2 size={15} />
       </button>
     </div>

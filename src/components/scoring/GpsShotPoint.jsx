@@ -141,7 +141,7 @@ export default function GpsShotPoint({
         <>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '4px 8px',
-            padding: '11px 12px', borderRadius: 9, marginBottom: 6,
+            padding: '11px 12px', borderRadius: 12, marginBottom: 6,
             border: '1.5px solid rgba(61,184,122,0.45)', background: 'rgba(61,184,122,0.1)',
           }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: '#3db87a' }}>✓</span>
@@ -171,7 +171,7 @@ export default function GpsShotPoint({
               onClick={run}
               disabled={busy}
               style={{
-                flex: 1, padding: '10px', borderRadius: 9,
+                flex: 1, padding: '10px', borderRadius: 12,
                 cursor: busy ? 'default' : 'pointer',
                 border: `1px solid ${busy ? 'rgba(201,162,40,0.45)' : '#3a4e72'}`,
                 background: busy ? 'rgba(201,162,40,0.08)' : 'transparent',
@@ -183,7 +183,7 @@ export default function GpsShotPoint({
             <button
               onClick={onClear}
               style={{
-                width: 44, borderRadius: 9, cursor: 'pointer',
+                width: 44, borderRadius: 12, cursor: 'pointer',
                 border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
                 color: 'rgba(239,83,80,0.65)', fontSize: 13, fontWeight: 700,
               }}
@@ -196,7 +196,7 @@ export default function GpsShotPoint({
           <button
             onClick={onOpenMap}
             style={{
-              width: '100%', padding: '12px 16px', borderRadius: 9, textAlign: 'center',
+              width: '100%', padding: '12px 16px', borderRadius: 12, textAlign: 'center',
               border: '1px dashed #3a4e72', background: 'rgba(255,255,255,0.02)',
               color: '#8ca4bc', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em',
               cursor: 'pointer',
@@ -206,7 +206,7 @@ export default function GpsShotPoint({
           </button>
         ) : (
           <div style={{
-            padding: '12px 16px', borderRadius: 9, textAlign: 'center',
+            padding: '12px 16px', borderRadius: 12, textAlign: 'center',
             border: '1px dashed #252f4a', background: 'transparent',
             color: '#4d5a78', fontSize: 11, fontWeight: 600, lineHeight: 1.5,
           }}>
@@ -218,7 +218,7 @@ export default function GpsShotPoint({
           onClick={run}
           disabled={busy}
           style={{
-            width: '100%', padding: '12px 16px', borderRadius: 9,
+            width: '100%', padding: '12px 16px', borderRadius: 12,
             cursor: busy ? 'default' : 'pointer',
             border: `1.5px solid ${busy ? 'rgba(201,162,40,0.45)' : '#3a4e72'}`,
             background: busy ? 'rgba(201,162,40,0.08)' : 'rgba(255,255,255,0.03)',

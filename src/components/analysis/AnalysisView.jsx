@@ -549,7 +549,7 @@ const editInput = {
   padding: '11px 13px',
   background: '#1a2235',
   border: '1px solid #252f4a',
-  borderRadius: '6px',
+  borderRadius: '12px',
   color: '#e8edf8',
   fontSize: '14px',
   boxSizing: 'border-box',

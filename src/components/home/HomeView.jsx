@@ -49,13 +49,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
     : '—';
 
   return (
-    <div style={{
-      ...styles.container,
-      // 머리 위에서 은은하게 퍼지는 금빛 — 배경이 평평해 보이지 않도록
-      backgroundImage: 'radial-gradient(ellipse 75% 100% at 50% 0%, rgba(201,162,40,0.07) 0%, rgba(201,162,40,0) 100%)',
-      backgroundRepeat: 'no-repeat',
-      backgroundSize: '100% 300px',
-    }}>
+    <div style={styles.container}>
       <header style={styles.header}>
         <div style={styles.headerTop}>
           <div style={styles.logo}>

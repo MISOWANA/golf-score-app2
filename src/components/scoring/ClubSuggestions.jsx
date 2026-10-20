@@ -12,7 +12,7 @@ const GREEN = '#3db87a';
 const GOLD = '#c9a228';
 
 const wrap = {
-  margin: '0 0 10px', padding: '8px 8px 7px', borderRadius: 10,
+  margin: '0 0 10px', padding: '8px 8px 7px', borderRadius: 14,
   background: 'rgba(61,184,122,0.06)', border: '1px solid rgba(61,184,122,0.24)',
   animation: 'fadeIn 0.15s ease-out',
 };
@@ -24,7 +24,7 @@ function Chip({ club, tag, primary, selected, onClick }) {
       onClick={onClick}
       aria-pressed={selected}
       style={{
-        flex: primary ? 1.25 : 1, minWidth: 0, padding: '7px 2px 8px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+        flex: primary ? 1.25 : 1, minWidth: 0, padding: '7px 2px 8px', borderRadius: 10, cursor: 'pointer', textAlign: 'center',
         border: `${primary || selected ? 2 : 1.5}px solid ${accent}`,
         background: selected ? 'rgba(201,162,40,0.18)' : primary ? 'rgba(61,184,122,0.14)' : '#1a2235',
         color: selected ? GOLD : '#e8edf8',
@@ -50,7 +50,7 @@ export default function ClubSuggestions({ suggest, value, subValue, onPick }) {
   if (suggest.noBag) {
     if (value) return null;
     return (
-      <div style={{ margin: '0 0 10px', padding: '8px 10px', borderRadius: 8, background: 'rgba(142,192,255,0.06)', border: '1px solid rgba(142,192,255,0.2)', fontSize: 11, lineHeight: 1.5, color: '#8ec0ff', wordBreak: 'keep-all' }}>
+      <div style={{ margin: '0 0 10px', padding: '8px 10px', borderRadius: 12, background: 'rgba(142,192,255,0.06)', border: '1px solid rgba(142,192,255,0.2)', fontSize: 11, lineHeight: 1.5, color: '#8ec0ff', wordBreak: 'keep-all' }}>
         마이백에서 클럽별 캐리·토탈 거리를 설정하면 {suggest.distance}m에 맞는 클럽을 추천해 드려요
       </div>
     );

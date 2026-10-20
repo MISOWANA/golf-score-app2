@@ -184,7 +184,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   })();
 
   const chipStyle = (active) => ({
-    flex: 1, padding: '10px 6px', borderRadius: 8, textAlign: 'center',
+    flex: 1, padding: '10px 6px', borderRadius: 12, textAlign: 'center',
     border: `1.5px solid ${active ? '#c9a228' : '#252f4a'}`,
     background: active ? 'rgba(201,162,40,0.18)' : '#1a2235',
     color: active ? '#c9a228' : '#8896b0',
@@ -211,7 +211,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             max={todayLocalDateStr()}
             onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
             style={{
-              width: '104px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '8px',
+              width: '104px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '12px',
               color: '#e8edf8', fontSize: '11px', fontWeight: '700', padding: '6px 6px',
               colorScheme: 'dark',
             }}
@@ -230,7 +230,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           {showSuggestions && suggestions.length > 0 && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-              background: '#131d35', border: '1px solid #252f4a', borderRadius: 10,
+              background: '#131d35', border: '1px solid #252f4a', borderRadius: 12,
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 500, overflow: 'hidden',
             }}>
               {suggestions.map((club, i) => {
@@ -254,7 +254,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#e8edf8' }}>{club.name}</div>
                       <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>{subLabel}</div>
                     </div>
-                    <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 6, padding: '2px 6px', flexShrink: 0 }}>
                       {club.location}
                     </span>
                   </button>
@@ -270,7 +270,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
 
       {/* 고정 페어 선택 UI (군산CC 등) */}
       {needsPairSelect && (
-        <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 12, border: '1px solid #1b2744' }}>
+        <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 16, border: '1px solid #1b2744' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
             코스 조합 선택
           </div>
@@ -289,7 +289,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
                 OUT: {selectedOut?.name} → IN: {selectedIn?.name}
               </span>
               <button
-                style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
+                style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
                 onClick={() => selectPair(selectedPairIdx, !pairReversed)}>
                 ⇄ 순서 변경
               </button>
@@ -300,7 +300,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
 
       {/* 다중 코스 선택 UI */}
       {needsCourseSelect && (
-        <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 12, border: '1px solid #1b2744' }}>
+        <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 16, border: '1px solid #1b2744' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
             코스 조합 선택
           </div>
@@ -346,7 +346,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         <div style={styles.formLabelRow}>
           <label style={styles.formLabel}>코스 이름</label>
           <button
-            style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
             onClick={swapOutIn}
             title="OUT/IN 순서 바꾸기"
           >
@@ -506,7 +506,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             return (
               <button key={id}
                 style={{
-                  flex: 1, padding: '10px 4px', borderRadius: 8, textAlign: 'center', cursor: 'pointer',
+                  flex: 1, padding: '10px 4px', borderRadius: 12, textAlign: 'center', cursor: 'pointer',
                   border: `1.5px solid ${active ? border : '#252f4a'}`,
                   background: active ? bg : '#1a2235',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
@@ -547,7 +547,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             onClick={toggleClubRecommend}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              padding: '12px 14px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
+              padding: '12px 14px', borderRadius: 16, textAlign: 'left', cursor: 'pointer',
               border: `1.5px solid ${clubRecommend ? '#3db87a' : '#252f4a'}`,
               background: clubRecommend ? 'rgba(61,184,122,0.08)' : '#1a2235',
             }}

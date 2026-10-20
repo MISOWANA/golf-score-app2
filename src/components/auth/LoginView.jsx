@@ -123,7 +123,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                     onClick={() => onLogin(p.userName)}
                     style={{
                       flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-                      padding: '13px 16px', borderRadius: 10, cursor: 'pointer',
+                      padding: '13px 16px', borderRadius: 14, cursor: 'pointer',
                       border: '1.5px solid rgba(201,162,40,0.45)', background: 'rgba(201,162,40,0.08)',
                       color: '#e8edf8', fontSize: 15, fontWeight: 700, textAlign: 'left',
                     }}
@@ -137,7 +137,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                     onClick={() => askDelete(p)}
                     aria-label={`${p.userName} 삭제`}
                     style={{
-                      width: 48, flexShrink: 0, borderRadius: 10, cursor: 'pointer',
+                      width: 48, flexShrink: 0, borderRadius: 14, cursor: 'pointer',
                       border: '1.5px solid #252f4a', background: 'transparent',
                       color: '#8896b0', fontSize: 16,
                     }}
@@ -190,14 +190,14 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
           onClick={() => !deleting && setPendingDelete(null)}
         >
           <div
-            style={{ background: '#0f1825', borderRadius: 16, padding: '28px 22px', width: '100%', maxWidth: 320, border: '1px solid #1b2744', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', textAlign: 'center' }}
+            style={{ background: '#0f1825', borderRadius: 20, padding: '28px 22px', width: '100%', maxWidth: 320, border: '1px solid #1b2744', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', textAlign: 'center' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 26, marginBottom: 12 }}>🗑</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
               '{pendingDelete.profile.userName}' 사용자를 삭제할까요?
             </div>
-            <div style={{ fontSize: 12, color: '#ef5350', background: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: '#ef5350', background: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 20, lineHeight: 1.6 }}>
               라운드 {pendingDelete.rounds ?? '…'}개, MY BAG 설정, 진행 중인 라운드가<br />
               이 기기에서 영구히 삭제돼요. 되돌릴 수 없어요.
             </div>
@@ -206,14 +206,14 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                 type="button"
                 disabled={deleting}
                 onClick={() => setPendingDelete(null)}
-                style={{ flex: 1, padding: '13px 8px', borderRadius: 10, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '13px 8px', borderRadius: 12, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >취소</button>
               <button
                 type="button"
                 disabled={deleting || pendingDelete.rounds == null}
                 onClick={confirmDelete}
                 style={{
-                  flex: 1, padding: '13px 8px', borderRadius: 10, border: '1.5px solid transparent', background: '#ef5350', color: '#fff',
+                  flex: 1, padding: '13px 8px', borderRadius: 12, border: '1.5px solid transparent', background: '#ef5350', color: '#fff',
                   fontSize: 14, fontWeight: 800, cursor: 'pointer',
                   opacity: deleting || pendingDelete.rounds == null ? 0.5 : 1,
                 }}

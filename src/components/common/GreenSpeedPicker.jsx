@@ -20,13 +20,13 @@ const GOLD = '#c9a228';
 const round1 = (v) => Math.round(v * 10) / 10;
 
 const chip = (active) => ({
-  flex: 1, minWidth: 0, padding: '10px 2px', borderRadius: 8, textAlign: 'center', cursor: 'pointer',
+  flex: 1, minWidth: 0, padding: '10px 2px', borderRadius: 12, textAlign: 'center', cursor: 'pointer',
   border: `1.5px solid ${active ? GOLD : '#252f4a'}`,
   background: active ? 'rgba(201,162,40,0.18)' : '#1a2235',
   color: active ? GOLD : '#e8edf8',
 });
 const stepBtn = {
-  width: 44, height: 44, borderRadius: 10, border: '1px solid #252f4a', background: '#111827',
+  width: 44, height: 44, borderRadius: 12, border: '1px solid #252f4a', background: '#111827',
   color: '#e8edf8', fontSize: 22, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
 };
 

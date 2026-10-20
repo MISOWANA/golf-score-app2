@@ -291,7 +291,7 @@ function WindInput({ direction, strength, onDir, onStrength }) {
           <div style={{ fontSize: 9, color: '#8896b0', letterSpacing: '0.18em', textTransform: 'uppercase' }}>바람 세기</div>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {strength > 0 && (
-              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
                 onClick={() => onStrength(0)}>초기화</button>
             )}
           </div>
@@ -352,7 +352,7 @@ function WindSection({ enabled, direction, strength, onDir, onStrength, onReset 
       {() => (<>
         {direction != null && (
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
-            <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+            <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
               onClick={onReset}>방향 초기화</button>
           </div>
         )}
@@ -497,7 +497,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
             onClick={() => handleSub(s.id)}
             style={{
               flex:1, minWidth:'calc(25% - 4px)',
-              padding:'9px 4px', borderRadius:7, textAlign:'center',
+              padding:'9px 4px', borderRadius: 10, textAlign:'center',
               fontSize:12, fontWeight: isSel ? 700 : 500, cursor:'pointer',
               border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
               background: isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
@@ -1237,7 +1237,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       </span>
       <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
       {onDelete && (
-        <button onClick={onDelete} style={{ fontSize: 9, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
+        <button onClick={onDelete} style={{ fontSize: 9, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 8, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
       )}
     </div>
   );
@@ -1363,14 +1363,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   // 직전 샷 위치에서 다시 친 샷의 남은 거리가 직전 샷 값을 그대로 쓴 경우
   const replayTag = (copied) => (copied
-    ? <span style={{ fontSize: 9, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 4, color: '#e6b94a', border: '1px solid rgba(230,185,74,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
+    ? <span style={{ fontSize: 9, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8, color: '#e6b94a', border: '1px solid rgba(230,185,74,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
     : null);
 
   // 남은 거리·티샷 거리 옆 표시 — 값이 지도 거리와 같으면 'GPS 실측', 사용자가 정한 값이 달라서
   // 지도 거리가 따로 있으면 그 거리를 보여 주고 한 번에 바꿀 수 있게 한다. 현재 위치 기준으로
   // 넣어 둔 값은 그렇게 표시한다.
   const mapDistanceTag = (measured, value, source, onApply) => {
-    const base = { fontSize: 9, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 4 };
+    const base = { fontSize: 9, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8 };
     if (measured != null && value === measured) {
       return <span style={{ ...base, color: '#3db87a', border: '1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>;
     }
@@ -2191,7 +2191,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   color: under?'#3db87a':'#ef5350',
                   background: under?'rgba(61,184,122,0.1)':'rgba(239,83,80,0.1)',
                   border:`1px solid ${under?'rgba(61,184,122,0.3)':'rgba(239,83,80,0.3)'}`,
-                  borderRadius:6,
+                  borderRadius: 10,
                 }}>
                   {under ? diff : `+${diff}`}
                 </div>
@@ -2203,7 +2203,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* 우측: 스코어명 */}
         {/* 퍼팅 입력 전에는 스코어 이름(버디·보기…)을 붙이지 않는다 — 아직 정해지지 않았다 */}
         {scorePending(playerScore) && (
-          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.14em', color:'#8896b0', border:'1.5px solid #3a4e72', borderRadius:6, padding:'6px 12px' }}>
+          <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.14em', color:'#8896b0', border:'1.5px solid #3a4e72', borderRadius: 10, padding:'6px 12px' }}>
             진행 중
           </div>
         )}
@@ -2214,7 +2214,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             color: isPar3AtPar?'#fff':(scoreName.textColor||scoreName.color),
             background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':(scoreName.bg||'transparent'),
             border:`1.5px solid ${isPar3AtPar?'#c04a10':scoreName.color}`,
-            borderRadius:6, padding:'6px 12px',
+            borderRadius: 10, padding:'6px 12px',
             boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':(playerScore.touched&&scoreName.shadow?scoreName.shadow:'none'),
             opacity: playerScore.touched?1:0.3,
             animation: playerScore.touched&&scoreName.anim?scoreName.anim:'none',
@@ -2292,7 +2292,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {playerScore.teeClub ? (
               // 상세 입력 홀에서 직접 고친 값을 버리고 샷 기록 계산으로 되돌린다
               playerScore.strokesManual && (
-                <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+                <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
                   onClick={()=>{
                     // 점수를 퍼팅 수 밑으로 내려 잘려 나간 퍼팅 기록이 있으면 함께 되돌린다
                     const hd = playerScore.puttsHeld;
@@ -2302,7 +2302,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   }}>자동 계산</button>
               )
             ) : (
-              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
                 onClick={()=>updateScore('strokes', hole.par, { strokesManual: false })}>초기화</button>
             )}
           </div>
@@ -2334,7 +2334,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <div style={{ flex:1 }} />
           <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>퍼팅</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+            <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
               onClick={()=>{ updatePuttsCount(2); setShowPuttsDropdown(false); }}>초기화</button>
           </div>
         </div>
@@ -2417,7 +2417,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <span style={{ fontSize:13, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>벌타 합계</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {penaltyCount(playerScore) > 0 && (
-              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}
+              <button style={{ fontSize:10, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
                 onClick={()=>{
                   const cleared = { ob:0, hazard:0, unplayable:0, penalties: [] };
                   // 직접 고친 스코어는 벌타 초기화로 바꾸지 않는다
@@ -2927,7 +2927,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 {/* 삭제 */}
                 <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
                   <button
-                    style={{ width:'100%', padding:'8px', borderRadius:7, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                    style={{ width:'100%', padding:'8px', borderRadius: 10, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:11, fontWeight:600, cursor:'pointer' }}
                     onClick={() => removeExtraShot(idx)}>✕ {extraShotName(idx)} 이후 삭제</button>
                 </div>
               </>)}
@@ -2995,7 +2995,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
                     <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
                       <button
-                        style={{ width:'100%', padding:'8px', borderRadius:7, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                        style={{ width:'100%', padding:'8px', borderRadius: 10, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:11, fontWeight:600, cursor:'pointer' }}
                         onClick={() => removeOffGreenShot(idx)}>✕ {title} 삭제</button>
                     </div>
                   </div>
@@ -3614,7 +3614,7 @@ const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0, minWid
 const fIcon = { fontSize:14, width:18, textAlign:'center', color:'#7888a8', flexShrink:0 };
 const fLbl  = { fontSize:11, fontWeight:700, color:'#8ca4bc', letterSpacing:'0.15em', textTransform:'uppercase' };
 
-const fChip = { padding:'5px 9px', borderRadius:6, border:'1.5px solid #252f4a', background:'#1a2235', color:'#e8edf8', fontSize:11, fontWeight:600, cursor:'pointer' };
+const fChip = { padding:'5px 9px', borderRadius: 10, border:'1.5px solid #252f4a', background:'#1a2235', color:'#e8edf8', fontSize:11, fontWeight:600, cursor:'pointer' };
 const fChipOn = { border:'2px solid #c9a228', background:'rgba(201,162,40,0.18)', color:'#c9a228' };
 const fChipWide = { minWidth:52, padding:'7px 12px', borderRadius:8, border:'1.5px solid #252f4a', background:'#1a2235', color:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' };
 
@@ -3645,7 +3645,7 @@ const reliefNextNum = { fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: 
 const reliefNextUnit = { fontSize: 11, fontWeight: 700, color: '#d8b640' };
 const reliefNote = { fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
 
-const fMiniBtn = { width:32, height:32, borderRadius:7, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
+const fMiniBtn = { width:32, height:32, borderRadius: 10, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
 
 const fPenBox = { flex:1, minHeight:64, background:'#1a2235', border:'1px solid #252f4a', borderRadius:10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, padding:'8px 10px' };
 const fPenLbl = { fontSize:9, color:'#8896b0', fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' };

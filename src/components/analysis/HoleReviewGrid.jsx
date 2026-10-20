@@ -62,7 +62,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
                   onClick={() => onSelectHole(idx)}
                   title={entered ? undefined : '입력 없이 파(2퍼트)로 저장된 홀'}
                   style={{
-                    position: 'relative', padding: '7px 0 8px', borderRadius: 9,
+                    position: 'relative', padding: '7px 0 8px', borderRadius: 10,
                     border: `1.5px ${entered ? 'solid' : 'dashed'} ${t.border}`, background: t.bg,
                     cursor: 'pointer', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', gap: 2,

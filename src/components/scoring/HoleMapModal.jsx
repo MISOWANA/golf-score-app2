@@ -484,7 +484,7 @@ export default function HoleMapModal({
           <a
             href={VWORLD_SIGNUP_URL} target="_blank" rel="noreferrer"
             style={{
-              display: 'block', textAlign: 'center', padding: '11px', borderRadius: 9,
+              display: 'block', textAlign: 'center', padding: '11px', borderRadius: 12,
               border: `1.5px solid ${COLOR.gold}`, color: COLOR.gold,
               fontSize: 13, fontWeight: 700, textDecoration: 'none', marginBottom: 16,
             }}
@@ -496,7 +496,7 @@ export default function HoleMapModal({
             placeholder="발급받은 인증키 붙여넣기"
             autoComplete="off" autoCorrect="off" spellCheck={false}
             style={{
-              width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 9,
+              width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 12,
               border: '1.5px solid #3a4e72', background: '#131d35', color: COLOR.line,
               fontSize: 13, marginBottom: 10,
             }}
@@ -506,7 +506,7 @@ export default function HoleMapModal({
               <button
                 onClick={() => { setShowKeyForm(false); setKeyDraft(''); }}
                 style={{
-                  flex: 1, padding: '13px 8px', borderRadius: 9, cursor: 'pointer',
+                  flex: 1, padding: '13px 8px', borderRadius: 12, cursor: 'pointer',
                   border: '1px solid #3a4e72', background: 'transparent', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
                   color: COLOR.dim, fontSize: 13, fontWeight: 700,
                 }}
@@ -523,7 +523,7 @@ export default function HoleMapModal({
               }}
               disabled={!keyDraft.trim()}
               style={{
-                flex: 1, padding: '13px 8px', borderRadius: 9, cursor: 'pointer',
+                flex: 1, padding: '13px 8px', borderRadius: 12, cursor: 'pointer',
                 border: '1px solid transparent', background: keyDraft.trim() ? COLOR.gold : '#252f4a', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
                 color: keyDraft.trim() ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
               }}
@@ -609,7 +609,7 @@ export default function HoleMapModal({
         {tileError && (
           <div style={{
             position: 'absolute', top: 10, left: 12, right: 12, zIndex: 500,
-            padding: '9px 12px', borderRadius: 9, background: 'rgba(239,83,80,0.92)',
+            padding: '9px 12px', borderRadius: 12, background: 'rgba(239,83,80,0.92)',
             color: '#fff', fontSize: 11, lineHeight: 1.6, fontWeight: 600,
           }}>
             타일을 불러오지 못했습니다. 인증키가 만료됐거나, 현재 위치가 국내가
@@ -617,7 +617,7 @@ export default function HoleMapModal({
             <button
               onClick={() => setShowKeyForm(true)}
               style={{
-                display: 'block', marginTop: 6, padding: '4px 10px', borderRadius: 6,
+                display: 'block', marginTop: 6, padding: '4px 10px', borderRadius: 8,
                 border: '1px solid rgba(255,255,255,0.6)', background: 'transparent',
                 color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer',
               }}
@@ -689,7 +689,7 @@ export default function HoleMapModal({
                   }}
                   disabled={blocked}
                   style={{
-                    flexShrink: 0, padding: '9px 13px', borderRadius: 9,
+                    flexShrink: 0, padding: '9px 13px', borderRadius: 12,
                     cursor: blocked ? 'default' : 'pointer',
                     opacity: blocked ? 0.4 : 1,
                     border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#2c3855'}`,
@@ -705,7 +705,7 @@ export default function HoleMapModal({
                   <button
                     onClick={addShot}
                     style={{
-                      flexShrink: 0, padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
+                      flexShrink: 0, padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
                       border: '1.5px dashed #3a4e72', background: 'transparent',
                       color: '#8ec0ff', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
@@ -720,7 +720,7 @@ export default function HoleMapModal({
                       setSelected(null);
                     }}
                     style={{
-                      flexShrink: 0, padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
+                      flexShrink: 0, padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
                       border: '1px solid rgba(239,83,80,0.4)', background: 'transparent',
                       color: 'rgba(239,83,80,0.9)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
@@ -770,7 +770,7 @@ export default function HoleMapModal({
             <button
               onClick={confirmDraft}
               style={{
-                flex: 2, padding: '15px 10px', borderRadius: 11, cursor: 'pointer',
+                flex: 2, padding: '15px 10px', borderRadius: 12, cursor: 'pointer',
                 border: 'none', background: COLOR.gold, color: COLOR.ink,
                 fontSize: 16, fontWeight: 800,
               }}
@@ -778,7 +778,7 @@ export default function HoleMapModal({
             <button
               onClick={cancelDraft}
               style={{
-                flex: 1, padding: '15px 8px', borderRadius: 11, cursor: 'pointer',
+                flex: 1, padding: '15px 8px', borderRadius: 12, cursor: 'pointer',
                 border: '1.5px solid #3a4e72', background: 'transparent',
                 color: '#d4dcec', fontSize: 14, fontWeight: 700,
               }}
@@ -790,7 +790,7 @@ export default function HoleMapModal({
               onClick={markHere}
               disabled={!pos || blockedSlot}
               style={{
-                flex: 2, padding: '15px 10px', borderRadius: 11,
+                flex: 2, padding: '15px 10px', borderRadius: 12,
                 cursor: pos && !blockedSlot ? 'pointer' : 'default',
                 border: 'none', background: pos && !blockedSlot ? COLOR.gold : '#252f4a',
                 color: pos && !blockedSlot ? COLOR.ink : '#7d8aa6', fontSize: 16, fontWeight: 800,
@@ -804,7 +804,7 @@ export default function HoleMapModal({
               onClick={() => setPlaceMode((v) => !v)}
               disabled={blockedSlot}
               style={{
-                flex: 1, padding: '15px 8px', borderRadius: 11,
+                flex: 1, padding: '15px 8px', borderRadius: 12,
                 cursor: blockedSlot ? 'default' : 'pointer', opacity: blockedSlot ? 0.4 : 1,
                 border: `1.5px solid ${placeMode ? COLOR.gold : '#3a4e72'}`,
                 background: placeMode ? 'rgba(201,162,40,0.18)' : 'transparent',
@@ -815,7 +815,7 @@ export default function HoleMapModal({
               <button
                 onClick={() => commitPoint(selected, null)}
                 style={{
-                  width: 50, borderRadius: 11, cursor: 'pointer',
+                  width: 50, borderRadius: 12, cursor: 'pointer',
                   border: '1px solid rgba(239,83,80,0.45)', background: 'transparent',
                   color: 'rgba(239,83,80,0.95)', fontSize: 15, fontWeight: 700,
                 }}
@@ -932,7 +932,7 @@ function Shell({ holeNo, par, onClose, topExtra = null, children }) {
         <button
           onClick={onClose}
           style={{
-            width: 36, height: 36, borderRadius: 8, cursor: 'pointer',
+            width: 36, height: 36, borderRadius: 10, cursor: 'pointer',
             border: 'none', background: 'transparent', color: COLOR.dim, fontSize: 18,
           }}
         >✕</button>

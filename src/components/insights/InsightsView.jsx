@@ -78,7 +78,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           <div style={{ width: 40 }} />
         </header>
         {excludedCount > 0 && (
-        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
           여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
         </div>
       )}
@@ -326,7 +326,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         <div style={{ width: 40 }} />
       </header>
       {excludedCount > 0 && (
-        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 8, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
           여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
         </div>
       )}
@@ -766,7 +766,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
             ['보기', (isCareerMode ? careerScoreDistribution : scoreDistribution).bogey, '#e57373'],
             ['더블+', (isCareerMode ? careerScoreDistribution : scoreDistribution).doublePlus, '#ef5350'],
           ].map(([label, count, color]) => (
-            <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#111827', border: '1px solid #1b2238', borderRadius: 6 }}>
+            <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#111827', border: '1px solid #1b2238', borderRadius: 12 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
               <div style={{ fontSize: 10, color: '#8896b0', marginTop: 2 }}>{label}</div>
             </div>

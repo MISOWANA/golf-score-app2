@@ -22,7 +22,7 @@ const pill = (active) => ({
 
 // note: 라벨 옆 (!) 버튼 (InfoNote). 없으면 글자만.
 const label = (t, note = null) => (
-  <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px' }}>{t}{note}</div>
+  <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px', textAlign: 'left' }}>{t}{note}</div>
 );
 
 // 라운드 복기 — 한 라운드를 홀 순서대로 되짚는다. 어디서 잃었고(분기점), 무엇이 원인이었는지.
@@ -76,7 +76,7 @@ export default function RoundReplayPanel({ rounds }) {
       )}
 
       {/* 헤드라인 */}
-      <div style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 8, padding: '16px 16px 14px' }}>
+      <div style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 16, padding: '16px 16px 14px' }}>
         <div style={{ fontSize: 11, color: '#8ca4bc', letterSpacing: '0.12em', marginBottom: 4 }}>{dateLabel(replay.date)} · {replay.courseName}</div>
         <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.5, wordBreak: 'keep-all' }} data-role="headline">{replay.headline}</div>
         <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12, color: '#8896b0', flexWrap: 'wrap' }}>
@@ -95,7 +95,7 @@ export default function RoundReplayPanel({ rounds }) {
         {replay.holes.map(h => (
           <button key={h.holeNumber} onClick={() => jump(h.holeNumber)} aria-label={`${h.holeNumber}번 홀 ${h.strokes}타`}
             style={{
-              padding: '6px 0', borderRadius: 7, cursor: 'pointer',
+              padding: '6px 0', borderRadius: 10, cursor: 'pointer',
               border: `1.5px ${h.touched ? 'solid' : 'dashed'} ${h.touched ? diffColor(h.diff) + '66' : '#33415f'}`,
               background: h.touched ? diffBg(h.diff) : '#101a30',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
@@ -144,7 +144,7 @@ export default function RoundReplayPanel({ rounds }) {
         {label('THREE-PUTT · 3퍼트 원인', c.counts.unknown > 0 && (
           <InfoNote title="판단 보류란?">판단 보류 = 퍼트 거리가 기록되지 않아 거리감인지 숏퍼트 미스인지 구분할 수 없는 홀입니다.</InfoNote>
         ))}
-        <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 14px', fontSize: 12.5, color: '#b4c0d8', lineHeight: 1.7 }} data-role="cause-summary">
+        <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px', fontSize: 12.5, color: '#b4c0d8', lineHeight: 1.7 }} data-role="cause-summary">
           {[
             ['lag', c.counts.lag], ['short', c.counts.short], ['both', c.counts.both],
             ['mid', c.counts.mid], ['close', c.counts.close], ['unknown', c.counts.unknown],
@@ -165,7 +165,7 @@ export default function RoundReplayPanel({ rounds }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {visible.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 13, padding: '20px 12px', background: '#111827', border: '1px solid #1b2238', borderRadius: 8 }}>
+          <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 13, padding: '20px 12px', background: '#111827', border: '1px solid #1b2238', borderRadius: 16 }}>
             해당하는 홀이 없어요.
           </div>
         )}
@@ -175,10 +175,10 @@ export default function RoundReplayPanel({ rounds }) {
           const rest = h.shown.length - shown.length;
           return (
             <div key={h.holeNumber} id={`replay-hole-${h.holeNumber}`} data-hole={h.holeNumber}
-              style={{ background: '#0d1424', border: '1px solid #1b2238', borderRadius: 8, padding: '12px 12px 10px' }}>
+              style={{ background: '#0d1424', border: '1px solid #1b2238', borderRadius: 14, padding: '12px 12px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: shown.length || h.memo ? 10 : 0 }}>
                 <div style={{
-                  minWidth: 44, textAlign: 'center', padding: '6px 0', borderRadius: 8,
+                  minWidth: 44, textAlign: 'center', padding: '6px 0', borderRadius: 10,
                   background: h.touched ? diffBg(h.diff) : '#101a30',
                   border: `1.5px ${h.touched ? 'solid' : 'dashed'} ${h.touched ? diffColor(h.diff) + '66' : '#33415f'}`,
                 }}>
@@ -215,7 +215,7 @@ export default function RoundReplayPanel({ rounds }) {
                 )}
               </div>
               {h.memo && (
-                <div style={{ fontSize: 12, color: '#a9b8d6', background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '7px 10px', marginBottom: shown.length ? 8 : 0 }}>
+                <div style={{ fontSize: 12, color: '#a9b8d6', background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '7px 10px', marginBottom: shown.length ? 8 : 0 }}>
                   📝 {h.memo}
                 </div>
               )}

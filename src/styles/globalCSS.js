@@ -22,6 +22,12 @@ const globalCSS = `
     border: none;
     cursor: pointer;
     background: transparent;
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  /* 모든 버튼에 홈과 같은 누름 피드백 (인라인으로 transform 을 지정한 버튼은 그대로 둔다) */
+  button:not(:disabled):active {
+    transform: scale(0.985);
+    filter: brightness(1.1);
   }
 
   input, textarea {
@@ -108,6 +114,7 @@ const globalCSS = `
   @media (prefers-reduced-motion: reduce) {
     .bb-live-dot { animation: none !important; }
     .bb-press, .bb-press:active { transition: none; transform: none; }
+    button, button:not(:disabled):active { transition: none; transform: none; }
   }
 
   /* Gold accent bar sweep — for premium panel decoration */

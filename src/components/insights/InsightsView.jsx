@@ -8,7 +8,7 @@ import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
 import StickyTabs from '../ui/StickyTabs';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
-import { ChapterIntro } from './Chapter';
+import { ChapterIntro, NextChapter } from './Chapter';
 import { CHAPTERS } from './chapters.js';
 import { ReportHeader, ReportFindings, ThreePuttCause, NextFocus, Section } from './InsightReportPanel';
 import { LossShareCard, BigMissesCard, BigMissesInfo, SkillHeader, PracticeCard } from './StoryPanels';
@@ -31,6 +31,34 @@ import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRounds
 // 리포트의 장마다 탭 하나 — 장 하나가 한 페이지다. 라운드 복기·검색은 장이 아니라 헤더의 도구 버튼으로 연다.
 const CHAPTER_TABS = CHAPTERS.map((c) => [c.key, c.short]);
 const SUB_VIEW_TITLE = { replay: '라운드 복기', search: '검색' };
+
+// 도구(라운드 복기 · 검색): [보기 id, 접근성 이름, 짧은 글자, 아이콘]
+const TOOLS = [['replay', '라운드 복기', '복기', History], ['search', '검색', '검색', Search]];
+
+// 마지막으로 본 장을 기억한다 — 다른 화면에 다녀와도 그 장에서 이어 보게 (앱을 닫으면 종합부터 다시)
+const CHAPTER_STORE = 'bb_insights_chapter';
+const savedChapter = () => {
+  try {
+    const v = window.sessionStorage.getItem(CHAPTER_STORE);
+    if (CHAPTERS.some((c) => c.key === v)) return v;
+  } catch { /* 저장소를 못 읽어도 종합부터 열면 된다 */ }
+  return 'overview';
+};
+
+// 이번 라운드 ↔ 누적 전환. 범위 카드(큰 것)와 붙은 탭 아래 줄(작은 것)이 같은 모양을 쓴다.
+function ScopeToggle({ rounds, isCareerMode, onPick, small = false, prefix = 'scope' }) {
+  return (
+    <div role="group" aria-label="분석 기간" style={styles.insightsScopeToggle}>
+      {[['round', '이번', '이번 라운드'], ['career', `누적 ${rounds.length}R`, `${rounds.length}라운드 누적`]].map(([k, l, full]) => {
+        const on = (isCareerMode ? 'career' : 'round') === k;
+        return (
+          <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`${prefix}-${k}`} onClick={() => onPick(k)}
+            style={{ height: small ? 30 : 36, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 12, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
+        );
+      })}
+    </div>
+  );
+}
 
 const SEVERITY_COLOR = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
 const SEVERITY_BG    = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.10)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
@@ -65,7 +93,11 @@ function withEuiGa(word) {
 export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
   const [tab, setTab] = useState('report');   // 'report' | 'replay' | 'search' — 리포트 · 라운드 복기 · 검색
-  const [chapter, setChapter] = useState('overview');   // 리포트에서 열린 장(탭) — CHAPTERS 의 key
+  const [chapter, setChapterState] = useState(savedChapter);   // 리포트에서 열린 장(탭) — CHAPTERS 의 key
+  const setChapter = (key) => {
+    setChapterState(key);
+    try { window.sessionStorage.setItem(CHAPTER_STORE, key); } catch { /* 저장하지 못해도 화면은 그대로 */ }
+  };
 
   // 보기(리포트 · 복기 · 검색)를 바꾸면 새 화면의 맨 위부터 보여 준다
   const changeView = (v) => { setTab(v); window.scrollTo?.(0, 0); };
@@ -334,7 +366,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </button>
         <div style={styles.pageTitle}>Insights</div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-          {[['replay', '라운드 복기', '복기', History], ['search', '검색', '검색', Search]].map(([v, aria, text, Icon]) => {
+          {TOOLS.map(([v, aria, text, Icon]) => {
             const on = tab === v;
             return (
               <button key={v} type="button" aria-label={aria} aria-pressed={on} data-role={`view-${v}`}
@@ -367,23 +399,27 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
               </span>
             </div>
           </div>
-          {rounds.length > 1 && (
-            <div role="group" aria-label="분석 기간" style={styles.insightsScopeToggle}>
-              {[['round', '이번', '이번 라운드'], ['career', `누적 ${rounds.length}R`, `${rounds.length}라운드 누적`]].map(([k, l, full]) => {
-                const on = (isCareerMode ? 'career' : 'round') === k;
-                return (
-                  <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`scope-${k}`} onClick={() => setMode(k)}
-                    style={{ height: 36, padding: '0 13px', borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 12, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
-                );
-              })}
-            </div>
-          )}
+          {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} onPick={setMode} />}
         </div>
       )}
 
-      {/* 고정 탭 — 리포트는 장 6개가 한 줄에 다 보이는 탭(장마다 한 페이지), 복기·검색에서는 '리포트로' 돌아가는 탭 */}
+      {/* 고정 탭 — 리포트는 장 6개가 한 줄에 다 보이는 탭(장마다 한 페이지), 복기·검색에서는 '리포트로' 돌아가는 탭.
+          내려가서 위의 범위 카드·도구가 화면 밖으로 나가면, 붙은 탭 바로 아래에 같은 전환·도구를 한 줄로 다시 보여 준다 */}
       {tab === 'report'
-        ? <StickyTabs variant="underline" tabs={CHAPTER_TABS} current={chapter} onChange={setChapter} label="리포트 장" rolePrefix="insights-tab" />
+        ? <StickyTabs variant="underline" tabs={CHAPTER_TABS} current={chapter} onChange={setChapter} label="리포트 장" rolePrefix="insights-tab"
+          stuckSlot={(
+            <div data-role="insights-stuck-row" style={{ display: 'flex', alignItems: 'center', justifyContent: rounds.length > 1 ? 'space-between' : 'flex-end', gap: 8, padding: '5px 16px', background: 'rgba(11,14,24,0.94)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid #1b2238' }}>
+              {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} onPick={setMode} small prefix="stuck-scope" />}
+              <div style={{ display: 'flex', gap: 2 }}>
+                {TOOLS.map(([v, aria, , Icon]) => (
+                  <button key={v} type="button" aria-label={aria} data-role={`stuck-view-${v}`} onClick={() => changeView(v)}
+                    style={{ width: 40, height: 36, borderRadius: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: '#c4cfe0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    <Icon size={19} strokeWidth={1.9} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )} />
         : <StickyTabs variant="underline" tabs={[['report', '리포트'], [tab, SUB_VIEW_TITLE[tab]]]} current={tab} onChange={changeView} label="인사이트 보기" rolePrefix="insights-view" />}
 
       {tab === 'replay' && <div style={{ padding: '0 0 24px' }}><RoundReplayPanel rounds={rounds} /></div>}
@@ -393,7 +429,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {/* ── 1장 · 종합 ─────────────────────────────────────────────── */}
       {chapter === 'overview' && <>
       <ChapterIntro no={1} />
-      <ReportHeader rep={rep} rounds={rounds} mode={reportMode} />
+      <ReportHeader rep={rep} />
       <ReportFindings rep={rep} />
       </>}
 
@@ -986,6 +1022,9 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         );
       })()}
       </>}
+
+      {/* 페이지 끝에서 다음 장으로 — 종합 → 타수 득실 → 빅 미스 … 순서로 이어 읽는다 */}
+      <NextChapter current={chapter} onGo={setChapter} />
       </>}
     </div>
   );

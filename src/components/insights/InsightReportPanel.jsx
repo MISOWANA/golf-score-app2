@@ -5,7 +5,7 @@ import { speedLabel } from '../../engine/greenSpeed.js';
 
 // 인사이트 리포트의 조각들. 리포트 자체(buildInsightReport)는 InsightsView 가 한 번 계산해서
 // 아래 조각들에 나눠 준다 — 장(章)마다 알맞은 자리에 놓기 위해서다:
-//   ReportHeader     1장  한 줄 요약 · 이번 라운드/누적 전환
+//   ReportHeader     1장  한 줄 요약
 //   ReportFindings   1장  잘한 점 · 개선 포인트
 //   ThreePuttCause   4장  퍼팅 — 3퍼트 원인
 //   NextFocus        5장  다음 라운드 포커스
@@ -26,27 +26,12 @@ export const Section = ({ title, sub, note, noteTitle, children }) => (
   </div>
 );
 
-export function ReportHeader({ rep, rounds, mode = 'round', onModeChange = null }) {
+// 한 줄 요약 카드. 어느 라운드(들)인지는 위의 범위 카드가 말하므로 여기서는 요약 문장만 둔다.
+export function ReportHeader({ rep }) {
   const single = rep.replays.length === 1 ? rep.replays[0] : null;
   const speed = rep.mode === 'round' ? rep.greenSpeed?.latest?.speed : null;
   return (
-    <div data-panel="report" style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 16, padding: '14px 16px 14px', marginBottom: 22 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, color: '#8ca4bc', letterSpacing: '0.2em' }}>
-          {single ? `${single.courseName ?? ''} 리포트` : `${rep.stats.rounds}라운드 누적 리포트`}
-        </div>
-        {onModeChange && (
-          <div role="group" aria-label="분석 기간" style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,0.25)', borderRadius: 999, padding: 2, flexShrink: 0 }}>
-            {[['round', '이번 라운드'], ['career', `${rounds.filter(r => r.players.length === 1).length}라운드 누적`]].map(([k, l]) => (
-              <button key={k} aria-pressed={mode === k} onClick={() => onModeChange(k)}
-                style={{
-                  border: 'none', cursor: 'pointer', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                  background: mode === k ? '#c9a228' : 'transparent', color: mode === k ? '#0b0e18' : '#8ca4bc',
-                }}>{l}</button>
-            ))}
-          </div>
-        )}
-      </div>
+    <div data-panel="report" style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 16, padding: '16px 16px 16px', marginBottom: 22 }}>
       <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }} data-role="report-headline">
         {single
           ? single.headline

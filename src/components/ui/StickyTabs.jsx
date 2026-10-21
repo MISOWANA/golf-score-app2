@@ -10,8 +10,10 @@ import styles from '../../styles/styles';
 //   variant         'pill'(기본) 알약 상자 · 'underline' 칸을 똑같이 나누고 밑줄로 표시 (탭이 6개쯤 돼도 한 줄)
 //   scrollOnChange  'stuck'(기본) 붙은 채 바꿀 때만 · 'always' 언제나 (탭 행이 화면 아래쪽에 있는 화면용)
 //   anchorRef       탭 행 자리를 바깥에서도 쓰고 싶을 때 (표지 요소를 받는다)
+//   stuckSlot       붙은 동안에만 탭 행 바로 아래에 겹쳐 보이는 줄 (화면 밖으로 나간 위쪽 도구를 대신한다).
+//                   겹쳐 그려서 나타나고 사라질 때 아래 내용이 밀리지 않는다
 // 바깥 띠는 화면 좌우 여백(16px)까지 펴서 붙었을 때 내용이 비쳐 보이지 않게 한다.
-export default function StickyTabs({ tabs, current, onChange, label, rolePrefix, variant = 'pill', scrollOnChange = 'stuck', anchorRef }) {
+export default function StickyTabs({ tabs, current, onChange, label, rolePrefix, variant = 'pill', scrollOnChange = 'stuck', anchorRef, stuckSlot = null }) {
   const ownRef = useRef(null);
   const sentinel = anchorRef ?? ownRef;
   const stuckRef = useRef(false);
@@ -76,6 +78,9 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
             );
           })}
         </div>
+        {stuck && stuckSlot && (
+          <div data-role={`${rolePrefix}-slot`} style={{ position: 'absolute', left: 0, right: 0, top: '100%' }}>{stuckSlot}</div>
+        )}
       </div>
     </>
   );

@@ -12,6 +12,7 @@ import { useBagClubs } from './useBagClubs';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import { validSpeed, speedLabel } from '../../engine/greenSpeed.js';
 import LandingWheel from './LandingWheel';
+import StickyTabs from '../ui/StickyTabs';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -612,11 +613,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [parDraft, setParDraft] = useState([...round.pars]);
   const [expandedPutt, setExpandedPutt] = useState(0);
   const [expandedExtraShot, setExpandedExtraShot] = useState(0);
-  const [shotPage, setShotPage] = useState(0);
+  // 지금 보는 입력 탭 — 'tee'(티샷) · 'field'(세컨샷부터 그린 전까지) · 'putt'(그린·퍼팅).
+  // 한 단계 입력을 마치면 다음 탭으로 넘어간다 (티샷 완료 · 온그린 성공 …).
+  const [stage, setStage] = useState('tee');
   // 필드샷 탭에서 펼친 그린 밖 칩 카드 — null이면 결과를 아직 안 넣은 칩(없으면 마지막)을 연다
   const [expandedOffGreen, setExpandedOffGreen] = useState(null);
   const [teeClubInteracting, setTeeClubInteracting] = useState(false);
-  const [teeExpanded, setTeeExpanded] = useState(true);
   const [secondShotExpanded, setSecondShotExpanded] = useState(true);
   const [showHoleInModal, setShowHoleInModal] = useState(false);
   const [holeInModalData, setHoleInModalData] = useState(null);
@@ -863,8 +865,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const puttTopRef = useRef(null);   // 퍼팅 영역의 맨 위 — 랜딩을 고르면 화면을 여기로 옮긴다
   const offGreenTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
-  const shotPageTimeoutRef = useRef(null);
+  const tabsTopRef = useRef(null);   // 입력 탭 행의 자리 — 탭을 바꾸거나 다음 홀로 가면 화면을 여기로 옮긴다
 
+  const scrollToTabs = () => setTimeout(() => tabsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   const scrollToPutting = () => setTimeout(() => puttTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
 
@@ -925,12 +928,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     advanceFromHole(holeIdx + 1);
   };
 
-  // 비어 있는 랜딩 입력으로 데려간다 — 티샷은 위쪽 티샷 섹션, 그린은 퍼팅 페이지.
+  // 비어 있는 랜딩 입력으로 데려간다 — 티샷은 티샷 탭, 그린은 퍼팅 탭.
   const goFillLanding = (miss) => {
     setLandingAsk(null);
-    if (miss === 'tee') { setTeeExpanded(true); setShotPage(0); }
-    else setShotPage(1);
-    setTimeout(() => window.scrollTo({ top: miss === 'tee' ? 0 : document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
+    setStage(miss === 'tee' ? 'tee' : 'putt');
+    scrollToTabs();
   };
 
   // 마지막 홀을 확정하고 완료한다. freshScore: 현재 플레이어의 최신 스코어(있으면).
@@ -974,7 +976,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   // freshScore: 현재 플레이어의 최신 스코어 객체 (setState 배치 전 최신값을 직접 전달할 때 사용)
   const confirmAndGoToHole = (idx, freshScore) => {
-    setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 120);
+    scrollToTabs();   // 다음 홀은 티샷 탭부터 — 탭 행이 맨 위에 오게 옮긴다
     const updated = { ...round };
     updated.holes = [...round.holes];
     const ch = updated.holes[holeIdx];
@@ -1155,7 +1157,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 강조돼 티샷 차례로 착각하게 만들었다.
   const currentTurn = (() => {
     // 그린 랜딩 방향은 필수 선택이라, 그린 지점을 찍었어도 방향을 고르기 전에는 그린 차례다.
-    if (shotPage === 1) return greenLandingMissing ? 'green' : 'putt';
+    if (stage === 'putt') return greenLandingMissing ? 'green' : 'putt';
     if (!teeComplete) return 'tee';
     if (extraShots.length === 0) return 'second';
     return expandedExtraShot >= 0 ? expandedExtraShot : extraShots.length - 1;
@@ -1500,14 +1502,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     // 뜻이다 — 표시를 풀어 세컨샷 자리를 연다. 익스트라샷을 붙이면 1온 계산에 가려
     // 화면에도 지도에도 나타나지 않고 기록에만 남았다.
     if (extraShots.length === 0 && hole.par > 3 && playerScore.teeGIR) {
-      clearTimeout(shotPageTimeoutRef.current);
       updateFields({ teeGIR: false });
-      setShotPage(0);
+      setStage('field');
       return;
     }
     if (extraShots.length === 0 && hole.par === 3 && par3TeeOnGreen(playerScore)) {
       updateFields({ teeOnGreen: false, gir: false, girAuto: false });
-      setShotPage(0);
+      setStage('field');
       return;
     }
     if (extraShots.length === 0) {
@@ -1643,7 +1644,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       // 티샷 벌타 — 페어웨이 미적중, 1온·온그린 아님. 다음 샷(세컨샷 자리)은 늘 있다.
       if (hole.par > 3) Object.assign(fields, { fairway: false, teeGIR: false });
       else Object.assign(fields, { teeOnGreen: false, gir: false, girAuto: false });
-      clearTimeout(shotPageTimeoutRef.current);
     } else if (slot === 1) {
       // 세컨샷에서 벌타가 났다면 티샷은 그린에 못 올라간 것이다
       if (hole.par === 3 && par3TeeOnGreen(playerScore)) Object.assign(fields, { teeOnGreen: false, gir: false, girAuto: false });
@@ -1669,7 +1669,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     }
     updateFields(fields);
     // 다음 샷으로 화면을 옮긴다
-    if (slot === 0) { setShotPage(0); setSecondShotExpanded(true); }
+    if (slot === 0) { setStage('field'); setSecondShotExpanded(true); }
     else if (slot === 1) { setSecondShotExpanded(false); setExpandedExtraShot(0); }
     else setExpandedExtraShot(slot - 1);
   };
@@ -1790,13 +1790,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     const list = offGreenShots({ putts: newPutts, puttDetails: newDetails, offGreen: [...others, emptyOffGreenShot(puttIdx)] });
     updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: list });
     // 다음에 칠 샷은 칩 — 필드샷 탭에서 그 칩을 입력한다
-    setShotPage(0);
+    setStage('field');
     setExpandedOffGreen(list.findIndex(r => r.after === puttIdx));
     setTimeout(() => offGreenTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160);
   };
 
   const openOffGreenCard = (idx) => {
-    setShotPage(0);
+    setStage('field');
     setExpandedOffGreen(idx);
     setTimeout(() => offGreenTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160);
   };
@@ -1813,7 +1813,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       .map((r, i) => (i === idx ? { ...r, onGreen: true } : r));
     updateField('offGreen', list);
     setExpandedPutt(target.after + 1);
-    setShotPage(1);
+    setStage('putt');
   };
 
   // 온그린 실패 → 같은 자리에서 다시 칩
@@ -1892,24 +1892,25 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     setExpandedPutt(firstEmpty >= 0 ? firstEmpty : 0);
   }
 
-  // 홀이 바뀌면 펼침·페이지 상태를 처음으로 되돌린다
+  // 홀이 바뀌면 펼침·탭 상태를 처음으로 되돌린다. 열어 볼 탭은 입력이 어디까지 됐는지로 정한다:
+  // 티샷이 아직이면 티샷, 볼이 그린에 올라 있으면 퍼팅, 아니면 필드샷.
   const [syncedHoleIdx, setSyncedHoleIdx] = useState(null);
   if (syncedHoleIdx !== holeIdx) {
     setSyncedHoleIdx(holeIdx);
-    setShotPage(0); setTeeExpanded(true); setSecondShotExpanded(true); setExpandedExtraShot(0); setExpandedOffGreen(null); setShowPuttsDropdown(false);
+    setStage(!teeComplete ? 'tee' : ballOnGreen ? 'putt' : 'field');
+    setSecondShotExpanded(true); setExpandedExtraShot(0); setExpandedOffGreen(null); setShowPuttsDropdown(false);
   }
 
-  // 타이머와 ref 는 렌더 중에 건드릴 수 없어 이펙트에 남긴다
+  // ref 는 렌더 중에 건드릴 수 없어 이펙트에 남긴다
   useEffect(() => {
-    clearTimeout(shotPageTimeoutRef.current);
     prevExtraShotsLenRef.current = 0;
   }, [holeIdx]);
 
   // 직전 렌더의 홀·탭. 홀을 옮겨 올 때 어느 탭에서 왔는지 아래 스크롤 판단에 쓴다.
-  const lastViewRef = useRef({ hole: holeIdx, page: shotPage });
+  const lastViewRef = useRef({ hole: holeIdx, stage });
   useEffect(() => {
     // 다른 홀로 옮겨 왔는데 직전 화면이 필드샷 탭이 아니었다면(예: 퍼팅 탭) 이미 있던 추가 샷으로는 스크롤하지 않는다
-    const fromOtherTab = lastViewRef.current.hole !== holeIdx && lastViewRef.current.page !== 0;
+    const fromOtherTab = lastViewRef.current.hole !== holeIdx && lastViewRef.current.stage !== 'field';
     if (extraShots.length > prevExtraShotsLenRef.current && extraShotTopRef.current && !fromOtherTab) {
       setTimeout(() => extraShotTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
     }
@@ -1917,18 +1918,15 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // holeIdx 를 deps 에 넣으면 홀을 옮길 때마다 다시 돌아 스크롤 시점이 달라진다 — 추가 샷 수가 바뀔 때만 본다
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extraShots.length]);
-  useEffect(() => { lastViewRef.current = { hole: holeIdx, page: shotPage }; });
+  useEffect(() => { lastViewRef.current = { hole: holeIdx, stage }; });
 
-  // 티샷 입력이 끝나면 접고 다음 페이지를 정한다. 남은 항목이 생기면 다시 펼친다
-  // (접힌 채 '남은 항목'만 안내하면 어디를 눌러야 할지 알 수 없다)
+  // 티샷 입력이 끝나면 다음 탭으로 넘어간다 (볼이 이미 그린이면 퍼팅, 아니면 필드샷).
+  // 남은 항목이 생기면 티샷 탭으로 되돌린다 (다른 탭에서는 '남은 항목'을 채울 수 없다)
   const [syncedTeeComplete, setSyncedTeeComplete] = useState(null);
   if (syncedTeeComplete !== teeComplete) {
     setSyncedTeeComplete(teeComplete);
-    if (teeComplete) { setTeeExpanded(false); setShotPage((hole.par === 3 && par3TeeOnGreen(playerScore)) || playerScore.teeGIR ? 1 : 0); }
-    else setTeeExpanded(true);
+    setStage(teeComplete ? (ballOnGreen ? 'putt' : 'field') : 'tee');
   }
-
-  useEffect(() => { if (shotPage === 1) scrollDown(); }, [shotPage]);
 
   // 미입력 홀 확인 모달에 보여 줄 홀 번호들
   const pendingMissing = pendingFinish ? untouchedHoles(pendingFinish) : [];
@@ -2397,24 +2395,18 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       {/* ── Score Input Form ── */}
       {!isSimpleMode && <div style={{ paddingBottom: 8 }}>
 
-        {/* ── 티샷 아코디언 ── */}
-        <button
-          onClick={() => setTeeExpanded(v => !v)}
-          style={{
-            width:'100%', display:'flex', alignItems:'center', gap:8,
-            padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer',
-            borderBottom: teeExpanded ? 'none' : '1px solid #0e1320',
-          }}
-        >
-          {(() => { const h = HDR[turnState('tee', teeComplete)]; return (<>
-          <div style={{ height:1, flex:1, background: h.line }} />
-          <span style={{ fontSize:12, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{turnState('tee', teeComplete) === 'done' && '✓ '}티 샷</span>
-          <div style={{ height:1, flex:1, background: h.line }} />
-          <span style={{ fontSize:11, color: h.arrow, flexShrink:0 }}>{teeExpanded ? '▲' : '▼'}</span>
-          </>); })()}
-        </button>
+        {/* ── 입력 탭: 티샷 · 필드샷 · 퍼팅 — 화면을 내려도 맨 위에 붙고, 한 단계를 마치면 다음 탭으로 넘어간다 ── */}
+        <StickyTabs
+          tabs={[
+            ['tee', '티샷', { done: teeComplete }],
+            ['field', '필드샷', { disabled: !teeComplete, done: teeComplete && ballOnGreen }],
+            ['putt', '퍼팅', { disabled: !teeComplete }],
+          ]}
+          current={stage} onChange={setStage} label="샷 입력 단계" rolePrefix="shot-tab"
+          scrollOnChange="always" anchorRef={tabsTopRef}
+        />
 
-        {teeExpanded && <>
+        {stage === 'tee' && <>
         {/* 티박스 위치 — 여기서 찍어야 티샷 거리가 측정된다 */}
         <GpsShotPoint
           label="티샷 지점"
@@ -2505,9 +2497,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               <button disabled={penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true}
                 style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===true || (playerScore.teeOnGreen==null && playerScore.gir===true && !playerScore.girAuto)?{ border:'2px solid #3db87a', color:'#3db87a' }:{}),
                   ...(penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true ? { opacity:0.35, cursor:'not-allowed' } : {}) }}
-                onClick={()=>{ updateFields({ gir: true, girAuto: false, teeOnGreen: true }); setShotPage(1); }}>성공</button>
+                onClick={()=>{ updateFields({ gir: true, girAuto: false, teeOnGreen: true }); setStage('putt'); }}>성공</button>
               <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===false || (playerScore.teeOnGreen==null && playerScore.gir===false)?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
-                onClick={()=>{ updateFields({ gir: false, girAuto: false, teeOnGreen: false }); setSecondShotExpanded(true); setShotPage(0); scrollDown(); }}>실패</button>
+                onClick={()=>{ updateFields({ gir: false, girAuto: false, teeOnGreen: false }); setSecondShotExpanded(true); setStage('field'); }}>실패</button>
             </div>
             {/* 홀인원 풀와이드 — 벌타가 있으면 홀인원일 수 없다 */}
             <button
@@ -2567,7 +2559,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
                 <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#252f4a'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#8896b0', fontSize:13, fontWeight:700, cursor:'pointer' }}
-                  onClick={()=>{ clearTimeout(shotPageTimeoutRef.current); updateFields({ teeGIR: false, fairwayHit: playerScore.fairwayHit===id?null:id }); }}>
+                  onClick={()=>{ updateFields({ teeGIR: false, fairwayHit: playerScore.fairwayHit===id?null:id }); }}>
                   <div style={{ fontSize:12, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:10, marginTop:2 }}>{label}</div>
                 </button>
@@ -2589,13 +2581,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
               }}
               onClick={()=>{
-                if (playerScore.teeGIR) { clearTimeout(shotPageTimeoutRef.current); updateFields({ teeGIR: false, fairway: null }); setShotPage(0); }
+                if (playerScore.teeGIR) { updateFields({ teeGIR: false, fairway: null }); }
                 else {
                   // 1온은 페어웨이 미적중으로 센다 — PGA 투어 Driving Accuracy 기준
                   // ('티샷이 페어웨이에 멈춘 비율'). 그린은 페어웨이가 아니다.
                   updateFields({ teeGIR: true, fairwayHit: null, fairway: false });
-                  clearTimeout(shotPageTimeoutRef.current);
-                  shotPageTimeoutRef.current = setTimeout(() => setShotPage(1), 2000);
+                  setStage('putt');   // 볼이 그린 위 — 필드샷 없이 퍼팅으로
                 }
               }}>
               <span style={{ fontSize:15, fontWeight:900 }}>G</span>
@@ -2608,23 +2599,22 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && penaltyRow(0)}
         </>}
 
-        {/* ── 페이지 네이션 ── */}
-        <div style={{ display:'flex', margin:'8px 16px 0', borderRadius:10, overflow:'hidden', border:'1px solid #1b2238', background:'#0a0e1a' }}>
-          {[['필드샷', 0], ['퍼팅', 1]].map(([label, pg]) => (
-            <button key={pg} onClick={() => teeComplete && setShotPage(pg)}
-              style={{ flex:1, padding:'12px 0', border:'none', cursor: teeComplete ? 'pointer' : 'default', background: teeComplete && shotPage===pg ? 'rgba(201,162,40,0.12)' : 'transparent', color: !teeComplete ? '#3d4d65' : shotPage===pg ? '#c9a228' : '#8896b0', fontSize:13, fontWeight:700, letterSpacing:'0.12em', borderBottom: `2px solid ${teeComplete && shotPage===pg ? '#c9a228' : 'transparent'}`, transition:'color 0.15s, background 0.15s' }}
-            >{label}</button>
-          ))}
-        </div>
-        {!teeComplete && playerScore.teeClub && (
+        {stage === 'tee' && !teeComplete && playerScore.teeClub && (
           <div style={{ padding:'8px 16px', textAlign:'center' }}>
             <span style={{ fontSize:11, color:'#6e84a8', letterSpacing:'0.06em' }}>
-              {`티샷을 마치면 입력할 수 있어요 · 남은 항목: ${teeMissing.join(' · ')}`}
+              {`티샷을 마치면 필드샷·퍼팅을 입력할 수 있어요 · 남은 항목: ${teeMissing.join(' · ')}`}
             </span>
           </div>
         )}
 
-        {teeComplete && shotPage === 0 && !playerScore.teeGIR && <>
+        {/* 1온이면 필드샷이 없다 — 필드샷 탭을 눌러 본 경우를 위한 안내 */}
+        {teeComplete && stage === 'field' && hole.par > 3 && playerScore.teeGIR && (
+          <div data-role="field-empty" style={{ padding:'22px 16px', textAlign:'center', borderBottom:'1px solid #0e1320' }}>
+            <span style={{ fontSize:12, color:'#8896b0', lineHeight:1.6 }}>티샷으로 그린에 올려서 필드샷이 없어요 · 퍼팅 탭에서 이어 입력하세요</span>
+          </div>
+        )}
+
+        {teeComplete && stage === 'field' && !playerScore.teeGIR && <>
         {/* ── 세컨샷 아코디언 헤더 ── */}
         <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
           {(() => {
@@ -2710,7 +2700,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>{penaltyAt(playerScore, 0) ? '온그린' : hole.par >= 5 ? '2온' : 'GIR'}</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
-                onClick={()=>{ updateFields({ gir: true, girAuto: false, onGreen: true }); setShotPage(1); }}>성공</button>
+                onClick={()=>{ updateFields({ gir: true, girAuto: false, onGreen: true }); setStage('putt'); }}>성공</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                 onClick={()=>{ setSecondShotExpanded(false); addExtraShot(hole.par >= 5 ? { onGreen: null } : { gir: false, girAuto: false, onGreen: null }); }}>실패</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
@@ -2725,7 +2715,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
-                onClick={()=>{ updateOnGreen(true); setShotPage(1); }}>성공</button>
+                onClick={()=>{ updateOnGreen(true); setStage('putt'); }}>성공</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
                 onClick={()=>{ setSecondShotExpanded(false); addExtraShot({ onGreen: false }); }}>실패</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
@@ -2821,7 +2811,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                           extraShots: extraShots.slice(0, idx + 1).map((s, i) => i === idx ? { ...s, onGreen: true } : s),
                           gpsPoints: gpsPoints.slice(0, idx + 3),
                         });
-                        setShotPage(1);
+                        setStage('putt');
                       }}>성공</button>
                     <button
                       style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
@@ -2870,7 +2860,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </>}
 
         {/* ── 그린 밖으로 나간 퍼트 뒤의 칩 — 필드샷이므로 클럽과 온그린 결과를 여기서 받는다 ── */}
-        {teeComplete && shotPage === 0 && offGreenList.length > 0 && (<>
+        {teeComplete && stage === 'field' && offGreenList.length > 0 && (<>
           <div ref={offGreenTopRef} data-role="off-green-section" />
           {offGreenList.map((chip, idx) => {
             const chain = offGreenList.filter(r => r.after === chip.after);
@@ -2936,7 +2926,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           })}
         </>)}
 
-        {teeComplete && shotPage === 1 && <>
+        {teeComplete && stage === 'putt' && <>
 
         {/* ── 그린 ── */}
         {secHdr('그 린', null, turnState('green', !!playerScore.onGreenLanding))}

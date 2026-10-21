@@ -371,6 +371,7 @@ export default function GolfScoringApp() {
       {view === 'mybag' && currentUser && (
         <MyBagView
           currentUser={currentUser}
+          rounds={rounds.filter(r => r.players.length === 1)}
           onBack={() => setView('home')}
         />
       )}

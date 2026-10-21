@@ -50,7 +50,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
     : '—';
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, paddingTop: 14 }}>
       <header style={styles.header}>
         <div style={styles.headerTop}>
           <div style={styles.logo}>
@@ -110,7 +110,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
       <StatsPanel loading={loading} totalRounds={totalRounds} avgScore={avgScore} />
 
       {recentRound && (
-        <div style={styles.section}>
+        <div style={{ ...styles.section, marginBottom: 0 }}>
           <div style={styles.homeSectionHeader}>
             <div style={styles.homeSectionTitle}>최근 라운드</div>
             <button style={styles.textLink} onClick={onViewHistory}>전체보기</button>

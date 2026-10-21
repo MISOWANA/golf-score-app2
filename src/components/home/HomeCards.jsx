@@ -7,8 +7,8 @@ import { tintWash } from '../ui/tint.js';
 // 그린과 깃발을 그린 배경 장식 (우측 상단). 글자 뒤에 깔리므로 흐리게.
 function GreenMark() {
   return (
-    <svg aria-hidden="true" width="150" height="150" viewBox="0 0 150 150"
-      style={{ position: 'absolute', right: -30, top: -34, pointerEvents: 'none' }}>
+    <svg aria-hidden="true" width="120" height="120" viewBox="0 0 150 150"
+      style={{ position: 'absolute', right: -24, top: -26, pointerEvents: 'none' }}>
       {[22, 38, 54, 70].map((r, i) => (
         <circle key={r} cx="75" cy="75" r={r} fill="none" stroke="#3db87a" strokeOpacity={0.2 - i * 0.04} strokeWidth="1" />
       ))}

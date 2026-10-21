@@ -2465,45 +2465,47 @@ const styles = {
   },
 
   // ─── Insights View ────────────────────────────────────────────────────────
-  insightsBanner: {
-    background: `linear-gradient(135deg, ${C.hero} 0%, #0f2218 100%)`,
-    color: C.textPrimary,
-    borderRadius: '16px',
-    padding: '18px 20px',
-    marginBottom: '24px',
-    textAlign: 'center',
+  // 범위 카드 — 무엇을 보고 있는지(이번 라운드의 코스·스코어 / 누적 평균)와 이번·누적 전환을 한 줄에
+  insightsScope: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '10px',
+    background: C.hero,
     border: `1px solid ${C.heroBorder}`,
-    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+    borderRadius: '16px',
+    padding: '10px 12px 10px 16px',
+    marginBottom: '12px',
+    textAlign: 'left',
   },
-  insightsBannerLabel: {
-    fontSize: '10px',
-    letterSpacing: '0.25em',
-    color: C.gold,
+  insightsScopeLabel: {
+    fontSize: '12px',
     fontWeight: '700',
-    marginBottom: '8px',
-    textTransform: 'uppercase',
+    color: C.gold,
+    letterSpacing: '0.04em',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    marginBottom: '2px',
   },
-  insightsBannerValue: {
+  insightsScopeValue: {
     display: 'flex',
     alignItems: 'baseline',
-    justifyContent: 'center',
-    gap: '4px',
-    fontSize: '28px',
-    fontWeight: '800',
+    gap: '6px',
+    fontSize: '26px',
+    fontWeight: '900',
+    lineHeight: 1.1,
     letterSpacing: '-0.02em',
     color: C.textPrimary,
   },
-  insightsBannerSub: {
-    fontSize: '11px',
-    fontWeight: '700',
-    color: C.textSec,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-  },
-  insightsBannerDot: {
-    color: C.heroBorder,
-    margin: '0 8px',
-    fontSize: '20px',
+  insightsScopeToggle: {
+    display: 'flex',
+    flexShrink: 0,
+    gap: '2px',
+    padding: '3px',
+    borderRadius: '999px',
+    background: 'rgba(0,0,0,0.28)',
+    border: `1px solid ${C.heroBorder}`,
   },
 
   // ─── Style Card (Insights player archetype) ───────────────────────────────

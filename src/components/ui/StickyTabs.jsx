@@ -7,10 +7,11 @@ import styles from '../../styles/styles';
 //   tabs            [[id, 라벨, { disabled, done }?], …]  disabled: 누를 수 없음 · done: 라벨 앞에 ✓
 //   label           접근성 이름 (aria-label)
 //   rolePrefix      탭 버튼의 data-role 앞부분 → `${rolePrefix}-${id}`, 바깥 띠는 `${rolePrefix}bar`
+//   variant         'pill'(기본) 알약 상자 · 'underline' 칸을 똑같이 나누고 밑줄로 표시 (탭이 6개쯤 돼도 한 줄)
 //   scrollOnChange  'stuck'(기본) 붙은 채 바꿀 때만 · 'always' 언제나 (탭 행이 화면 아래쪽에 있는 화면용)
 //   anchorRef       탭 행 자리를 바깥에서도 쓰고 싶을 때 (표지 요소를 받는다)
 // 바깥 띠는 화면 좌우 여백(16px)까지 펴서 붙었을 때 내용이 비쳐 보이지 않게 한다.
-export default function StickyTabs({ tabs, current, onChange, label, rolePrefix, scrollOnChange = 'stuck', anchorRef }) {
+export default function StickyTabs({ tabs, current, onChange, label, rolePrefix, variant = 'pill', scrollOnChange = 'stuck', anchorRef }) {
   const ownRef = useRef(null);
   const sentinel = anchorRef ?? ownRef;
   const stuckRef = useRef(false);
@@ -34,27 +35,41 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
     if (scrollOnChange === 'always' || stuckRef.current) sentinel.current?.scrollIntoView?.({ block: 'start' });
   }, [current, scrollOnChange, sentinel]);
 
+  const underline = variant === 'underline';
+  const bar = underline
+    ? {
+      position: 'sticky', top: 0, zIndex: 30, margin: '0 -16px 14px', padding: '0 8px',
+      background: stuck ? 'rgba(11,14,24,0.94)' : 'transparent',
+      backdropFilter: stuck ? 'blur(8px)' : 'none', WebkitBackdropFilter: stuck ? 'blur(8px)' : 'none',
+      borderBottom: '1px solid #1b2238',
+      transition: 'background 0.15s',
+    }
+    : {
+      position: 'sticky', top: 0, zIndex: 30, margin: '-8px -16px 6px', padding: '8px 16px',
+      background: stuck ? 'rgba(11,14,24,0.94)' : 'transparent',
+      backdropFilter: stuck ? 'blur(8px)' : 'none', WebkitBackdropFilter: stuck ? 'blur(8px)' : 'none',
+      borderBottom: `1px solid ${stuck ? '#1b2238' : 'transparent'}`,
+      transition: 'background 0.15s, border-color 0.15s',
+    };
+
   return (
     <>
       <div ref={sentinel} aria-hidden="true" style={{ height: 1, marginBottom: -1 }} />
-      <div data-role={`${rolePrefix}bar`} data-stuck={stuck ? '1' : '0'}
-        style={{
-          position: 'sticky', top: 0, zIndex: 30, margin: '-8px -16px 6px', padding: '8px 16px',
-          background: stuck ? 'rgba(11,14,24,0.94)' : 'transparent',
-          backdropFilter: stuck ? 'blur(8px)' : 'none', WebkitBackdropFilter: stuck ? 'blur(8px)' : 'none',
-          borderBottom: `1px solid ${stuck ? '#1b2238' : 'transparent'}`,
-          transition: 'background 0.15s, border-color 0.15s',
-        }}>
-        <div style={{ ...styles.riToggleRow, marginBottom: 0 }} role="tablist" aria-label={label}>
+      <div data-role={`${rolePrefix}bar`} data-stuck={stuck ? '1' : '0'} style={bar}>
+        <div style={underline ? { display: 'flex' } : { ...styles.riToggleRow, marginBottom: 0 }} role="tablist" aria-label={label}>
           {tabs.map(([id, text, opt]) => {
             const disabled = !!opt?.disabled;
+            const on = current === id;
+            const look = underline
+              ? {
+                flex: '1 1 0', minWidth: 0, height: 46, padding: '0 2px', background: 'none', border: 'none',
+                borderBottom: `2px solid ${on ? '#c9a228' : 'transparent'}`, borderRadius: 0,
+                color: on ? '#f3d36b' : '#8896b0', fontSize: 12.5, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer',
+              }
+              : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', ...(on ? styles.riToggleBtnActive : {}) };
             return (
-              <button key={id} role="tab" type="button" aria-selected={current === id} disabled={disabled} data-role={`${rolePrefix}-${id}`}
-                style={{
-                  ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0',
-                  ...(current === id ? styles.riToggleBtnActive : {}),
-                  ...(disabled ? { color: '#3d4d65', cursor: 'default' } : {}),
-                }}
+              <button key={id} role="tab" type="button" aria-selected={on} disabled={disabled} data-role={`${rolePrefix}-${id}`}
+                style={{ ...look, ...(disabled ? { color: '#3d4d65', cursor: 'default' } : {}) }}
                 onClick={() => onChange(id)}>
                 {opt?.done && <span aria-hidden="true" style={{ color: '#3db87a', marginRight: 3 }}>✓</span>}{text}
               </button>

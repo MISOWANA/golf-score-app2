@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, History, Search } from 'lucide-react';
 import styles from '../../styles/styles';
 import LandingRadar from './LandingRadar';
 import { landingCounts } from '../../engine/landing.js';
@@ -8,7 +8,8 @@ import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
 import StickyTabs from '../ui/StickyTabs';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
-import Chapter, { ChapterNav } from './Chapter';
+import { ChapterIntro } from './Chapter';
+import { CHAPTERS } from './chapters.js';
 import { ReportHeader, ReportFindings, ThreePuttCause, NextFocus, Section } from './InsightReportPanel';
 import { LossShareCard, BigMissesCard, BigMissesInfo, SkillHeader, PracticeCard } from './StoryPanels';
 import RoundReplayPanel from './RoundReplayPanel';
@@ -27,7 +28,9 @@ import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strok
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 
-const VIEW_TABS = [['report', '리포트'], ['replay', '라운드 복기'], ['search', '검색']];
+// 리포트의 장마다 탭 하나 — 장 하나가 한 페이지다. 라운드 복기·검색은 장이 아니라 헤더의 도구 버튼으로 연다.
+const CHAPTER_TABS = CHAPTERS.map((c) => [c.key, c.short]);
+const SUB_VIEW_TITLE = { replay: '라운드 복기', search: '검색' };
 
 const SEVERITY_COLOR = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
 const SEVERITY_BG    = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.10)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
@@ -62,6 +65,10 @@ function withEuiGa(word) {
 export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
   const [tab, setTab] = useState('report');   // 'report' | 'replay' | 'search' — 리포트 · 라운드 복기 · 검색
+  const [chapter, setChapter] = useState('overview');   // 리포트에서 열린 장(탭) — CHAPTERS 의 key
+
+  // 보기(리포트 · 복기 · 검색)를 바꾸면 새 화면의 맨 위부터 보여 준다
+  const changeView = (v) => { setTab(v); window.scrollTo?.(0, 0); };
 
   if (rounds.length === 0) {
     return (
@@ -308,18 +315,37 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const roundPar = latestRound.pars.reduce((a, b) => a + b, 0);
   const roundScore = latestRound.holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
 
+  // 범위 카드: 이번 라운드면 그 라운드의 스코어, 누적이면 평균 스코어와 파 대비 평균
+  const scopeDate = `${new Date(latestRound.date).getMonth() + 1}/${new Date(latestRound.date).getDate()}`;
+  const scopeDiff = isCareerMode
+    ? roundTrend.reduce((s, r) => s + r.diff, 0) / roundTrend.length
+    : roundScore - roundPar;
+
   const totalLossForBar = activeBreakdown.totalLoss;
   const barSegments = ['penalty', 'putting', 'tee', 'approach', 'shortGame']
     .map(cat => ({ cat, strokes: activeBreakdown.totals[cat] }));
 
   return (
     <div style={styles.container}>
-      <header style={styles.pageHeader}>
-        <button style={styles.iconBack} onClick={onBack}>
+      {/* 제목 줄 — 뒤로 · 제목 · 도구(라운드 복기 · 검색). 복기·검색은 리포트의 장이 아니라 따로 여는 도구다 */}
+      <header style={{ ...styles.pageHeader, display: 'grid', gridTemplateColumns: '96px 1fr 96px', paddingBottom: 12 }}>
+        <button style={{ ...styles.iconBack, justifySelf: 'start' }} onClick={onBack}>
           <ChevronLeft size={22} />
         </button>
         <div style={styles.pageTitle}>Insights</div>
-        <div style={{ width: 40 }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          {[['replay', '라운드 복기', '복기', History], ['search', '검색', '검색', Search]].map(([v, aria, text, Icon]) => {
+            const on = tab === v;
+            return (
+              <button key={v} type="button" aria-label={aria} aria-pressed={on} data-role={`view-${v}`}
+                onClick={() => changeView(on ? 'report' : v)}
+                style={{ width: 46, height: 46, borderRadius: 12, background: on ? 'rgba(201,162,40,0.14)' : 'transparent', border: 'none', cursor: 'pointer', color: on ? '#f3d36b' : '#c4cfe0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 0 }}>
+                <Icon size={20} strokeWidth={1.9} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0' }}>{text}</span>
+              </button>
+            );
+          })}
+        </div>
       </header>
       {excludedCount > 0 && (
         <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
@@ -327,35 +353,53 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </div>
       )}
 
-      <div style={styles.insightsBanner}>
-        <div style={styles.insightsBannerLabel}>{latestRound.courseName || '이번 라운드'}</div>
-        <div style={styles.insightsBannerValue}>
-          <span>{roundScore}</span>
-          <span style={{ ...styles.insightsBannerSub, color: roundScore - roundPar > 0 ? '#ef5350' : roundScore - roundPar < 0 ? '#3db87a' : '#8896b0' }}>
-            {fmtSigned(roundScore - roundPar, 0)}
-          </span>
-          <span style={styles.insightsBannerDot}>·</span>
-          <span>{rounds.length}</span>
-          <span style={styles.insightsBannerSub}>라운드 누적</span>
+      {/* 범위 카드 — 무엇을 보고 있는지(이번 라운드 / 누적)를 한 곳에서 정한다 */}
+      {tab === 'report' && (
+        <div data-role="insights-scope" style={styles.insightsScope}>
+          <div style={{ minWidth: 0 }}>
+            <div style={styles.insightsScopeLabel}>
+              {isCareerMode ? `${rounds.length}라운드 누적 · 평균` : `${latestRound.courseName || '이번 라운드'} · ${scopeDate}`}
+            </div>
+            <div style={styles.insightsScopeValue}>
+              <span data-role="scope-score">{isCareerMode ? avgScore.toFixed(1) : roundScore}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: scopeDiff > 0 ? '#ef5350' : scopeDiff < 0 ? '#3db87a' : '#8896b0' }}>
+                {fmtSigned(scopeDiff, isCareerMode ? 1 : 0)}
+              </span>
+            </div>
+          </div>
+          {rounds.length > 1 && (
+            <div role="group" aria-label="분석 기간" style={styles.insightsScopeToggle}>
+              {[['round', '이번', '이번 라운드'], ['career', `누적 ${rounds.length}R`, `${rounds.length}라운드 누적`]].map(([k, l, full]) => {
+                const on = (isCareerMode ? 'career' : 'round') === k;
+                return (
+                  <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`scope-${k}`} onClick={() => setMode(k)}
+                    style={{ height: 36, padding: '0 13px', borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 12, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* 인사이트를 보는 세 가지 방식 — 리포트(요약) · 라운드 복기(홀 순서) · 검색(찾아보기) */}
-      <StickyTabs tabs={VIEW_TABS} current={tab} onChange={setTab} label="인사이트 보기 방식" rolePrefix="insights-tab" />
+      {/* 고정 탭 — 리포트는 장 6개가 한 줄에 다 보이는 탭(장마다 한 페이지), 복기·검색에서는 '리포트로' 돌아가는 탭 */}
+      {tab === 'report'
+        ? <StickyTabs variant="underline" tabs={CHAPTER_TABS} current={chapter} onChange={setChapter} label="리포트 장" rolePrefix="insights-tab" />
+        : <StickyTabs variant="underline" tabs={[['report', '리포트'], [tab, SUB_VIEW_TITLE[tab]]]} current={tab} onChange={changeView} label="인사이트 보기" rolePrefix="insights-view" />}
 
       {tab === 'replay' && <div style={{ padding: '0 0 24px' }}><RoundReplayPanel rounds={rounds} /></div>}
       {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={rounds} /></div>}
 
       {tab === 'report' && <>
-      <ChapterNav />
-
       {/* ── 1장 · 종합 ─────────────────────────────────────────────── */}
-      <Chapter no={1} />
-      <ReportHeader rep={rep} rounds={rounds} mode={reportMode} onModeChange={rounds.length > 1 ? setMode : null} />
+      {chapter === 'overview' && <>
+      <ChapterIntro no={1} />
+      <ReportHeader rep={rep} rounds={rounds} mode={reportMode} />
       <ReportFindings rep={rep} />
+      </>}
 
       {/* ── 2장 · 어디서 잃고 벌었나 — 공통 단위(타수)로 비교 ───────────────────── */}
-      <Chapter no={2} />
+      {chapter === 'strokes' && <>
+      <ChapterIntro no={2} />
       {/* ── STROKES GAINED — 샷마다 거리·라이별 투어 평균과 비교 (Broadie 5장) ────────── */}
       {sg.holes > 0 && (
         <div style={styles.section} data-role="strokes-gained">
@@ -493,8 +537,11 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </div>
       )}
 
-      {/* ── 3장 · 큰 숫자부터 — 나쁜 샷의 대가가 더 크다 ───────────────────────── */}
-      <Chapter no={3} />
+      </>}
+
+      {/* ── 3장 · 빅 미스 — 나쁜 샷의 대가가 더 크다 ───────────────────────── */}
+      {chapter === 'bigmiss' && <>
+      <ChapterIntro no={3} />
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
           BIG MISSES · 빅 미스 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
@@ -510,8 +557,11 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         />
       </div>
 
+      </>}
+
       {/* ── 4장 · 부문별 진단 — 티샷 → 어프로치 → 숏게임 → 퍼팅 ───────────────────── */}
-      <Chapter no={4} />
+      {chapter === 'skills' && <>
+      <ChapterIntro no={4} />
 
       {/* ── 티샷 (드라이빙) ─────────────────────────────────────────────── */}
       <div style={styles.section}>
@@ -722,15 +772,21 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         )}
       </div>
 
+      </>}
+
       {/* ── 5장 · 다음 라운드 — 무엇을 연습할까 ───────────────────────────────── */}
-      <Chapter no={5} />
+      {chapter === 'next' && <>
+      <ChapterIntro no={5} />
       <NextFocus rep={rep} />
       <Section title="PRACTICE · 연습 처방">
         <PracticeCard prescriptions={prescriptions} />
       </Section>
 
+      </>}
+
       {/* ── 6장 · 기록으로 보기 — 참고 자료 ─────────────────────────────────── */}
-      <Chapter no={6} />
+      {chapter === 'records' && <>
+      <ChapterIntro no={6} />
 
       {/* ── 홀 결과 분포 + 이벤트 하이라이트 (이번 라운드 / 누적 분리) ──────────── */}
       <div style={styles.section}>
@@ -929,6 +985,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           </div>
         );
       })()}
+      </>}
       </>}
     </div>
   );

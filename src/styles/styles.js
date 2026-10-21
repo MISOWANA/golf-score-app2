@@ -70,7 +70,11 @@ const styles = {
     color: C.textPrimary,
     paddingBottom: '0',
     width: '100%',
-    overflowX: 'hidden',
+    // 가로로 삐져나온 것만 잘라 낸다. 'hidden' 은 이 요소를 스크롤 영역으로 만들어서, 안쪽의
+    // position: sticky (스탯·인사이트·스코어 입력의 탭 행)가 화면 맨 위에 붙지 않게 된다.
+    // 'clip' 은 스크롤 영역을 만들지 않는다. 지원하지 않는 옛 브라우저는 이 줄을 무시하지만
+    // 좁은 화면에서는 body 의 overflow-x: hidden(globalCSS)이 이미 가로 넘침을 막는다.
+    overflowX: 'clip',
   },
   container: {
     width: '100%',

@@ -27,7 +27,7 @@ export const Section = ({ title, sub, note, noteTitle, children }) => (
 );
 
 // 한 줄 요약 카드. 어느 라운드(들)인지는 위의 범위 카드가 말하므로 여기서는 요약 문장만 둔다.
-export function ReportHeader({ rep }) {
+export function ReportHeader({ rep, past = false }) {
   const single = rep.replays.length === 1 ? rep.replays[0] : null;
   const speed = rep.mode === 'round' ? rep.greenSpeed?.latest?.speed : null;
   return (
@@ -38,7 +38,7 @@ export function ReportHeader({ rep }) {
           : `평균 ${rep.stats.avgScore.toFixed(1)}타 · 3퍼트 ${rep.stats.threePutts}회 · 페널티 ${rep.stats.penalties}회 (${rep.stats.rounds}라운드)`}
       </div>
       {speed != null && (
-        <div data-role="report-green-speed" style={{ fontSize: 11.5, color: '#8ca4bc', marginTop: 8 }}>오늘 그린 · {speedLabel(speed)}</div>
+        <div data-role="report-green-speed" style={{ fontSize: 11.5, color: '#8ca4bc', marginTop: 8 }}>{past ? '그날' : '오늘'} 그린 · {speedLabel(speed)}</div>
       )}
     </div>
   );

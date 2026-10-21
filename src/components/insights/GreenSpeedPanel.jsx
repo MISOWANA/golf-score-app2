@@ -23,7 +23,7 @@ function Stat({ label, value }) {
   );
 }
 
-export default function GreenSpeedPanel({ report }) {
+export default function GreenSpeedPanel({ report, past = false }) {
   if (!report) return null;
 
   // ── 누적
@@ -84,7 +84,7 @@ export default function GreenSpeedPanel({ report }) {
     <div style={card} data-role="green-speed-panel">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
         <div style={{ fontSize: 12, color: '#8896b0' }}>
-          오늘 그린
+          {past ? '그날' : '오늘'} 그린
           {r.speed == null && (
             <InfoNote title="그린 스피드 기록하기">
               이 라운드는 그린 스피드를 정하지 않았어요. 라운드 설정·퍼팅 화면·지난 라운드 수정에서 정해 두면 빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.

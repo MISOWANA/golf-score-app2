@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, History, Search } from 'lucide-react';
+import { ChevronLeft, ChevronDown, History, Search } from 'lucide-react';
 import styles from '../../styles/styles';
 import LandingRadar from './LandingRadar';
 import { landingCounts } from '../../engine/landing.js';
@@ -46,10 +46,11 @@ const savedChapter = () => {
 };
 
 // 이번 라운드 ↔ 누적 전환. 범위 카드(큰 것)와 붙은 탭 아래 줄(작은 것)이 같은 모양을 쓴다.
-function ScopeToggle({ rounds, isCareerMode, onPick, small = false, prefix = 'scope' }) {
+// 지난 라운드를 보고 있으면 '이번'이 아니라 '이 라운드'.
+function ScopeToggle({ rounds, isCareerMode, isLatest = true, onPick, small = false, prefix = 'scope' }) {
   return (
     <div role="group" aria-label="분석 기간" style={styles.insightsScopeToggle}>
-      {[['round', '이번', '이번 라운드'], ['career', `누적 ${rounds.length}R`, `${rounds.length}라운드 누적`]].map(([k, l, full]) => {
+      {[['round', isLatest ? '이번' : '이 라운드', isLatest ? '이번 라운드' : '이 라운드'], ['career', `누적 ${rounds.length}R`, `${rounds.length}라운드 누적`]].map(([k, l, full]) => {
         const on = (isCareerMode ? 'career' : 'round') === k;
         return (
           <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`${prefix}-${k}`} onClick={() => onPick(k)}
@@ -90,8 +91,45 @@ function withEuiGa(word) {
   return hasFinal ? `${word}이` : `${word}가`;
 }
 
-export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
+// 리포트로 볼 라운드 고르기 — 최신 라운드가 맨 위. 고른 라운드를 '이번 라운드'로 보고 그 이전 라운드까지만 쓴다.
+function RoundPicker({ allRounds, pick, onPick }) {
+  return (
+    <div role="listbox" aria-label="리포트로 볼 라운드" data-role="round-picker"
+      style={{ margin: '-4px 0 12px', maxHeight: 264, overflowY: 'auto', borderRadius: 14, background: '#0f1626', border: '1px solid #252f4a', padding: 4, textAlign: 'left' }}>
+      {allRounds.map((r, i) => {
+        const p = r.players[0];
+        const total = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
+        const diff = total - r.pars.reduce((a, b) => a + b, 0);
+        const d = new Date(r.date);
+        const on = i === pick;
+        return (
+          <button key={r.id} type="button" role="option" aria-selected={on} data-role={`pick-${i}`} onClick={() => onPick(i)}
+            style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? 'rgba(201,162,40,0.14)' : 'transparent', color: '#e8edf8', textAlign: 'left' }}>
+            <span style={{ width: 38, fontSize: 12, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0', fontVariantNumeric: 'tabular-nums' }}>{d.getMonth() + 1}/{d.getDate()}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.courseName || '코스 이름 없음'}</span>
+            {i === 0 && <span style={{ fontSize: 10.5, fontWeight: 800, color: '#3db87a', border: '1px solid rgba(61,184,122,0.5)', borderRadius: 999, padding: '1px 7px' }}>최신</span>}
+            <span style={{ fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{total}</span>
+            <span style={{ width: 28, fontSize: 12, fontWeight: 800, textAlign: 'right', color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>{fmtSigned(diff, 0)}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// 지난 라운드를 볼 때 엔진이 만든 문장 속 '이번 라운드'·'오늘'을 '이 라운드'·'그날'로 바꾼다.
+// (문자열 · 배열 · 일반 객체만 따라 들어가고, 그 밖의 값은 그대로 둔다)
+function swapPast(v) {
+  if (typeof v === 'string') return v.replace(/이번 라운드/g, '이 라운드').replace(/오늘 /g, '그날 ');
+  if (Array.isArray(v)) return v.map(swapPast);
+  if (v && Object.getPrototypeOf(v) === Object.prototype) return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swapPast(x)]));
+  return v;
+}
+
+export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0 }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
+  const [pickIdx, setPickIdx] = useState(0);   // 리포트로 볼 라운드 — allRounds 안의 위치 (0 = 최신)
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [tab, setTab] = useState('report');   // 'report' | 'replay' | 'search' — 리포트 · 라운드 복기 · 검색
   const [chapter, setChapterState] = useState(savedChapter);   // 리포트에서 열린 장(탭) — CHAPTERS 의 key
   const setChapter = (key) => {
@@ -102,7 +140,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   // 보기(리포트 · 복기 · 검색)를 바꾸면 새 화면의 맨 위부터 보여 준다
   const changeView = (v) => { setTab(v); window.scrollTo?.(0, 0); };
 
-  if (rounds.length === 0) {
+  if (allRounds.length === 0) {
     return (
       <div style={styles.container}>
         <header style={styles.pageHeader}>
@@ -126,14 +164,22 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
     );
   }
 
-  // rounds[0] = 최신 라운드 (GolfScoringApp이 최신을 배열 앞에 붙인다)
-  const latestRound = rounds[0];
+  // 라운드는 최신이 앞이다 (GolfScoringApp이 최신을 배열 앞에 붙인다). 리포트는 고른 라운드를 '지금'으로 보고
+  // 그 이전 라운드만 쓴다 — slice 한 배열의 맨 앞이 고른 라운드이므로 엔진은 그대로 쓴다.
+  // 이번 라운드 = 고른 라운드, 누적 = 고른 라운드와 그 이전 라운드. 복기·검색은 전체 라운드를 쓴다.
+  const pick = Math.min(pickIdx, allRounds.length - 1);
+  const rounds = allRounds.slice(pick);
+  const isLatest = pick === 0;
+  const thisRound = isLatest ? '이번 라운드' : '이 라운드';
+  const localize = (v) => (isLatest ? v : swapPast(v));   // 지난 라운드면 '이번 라운드'·'오늘'을 바꿔 보인다
+
+  const latestRound = rounds[0];   // 보고 있는 라운드 (기본은 최신)
   const player = latestRound.players[0];
   const stage = roundCountStage(rounds.length);
   const isCareerMode = mode === 'career' && rounds.length > 1;
 
   // ── §2A/2B: 스코어 5단계 분해 + 진단 카드 ──────────────────────────────────
-  const diagnosis = buildRoundDiagnosis(latestRound, player);
+  const diagnosis = localize(buildRoundDiagnosis(latestRound, player));
   const careerBreakdown = isCareerMode
     ? buildRoundBreakdown(rounds.flatMap(r => r.holes.map(h => toBreakdownInput(h, r.players[0]))))
     : null;
@@ -287,7 +333,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
   const careerMetrics = buildRoundMetrics(allHoleInputs);
   const careerInsights = careerMetrics ? matchRoundInsightRules(careerMetrics, careerRules) : [];
 
-  const patternInsights = isCareerMode ? careerInsights : roundInsights;
+  const patternInsights = localize(isCareerMode ? careerInsights : roundInsights);
 
   const frontHoles = allHoles.filter((_, idx) => idx % 18 < 9);
   const backHoles = allHoles.filter((_, idx) => idx % 18 >= 9);
@@ -325,7 +371,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
 
   // ── 리포트의 흐름(장)에 필요한 파생 값 ───────────────────────────────────────
   const reportMode = isCareerMode ? 'career' : 'round';
-  const rep = tab === 'report' ? buildInsightReport(rounds, reportMode) : null;
+  const rep = tab === 'report' ? localize(buildInsightReport(rounds, reportMode)) : null;
   const lossShares = buildLossShares(sg);
   const teePen = buildTeePenalty(benchRounds);
   const puttZone = buildPuttZone(rounds);
@@ -385,23 +431,46 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         </div>
       )}
 
-      {/* 범위 카드 — 무엇을 보고 있는지(이번 라운드 / 누적)를 한 곳에서 정한다 */}
-      {tab === 'report' && (
-        <div data-role="insights-scope" style={styles.insightsScope}>
-          <div style={{ minWidth: 0 }}>
-            <div style={styles.insightsScopeLabel}>
-              {isCareerMode ? `${rounds.length}라운드 누적 · 평균` : `${latestRound.courseName || '이번 라운드'} · ${scopeDate}`}
+      {/* 범위 카드 — 무엇을 보고 있는지(어느 라운드의 이번 라운드 / 누적)를 한 곳에서 정한다 */}
+      {tab === 'report' && (() => {
+        const canPick = allRounds.length > 1;
+        const body = (
+          <>
+            <div style={{ ...styles.insightsScopeLabel, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isCareerMode
+                  ? (isLatest ? `${rounds.length}라운드 누적 · 평균` : `${rounds.length}라운드 평균 · ${scopeDate}까지`)
+                  : `${latestRound.courseName || thisRound} · ${scopeDate}`}
+              </span>
+              {canPick && <ChevronDown size={14} aria-hidden="true" style={{ flexShrink: 0, transform: pickerOpen ? 'rotate(180deg)' : 'none' }} />}
             </div>
             <div style={styles.insightsScopeValue}>
               <span data-role="scope-score">{isCareerMode ? avgScore.toFixed(1) : roundScore}</span>
               <span style={{ fontSize: 13, fontWeight: 800, color: scopeDiff > 0 ? '#ef5350' : scopeDiff < 0 ? '#3db87a' : '#8896b0' }}>
                 {fmtSigned(scopeDiff, isCareerMode ? 1 : 0)}
               </span>
+              {!isLatest && (
+                <span data-role="scope-past" style={{ fontSize: 10.5, fontWeight: 800, color: '#c9a228', border: '1px solid rgba(201,162,40,0.5)', borderRadius: 999, padding: '1px 7px', alignSelf: 'center', whiteSpace: 'nowrap' }}>지난 라운드</span>
+              )}
             </div>
-          </div>
-          {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} onPick={setMode} />}
-        </div>
-      )}
+          </>
+        );
+        return (
+          <>
+            <div data-role="insights-scope" style={styles.insightsScope}>
+              {canPick
+                ? (
+                  <button type="button" data-role="scope-pick" aria-haspopup="listbox" aria-expanded={pickerOpen} aria-label="리포트로 볼 라운드 고르기"
+                    onClick={() => setPickerOpen((o) => !o)}
+                    style={{ flex: 1, minWidth: 0, padding: 0, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}>{body}</button>
+                )
+                : <div style={{ flex: 1, minWidth: 0 }}>{body}</div>}
+              {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} isLatest={isLatest} onPick={setMode} />}
+            </div>
+            {pickerOpen && canPick && <RoundPicker allRounds={allRounds} pick={pick} onPick={(i) => { setPickIdx(i); setPickerOpen(false); }} />}
+          </>
+        );
+      })()}
 
       {/* 고정 탭 — 리포트는 장 6개가 한 줄에 다 보이는 탭(장마다 한 페이지), 복기·검색에서는 '리포트로' 돌아가는 탭.
           내려가서 위의 범위 카드·도구가 화면 밖으로 나가면, 붙은 탭 바로 아래에 같은 전환·도구를 한 줄로 다시 보여 준다 */}
@@ -409,7 +478,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
         ? <StickyTabs variant="underline" tabs={CHAPTER_TABS} current={chapter} onChange={setChapter} label="리포트 장" rolePrefix="insights-tab"
           stuckSlot={(
             <div data-role="insights-stuck-row" style={{ display: 'flex', alignItems: 'center', justifyContent: rounds.length > 1 ? 'space-between' : 'flex-end', gap: 8, padding: '5px 16px', background: 'rgba(11,14,24,0.94)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid #1b2238' }}>
-              {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} onPick={setMode} small prefix="stuck-scope" />}
+              {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} isLatest={isLatest} onPick={setMode} small prefix="stuck-scope" />}
               <div style={{ display: 'flex', gap: 2 }}>
                 {TOOLS.map(([v, aria, , Icon]) => (
                   <button key={v} type="button" aria-label={aria} data-role={`stuck-view-${v}`} onClick={() => changeView(v)}
@@ -422,14 +491,14 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
           )} />
         : <StickyTabs variant="underline" tabs={[['report', '리포트'], [tab, SUB_VIEW_TITLE[tab]]]} current={tab} onChange={changeView} label="인사이트 보기" rolePrefix="insights-view" />}
 
-      {tab === 'replay' && <div style={{ padding: '0 0 24px' }}><RoundReplayPanel rounds={rounds} /></div>}
-      {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={rounds} /></div>}
+      {tab === 'replay' && <div style={{ padding: '0 0 24px' }}><RoundReplayPanel rounds={allRounds} initialRoundId={latestRound.id} /></div>}
+      {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={allRounds} /></div>}
 
       {tab === 'report' && <>
       {/* ── 1장 · 종합 ─────────────────────────────────────────────── */}
       {chapter === 'overview' && <>
-      <ChapterIntro no={1} />
-      <ReportHeader rep={rep} />
+      <ChapterIntro no={1} past={!isLatest} />
+      <ReportHeader rep={rep} past={!isLatest} />
       <ReportFindings rep={rep} />
       </>}
 
@@ -440,7 +509,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {sg.holes > 0 && (
         <div style={styles.section} data-role="strokes-gained">
           <div style={styles.sectionTitle}>
-            STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : '(이번 라운드)'}
+            STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : `(${thisRound})`}
             <InfoNote title="Strokes Gained 읽는 법">
               {sg.holesWithData === 0 ? (
                 <p>샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요. (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)</p>
@@ -550,7 +619,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
             <span>{diagnosis.observation}</span>
           </div>
           {diagnosis.directive && (
-            <div style={styles.riDiagDirective}>{withEuiGa(diagnosis.directive)} 이번 라운드 스코어 손실의 핵심입니다.</div>
+            <div style={styles.riDiagDirective}>{withEuiGa(diagnosis.directive)} {thisRound} 스코어 손실의 핵심입니다.</div>
           )}
         </div>
       )}
@@ -580,7 +649,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       <ChapterIntro no={3} />
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          BIG MISSES · 빅 미스 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
+          BIG MISSES · 빅 미스 {isCareerMode ? `(${rounds.length}라운드 평균)` : `(${thisRound})`}
           <BigMissesInfo career={isCareerMode} awful={awful} awfulPoints={awfulPoints} teePen={teePen} />
         </div>
         <BigMissesCard
@@ -803,7 +872,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
             <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
               GREEN SPEED · 그린 스피드{isCareerMode ? ' (구간별 라운드 평균)' : ''}
             </div>
-            <GreenSpeedPanel report={greenSpeedReport} />
+            <GreenSpeedPanel report={greenSpeedReport} past={!isLatest} />
           </div>
         )}
       </div>
@@ -827,7 +896,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {/* ── 홀 결과 분포 + 이벤트 하이라이트 (이번 라운드 / 누적 분리) ──────────── */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          HOLE RESULTS · {isCareerMode ? `${rounds.length}라운드 누적 홀 결과` : '이번 라운드 홀 결과'}
+          HOLE RESULTS · {isCareerMode ? `${rounds.length}라운드 누적 홀 결과` : `${thisRound} 홀 결과`}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {[
@@ -927,7 +996,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {isCareerMode && patternInsights.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>
-            PATTERN INSIGHTS · {isCareerMode ? `${rounds.length}라운드 누적 반복 패턴 분석` : '이번 라운드 반복 패턴 분석'}
+            PATTERN INSIGHTS · {isCareerMode ? `${rounds.length}라운드 누적 반복 패턴 분석` : `${thisRound} 반복 패턴 분석`}
           </div>
           <div style={styles.insightCards}>
             {patternInsights.map((ins, i) => {

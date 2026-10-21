@@ -26,9 +26,10 @@ const label = (t, note = null) => (
 );
 
 // 라운드 복기 — 한 라운드를 홀 순서대로 되짚는다. 어디서 잃었고(분기점), 무엇이 원인이었는지.
-export default function RoundReplayPanel({ rounds }) {
+// initialRoundId: 처음에 펼쳐 둘 라운드 (리포트에서 보던 라운드). 없으면 가장 최근 라운드.
+export default function RoundReplayPanel({ rounds, initialRoundId = null }) {
   const solo = useMemo(() => rounds.filter(r => r.players.length === 1), [rounds]);
-  const [roundIdx, setRoundIdx] = useState(0);
+  const [roundIdx, setRoundIdx] = useState(() => Math.max(0, solo.findIndex(r => r.id === initialRoundId)));
   const [filter, setFilter] = useState('all');       // all | issues | good
   const [open, setOpen] = useState({});              // holeNumber → 펼침
   // 지도·샷 목록 복기(히스토리의 홀별 복기와 같은 화면)를 열어 둔 홀 — round.holes 안의 위치, 없으면 null

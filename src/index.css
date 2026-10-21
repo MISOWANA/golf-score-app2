@@ -50,20 +50,37 @@
   }
 }
 
+/* ── 앱 바깥 틀 ─────────────────────────────────────────────────────────
+   폰에서는 화면 전체를 앱 색으로 채우고 테두리는 두지 않는다.
+   넓은 화면(PC·태블릿)에서는 가운데 520px 열만 앱 색으로 두고, 열 양옆에 얇은 선과 그림자를 둔다. */
+:root {
+  background: #0b0e18;
+}
+
 body {
   margin: 0;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 520px;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+@media (min-width: 560px) {
+  :root {
+    background: #06080f;
+  }
+  #root {
+    background: #0b0e18;
+    border-inline: 1px solid #1b2238;
+    box-shadow: 0 0 80px rgba(0, 0, 0, 0.55);
+  }
 }
 
 h1,

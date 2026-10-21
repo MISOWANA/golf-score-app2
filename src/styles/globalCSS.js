@@ -13,7 +13,6 @@ const globalCSS = `
 
   body {
     margin: 0;
-    background: #0b0e18;
     color: #e8edf8;
   }
 

@@ -2405,8 +2405,11 @@ const styles = {
   tabBar: {
     position: 'fixed',
     bottom: 0,
-    left: 0,
-    right: 0,
+    // 폰에서는 화면 너비 전체, 넓은 화면에서는 앱 열(520px) 안에 가운데로
+    left: '50%',
+    width: '100%',
+    maxWidth: '520px',
+    transform: 'translateX(-50%)',
     background: C.surface1,
     borderTop: `1px solid ${C.borderMid}`,
     boxShadow: '0 -4px 24px rgba(0,0,0,0.5)',

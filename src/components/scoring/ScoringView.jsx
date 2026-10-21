@@ -3174,7 +3174,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             onClick={() => setShowHoleMap(true)}
           >
             <MapIcon size={mapUsed ? 20 : 22} strokeWidth={mapUsed ? 1.8 : 2.2} />
-            <span style={{ ...styles.tabBarLabel, fontWeight: mapUsed ? '500' : '800' }}>{mapUsed ? '지도' : '지도 찍기'}</span>
+            <span style={{ ...styles.tabBarLabel, fontWeight: mapUsed ? '500' : '800' }}>코스맵</span>
           </button>
             );
           })()}

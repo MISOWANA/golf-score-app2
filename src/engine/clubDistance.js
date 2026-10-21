@@ -18,6 +18,10 @@ import { shotDistances, pinDistances, fieldShotCount, saneRemaining, shotDistanc
 // 날아간 거리. 핀까지 남은 거리 상한은 geo.js 의 saneRemaining.
 const SANE_MAX_M = 300;
 
+// 이 거리 안에서 친 샷(칩·피치)은 클럽의 '거리'에 넣지 않는다 — 52°·56° 같은 웨지의 거리가
+// 풀샷과 칩이 섞여 의미 없는 값이 되지 않게. 어프로치 통계의 '80m 안 = 숏게임' 경계와 같다.
+export const SHORT_SHOT_MAX_M = 80;
+
 const saneDistance = (d) => (d != null && d > 0 && d < SANE_MAX_M ? d : null);
 
 // gpsDist[n-1] = n번째 샷의 실측 거리(m).
@@ -139,6 +143,7 @@ export function buildClubDistanceStats(rounds, windowSize = 20) {
       const tee = extractTeeShot(h, p);
       const shots = tee ? [tee, ...extractClubShots(h, p)] : extractClubShots(h, p);
       shots.forEach(shot => {
+        if (shot.fromDistance != null && shot.fromDistance < SHORT_SHOT_MAX_M) return;
         const key = shot.subClub ? `${shot.club}:${shot.subClub}` : shot.club;
         if (!byClub[key]) byClub[key] = { club: shot.club, subClub: shot.subClub, distances: [] };
         byClub[key].distances.push(shot.distance);

@@ -31,7 +31,7 @@ export function buildTeeBias(rounds, windowSize = 10) {
 }
 
 // ─── §3-2 어프로치 근접도 (거리구간 × PUTT1 잔여거리) ─────────────────────────
-const APPROACH_BUCKETS = [
+export const APPROACH_BUCKETS = [
   { id: 'lt80',    label: '~80m',    min: 0,   max: 80 },
   { id: '80to110', label: '80-110m', min: 80,  max: 110 },
   { id: '110to140',label: '110-140m',min: 110, max: 140 },

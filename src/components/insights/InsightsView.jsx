@@ -6,6 +6,7 @@ import { landingCounts } from '../../engine/landing.js';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
+import StickyTabs from '../ui/StickyTabs';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import Chapter, { ChapterNav } from './Chapter';
 import { ReportHeader, ReportFindings, ThreePuttCause, NextFocus, Section } from './InsightReportPanel';
@@ -25,6 +26,8 @@ import { buildLossShares, buildTeePenalty, buildPuttZone, buildPrescriptions } f
 import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
+
+const VIEW_TABS = [['report', '리포트'], ['replay', '라운드 복기'], ['search', '검색']];
 
 const SEVERITY_COLOR = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
 const SEVERITY_BG    = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.10)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
@@ -338,14 +341,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       </div>
 
       {/* 인사이트를 보는 세 가지 방식 — 리포트(요약) · 라운드 복기(홀 순서) · 검색(찾아보기) */}
-      <div style={{ ...styles.riToggleRow, marginBottom: 14 }} role="tablist" aria-label="인사이트 보기 방식">
-        {[['report', '리포트'], ['replay', '라운드 복기'], ['search', '검색']].map(([k, l]) => (
-          <button key={k} role="tab" aria-selected={tab === k}
-            style={{ ...styles.riToggleBtn, ...(tab === k ? styles.riToggleBtnActive : {}) }}
-            onClick={() => setTab(k)}
-          >{l}</button>
-        ))}
-      </div>
+      <StickyTabs tabs={VIEW_TABS} current={tab} onChange={setTab} label="인사이트 보기 방식" rolePrefix="insights-tab" />
 
       {tab === 'replay' && <div style={{ padding: '0 0 24px' }}><RoundReplayPanel rounds={rounds} /></div>}
       {tab === 'search' && <div style={{ padding: '0 0 24px' }}><InsightSearchPanel rounds={rounds} /></div>}
@@ -353,7 +349,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       {tab === 'report' && <>
       <ChapterNav />
 
-      {/* ── 1장 · 한눈에 보기 ─────────────────────────────────────────────── */}
+      {/* ── 1장 · 종합 ─────────────────────────────────────────────── */}
       <Chapter no={1} />
       <ReportHeader rep={rep} rounds={rounds} mode={reportMode} onModeChange={rounds.length > 1 ? setMode : null} />
       <ReportFindings rep={rep} />
@@ -501,7 +497,7 @@ export default function InsightsView({ rounds, onBack, excludedCount = 0 }) {
       <Chapter no={3} />
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          BIG MISSES · 큰 실수 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
+          BIG MISSES · 빅 미스 {isCareerMode ? `(${rounds.length}라운드 평균)` : '(이번 라운드)'}
           <BigMissesInfo career={isCareerMode} awful={awful} awfulPoints={awfulPoints} teePen={teePen} />
         </div>
         <BigMissesCard

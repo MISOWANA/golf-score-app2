@@ -4,7 +4,10 @@ import { COLOR, fmtNum, fmtPct, fmtSigned } from './format.js';
 
 const SKILL_LABEL = { tee: '티샷', approach: '어프로치', shortGame: '숏게임', putting: '퍼팅' };
 
-// 한눈에 — 스코어 · 내 4영역 · 타수가 새는 곳 · 스코어 구성
+// 막대 밑 날짜 — 폭이 좁아 '10/14' 로 줄여 한 줄에 둔다
+const shortDate = (iso) => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}`; };
+
+// 종합 — 스코어 · 영역별 요약(MY GAME) · 타수가 새는 곳 · 스코어 구성
 export default function OverviewTab({ report, onGo }) {
   const { score, composition, leaks, tee, approach, shortGame, putting, balance } = report;
   const maxTotal = Math.max(...score.trend.map((t) => t.total));
@@ -14,8 +17,8 @@ export default function OverviewTab({ report, onGo }) {
   const imp = score.improvement;
   const scoreTake = imp == null
     ? { tone: 'info', text: '이전 3라운드가 쌓이면 최근 5라운드와 비교해 드려요.' }
-    : imp >= 1 ? { tone: 'good', text: `최근 5라운드가 그 이전보다 평균 ${fmtNum(imp)}타 낮아요.` }
-      : imp <= -1 ? { tone: 'warn', text: `최근 5라운드가 그 이전보다 평균 ${fmtNum(-imp)}타 높아요.` }
+    : imp >= 1 ? { tone: 'good', text: `최근 5라운드는 그 이전보다 평균 ${fmtNum(imp)}타 덜 쳤어요.` }
+      : imp <= -1 ? { tone: 'warn', text: `최근 5라운드는 그 이전보다 평균 ${fmtNum(-imp)}타 더 쳤어요.` }
         : { tone: 'info', text: '최근 5라운드와 그 이전의 평균 타수가 비슷해요 (±1타 안).' };
 
   const girPer18 = approach.gir.pct != null ? (approach.gir.pct * 18) / 100 : null;
@@ -70,16 +73,17 @@ export default function OverviewTab({ report, onGo }) {
                 <div key={t.id ?? i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: last ? COLOR.goldHi : COLOR.muted, marginBottom: 3 }}>{t.total}</div>
                   <div style={{ width: '70%', maxWidth: 22, height: `${h}%`, borderRadius: '4px 4px 0 0', background: last ? COLOR.gold : 'rgba(201,162,40,0.4)' }} />
-                  <div style={{ fontSize: 9, color: COLOR.faint, marginTop: 4 }}>{new Date(t.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
+                  <div style={{ fontSize: 9, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap' }}>{shortDate(t.date)}</div>
                 </div>
               );
             })}
           </div>
         )}
+        {score.trend.length > 1 && <div style={{ fontSize: 10.5, color: COLOR.faint, marginTop: 6 }}>최근 {score.trend.length}라운드 · 막대가 낮을수록 타수가 적어요</div>}
         <Takeaway tone={scoreTake.tone}>{scoreTake.text}</Takeaway>
       </Card>
 
-      <Card id="skills" title="MY GAME · 내 4영역" info={<>
+      <Card id="skills" title="MY GAME" info={<>
         <p>영역마다 대표 숫자 하나만 보여요. 누르면 그 영역의 자세한 숫자로 넘어가요.</p>
         <p>"최근"은 최근 5라운드가 그 이전보다 좋아졌는지예요. 표본이 적으면 표시하지 않아요.</p>
         <p>강점·약점은 투어 평균과 비교한 샷별 손익(측정된 샷이 충분할 때) 또는 스코어 기준 손실로 정해요.</p>

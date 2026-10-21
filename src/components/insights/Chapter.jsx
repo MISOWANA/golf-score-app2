@@ -27,7 +27,7 @@ export function ChapterNav() {
 export default function Chapter({ no }) {
   const c = CHAPTERS.find((x) => x.no === no);
   return (
-    <div id={c.id} data-role={c.id} style={{ margin: '30px 0 16px', scrollMarginTop: 12 }}>
+    <div id={c.id} data-role={c.id} style={{ margin: '30px 0 16px', scrollMarginTop: 68 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 26, height: 26, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',

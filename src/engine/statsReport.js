@@ -13,7 +13,7 @@
 
 import { extractClubShots, buildClubDistanceStats, SHORT_SHOT_MAX_M } from './clubDistance.js';
 import { APPROACH_BUCKETS, buildPuttingStats, buildScrambling, buildGirp, buildGirConversion } from './shotStats.js';
-import { buildTeePenalty, buildPuttZone, pickWeakestSkill } from './roundStory.js';
+import { buildTeePenalty, pickWeakestSkill } from './roundStory.js';
 import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 import { median, rateTier } from './stats.js';
 import { landingCounts, landingSummary, landingCaption } from './landing.js';
@@ -340,7 +340,6 @@ export function buildPuttingSummary(rounds) {
     perGir: gir.length > 0 ? sum(gir.map((x) => x.s.putts)) / gir.length : null,
     girHoles: gir.length,
     byDistance: ps.byDistance,
-    zone: buildPuttZone(rounds),
     causes,
     trend,
   };

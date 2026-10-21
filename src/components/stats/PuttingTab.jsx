@@ -27,8 +27,9 @@ export default function PuttingTab({ report }) {
       : { tone: 'info', text: `3퍼트는 ${fmtPct(threePct)} (${putting.three.n}홀)예요.` };
 
   const distRows = putting.byDistance.filter((b) => b.total > 0);
-  const zone = putting.zone;
-  const zoneTake = zone.total >= 5
+  // 위 표의 1-2m 줄과 같은 숫자를 쓴다 (인사이트의 3~7피트 구간은 범위가 달라 따로 보여준다)
+  const zone = distRows.find((b) => b.id === '1to2');
+  const zoneTake = zone && zone.total >= 5
     ? { tone: zone.ratePct < 60 ? 'warn' : 'good', text: `1~2m 퍼트 성공률 ${fmtPct(zone.ratePct)} (${zone.made}/${zone.total}). 아마추어가 퍼트로 가장 많이 잃는 구간이에요.` }
     : null;
 

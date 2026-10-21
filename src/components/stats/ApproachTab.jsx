@@ -73,7 +73,7 @@ export default function ApproachTab({ report }) {
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <div data-role="girp" style={{ flex: 1, padding: '9px 10px', background: COLOR.track, borderRadius: 12, fontSize: 11, color: COLOR.muted }}>
-            18홀당 GIRP <b style={{ display: 'block', fontSize: 16, color: COLOR.text }}>{girp.per18 != null ? `${fmtNum(girp.per18)}홀` : '–'}</b>
+            18홀당 규정+1타 온 (GIRP) <b style={{ display: 'block', fontSize: 16, color: COLOR.text }}>{girp.per18 != null ? `${fmtNum(girp.per18)}홀` : '–'}</b>
           </div>
           <div data-role="conversion" style={{ flex: 1, padding: '9px 10px', background: COLOR.track, borderRadius: 12, fontSize: 11, color: COLOR.muted }}>
             그린 올린 홀 버디↑

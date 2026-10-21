@@ -139,16 +139,3 @@ export function RangeRow({ id, label, sub, median, q1, q3, scaleMax, text, right
     </div>
   );
 }
-
-// 영역(티샷·어프로치…) 선택 탭
-export function TabBar({ tabs, current, onChange }) {
-  return (
-    <div style={{ ...styles.riToggleRow, marginBottom: 14 }} role="tablist" aria-label="스탯 영역">
-      {tabs.map(([id, label]) => (
-        <button key={id} role="tab" type="button" aria-selected={current === id} data-role={`stats-tab-${id}`}
-          style={{ ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', ...(current === id ? styles.riToggleBtnActive : {}) }}
-          onClick={() => onChange(id)}>{label}</button>
-      ))}
-    </div>
-  );
-}

@@ -4,7 +4,7 @@ import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import { sgTier, SG_LABEL } from '../../engine/strokesGained.js';
 import { AWFUL_CONSISTENCY_LIMIT } from '../../engine/bookBenchmarks.js';
 
-// 리포트의 새 패널들 — 어디서 잃었나(구성비) · 큰 실수 · 부문별 SG 머리줄 · 연습 처방.
+// 리포트의 새 패널들 — 어디서 잃었나(구성비) · 빅 미스 · 부문별 SG 머리줄 · 연습 처방.
 
 const SKILL_COLOR = { tee: '#6b8cae', approach: '#8a6fb0', shortGame: '#d98e3e', putting: '#c9a228' };
 const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
@@ -54,7 +54,7 @@ export function LossShareCard({ shares, coverage }) {
   );
 }
 
-// ── 3장: 큰 실수 ────────────────────────────────────────────────────────────────
+// ── 3장: 빅 미스 ────────────────────────────────────────────────────────────────
 function Tile({ label, value, sub, warn, role }) {
   return (
     <div style={{ flex: '1 1 45%', background: '#0e1424', border: '1px solid #1b2238', borderRadius: 12, padding: '10px 12px' }}>
@@ -84,21 +84,21 @@ export function BigMissesCard({ career, rounds, awful, awfulPoints, awfulOverLim
       </div>
       {awfulOverLimit && (
         <div data-role="awful-warning" style={{ fontSize: 12, color: '#ef8a87', lineHeight: 1.6 }}>
-          끔찍한 샷이 90타 전후 기준({AWFUL_CONSISTENCY_LIMIT}점)을 넘었어요 — 연습보다 큰 실수 줄이기가 먼저예요.
+          끔찍한 샷이 90타 전후 기준({AWFUL_CONSISTENCY_LIMIT}점)을 넘었어요 — 연습보다 빅 미스 줄이기가 먼저예요.
         </div>
       )}
     </div>
   );
 }
 
-// 큰 실수 카드를 읽는 법 — 카드 제목 옆 (!) 버튼으로 열린다.
+// 빅 미스 카드를 읽는 법 — 카드 제목 옆 (!) 버튼으로 열린다.
 export function BigMissesInfo({ career, awful, awfulPoints, teePen }) {
   return (
-    <InfoNote title="큰 실수 읽는 법">
+    <InfoNote title="빅 미스 읽는 법">
       <p>
         <b style={{ color: '#e8edf8' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 셉니다.
         {career ? ` (${awful.rounds}라운드 합계, 라운드 평균 ${awfulPoints.toFixed(1)}점)` : ''} 페널티만 센 점수라 뒤땅·토핑 같은 미스샷은 빠져 있어요.
-        {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 큰 실수 줄이기가 먼저예요.
+        {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 빅 미스 줄이기가 먼저예요.
       </p>
       <p>
         OB는 꼬박 2타를 잃지만 러프에 살짝 들어간 공은 그보다 훨씬 적게 잃어요. 페어웨이 적중률이나 평균 비거리는 이 차이를 가리니, OB율은 따로 봅니다.

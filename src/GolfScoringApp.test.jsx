@@ -5,7 +5,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { IDBFactory } from 'fake-indexeddb';
-import { makeFullRound, makeHalfRound, makeNoParsRound, makeNineRound, makeActiveRound, played, defaultScore } from './test/fixtures.js';
+import { makeFullRound, makeHalfRound, makeNoParsRound, makeNineRound, makeMultiRound, makeActiveRound, played, defaultScore } from './test/fixtures.js';
 import { summarizeRound } from './engine/roundSummary.js';
 import { localNoonISO } from './engine/roundDate.js';
 
@@ -445,6 +445,72 @@ describe('스탯 어프로치 — 그린을 놓친 방향', () => {
     await setup({ rounds: [roundMissing([])] });
     await openApproach();
     expect(document.querySelector('[data-role="card-green-miss"]')).toBeNull();
+  });
+});
+
+describe('스코어 입력 — 홀 표의 SCORE · PUTT 줄', () => {
+  const cellTexts = (row) => [...row.querySelectorAll('button')].map((b) => b.textContent);
+  // 9홀씩 한 표(OUT · IN) — SCORE 줄과 그 아래 PUTT 줄의 글자
+  const navTables = () => [...document.querySelectorAll('[data-role="nav-putts"]')].map((putt) => ({
+    score: cellTexts(putt.previousElementSibling),
+    putts: cellTexts(putt),
+    puttLabel: putt.firstChild.textContent,
+    scoreLabel: putt.previousElementSibling.firstChild.textContent,
+  }));
+  const resume = async (active) => {
+    await setup({ active });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText(/^HOLE \d+$/);
+  };
+
+  it('SCORE 줄 아래에 PUTT 줄이 있고, 입력한 홀은 숫자 · 입력하지 않은 홀은 - 로 보인다', async () => {
+    const active = makeActiveRound();
+    await resume(active);
+    const [out, inn] = navTables();
+    expect([out.scoreLabel, out.puttLabel]).toEqual(['SCORE', 'PUTT']);
+
+    const entered = (key) => active.holes.slice(0, 3).map((h) => String(h.scores[ME][key]));
+    expect(out.score).toEqual([...entered('strokes'), ...Array(6).fill('-')]);       // 1~3번 홀만 입력 — 나머지는 기본값(파)이 아니라 -
+    expect(out.putts).toEqual([...entered('putts'), ...Array(6).fill('-')]);
+    expect(inn.score).toEqual(Array(9).fill('-'));
+    expect(inn.putts).toEqual(Array(9).fill('-'));
+  });
+
+  it('입력 중인 홀: 퍼트 수를 모르면 PUTT 는 - (스코어는 · ), 퍼트 수를 입력하면 그 수가 보인다', async () => {
+    const active = makeActiveRound();
+    const base = (i) => ({ ...defaultScore(active.holes[i].par), touched: true, confirmed: false, teeClub: '드라이버' });
+    active.holes[3].scores[ME] = base(3);                                             // 티샷 클럽만 고른 홀 — 퍼팅은 아직 모름
+    active.holes[4].scores[ME] = { ...base(4), putts: 3, puttsManual: true, strokes: active.holes[4].par + 1 };   // 퍼트 3개 입력
+    await resume(active);
+    const [out] = navTables();
+    expect(out.score[3]).toBe('·');
+    expect(out.putts[3]).toBe('-');
+    expect(out.putts[4]).toBe('3');
+    expect(out.putts[5]).toBe('-');
+  });
+
+  it('9홀 라운드는 9칸 한 표', async () => {
+    const nine = makeNineRound(1, 'out', ME, { id: 'nine-nav', completed: false, currentHole: 0 });
+    delete nine.finishedAt;
+    nine.holes.forEach((h, i) => { if (i >= 2) h.scores[ME] = defaultScore(h.par); });
+    await resume(nine);
+    const tables = navTables();
+    expect(tables).toHaveLength(1);
+    expect(tables[0].putts.slice(2)).toEqual(Array(7).fill('-'));
+    expect(tables[0].putts.slice(0, 2).every((t) => /^\d$/.test(t))).toBe(true);
+  });
+
+  it('동반자와 함께 기록할 때는 퍼트를 입력하지 않으므로 PUTT 줄이 없고, 입력하지 않은 홀은 - 로 보인다', async () => {
+    const multi = makeMultiRound(1);
+    multi.id = 'multi-active'; multi.completed = false; delete multi.finishedAt; multi.currentHole = 2;
+    multi.holes.forEach((h, i) => { if (i >= 2) multi.players.forEach((p) => { h.scores[p] = defaultScore(h.par); }); });
+    await resume(multi);
+    expect(document.querySelector('[data-role="nav-putts"]')).toBeNull();
+    const rows = [...document.querySelectorAll('[data-role="nav-score"]')];
+    expect(rows.length).toBe(multi.players.length * 2);                               // 플레이어마다 OUT · IN 표에 한 줄씩
+    rows.slice(0, multi.players.length).forEach((row) => {
+      expect(cellTexts(row).slice(2)).toEqual(Array(7).fill('-'));
+    });
   });
 });
 

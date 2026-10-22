@@ -282,7 +282,7 @@ function OptionalSection({ icon, label, enabled, summary, required = false, defa
         <span style={{ ...fLbl, color: hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#4d5a78' }}>{label}</span>
         <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {hasValue ? summary
-            : <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
+            : !open && <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
                 {enabled ? '선택 입력' : '클럽 선택 후 입력'}
               </span>}
         </span>
@@ -737,6 +737,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // '온그린까지 N타 · 퍼팅 남음'을 보여주고, 퍼팅을 입력하면 확정한다.
   // (저장값은 2퍼트 기준 예상치로 계속 갱신해 둔다 — 중간에 앱이 꺼져도 남도록.)
   const scorePending = (s) => autoScoreOn(s) && !puttsKnown(s);
+
+  // 홀 표(SCORE · PUTT 줄)에 보일 글자 — 입력하지 않은 홀은 저장된 기본값(파·2퍼트)이 아니라 '-' 로 보여 준다.
+  // PUTT 는 퍼트 수를 직접 입력했거나 확정한 홀만 보인다 (퍼팅을 아직 모르는 홀의 2퍼트는 가정값이다).
+  const NAV_EMPTY = '-';
+  const navStrokesText = (s, done) => (s?.touched !== true ? NAV_EMPTY : !done && scorePending(s) ? '·' : s.strokes);
+  const navPuttsText = (s, done) => (s?.touched !== true || !(done || puttsKnown(s)) || s.putts == null ? NAV_EMPTY : s.putts);
   const strokesToGreen = (s, par) => calcAutoStrokes({ ...s, putts: 0 }, par);
 
   // 홀 확정 — 상세 입력 홀은 스코어·GIR을 샷 기록으로 다시 계산한다(칩인·홀인원 포함).
@@ -2045,7 +2051,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               const isLastPlayer = pi === round.players.length - 1;
               const shortName = player.length > 4 ? player.slice(0,4) : player;
               return (
-                <div key={player} style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
+                <div key={player} data-role="nav-score" style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
                   <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize:11, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
                   <div style={styles.holeNavTableCells}>
                     {holes.map((h,li) => {
@@ -2056,7 +2062,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       return (
                         <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
                           <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
-                            {hio&&<span style={styles.holeInOneStar}>★</span>}{!done && scorePending(psc) ? '·' : psc.strokes}
+                            {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
                           </span>
                         </button>
                       );
@@ -2064,8 +2070,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   </div>
                 </div>
               );
-            }) : (
-            <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }}>
+            }) : (<>
+            <div style={styles.holeNavTableRow} data-role="nav-score">
               <div style={styles.holeNavRowLabel}>SCORE</div>
               <div style={styles.holeNavTableCells}>
                 {holes.map((h,li) => {
@@ -2076,14 +2082,29 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   return (
                     <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
                       <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
-                        {hio&&<span style={styles.holeInOneStar}>★</span>}{!done && scorePending(psc) ? '·' : psc.strokes}
+                        {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
                       </span>
                     </button>
                   );
                 })}
               </div>
             </div>
-            )}
+            {/* PUTT — 입력한 퍼트 수. 동반자와 함께 기록할 때는 퍼트를 입력하지 않으므로(스코어로 추정) 이 줄이 없다 */}
+            <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }} data-role="nav-putts">
+              <div style={styles.holeNavRowLabel}>PUTT</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => {
+                  const i=offset+li; const ic=i===holeIdx;
+                  const psc=h.scores[activePlayer]; const text=navPuttsText(psc, doneFor(h, activePlayer)); const has=text!==NAV_EMPTY;
+                  return (
+                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
+                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#c4cfe0':(ic?'#c9a228':'#4d5a78'), fontWeight: has?'700':'500' }}>{text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            </>)}
           </div>
         ))}
       </div>

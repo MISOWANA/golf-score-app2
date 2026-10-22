@@ -3,6 +3,8 @@ import styles from '../../styles/styles';
 import { scoreTone, diffLabel } from '../ui/scoreTone.js';
 import { tintWash, TINT_ROW } from '../ui/tint.js';
 import { myPlayer, totalPar as sumPar } from '../../engine/players.js';
+import { isNineHoleRound } from '../../engine/nines.js';
+import { nineBadgeStyle } from '../ui/nineBadge.js';
 
 // 홈의 최근 라운드 행과 같은 모양: 파 대비 색이 점수 쪽에서 번지는 틴트 · 점수 · 파 대비 배지. 오른쪽 끝은 삭제.
 export default function HistoryCard({ round, onSelect, onDelete, userName }) {
@@ -16,7 +18,10 @@ export default function HistoryCard({ round, onSelect, onDelete, userName }) {
     <div style={{ ...styles.historyCard, ...tintWash(tone.fg, TINT_ROW) }}>
       <button className="bb-press" style={styles.historyCardMain} onClick={onSelect}>
         <div style={styles.historyCardLeft}>
-          <div style={styles.historyCourse}>{round.courseName}</div>
+          <div style={styles.historyCourse}>
+            {round.courseName}
+            {isNineHoleRound(round) && <span data-role="nine-badge" style={nineBadgeStyle}>9홀</span>}
+          </div>
           <div style={styles.historyMeta}>
             {new Date(round.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })}
             <span style={styles.dot}> · </span>

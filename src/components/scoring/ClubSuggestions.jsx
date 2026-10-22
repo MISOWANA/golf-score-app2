@@ -30,13 +30,13 @@ function Chip({ club, tag, primary, selected, onClick }) {
         color: selected ? GOLD : '#e8edf8',
       }}
     >
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', color: selected ? GOLD : primary ? GREEN : '#6e84a8', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', color: selected ? GOLD : primary ? GREEN : '#6e84a8', whiteSpace: 'nowrap' }}>
         {primary && !selected ? '★ ' : ''}{tag}
       </div>
-      <div style={{ fontSize: primary ? 20 : 16, fontWeight: 900, lineHeight: 1.25, marginTop: 2 }}>
+      <div style={{ fontSize: primary ? 20 : 17, fontWeight: 900, lineHeight: 1.25, marginTop: 2 }}>
         {clubLabelOf(club.club, club.subClub)}
       </div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: selected ? GOLD : '#8896b0', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: selected ? GOLD : '#8896b0', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
         {reachText(club)}
       </div>
     </button>
@@ -50,7 +50,7 @@ export default function ClubSuggestions({ suggest, value, subValue, onPick }) {
   if (suggest.noBag) {
     if (value) return null;
     return (
-      <div style={{ margin: '0 0 10px', padding: '8px 10px', borderRadius: 12, background: 'rgba(142,192,255,0.06)', border: '1px solid rgba(142,192,255,0.2)', fontSize: 11, lineHeight: 1.5, color: '#8ec0ff', wordBreak: 'keep-all' }}>
+      <div style={{ margin: '0 0 10px', padding: '8px 10px', borderRadius: 12, background: 'rgba(142,192,255,0.06)', border: '1px solid rgba(142,192,255,0.2)', fontSize: 13, lineHeight: 1.5, color: '#8ec0ff', wordBreak: 'keep-all' }}>
         마이백에서 클럽별 캐리·토탈 거리를 설정하면 {suggest.distance}m에 맞는 클럽을 추천해 드려요
       </div>
     );
@@ -63,8 +63,8 @@ export default function ClubSuggestions({ suggest, value, subValue, onPick }) {
   return (
     <div style={wrap} data-role="club-suggestions">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 2px 6px' }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: GREEN, letterSpacing: '0.04em' }}>추천 클럽</span>
-        <span style={{ fontSize: 10, color: '#8896b0', fontVariantNumeric: 'tabular-nums' }}>남은 {rec.distance}m · 마이백 거리 기준</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: GREEN, letterSpacing: '0.04em' }}>추천 클럽</span>
+        <span style={{ fontSize: 12, color: '#8896b0', fontVariantNumeric: 'tabular-nums' }}>남은 {rec.distance}m · 마이백 거리 기준</span>
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
         {/* 없는 쪽은 빈 칸으로 둬서 추천 칩이 늘 가운데 있게 한다 */}
@@ -72,7 +72,7 @@ export default function ClubSuggestions({ suggest, value, subValue, onPick }) {
         <Chip club={rec.primary} tag="추천" primary selected={isSelected(rec.primary)} onClick={() => pick(rec.primary)} />
         {rec.longer ? <Chip club={rec.longer} tag="한 클럽 길게" selected={isSelected(rec.longer)} onClick={() => pick(rec.longer)} /> : <div style={{ flex: 1 }} />}
       </div>
-      <div style={{ marginTop: 6, textAlign: 'center', fontSize: 11, color: rec.fit === 'in' ? '#8896b0' : '#e6b94a', lineHeight: 1.4, wordBreak: 'keep-all' }}>
+      <div style={{ marginTop: 6, textAlign: 'center', fontSize: 13, color: rec.fit === 'in' ? '#8896b0' : '#e6b94a', lineHeight: 1.4, wordBreak: 'keep-all' }}>
         {fitText(rec)}
       </div>
     </div>

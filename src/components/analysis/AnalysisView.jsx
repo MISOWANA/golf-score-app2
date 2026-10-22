@@ -10,6 +10,10 @@ import HoleReviewGrid from './HoleReviewGrid';
 import { offGreenShots } from '../../engine/offGreen.js';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import { validSpeed } from '../../engine/greenSpeed.js';
+import { summarizeRound } from '../../engine/roundSummary.js';
+import { applyParEdit } from '../../engine/parEdit.js';
+import { localNoonISO } from '../../engine/roundDate.js';
+import { ninesOf, holeNoOf, isNineHoleRound, roundKindLabel } from '../../engine/nines.js';
 
 export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
@@ -22,38 +26,18 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 
   if (!round) return null;
 
-  const calculateStats = (player) => {
-    const holes = round.holes;
-    const total = holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
-    const totalPar = round.pars.reduce((a, b) => a + b, 0);
-    const totalPutts = holes.reduce((s, h) => s + (h.scores[player]?.putts || 0), 0);
-    const girHoles = holes.filter(h => h.scores[player]?.gir === true).length;
-    // 페어웨이는 O/X를 기록한 홀만 센다 — 기록하지 않은 홀(간편 기록 등)을 미적중으로
-    // 세면 적중률이 실제보다 낮게 나온다. 인사이트(metrics.js)와 같은 기준.
-    const par4or5 = holes.filter(h => h.par > 3 && typeof h.scores[player]?.fairway === 'boolean');
-    const fairwaysHit = par4or5.filter(h => h.scores[player]?.fairway === true).length;
-    const fairwayTotal = par4or5.length;
-
-    const birdies = holes.filter(h => h.scores[player]?.strokes && h.scores[player].strokes - h.par === -1).length;
-    const eagles = holes.filter(h => h.scores[player]?.strokes && h.scores[player].strokes - h.par <= -2).length;
-    const pars = holes.filter(h => h.scores[player]?.strokes === h.par).length;
-    const bogeys = holes.filter(h => h.scores[player]?.strokes && h.scores[player].strokes - h.par === 1).length;
-    const doubles = holes.filter(h => h.scores[player]?.strokes && h.scores[player].strokes - h.par >= 2).length;
-
-    const front9 = holes.slice(0, 9).reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
-    const back9 = holes.slice(9).reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
-
-    return {
-      total, totalPar, diff: total - totalPar, totalPutts,
-      girHoles, girPct: ((girHoles / 18) * 100).toFixed(0),
-      fairwaysHit, fairwayTotal, fairwayPct: fairwayTotal > 0 ? ((fairwaysHit / fairwayTotal) * 100).toFixed(0) : null,
-      birdies, eagles, pars, bogeys, doubles,
-      avgPutts: (totalPutts / 18).toFixed(1),
-      front9, back9
-    };
-  };
-
-  const stats = calculateStats(activePlayer);
+  // 리포트 숫자 — GIR·퍼트·구성은 입력한 홀 기준 (engine/roundSummary.js)
+  const stats = summarizeRound(round, activePlayer);
+  // 9홀 묶음 — 18홀은 OUT·IN, 9홀은 친 9홀 하나. 수정 모달은 수정 중인 코스 이름으로 이름을 단다
+  const nines = ninesOf(round);
+  const editNines = editDraft
+    ? nines.map(n => ({
+        key: n.key,
+        label: (n.key === 'out' ? editDraft.outCourseName : editDraft.inCourseName) || (n.key === 'out' ? 'OUT' : 'IN'),
+        start: n.holes[0].index,
+        end: n.holes[n.holes.length - 1].index + 1,
+      }))
+    : [];
 
   // 라운드를 마친 뒤 홀 스코어 고치기 (복기 화면의 '이 홀 스코어 수정').
   // 직접 고친 값이라 strokesManual로 남기고, GIR은 타수·퍼팅 수로 다시 계산한다.
@@ -105,7 +89,16 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
   };
 
   const saveEdit = () => {
-    if (!editDraft.courseName.trim()) return;
+    if (!editDraft.courseName.trim()) {
+      setEditError('코스 이름을 입력해 주세요.');
+      return;
+    }
+    // 날짜 입력을 비우거나 잘못된 값이면 저장하지 않고 알린다 (예전에는 예외가 나서 아무 반응이 없었다)
+    const newDate = localNoonISO(editDraft.date);
+    if (!newDate) {
+      setEditError('날짜를 선택해 주세요.');
+      return;
+    }
 
     // 스코어는 플레이어 이름으로 묶여 있어서, 두 사람을 같은 이름으로 바꾸면 한쪽
     // 기록이 덮어써져 사라진다. 비운 이름은 원래 이름을 그대로 쓴다.
@@ -116,11 +109,8 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       return;
     }
 
-    // 파 변경 반영 — hole.par 업데이트
-    let updatedHoles = round.holes.map((h, i) => ({
-      ...h,
-      par: editDraft.pars[i],
-    }));
+    // 파 변경 반영 — hole.par 와 함께 입력하지 않은 홀의 기본 타수·GIR 도 새 파에 맞춘다
+    let updatedHoles = applyParEdit(round, editDraft.pars).holes;
 
     // 플레이어명 변경 시 스코어 키 리매핑
     const hasRenames = round.players.some((p, i) => p !== nextNames[i]);
@@ -138,13 +128,9 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
     const activeIdx = round.players.indexOf(activePlayer);
     const newActivePlayer = activeIdx >= 0 ? nextNames[activeIdx] : activePlayer;
 
-    // 날짜: 로컬 정오 기준으로 저장해 타임존 영향 방지
-    const [y, m, d] = editDraft.date.split('-').map(Number);
-    const newDateObj = new Date(y, m - 1, d, 12, 0, 0);
-
     const updatedRound = {
       ...round,
-      date: newDateObj.toISOString(),
+      date: newDate,   // 로컬 정오 기준 — 타임존 영향 방지
       courseName: editDraft.courseName.trim(),
       outCourseName: editDraft.outCourseName.trim() || 'OUT',
       inCourseName: editDraft.inCourseName.trim() || 'IN',
@@ -155,6 +141,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       ...(round.players.length === 1 ? { greenSpeed: editDraft.greenSpeed ?? null } : {}),
     };
 
+    setEditError(null);
     setRound(updatedRound);
     setActivePlayer(newActivePlayer);
     setShowEditModal(false);
@@ -180,6 +167,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       <div style={styles.reportHero}>
         <div style={styles.reportDate}>
           {new Date(round.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {isNineHoleRound(round) && <span data-role="nine-tag"> · {roundKindLabel(round)}</span>}
         </div>
         <h2 style={styles.reportCourse}>{round.courseName}</h2>
 
@@ -210,17 +198,20 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
           <div style={styles.bigScoreLabel}>vs par {stats.totalPar}</div>
         </div>
 
-        <div style={styles.nineGrid}>
-          <div style={styles.nineItem}>
-            <div style={styles.nineLabel}>FRONT 9</div>
-            <div style={styles.nineValue}>{stats.front9}</div>
+        {/* 18홀만 전반·후반 — 9홀 라운드는 위 큰 숫자가 그 9홀의 합계다 */}
+        {!isNineHoleRound(round) && (
+          <div style={styles.nineGrid}>
+            <div style={styles.nineItem}>
+              <div style={styles.nineLabel}>FRONT 9</div>
+              <div style={styles.nineValue}>{stats.front9}</div>
+            </div>
+            <div style={styles.nineDivider} />
+            <div style={styles.nineItem}>
+              <div style={styles.nineLabel}>BACK 9</div>
+              <div style={styles.nineValue}>{stats.back9}</div>
+            </div>
           </div>
-          <div style={styles.nineDivider} />
-          <div style={styles.nineItem}>
-            <div style={styles.nineLabel}>BACK 9</div>
-            <div style={styles.nineValue}>{stats.back9}</div>
-          </div>
-        </div>
+        )}
       </div>
 
       <div style={styles.section}>
@@ -230,7 +221,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       <div style={styles.section}>
         <div style={styles.sectionTitle}>KEY STATS</div>
         <div style={styles.keyStatsGrid}>
-          <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/18 holes`} />
+          <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/${stats.playedCount} holes`} />
           <StatTile label="Fairways" value={stats.fairwayPct != null ? `${stats.fairwayPct}%` : '—'} sub={stats.fairwayTotal > 0 ? `${stats.fairwaysHit}/${stats.fairwayTotal}` : '기록 없음'} />
           <StatTile label="Avg Putts" value={stats.avgPutts} sub={`${stats.totalPutts} total`} />
           <StatTile label="Birdies+" value={stats.birdies + stats.eagles} sub={`${stats.eagles} eagle`} />
@@ -240,11 +231,11 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
       <div style={styles.section}>
         <div style={styles.sectionTitle}>SCORE BREAKDOWN</div>
         <div style={styles.breakdownList}>
-          <BreakdownBar label="Eagle+" count={stats.eagles} total={18} color="#c9a228" />
-          <BreakdownBar label="Birdie" count={stats.birdies} total={18} color="#3db87a" />
-          <BreakdownBar label="Par" count={stats.pars} total={18} color="#8896b0" />
-          <BreakdownBar label="Bogey" count={stats.bogeys} total={18} color="#6b7c9a" />
-          <BreakdownBar label="Double+" count={stats.doubles} total={18} color="#ef5350" />
+          <BreakdownBar label="Eagle+" count={stats.eagles} total={Math.max(1, stats.playedCount)} color="#c9a228" />
+          <BreakdownBar label="Birdie" count={stats.birdies} total={Math.max(1, stats.playedCount)} color="#3db87a" />
+          <BreakdownBar label="Par" count={stats.pars} total={Math.max(1, stats.playedCount)} color="#8896b0" />
+          <BreakdownBar label="Bogey" count={stats.bogeys} total={Math.max(1, stats.playedCount)} color="#6b7c9a" />
+          <BreakdownBar label="Double+" count={stats.doubles} total={Math.max(1, stats.playedCount)} color="#ef5350" />
         </div>
       </div>
 
@@ -332,7 +323,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
           >
             {/* 헤더 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#e8edf8', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '17px', fontWeight: '700', color: '#e8edf8', letterSpacing: '0.04em' }}>
                 라운드 정보 수정
               </div>
               <button
@@ -369,23 +360,28 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
                 maxLength={50}
                 style={{ ...editInput, marginBottom: '8px' }}
               />
+              {/* 9홀 라운드는 친 9홀의 이름만 */}
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  value={editDraft.outCourseName}
-                  onChange={e => setEditDraft({ ...editDraft, outCourseName: e.target.value })}
-                  placeholder="전반 코스명 (OUT)"
-                  maxLength={20}
-                  style={{ ...editInput, flex: 1, marginBottom: 0 }}
-                />
-                <input
-                  type="text"
-                  value={editDraft.inCourseName}
-                  onChange={e => setEditDraft({ ...editDraft, inCourseName: e.target.value })}
-                  placeholder="후반 코스명 (IN)"
-                  maxLength={20}
-                  style={{ ...editInput, flex: 1, marginBottom: 0 }}
-                />
+                {nines.some(n => n.key === 'out') && (
+                  <input
+                    type="text"
+                    value={editDraft.outCourseName}
+                    onChange={e => setEditDraft({ ...editDraft, outCourseName: e.target.value })}
+                    placeholder="전반 코스명 (OUT)"
+                    maxLength={20}
+                    style={{ ...editInput, flex: 1, minWidth: 0, marginBottom: 0 }}
+                  />
+                )}
+                {nines.some(n => n.key === 'in') && (
+                  <input
+                    type="text"
+                    value={editDraft.inCourseName}
+                    onChange={e => setEditDraft({ ...editDraft, inCourseName: e.target.value })}
+                    placeholder="후반 코스명 (IN)"
+                    maxLength={20}
+                    style={{ ...editInput, flex: 1, minWidth: 0, marginBottom: 0 }}
+                  />
+                )}
               </div>
             </div>
 
@@ -413,10 +409,6 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
               </div>
             </div>
 
-            {editError && (
-              <div style={{ fontSize: 12, color: '#ef5350', marginTop: -8, marginBottom: 14, lineHeight: 1.6 }}>{editError}</div>
-            )}
-
             {/* 그린 스피드 — 지난 라운드에도 나중에 넣을 수 있다 */}
             {round.players.length === 1 && (
               <div style={{ marginBottom: '16px' }} data-role="edit-green-speed">
@@ -437,37 +429,32 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
                     {editDraft.pars.reduce((a, b) => a + b, 0)}
                   </div>
                 </div>
-                <div style={styles.parSummaryDivider} />
-                <div style={styles.parSummaryNines}>
-                  <div style={styles.parSummaryNineRow}>
-                    <span style={styles.parSummaryNineLabel}>{editDraft.outCourseName || 'OUT'}</span>
-                    <span style={styles.parSummaryNineValue}>
-                      {editDraft.pars.slice(0, 9).reduce((a, b) => a + b, 0)}
-                    </span>
+                {editNines.length > 1 && (<>
+                  <div style={styles.parSummaryDivider} />
+                  <div style={styles.parSummaryNines}>
+                    {editNines.map(n => (
+                      <div key={n.key} style={styles.parSummaryNineRow}>
+                        <span style={styles.parSummaryNineLabel}>{n.label}</span>
+                        <span style={styles.parSummaryNineValue}>
+                          {editDraft.pars.slice(n.start, n.end).reduce((a, b) => a + b, 0)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div style={styles.parSummaryNineRow}>
-                    <span style={styles.parSummaryNineLabel}>{editDraft.inCourseName || 'IN'}</span>
-                    <span style={styles.parSummaryNineValue}>
-                      {editDraft.pars.slice(9).reduce((a, b) => a + b, 0)}
-                    </span>
-                  </div>
-                </div>
+                </>)}
               </div>
 
-              <div style={{ fontSize: '11px', color: '#4d5a78', marginBottom: '8px', fontStyle: 'italic' }}>
+              <div style={{ fontSize: '13px', color: '#4d5a78', marginBottom: '8px', fontStyle: 'italic' }}>
                 ← 왼쪽 탭: -1 · 오른쪽 탭: +1 →
               </div>
 
-              {[
-                { label: editDraft.outCourseName || 'OUT', start: 0, end: 9 },
-                { label: editDraft.inCourseName || 'IN', start: 9, end: 18 },
-              ].map(({ label, start, end }) => (
+              {editNines.map(({ label, start, end }) => (
                 <div key={label} style={{ ...styles.parTable, marginBottom: '8px' }}>
                   <div style={styles.parTableRow}>
                     <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
                     <div style={styles.parTableCells}>
                       {editDraft.pars.slice(start, end).map((_, localIdx) => (
-                        <div key={localIdx} style={styles.parTableHoleCell}>{start + localIdx + 1}</div>
+                        <div key={localIdx} style={styles.parTableHoleCell}>{holeNoOf(round, start + localIdx)}</div>
                       ))}
                     </div>
                     <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
@@ -510,6 +497,11 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
               ))}
             </div>
 
+            {/* 저장이 막힌 이유 — 스크롤 맨 아래 버튼 바로 위에 둬서 놓치지 않게 */}
+            {editError && (
+              <div role="alert" style={{ fontSize: 14, color: '#ef5350', marginBottom: 12, lineHeight: 1.6 }}>{editError}</div>
+            )}
+
             {/* 버튼 */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
               <button
@@ -536,7 +528,7 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
 const editSectionLabel = {
   display: 'flex',
   alignItems: 'center',
-  fontSize: '10px',
+  fontSize: '12px',
   letterSpacing: '0.2em',
   color: '#8896b0',
   textTransform: 'uppercase',
@@ -551,7 +543,7 @@ const editInput = {
   border: '1px solid #252f4a',
   borderRadius: '12px',
   color: '#e8edf8',
-  fontSize: '14px',
+  fontSize: '15px',
   boxSizing: 'border-box',
   outline: 'none',
   fontFamily: "'Noto Sans KR', -apple-system, sans-serif",

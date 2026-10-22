@@ -3,6 +3,8 @@ import { ChevronLeft, Plus, X, Briefcase } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
 import { bagCoverage } from '../../engine/clubRecommend.js';
+import { setupBlockers } from '../../engine/roundSetup.js';
+import { localNoonISO } from '../../engine/roundDate.js';
 import { useBagClubs } from '../scoring/useBagClubs';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import BagSetupWizard from '../mybag/BagSetupWizard';
@@ -34,6 +36,8 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [inCourseName, setInCourseName] = useState('');
   const [players, setPlayers] = useState([currentUser?.userName || '']);
   const [pars, setPars] = useState(Array(18).fill(4));
+  // 라운드 홀 수: null = 18홀 · 'out' = 9홀(OUT 코스의 파) · 'in' = 9홀(IN 코스의 파). 9홀은 홀 번호가 항상 1~9 다
+  const [nine, setNine] = useState(null);
   const [teeBox, setTeeBox] = useState(null);
   const [clubRecommend, setClubRecommend] = useState(readClubRecommendPref);
   // 그날의 그린 스피드(스팀프 피트) — 선택 입력. 날마다 다르니 지난 값을 기억하지 않는다.
@@ -169,7 +173,10 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const normPlayer = (n) => n.trim().toLowerCase();
   const dupPlayer = players.findIndex((p, i) => p.trim() && players.findIndex(q => normPlayer(q) === normPlayer(p)) !== i);
   const hasDupPlayer = dupPlayer >= 0;
-  const canStart = courseName.trim() && outCourseName.trim() && inCourseName.trim() && players.every(p => p.trim()) && !hasDupPlayer && teeBox;
+  // 시작이 막힌 이유 — 버튼이 흐려지기만 하고 이유를 모르던 문제. OUT·IN 코스 이름은 필수가 아니다
+  // (비우면 'OUT'·'IN' 으로 저장된다).
+  const blockers = setupBlockers({ courseName, players, teeBox });
+  const canStart = blockers.length === 0;
 
   const toggleClubRecommend = () => {
     const next = !clubRecommend;
@@ -195,8 +202,21 @@ export default function SetupView({ onStart, onBack, currentUser }) {
     border: `1.5px solid ${active ? '#c9a228' : '#252f4a'}`,
     background: active ? 'rgba(201,162,40,0.18)' : '#1a2235',
     color: active ? '#c9a228' : '#8896b0',
-    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    fontSize: 14, fontWeight: 700, cursor: 'pointer',
   });
+
+  // 지금 치는 9홀 묶음 — 18홀이면 둘 다, 9홀이면 고른 쪽만 (파 표·코스 이름·합계에 쓴다)
+  const NINE_DEFS = [
+    { key: 'out', label: 'OUT', range: '1~9홀', start: 0, end: 9, nameValue: outCourseName, setName: setOutCourseName, placeholder: '예: 파인' },
+    { key: 'in', label: 'IN', range: '10~18홀', start: 9, end: 18, nameValue: inCourseName, setName: setInCourseName, placeholder: '예: 레이크' },
+  ];
+  const shownNines = nine ? NINE_DEFS.filter((n) => n.key === nine) : NINE_DEFS;
+  const playedPars = nine ? pars.slice(shownNines[0].start, shownNines[0].end) : pars;
+  const holeModes = [
+    { value: null, title: '18홀', sub: '전체' },
+    { value: 'out', title: '전반 9홀', sub: 'OUT 코스' },
+    { value: 'in', title: '후반 9홀', sub: 'IN 코스' },
+  ];
 
   return (
     <div style={styles.container}>
@@ -208,6 +228,23 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         <div style={{ width: 40 }} />
       </header>
 
+      {/* 라운드 홀 수 — 18홀 · 9홀(OUT 코스) · 9홀(IN 코스). 9홀은 어느 쪽이든 1~9번 홀로 친다 */}
+      <div style={styles.formSection} data-role="hole-mode">
+        <label style={styles.formLabel}>라운드</label>
+        <div role="radiogroup" aria-label="라운드 홀 수" style={{ display: 'flex', gap: 8 }}>
+          {holeModes.map((m) => (
+            <button
+              key={String(m.value)} type="button" role="radio" aria-checked={nine === m.value}
+              style={{ ...chipStyle(nine === m.value), padding: '10px 4px' }}
+              onClick={() => setNine(m.value)}
+            >
+              <div style={{ fontSize: 15, fontWeight: 800 }}>{m.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2, opacity: 0.8 }}>{m.sub}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 골프장 검색 */}
       <div style={styles.formSection}>
         <div style={styles.formLabelRow}>
@@ -218,8 +255,8 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             max={todayLocalDateStr()}
             onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
             style={{
-              width: '104px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '12px',
-              color: '#e8edf8', fontSize: '11px', fontWeight: '700', padding: '6px 6px',
+              width: '136px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '12px',
+              color: '#e8edf8', fontSize: '13px', fontWeight: '700', padding: '6px 6px',
               colorScheme: 'dark',
             }}
           />
@@ -258,16 +295,16 @@ export default function SetupView({ onStart, onBack, currentUser }) {
                     onMouseDown={(e) => { e.preventDefault(); selectClub(club); }}
                   >
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e8edf8' }}>{club.name}</div>
-                      <div style={{ fontSize: 10, color: '#4d5a78', marginTop: 2 }}>{subLabel}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#e8edf8' }}>{club.name}</div>
+                      <div style={{ fontSize: 12, color: '#4d5a78', marginTop: 2 }}>{subLabel}</div>
                     </div>
-                    <span style={{ fontSize: 10, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 6, padding: '2px 6px', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, color: '#3d4d65', background: '#0d1425', border: '1px solid #1b2744', borderRadius: 6, padding: '2px 6px', flexShrink: 0 }}>
                       {club.location}
                     </span>
                   </button>
                 );
               })}
-              <div style={{ padding: '7px 14px', fontSize: 9, color: '#3d4d65', borderTop: '1px solid #1b2744' }}>
+              <div style={{ padding: '7px 14px', fontSize: 11, color: '#3d4d65', borderTop: '1px solid #1b2744' }}>
                 찾는 코스가 없으면 직접 입력 후 파 수정 가능
               </div>
             </div>
@@ -278,7 +315,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       {/* 고정 페어 선택 UI (군산CC 등) */}
       {needsPairSelect && (
         <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 16, border: '1px solid #1b2744' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
             코스 조합 선택
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: selectedPairIdx !== null ? 12 : 0 }}>
@@ -292,11 +329,11 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           </div>
           {selectedPairIdx !== null && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 11, color: '#3db87a', fontWeight: 600 }}>
+              <span style={{ fontSize: 13, color: '#3db87a', fontWeight: 600 }}>
                 OUT: {selectedOut?.name} → IN: {selectedIn?.name}
               </span>
               <button
-                style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
+                style={{ fontSize: 12, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
                 onClick={() => selectPair(selectedPairIdx, !pairReversed)}>
                 ⇄ 순서 변경
               </button>
@@ -308,12 +345,12 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       {/* 다중 코스 선택 UI */}
       {needsCourseSelect && (
         <div style={{ margin: '0 0 16px', padding: '14px 16px', background: '#0d1425', borderRadius: 16, border: '1px solid #1b2744' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#4d5a78', letterSpacing: '0.15em', marginBottom: 12 }}>
             코스 조합 선택
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 9, color: '#3d4d65', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>OUT (1~9홀)</div>
+            <div style={{ fontSize: 11, color: '#3d4d65', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>{nine ? 'OUT 코스' : 'OUT (1~9홀)'}</div>
             <div style={{ display: 'flex', gap: 6 }}>
               {selectedClub.courses.map((c, idx) => (
                 <button key={c.name} style={chipStyle(selectedOut?.name === c.name)}
@@ -329,7 +366,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           </div>
 
           <div>
-            <div style={{ fontSize: 9, color: '#3d4d65', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>IN (10~18홀)</div>
+            <div style={{ fontSize: 11, color: '#3d4d65', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>{nine ? 'IN 코스' : 'IN (10~18홀)'}</div>
             <div style={{ display: 'flex', gap: 6 }}>
               {selectedClub.courses.map((c) => (
                 <button key={c.name} style={chipStyle(selectedIn?.name === c.name)}
@@ -341,47 +378,42 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           </div>
 
           {selectedOut && selectedIn && (
-            <div style={{ marginTop: 10, fontSize: 10, color: '#3db87a', fontWeight: 600 }}>
+            <div style={{ marginTop: 10, fontSize: 12, color: '#3db87a', fontWeight: 600 }}>
               ✓ {selectedOut.name}(OUT) + {selectedIn.name}(IN) · PAR {[...selectedOut.pars, ...selectedIn.pars].reduce((a,b)=>a+b,0)}
             </div>
           )}
         </div>
       )}
 
-      {/* 코스 이름 */}
+      {/* 코스 이름 — 9홀이면 치는 9홀의 이름만 */}
       <div style={styles.formSection}>
         <div style={styles.formLabelRow}>
           <label style={styles.formLabel}>코스 이름</label>
-          <button
-            style={{ fontSize: 10, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-            onClick={swapOutIn}
-            title="OUT/IN 순서 바꾸기"
-          >
-            ⇄ OUT/IN 순서 변경
-          </button>
+          {!nine && (
+            <button
+              style={{ fontSize: 12, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={swapOutIn}
+              title="OUT/IN 순서 바꾸기"
+            >
+              ⇄ OUT/IN 순서 변경
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '10px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>OUT (1~9홀)</div>
-            <input
-              style={{ ...styles.formInput, marginBottom: 0 }}
-              placeholder="예: 파인"
-              value={outCourseName}
-              onChange={(e) => setOutCourseName(e.target.value)}
-              maxLength={20}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '10px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>IN (10~18홀)</div>
-            <input
-              style={{ ...styles.formInput, marginBottom: 0 }}
-              placeholder="예: 레이크"
-              value={inCourseName}
-              onChange={(e) => setInCourseName(e.target.value)}
-              maxLength={20}
-            />
-          </div>
+          {shownNines.map((n) => (
+            <div key={n.key} style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '12px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>{nine ? `${n.label} 코스` : `${n.label} (${n.range})`}</div>
+              <input
+                style={{ ...styles.formInput, marginBottom: 0 }}
+                placeholder={n.placeholder}
+                value={n.nameValue}
+                onChange={(e) => n.setName(e.target.value)}
+                maxLength={20}
+              />
+            </div>
+          ))}
         </div>
+        <div style={{ fontSize: 12, color: '#6e84a8', marginTop: 8, lineHeight: 1.6 }}>이름을 비워 두면 OUT · IN 으로 저장돼요</div>
       </div>
 
       {/* 파 설정 */}
@@ -391,32 +423,31 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         <div style={styles.parSummary}>
           <div style={styles.parSummaryMain}>
             <div style={styles.parSummaryLabel}>TOTAL PAR</div>
-            <div style={styles.parSummaryValue}>{pars.reduce((a, b) => a + b, 0)}</div>
+            <div style={styles.parSummaryValue}>{playedPars.reduce((a, b) => a + b, 0)}</div>
           </div>
-          <div style={styles.parSummaryDivider} />
-          <div style={styles.parSummaryNines}>
-            <div style={styles.parSummaryNineRow}>
-              <span style={styles.parSummaryNineLabel}>FRONT</span>
-              <span style={styles.parSummaryNineValue}>{pars.slice(0, 9).reduce((a, b) => a + b, 0)}</span>
+          {!nine && (<>
+            <div style={styles.parSummaryDivider} />
+            <div style={styles.parSummaryNines}>
+              <div style={styles.parSummaryNineRow}>
+                <span style={styles.parSummaryNineLabel}>FRONT</span>
+                <span style={styles.parSummaryNineValue}>{pars.slice(0, 9).reduce((a, b) => a + b, 0)}</span>
+              </div>
+              <div style={styles.parSummaryNineRow}>
+                <span style={styles.parSummaryNineLabel}>BACK</span>
+                <span style={styles.parSummaryNineValue}>{pars.slice(9).reduce((a, b) => a + b, 0)}</span>
+              </div>
             </div>
-            <div style={styles.parSummaryNineRow}>
-              <span style={styles.parSummaryNineLabel}>BACK</span>
-              <span style={styles.parSummaryNineValue}>{pars.slice(9).reduce((a, b) => a + b, 0)}</span>
-            </div>
-          </div>
+          </>)}
         </div>
 
         <div style={styles.parTableHint}>← 왼쪽 탭: -1 · 오른쪽 탭: +1 →</div>
-        {[
-          { label: 'OUT', start: 0, end: 9 },
-          { label: 'IN', start: 9, end: 18 }
-        ].map(({ label, start, end }) => (
+        {shownNines.map(({ label, start, end }) => (
           <div key={label} style={styles.parTable}>
             <div style={styles.parTableRow}>
               <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
               <div style={styles.parTableCells}>
                 {pars.slice(start, end).map((_, localIdx) => (
-                  <div key={localIdx} style={styles.parTableHoleCell}>{start + localIdx + 1}</div>
+                  <div key={localIdx} style={styles.parTableHoleCell}>{nine ? localIdx + 1 : start + localIdx + 1}</div>
                 ))}
               </div>
               <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
@@ -487,12 +518,12 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           </div>
         ))}
         {hasDupPlayer && (
-          <div style={{ fontSize: 12, color: '#ef5350', marginTop: 6, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: '#ef5350', marginTop: 6, lineHeight: 1.6 }}>
             같은 이름의 플레이어가 있어요. 이름을 다르게 입력해 주세요 (예: 철수A, 철수B).
           </div>
         )}
         {players.length > 1 && (
-          <div style={{ fontSize: 12, color: '#8896b0', marginTop: 6, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: '#8896b0', marginTop: 6, lineHeight: 1.6 }}>
             2명 이상은 스코어 위주의 간편 기록이에요. 샷 상세 입력과 스탯·인사이트 집계는 1인 라운드만 지원해요.
           </div>
         )}
@@ -521,7 +552,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
                 onClick={() => setTeeBox(active ? null : id)}
               >
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: color, boxShadow: active ? `0 0 6px ${border}` : 'none', border: dotBorder || 'none' }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: active ? (activeText || color) : '#4d5a78', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: active ? (activeText || color) : '#4d5a78', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                   {id.replace('티', '')}
                 </span>
               </button>
@@ -537,7 +568,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             <label style={styles.formLabel}>그린 스피드 (선택)</label>
           </div>
           <GreenSpeedPicker value={greenSpeed} onChange={setGreenSpeed} />
-          <div style={{ fontSize: 11, color: '#6e84a8', marginTop: 8, lineHeight: 1.6, wordBreak: 'keep-all' }}>
+          <div style={{ fontSize: 13, color: '#6e84a8', marginTop: 8, lineHeight: 1.6, wordBreak: 'keep-all' }}>
             코스 안내나 캐디가 알려 주는 그날의 값을 넣어 두면 퍼팅 분석에서 빠른 날·느린 날을 나눠 봐요. 라운드 중에도 바꿀 수 있어요.
           </div>
         </div>
@@ -560,8 +591,8 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: clubRecommend ? '#e8edf8' : '#8896b0' }}>클럽 추천 받기</div>
-              <div style={{ fontSize: 11, color: '#8896b0', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: clubRecommend ? '#e8edf8' : '#8896b0' }}>클럽 추천 받기</div>
+              <div style={{ fontSize: 13, color: '#8896b0', marginTop: 3, lineHeight: 1.5, wordBreak: 'keep-all' }}>
                 남은 거리를 입력하면 마이백 거리로 알맞은 클럽을 추천해요
               </div>
             </div>
@@ -570,7 +601,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
             </span>
           </button>
           {clubRecommend && bagNote && (
-            <div data-role="club-recommend-note" style={{ fontSize: 11, marginTop: 8, lineHeight: 1.6, wordBreak: 'keep-all', color: bagNote.warn ? '#e6b94a' : '#8896b0' }}>
+            <div data-role="club-recommend-note" style={{ fontSize: 13, marginTop: 8, lineHeight: 1.6, wordBreak: 'keep-all', color: bagNote.warn ? '#e6b94a' : '#8896b0' }}>
               {bagNote.text}
             </div>
           )}
@@ -583,19 +614,19 @@ export default function SetupView({ onStart, onBack, currentUser }) {
                   <Briefcase size={18} strokeWidth={1.9} />
                 </span>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#f3d36b', lineHeight: 1.4 }}>마이백에 등록한 클럽이 없어요</div>
-                  <div style={{ fontSize: 12, lineHeight: 1.6, color: '#c4cfe0', marginTop: 2, wordBreak: 'keep-all' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#f3d36b', lineHeight: 1.4 }}>마이백에 등록한 클럽이 없어요</div>
+                  <div style={{ fontSize: 14, lineHeight: 1.6, color: '#c4cfe0', marginTop: 2, wordBreak: 'keep-all' }}>
                     라운드 전에 한 번 등록해 두면 코스에서 남은 거리에 맞는 클럽을 바로 추천받아요.
                   </div>
                 </div>
               </div>
               <button type="button" data-role="bag-register-open" onClick={() => setShowBagWizard(true)}
-                style={{ width: '100%', height: 46, marginTop: 10, borderRadius: 12, border: 'none', background: 'linear-gradient(180deg, #f3d36b 0%, #c9a228 100%)', color: '#0b0e18', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                마이백 등록하기<span style={{ fontSize: 11, fontWeight: 700, opacity: 0.75 }}>· 약 1분</span>
+                style={{ width: '100%', height: 46, marginTop: 10, borderRadius: 12, border: 'none', background: 'linear-gradient(180deg, #f3d36b 0%, #c9a228 100%)', color: '#0b0e18', fontSize: 15, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                마이백 등록하기<span style={{ fontSize: 13, fontWeight: 700, opacity: 0.75 }}>· 약 1분</span>
               </button>
               {/* 이번 라운드만 추천을 끈다 — 스위치의 '마지막 선택 기억'은 건드리지 않아서 다음 라운드에 다시 안내한다 */}
               <button type="button" data-role="bag-register-later" onClick={() => setClubRecommend(false)}
-                style={{ width: '100%', height: 40, border: 'none', background: 'none', color: '#8896b0', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ width: '100%', height: 40, border: 'none', background: 'none', color: '#8896b0', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 나중에 할게요 (추천 없이 시작)
               </button>
             </div>
@@ -603,10 +634,15 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         </div>
       )}
 
+      {!canStart && (
+        <div data-role="start-blockers" role="status" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.7, marginBottom: 10, textAlign: 'center' }}>
+          {blockers.map((b) => <div key={b}>{b}</div>)}
+        </div>
+      )}
       <button
         style={{ ...styles.primaryButton, opacity: canStart ? 1 : 0.4, cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, new Date(`${roundDate}T12:00:00`).toISOString(), clubRecommend, players.length === 1 ? greenSpeed : null)}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, localNoonISO(roundDate) ?? new Date().toISOString(), clubRecommend, players.length === 1 ? greenSpeed : null, nine)}
       >
         라운드 시작하기
       </button>

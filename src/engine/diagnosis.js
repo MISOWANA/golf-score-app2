@@ -9,10 +9,12 @@ import { penaltyCount } from './penalties.js';
 import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 
 function puttingDirective(round, player, breakdownHoles) {
-  const threePuttHoles = breakdownHoles.filter(h => h.categories.putting > 0);
+  // breakdownHoles 는 round.holes 와 같은 순서다 — 홀 번호가 아니라 위치로 찾는다
+  // (홀 번호와 배열 위치는 같지 않을 수 있다 — 예전 기록·가져온 기록의 번호)
+  const threePuttHoles = breakdownHoles.map((h, i) => ({ h, i })).filter(({ h }) => h.categories.putting > 0);
   if (threePuttHoles.length > 0) {
     // 3퍼트 원인은 퍼트 거리로 구분한다 — 거리 기록이 없으면 거리감 탓으로 단정하지 않는다.
-    const analyses = threePuttHoles.map(h => analyzePutts(round.holes[h.holeNumber - 1].scores?.[player]));
+    const analyses = threePuttHoles.map(({ i }) => analyzePutts(round.holes[i].scores?.[player]));
     const sum = summarizePuttCauses(analyses);
     const n = threePuttHoles.length;
     if (sum.known === 0) {

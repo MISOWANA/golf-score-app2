@@ -576,7 +576,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'green_miss_lateral', severity: 'neutral',
       title: '그린 좌우 미스',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 {greenMissDirection} 방향으로 놓쳤습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 {greenMissWord} 방향으로 놓쳤습니다.',
       recommendationTemplate: '같은 방향 반복 미스라면 정렬 또는 스윙 패스를 점검하세요.',
       tags: ['gir', 'green_miss', 'lateral'],
     },

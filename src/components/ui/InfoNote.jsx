@@ -41,7 +41,7 @@ export default function InfoNote({ title = '참고', children }) {
           background: 'transparent', border: 'none', cursor: 'pointer', color: open ? '#c9a228' : '#7f93b3',
         }}
       >
-        <span aria-hidden="true" style={circle(16, 10)}>!</span>
+        <span aria-hidden="true" style={circle(18, 12)}>!</span>
       </button>
 
       {open && createPortal(
@@ -59,15 +59,15 @@ export default function InfoNote({ title = '참고', children }) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12, color: BLUE }}>
-              <span aria-hidden="true" style={{ ...circle(20, 12), flexShrink: 0 }}>!</span>
-              <div id={titleId} style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, wordBreak: 'keep-all' }}>{title}</div>
+              <span aria-hidden="true" style={{ ...circle(22, 13), flexShrink: 0 }}>!</span>
+              <div id={titleId} style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, wordBreak: 'keep-all' }}>{title}</div>
             </div>
-            <div data-role="info-note-body" className="bb-note-body" style={{ overflowY: 'auto', fontSize: 13, lineHeight: 1.7, color: '#b4c0d8', wordBreak: 'keep-all' }}>
+            <div data-role="info-note-body" className="bb-note-body" style={{ overflowY: 'auto', fontSize: 14, lineHeight: 1.7, color: '#b4c0d8', wordBreak: 'keep-all' }}>
               {children}
             </div>
             <button
               ref={closeRef} type="button" onClick={() => setOpen(false)}
-              style={{ marginTop: 16, padding: '12px 8px', borderRadius: 10, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              style={{ marginTop: 16, padding: '12px 8px', borderRadius: 10, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
             >확인</button>
           </div>
         </div>,

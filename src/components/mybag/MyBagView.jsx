@@ -450,18 +450,18 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
           <div style={styles.bagScopeLabel}>내 클럽 구성</div>
           <div style={styles.bagScopeValue}>
             <span data-role="bag-count">{comp.total}</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: comp.overLimit ? COLOR.red : COLOR.muted }}>/ {BAG_LIMIT}개{comp.overLimit ? ' · 규정 초과' : ''}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: comp.overLimit ? COLOR.red : COLOR.muted }}>/ {BAG_LIMIT}개{comp.overLimit ? ' · 규정 초과' : ''}</span>
           </div>
-          <div style={{ fontSize: 11.5, color: COLOR.muted, marginTop: 3, lineHeight: 1.4, wordBreak: 'keep-all' }}>{comp.text}</div>
+          <div style={{ fontSize: 13, color: COLOR.muted, marginTop: 3, lineHeight: 1.4, wordBreak: 'keep-all' }}>{comp.text}</div>
         </div>
-        <span data-role="bag-saved" style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 999, border: `1px solid ${dirty ? BAG_COLOR.unsaved : isSaved ? COLOR.green : COLOR.amber}`, color: dirty ? BAG_COLOR.unsaved : isSaved ? COLOR.green : COLOR.amber }}>
+        <span data-role="bag-saved" style={{ flexShrink: 0, alignSelf: 'flex-start', fontSize: 13, fontWeight: 800, padding: '3px 10px', borderRadius: 999, border: `1px solid ${dirty ? BAG_COLOR.unsaved : isSaved ? COLOR.green : COLOR.amber}`, color: dirty ? BAG_COLOR.unsaved : isSaved ? COLOR.green : COLOR.amber }}>
           {dirty ? '저장 필요' : isSaved ? '저장됨' : '기본값'}
         </span>
       </div>
       <Takeaway bare tone={statusTake.tone} id="bag-status">{statusTake.text}</Takeaway>
       {!isSaved && (
         <button type="button" data-role="bag-register-start" onClick={() => setWizardOff(false)}
-          style={{ width: '100%', height: 46, margin: '6px 0 4px', borderRadius: 14, border: '1px solid rgba(201,162,40,0.55)', background: 'rgba(201,162,40,0.1)', color: COLOR.goldHi, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+          style={{ width: '100%', height: 46, margin: '6px 0 4px', borderRadius: 14, border: '1px solid rgba(201,162,40,0.55)', background: 'rgba(201,162,40,0.1)', color: COLOR.goldHi, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
           내 클럽 등록하기
         </button>
       )}
@@ -472,7 +472,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
 
       {tab === 'clubs' && (
         <div data-role="bag-page-clubs">
-          <div style={{ fontSize: 12, color: COLOR.muted, textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: COLOR.muted, textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5 }}>
             클럽을 눌러 이름과 거리를 고쳐요 · ⋮⋮을 끌어 순서를 바꿔요
           </div>
 
@@ -483,7 +483,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
               <Card key={type} id={`bag-${type.toLowerCase()}`} title={TYPE_TITLE[type]}
                 right={canAdd && (
                   <button type="button" onClick={() => addClub(type)} aria-label={`${type} 추가`}
-                    style={{ height: 36, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.5)', background: 'rgba(201,162,40,0.1)', color: COLOR.goldHi, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                    style={{ height: 36, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.5)', background: 'rgba(201,162,40,0.1)', color: COLOR.goldHi, fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
                     <Plus size={14} strokeWidth={2.6} /><span>{TYPE_ADD_LABEL[type]} 추가</span>
                   </button>
                 )}>
@@ -523,7 +523,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
           })}
 
           <button type="button" data-role="bag-reset" onClick={() => setPendingReset(true)}
-            style={{ width: '100%', height: 44, background: 'none', border: 'none', color: COLOR.faint, fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            style={{ width: '100%', height: 44, background: 'none', border: 'none', color: COLOR.faint, fontSize: 14, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
             기본 구성으로 되돌리기
           </button>
         </div>
@@ -531,7 +531,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
 
       {tab === 'chart' && (
         <div data-role="bag-page-chart">
-          <div style={{ fontSize: 12, color: COLOR.muted, textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: COLOR.muted, textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5 }}>
             클럽별 거리를 한눈에 봐요 · 숫자는 모두 미터(m) · 누르면 거리를 고쳐요
           </div>
 
@@ -554,7 +554,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                         },
                         ...(dirty ? [{ key: 'unsaved', color: BAG_COLOR.unsaved, name: '●', text: '아직 저장하지 않은 거리', dim: false, mark: <i style={{ display: 'block', width: 7, height: 7, borderRadius: '50%', background: BAG_COLOR.unsaved }} /> }] : []),
                       ].map((l) => (
-                        <div key={l.key} data-role={`bag-legend-${l.key}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, lineHeight: 1.45, opacity: l.dim ? 0.55 : 1 }}>
+                        <div key={l.key} data-role={`bag-legend-${l.key}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, lineHeight: 1.45, opacity: l.dim ? 0.55 : 1 }}>
                           <span aria-hidden="true" style={{ width: 14, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>{l.mark}</span>
                           <span style={{ minWidth: 0, wordBreak: 'keep-all' }}>
                             {l.key !== 'unsaved' && <b style={{ color: l.color, marginRight: 6 }}>{l.name}</b>}
@@ -568,15 +568,15 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                     <div data-role="bag-chart-head" style={{ display: 'flex', alignItems: 'flex-end', gap: CHART_COL.gap, paddingBottom: 4 }}>
                       <span style={{ width: CHART_COL.name, flexShrink: 0 }} />
                       <span style={{ flex: 1, minWidth: 0 }} />
-                      <span style={{ width: CHART_COL.carry + CHART_COL.total + CHART_COL.gap, flexShrink: 0, textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: COLOR.muted, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>마이백 등록</span>
-                      {hasMeasured && <span style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: BAG_COLOR.measured, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>라운드</span>}
+                      <span style={{ width: CHART_COL.carry + CHART_COL.total + CHART_COL.gap, flexShrink: 0, textAlign: 'center', fontSize: 11, fontWeight: 700, color: COLOR.muted, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>마이백 등록</span>
+                      {hasMeasured && <span style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'center', fontSize: 11, fontWeight: 700, color: BAG_COLOR.measured, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>라운드</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: CHART_COL.gap, paddingBottom: 4, borderBottom: `1px solid ${COLOR.line}` }}>
                       <span style={{ width: CHART_COL.name, flexShrink: 0 }} />
                       <span style={{ flex: 1, minWidth: 0 }} />
-                      <span style={{ width: CHART_COL.carry, flexShrink: 0, textAlign: 'right', fontSize: 11, fontWeight: 800, color: BAG_COLOR.carry }}>캐리</span>
-                      <span style={{ width: CHART_COL.total, flexShrink: 0, textAlign: 'right', fontSize: 11, fontWeight: 800, color: BAG_COLOR.total }}>토탈</span>
-                      {hasMeasured && <span style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'right', fontSize: 11, fontWeight: 800, color: BAG_COLOR.measured }}>실측</span>}
+                      <span style={{ width: CHART_COL.carry, flexShrink: 0, textAlign: 'right', fontSize: 13, fontWeight: 800, color: BAG_COLOR.carry }}>캐리</span>
+                      <span style={{ width: CHART_COL.total, flexShrink: 0, textAlign: 'right', fontSize: 13, fontWeight: 800, color: BAG_COLOR.total }}>토탈</span>
+                      {hasMeasured && <span style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'right', fontSize: 13, fontWeight: 800, color: BAG_COLOR.measured }}>실측</span>}
                     </div>
                   </>
                 )}
@@ -587,7 +587,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                   return (
                     <button key={club.id} type="button" data-role={`bag-chart-${club.id}`} onClick={() => jumpToClub(club.id)}
                       style={{ width: '100%', minHeight: 46, display: 'flex', alignItems: 'center', gap: CHART_COL.gap, background: 'none', border: 'none', borderBottom: `1px solid ${COLOR.line}`, padding: '4px 0', color: COLOR.text, cursor: 'pointer', textAlign: 'left' }}>
-                      <span style={{ width: CHART_COL.name, flexShrink: 0, position: 'relative', fontSize: 13, fontWeight: 800, overflow: 'visible', whiteSpace: 'nowrap' }}>
+                      <span style={{ width: CHART_COL.name, flexShrink: 0, position: 'relative', fontSize: 14, fontWeight: 800, overflow: 'visible', whiteSpace: 'nowrap' }}>
                         {draft[club.id] && <i data-role={`bag-chart-unsaved-${club.id}`} aria-label="저장 전" style={{ position: 'absolute', left: -9, top: '50%', marginTop: -3, width: 6, height: 6, borderRadius: '50%', background: BAG_COLOR.unsaved }} />}
                         <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>{club.name}</span>
                       </span>
@@ -598,16 +598,16 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                         <span data-role={`bag-chart-total-bar-${club.id}`} style={{ position: 'absolute', left: 0, top: 9, height: 5, width: pct(club.total), borderRadius: 3, background: BAG_COLOR.total }} />
                         {m && <span data-role="bag-chart-measured" style={{ position: 'absolute', top: -2, bottom: -2, left: `calc(${pct(m.median)} - 1.5px)`, width: 3, borderRadius: 1.5, background: BAG_COLOR.measured }} />}
                       </span>
-                      <span data-role={`bag-chart-carry-${club.id}`} style={{ width: CHART_COL.carry, flexShrink: 0, textAlign: 'right', fontSize: 12.5, fontWeight: 800, color: BAG_COLOR.carry, fontVariantNumeric: 'tabular-nums' }}>{club.carry}</span>
-                      <span data-role={`bag-chart-total-${club.id}`} style={{ width: CHART_COL.total, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: 900, color: BAG_COLOR.total, fontVariantNumeric: 'tabular-nums' }}>{club.total}</span>
+                      <span data-role={`bag-chart-carry-${club.id}`} style={{ width: CHART_COL.carry, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: 800, color: BAG_COLOR.carry, fontVariantNumeric: 'tabular-nums' }}>{club.carry}</span>
+                      <span data-role={`bag-chart-total-${club.id}`} style={{ width: CHART_COL.total, flexShrink: 0, textAlign: 'right', fontSize: 15, fontWeight: 900, color: BAG_COLOR.total, fontVariantNumeric: 'tabular-nums' }}>{club.total}</span>
                       {hasMeasured && (
                         <span data-role={`bag-chart-meas-${club.id}`} style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}>
                           {m ? (
                             <>
-                              <span style={{ display: 'block', fontSize: 14, fontWeight: 900, color: BAG_COLOR.measured }}>{m.median}</span>
-                              <span style={{ display: 'block', fontSize: 9.5, color: COLOR.faint }}>{m.n}샷</span>
+                              <span style={{ display: 'block', fontSize: 15, fontWeight: 900, color: BAG_COLOR.measured }}>{m.median}</span>
+                              <span style={{ display: 'block', fontSize: 11, color: COLOR.faint }}>{m.n}샷</span>
                             </>
-                          ) : <span style={{ fontSize: 12, color: COLOR.faint }}>–</span>}
+                          ) : <span style={{ fontSize: 14, color: COLOR.faint }}>–</span>}
                         </span>
                       )}
                     </button>
@@ -617,8 +617,8 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                 {unsetRows.map((club) => (
                   <button key={club.id} type="button" data-role={`bag-chart-${club.id}`} onClick={() => jumpToClub(club.id)}
                     style={{ width: '100%', minHeight: 46, display: 'flex', alignItems: 'center', gap: CHART_COL.gap, background: 'none', border: 'none', borderBottom: `1px solid ${COLOR.line}`, padding: '4px 0', color: COLOR.text, cursor: 'pointer', textAlign: 'left' }}>
-                    <span style={{ width: CHART_COL.name, flexShrink: 0, fontSize: 13, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{club.name}</span>
-                    <span data-role={`bag-chart-unset-${club.id}`} style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: COLOR.amber, wordBreak: 'keep-all' }}>거리를 확인하지 않았어요 · 눌러서 입력</span>
+                    <span style={{ width: CHART_COL.name, flexShrink: 0, fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{club.name}</span>
+                    <span data-role={`bag-chart-unset-${club.id}`} style={{ flex: 1, minWidth: 0, fontSize: 13, color: COLOR.amber, wordBreak: 'keep-all' }}>거리를 확인하지 않았어요 · 눌러서 입력</span>
                   </button>
                 ))}
               </>
@@ -658,16 +658,16 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
               {dirty ? (
                 <>
                   <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                    <div data-role="bag-dirty" style={{ fontSize: 13.5, fontWeight: 800, color: COLOR.text }}>거리 {dirtyCount}개 변경됨</div>
-                    <div style={{ fontSize: 11, color: COLOR.muted, marginTop: 1 }}>저장해야 클럽 추천에 반영돼요</div>
+                    <div data-role="bag-dirty" style={{ fontSize: 14, fontWeight: 800, color: COLOR.text }}>거리 {dirtyCount}개 변경됨</div>
+                    <div style={{ fontSize: 13, color: COLOR.muted, marginTop: 1 }}>저장해야 클럽 추천에 반영돼요</div>
                   </div>
                   <button type="button" data-role="bag-discard" onClick={discardDrafts}
-                    style={{ height: 44, padding: '0 14px', borderRadius: 12, border: `1px solid ${COLOR.line}`, background: 'transparent', color: COLOR.muted, fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>취소</button>
+                    style={{ height: 44, padding: '0 14px', borderRadius: 12, border: `1px solid ${COLOR.line}`, background: 'transparent', color: COLOR.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>취소</button>
                   <button type="button" data-role="bag-save" onClick={saveDrafts}
-                    style={{ height: 44, padding: '0 22px', borderRadius: 12, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#0b0e18', fontSize: 14, fontWeight: 900, cursor: 'pointer', flexShrink: 0 }}>저장</button>
+                    style={{ height: 44, padding: '0 22px', borderRadius: 12, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#0b0e18', fontSize: 15, fontWeight: 900, cursor: 'pointer', flexShrink: 0 }}>저장</button>
                 </>
               ) : (
-                <div data-role="bag-flash" style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 800, color: COLOR.green, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓ 저장했어요</div>
+                <div data-role="bag-flash" style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 800, color: COLOR.green, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓ 저장했어요</div>
               )}
             </div>
           </div>

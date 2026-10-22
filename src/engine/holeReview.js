@@ -158,7 +158,7 @@ export function buildHoleReview(hole, player, holeIdx) {
   const pa = analyzePutts(s);
 
   return {
-    holeIdx, holeNo: holeIdx + 1, par,
+    holeIdx, holeNo: hole.holeNumber ?? holeIdx + 1, par,
     strokes: s.strokes ?? null,
     diff: s.strokes != null ? s.strokes - par : null,
     puttCount: s.putts ?? 0,

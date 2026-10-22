@@ -22,11 +22,14 @@ import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
 import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
+import { totalPar as sumPar } from '../../engine/players.js';
+import { isFullRound } from '../../engine/nines.js';
 import { buildInsightReport } from '../../engine/insightIndex.js';
 import { buildLossShares, buildTeePenalty, buildPuttZone, buildPrescriptions } from '../../engine/roundStory.js';
 import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
+import ExcludedNote from '../stats/ExcludedNote.jsx';
 
 // 리포트의 장마다 탭 하나 — 장 하나가 한 페이지다. 라운드 복기·검색은 장이 아니라 헤더의 도구 버튼으로 연다.
 const CHAPTER_TABS = CHAPTERS.map((c) => [c.key, c.short]);
@@ -54,7 +57,7 @@ function ScopeToggle({ rounds, isCareerMode, isLatest = true, onPick, small = fa
         const on = (isCareerMode ? 'career' : 'round') === k;
         return (
           <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`${prefix}-${k}`} onClick={() => onPick(k)}
-            style={{ height: small ? 30 : 36, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 12, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
+            style={{ height: small ? 30 : 36, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
         );
       })}
     </div>
@@ -99,17 +102,17 @@ function RoundPicker({ allRounds, pick, onPick }) {
       {allRounds.map((r, i) => {
         const p = r.players[0];
         const total = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
-        const diff = total - r.pars.reduce((a, b) => a + b, 0);
+        const diff = total - sumPar(r);
         const d = new Date(r.date);
         const on = i === pick;
         return (
           <button key={r.id} type="button" role="option" aria-selected={on} data-role={`pick-${i}`} onClick={() => onPick(i)}
             style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? 'rgba(201,162,40,0.14)' : 'transparent', color: '#e8edf8', textAlign: 'left' }}>
-            <span style={{ width: 38, fontSize: 12, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0', fontVariantNumeric: 'tabular-nums' }}>{d.getMonth() + 1}/{d.getDate()}</span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.courseName || '코스 이름 없음'}</span>
-            {i === 0 && <span style={{ fontSize: 10.5, fontWeight: 800, color: '#3db87a', border: '1px solid rgba(61,184,122,0.5)', borderRadius: 999, padding: '1px 7px' }}>최신</span>}
-            <span style={{ fontSize: 15, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{total}</span>
-            <span style={{ width: 28, fontSize: 12, fontWeight: 800, textAlign: 'right', color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>{fmtSigned(diff, 0)}</span>
+            <span style={{ width: 38, fontSize: 14, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0', fontVariantNumeric: 'tabular-nums' }}>{d.getMonth() + 1}/{d.getDate()}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.courseName || '코스 이름 없음'}</span>
+            {i === 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#3db87a', border: '1px solid rgba(61,184,122,0.5)', borderRadius: 999, padding: '1px 7px' }}>최신</span>}
+            <span style={{ fontSize: 16, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{total}</span>
+            <span style={{ width: 28, fontSize: 14, fontWeight: 800, textAlign: 'right', color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>{fmtSigned(diff, 0)}</span>
           </button>
         );
       })}
@@ -126,7 +129,7 @@ function swapPast(v) {
   return v;
 }
 
-export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0 }) {
+export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0, nineExcludedCount = 0 }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
   const [pickIdx, setPickIdx] = useState(0);   // 리포트로 볼 라운드 — allRounds 안의 위치 (0 = 최신)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -150,11 +153,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={styles.pageTitle}>Insights</div>
           <div style={{ width: 40 }} />
         </header>
-        {excludedCount > 0 && (
-        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
-          여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
-        </div>
-      )}
+        <ExcludedNote multiCount={excludedCount} nineCount={nineExcludedCount} margin="0 16px 12px" />
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>⚡</div>
           <div style={styles.emptyTitle}>분석할 데이터가 없습니다</div>
@@ -245,9 +244,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     });
     return { ob, hazard, unplayable, threePutt, onePutt };
   })();
-  const roundTrend = [...rounds].reverse().map((r, idx) => {
+  // 스코어 추세·평균·편차는 18홀 라운드끼리만 — 9홀 점수가 섞이면 추세·평균이 거짓이 된다.
+  // 18홀 라운드가 하나도 없으면(9홀만 친 경우) 있는 라운드로 보여 준다.
+  const scoreRounds = rounds.some(isFullRound) ? rounds.filter(isFullRound) : rounds;
+  const roundTrend = [...scoreRounds].reverse().map((r, idx) => {
     const p = r.players[0];
-    const par = r.pars.reduce((a, b) => a + b, 0);
+    const par = sumPar(r);
     const score = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
     return {
       id: r.id, roundNo: idx + 1, date: r.date,
@@ -262,6 +264,8 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     const p = r.players[0];
     return r.holes.map(h => ({
       par: h.par,
+      holeNumber: h.holeNumber,
+      played: h.scores[p]?.touched !== false,   // 입력한 홀 (전반/후반 페이스 카드가 쓴다)
       strokes: h.scores[p]?.strokes || 0,
       putts: h.scores[p]?.putts || 0,
       gir: h.scores[p]?.gir,
@@ -283,7 +287,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     return { par: parNum, count: holes.length, avgStrokes, avgDiff, birdieRate, bogeyPlusRate };
   }).filter(Boolean);
 
-  const scores = rounds.map(r => {
+  const scores = scoreRounds.map(r => {
     const p = r.players[0];
     return r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
   });
@@ -335,10 +339,14 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
   const patternInsights = localize(isCareerMode ? careerInsights : roundInsights);
 
-  const frontHoles = allHoles.filter((_, idx) => idx % 18 < 9);
-  const backHoles = allHoles.filter((_, idx) => idx % 18 >= 9);
-  const frontAvgDiff = frontHoles.reduce((s, h) => s + h.diff, 0) / frontHoles.length;
-  const backAvgDiff = backHoles.reduce((s, h) => s + h.diff, 0) / backHoles.length;
+  // 전반/후반 페이스는 입력한 홀만 본다 — 입력하지 않은 후반(파로 저장됨)을 '후반 강세'로 읽지 않게.
+  // 한쪽이 3홀 미만이면 비교하지 않는다 (NaN → 카드를 감춘다).
+  const MIN_PACE_HOLES = 3;
+  const frontHoles = allHoles.filter(h => h.played && h.holeNumber <= 9);
+  const backHoles = allHoles.filter(h => h.played && h.holeNumber > 9);
+  const avgDiffOf = (list) => (list.length >= MIN_PACE_HOLES ? list.reduce((s, h) => s + h.diff, 0) / list.length : NaN);
+  const frontAvgDiff = avgDiffOf(frontHoles);
+  const backAvgDiff = avgDiffOf(backHoles);
   const fadeDiff = backAvgDiff - frontAvgDiff;
 
   // ── §3~5 딥다이브 통계 ───────────────────────────────────────────────────
@@ -390,7 +398,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     })
     : null;
 
-  const roundPar = latestRound.pars.reduce((a, b) => a + b, 0);
+  const roundPar = sumPar(latestRound);
   const roundScore = latestRound.holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
 
   // 범위 카드: 이번 라운드면 그 라운드의 스코어, 누적이면 평균 스코어와 파 대비 평균
@@ -419,17 +427,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                 onClick={() => changeView(on ? 'report' : v)}
                 style={{ width: 46, height: 46, borderRadius: 12, background: on ? 'rgba(201,162,40,0.14)' : 'transparent', border: 'none', cursor: 'pointer', color: on ? '#f3d36b' : '#c4cfe0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 0 }}>
                 <Icon size={20} strokeWidth={1.9} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0' }}>{text}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0' }}>{text}</span>
               </button>
             );
           })}
         </div>
       </header>
-      {excludedCount > 0 && (
-        <div style={{ margin: '0 16px 12px', padding: '9px 12px', borderRadius: 12, background: 'rgba(136,150,176,0.08)', border: '1px solid #1b2238', fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
-          여러 명이 함께 기록한 라운드 {excludedCount}개는 집계에서 제외돼요 (1인 라운드만 분석)
-        </div>
-      )}
+      <ExcludedNote multiCount={excludedCount} nineCount={nineExcludedCount} margin="0 16px 12px" />
 
       {/* 범위 카드 — 무엇을 보고 있는지(어느 라운드의 이번 라운드 / 누적)를 한 곳에서 정한다 */}
       {tab === 'report' && (() => {
@@ -446,11 +450,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </div>
             <div style={styles.insightsScopeValue}>
               <span data-role="scope-score">{isCareerMode ? avgScore.toFixed(1) : roundScore}</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: scopeDiff > 0 ? '#ef5350' : scopeDiff < 0 ? '#3db87a' : '#8896b0' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: scopeDiff > 0 ? '#ef5350' : scopeDiff < 0 ? '#3db87a' : '#8896b0' }}>
                 {fmtSigned(scopeDiff, isCareerMode ? 1 : 0)}
               </span>
               {!isLatest && (
-                <span data-role="scope-past" style={{ fontSize: 10.5, fontWeight: 800, color: '#c9a228', border: '1px solid rgba(201,162,40,0.5)', borderRadius: 999, padding: '1px 7px', alignSelf: 'center', whiteSpace: 'nowrap' }}>지난 라운드</span>
+                <span data-role="scope-past" style={{ fontSize: 12, fontWeight: 800, color: '#c9a228', border: '1px solid rgba(201,162,40,0.5)', borderRadius: 999, padding: '1px 7px', alignSelf: 'center', whiteSpace: 'nowrap' }}>지난 라운드</span>
               )}
             </div>
           </>
@@ -529,13 +533,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </InfoNote>
           </div>
           {sg.holesWithData === 0 ? (
-            <div style={{ fontSize: 12, color: '#8896b0' }}>아직 계산할 수 있는 샷이 없어요.</div>
+            <div style={{ fontSize: 14, color: '#8896b0' }}>아직 계산할 수 있는 샷이 없어요.</div>
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 12, color: '#8896b0' }}>측정된 샷 합계</div>
+                <div style={{ fontSize: 14, color: '#8896b0' }}>측정된 샷 합계</div>
                 <div data-role="sg-total" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: sgValue(sg.total) >= 0 ? '#3db87a' : '#ef5350' }}>
-                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 12, fontWeight: 700, color: '#8896b0', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
+                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 14, fontWeight: 700, color: '#8896b0', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
                 </div>
               </div>
               {sgRows.map(r => (
@@ -557,7 +561,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                 </div>
               ))}
               {sg.coverage < 0.5 && (
-                <div data-role="sg-low-coverage" style={{ fontSize: 11, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
+                <div data-role="sg-low-coverage" style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
                   측정된 샷이 전체의 {Math.round(sg.coverage * 100)}%라 참고용이에요.
                 </div>
               )}
@@ -598,7 +602,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 12, color: '#8896b0' }}>손실 없이 파 또는 그 이상으로 마친 홀이 대부분입니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>손실 없이 파 또는 그 이상으로 마친 홀이 대부분입니다.</div>
         )}
       </div>
 
@@ -685,18 +689,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         </div>
         <SkillHeader cat="tee" sg={sg} career={isCareerMode} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 13, color: '#e8edf8' }}>
+          <div style={{ fontSize: 14, color: '#e8edf8' }}>
             좌 <span style={{ fontWeight: 800 }}>{teeBias.L}</span> · 중 <span style={{ fontWeight: 800 }}>{teeBias.C}</span> · 우 <span style={{ fontWeight: 800 }}>{teeBias.R}</span>
             {teeBias.G > 0 && <> · 1온 <span style={{ fontWeight: 800 }}>{teeBias.G}</span></>}
           </div>
           {teeBiasTier && <ConfidenceBadge tier={teeBiasTier} n={teeBias.total} />}
         </div>
         {teeBias.total > 0 ? (
-          <div style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6 }}>
             편향지수 {fmtSigned(teeBias.biasIndex)} ({teeBias.biasIndex > 0.15 ? '우측 경향' : teeBias.biasIndex < -0.15 ? '좌측 경향' : '중립'}) — 최근 10라운드 기준
           </div>
         ) : (
-          <div style={{ fontSize: 12, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없습니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없습니다.</div>
         )}
       </div>
 
@@ -707,7 +711,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {girp.holes > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ fontSize: 12, color: '#8896b0' }}>
+              <div style={{ fontSize: 14, color: '#8896b0' }}>
                 GIRP · 규정 타수+1타 이내 그린 도달 {isCareerMode ? '(라운드 평균)' : ''}
                 <InfoNote title="GIRP란?">
                   <p>프린지는 따로 기록하지 않아 그린만 셉니다. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.</p>
@@ -722,7 +726,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         )}
         {stage >= 3 && approachRows.length > 0 && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 근접도 — 그린에 올린 샷의 첫 퍼트 거리 (최근 20R)</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 근접도 — 그린에 올린 샷의 첫 퍼트 거리 (최근 20R)</div>
             {approachRows.map(b => (
               <div key={b.id} style={styles.riStatRow}>
                 <div style={styles.riStatRowLabel}>{b.label}</div>
@@ -736,13 +740,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
         )}
         {stage >= 3 && approachRows.length === 0 && (
-          <div style={{ fontSize: 12, color: '#8896b0' }}>거리구간별 데이터가 아직 없습니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>거리구간별 데이터가 아직 없습니다.</div>
         )}
 
         {/* 위 근접도는 그린에 올린 샷만 센다. 그린을 놓친 샷까지 센 같은 기준으로 한 번 더 — 그래야 투어·90타 골퍼와 견줄 수 있다. */}
         {stage >= 3 && approachAllRows.length > 0 && (
           <div style={{ marginTop: 14 }} data-role="approach-all">
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
               전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
               <InfoNote title="전체 샷 기준 비교">
                 <p>125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.</p>
@@ -788,7 +792,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={styles.section} data-role="landing-section">
             <div style={styles.sectionTitle}>GREEN APPROACH · 그린 랜딩 분포</div>
             <LandingRadar counts={counts} />
-            <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 12, marginTop: 8 }}>총 {total}회 기록</div>
+            <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 14, marginTop: 8 }}>총 {total}회 기록</div>
           </div>
         );
       })()}
@@ -799,18 +803,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <SkillHeader cat="shortGame" sg={sg} career={isCareerMode} />
         {scrambling.attempts > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: 12, color: '#8896b0' }}>
+            <div style={{ fontSize: 14, color: '#8896b0' }}>
               스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#e8edf8', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
               <span style={{ marginLeft: 6, color: '#6e84a8' }}>({scrambling.saves}/{scrambling.attempts}홀)</span>
             </div>
             <ConfidenceBadge tier={scrambling.tier} n={scrambling.attempts} />
           </div>
         ) : (
-          <div style={{ fontSize: 12, color: '#8896b0', marginBottom: 10 }}>그린을 놓친 홀이 아직 없어요.</div>
+          <div style={{ fontSize: 14, color: '#8896b0', marginBottom: 10 }}>그린을 놓친 홀이 아직 없어요.</div>
         )}
         {stage >= 3 && shortRows.length > 0 && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
               80m 안 샷의 근접도
               <InfoNote title="근접도 두 줄의 차이">
                 <p>첫 줄은 그린에 올린 샷의 첫 퍼트 거리, 둘째 줄은 그린을 놓친 샷까지 센 샷 뒤 핀까지 남은 거리예요.</p>
@@ -839,7 +843,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </InfoNote>
         </div>
         <SkillHeader cat="putting" sg={sg} career={isCareerMode} />
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
         {puttingStats.byDistance.filter(b => b.total > 0).map(b => (
           <div key={b.id} style={styles.riStatRow}>
             <div style={styles.riStatRowLabel}>{b.label}</div>
@@ -851,10 +855,10 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
         ))}
         {puttingStats.byDistance.every(b => b.total === 0) && (
-          <div style={{ fontSize: 12, color: '#8896b0' }}>퍼팅 상세 기록이 아직 없습니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>퍼팅 상세 기록이 아직 없습니다.</div>
         )}
         {puttZone.total >= 3 && (
-          <div style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
+          <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
             퍼팅 실력이 가장 많이 갈리는 <b>1~2m(3~7피트)</b> 구간 성공률 <b style={{ color: '#e8edf8' }}>{Math.round(puttZone.ratePct)}%</b> ({puttZone.made}/{puttZone.total}).
             <InfoNote title="1~2m 구간이 중요한 이유">
               <p>최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</p>
@@ -869,7 +873,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {/* 그날의 그린 스피드에 따른 퍼팅 — 이번 라운드 / 누적 토글에 연동 */}
         {greenSpeedReport && (
           <div style={{ marginTop: 4 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
               GREEN SPEED · 그린 스피드{isCareerMode ? ' (구간별 라운드 평균)' : ''}
             </div>
             <GreenSpeedPanel report={greenSpeedReport} past={!isLatest} />
@@ -908,7 +912,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           ].map(([label, count, color]) => (
             <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#111827', border: '1px solid #1b2238', borderRadius: 12 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
-              <div style={{ fontSize: 10, color: '#8896b0', marginTop: 2 }}>{label}</div>
+              <div style={{ fontSize: 12, color: '#8896b0', marginTop: 2 }}>{label}</div>
             </div>
           ))}
         </div>

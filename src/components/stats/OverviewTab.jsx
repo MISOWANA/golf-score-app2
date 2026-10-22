@@ -59,11 +59,15 @@ export default function OverviewTab({ report, onGo }) {
   return (
     <div data-role="tab-overview">
       <Card id="score" title="SCORE · 스코어" right={score.improvement != null && <TrendChip delta={-score.improvement} goodWhen="down" digits={1} unit="타" flat={1} label="최근 5R" id="trend-score" />}>
-        <div style={{ display: 'flex', gap: 16, justifyContent: 'space-between' }}>
-          <Metric id="m-avg" value={fmtNum(score.avg)} unit="타" label="평균" sub={`파 대비 ${fmtSigned(score.avgDiff)}`} />
-          <Metric id="m-best" value={score.best.total} unit="타" label="베스트" sub={score.best.course || fmtSigned(score.best.diff, 0)} />
-          <Metric id="m-rounds" value={score.rounds} unit="R" label="라운드" align="right" />
-        </div>
+        {score.rounds > 0 ? (
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'space-between' }}>
+            <Metric id="m-avg" value={fmtNum(score.avg)} unit="타" label="평균" sub={`파 대비 ${fmtSigned(score.avgDiff)}`} />
+            <Metric id="m-best" value={score.best.total} unit="타" label="베스트" sub={score.best.course || fmtSigned(score.best.diff, 0)} />
+            <Metric id="m-rounds" value={score.rounds} unit="R" label="라운드" align="right" />
+          </div>
+        ) : (
+          <div data-role="score-empty" style={{ fontSize: 14, color: COLOR.muted, lineHeight: 1.6 }}>18홀 라운드가 기록되면 평균·베스트·추세를 보여 드려요.</div>
+        )}
         {score.trend.length > 1 && (
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 96, marginTop: 14 }} data-role="score-trend">
             {score.trend.map((t, i) => {
@@ -71,15 +75,15 @@ export default function OverviewTab({ report, onGo }) {
               const last = i === score.trend.length - 1;
               return (
                 <div key={t.id ?? i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: last ? COLOR.goldHi : COLOR.muted, marginBottom: 3 }}>{t.total}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: last ? COLOR.goldHi : COLOR.muted, marginBottom: 3 }}>{t.total}</div>
                   <div style={{ width: '70%', maxWidth: 22, height: `${h}%`, borderRadius: '4px 4px 0 0', background: last ? COLOR.gold : 'rgba(201,162,40,0.4)' }} />
-                  <div style={{ fontSize: 9, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap' }}>{shortDate(t.date)}</div>
+                  <div style={{ fontSize: 11, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap' }}>{shortDate(t.date)}</div>
                 </div>
               );
             })}
           </div>
         )}
-        {score.trend.length > 1 && <div style={{ fontSize: 10.5, color: COLOR.faint, marginTop: 6 }}>최근 {score.trend.length}라운드 · 막대가 낮을수록 타수가 적어요</div>}
+        {score.trend.length > 1 && <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 6 }}>최근 {score.trend.length}라운드 · 막대가 낮을수록 타수가 적어요</div>}
         <Takeaway tone={scoreTake.tone}>{scoreTake.text}</Takeaway>
       </Card>
 
@@ -96,8 +100,8 @@ export default function OverviewTab({ report, onGo }) {
               <button key={t.id} type="button" data-role={`skill-${t.id}`} data-tag={tag ?? ''} onClick={() => onGo(t.id === 'shortGame' ? 'putting' : t.id)}
                 style={{ ...tintWash(c, { strength: tag ? 0.14 : 0.08, border: tag ? 0.5 : 0.2, base: '#111827' }), borderRadius: 14, padding: '11px 12px 10px', textAlign: 'left', cursor: 'pointer', color: COLOR.text, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#c4cfe0' }}>{SKILL_LABEL[t.id]}</span>
-                  {tag && <span data-role={`tag-${tag}`} style={{ fontSize: 10, fontWeight: 800, color: c, border: `1px solid ${c}`, borderRadius: 999, padding: '1px 7px' }}>{tag === 'weak' ? '약점' : '강점'}</span>}
+                  <span style={{ fontSize: 14, fontWeight: 800, color: '#c4cfe0' }}>{SKILL_LABEL[t.id]}</span>
+                  {tag && <span data-role={`tag-${tag}`} style={{ fontSize: 12, fontWeight: 800, color: c, border: `1px solid ${c}`, borderRadius: 999, padding: '1px 7px' }}>{tag === 'weak' ? '약점' : '강점'}</span>}
                 </div>
                 <Metric value={t.value} unit={t.unit} label={t.label} sub={t.sub} />
                 <div style={{ marginTop: 2, minHeight: 20 }}>{t.trend}</div>
@@ -113,23 +117,23 @@ export default function OverviewTab({ report, onGo }) {
 
       <Card id="leaks" title="LEAKS · 타수가 새는 곳" info={<>
         <p>라운드당 잃는 타수의 근사값이에요. 3퍼트는 두 번 넘게 친 퍼트 수, 벌타는 OB 2타 · 해저드와 언플레이어블 1타로 셌어요.</p>
-      </>} right={<span style={{ fontSize: 11, color: COLOR.faint }}>라운드당</span>}>
+      </>} right={<span style={{ fontSize: 13, color: COLOR.faint }}>라운드당</span>}>
         {[['3퍼트', threeStrokes, `${fmtNum(leaks.threePutt.perRound)}회`, COLOR.amber, 'leak-three'],
           ['벌타', penaltyStrokes, `OB ${fmtNum(leaks.ob.perRound)} · 해저드 ${fmtNum(leaks.hazard.perRound)}회`, COLOR.red, 'leak-penalty']].map(([label, strokes, sub, color, id]) => (
           <div key={id} data-role={id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
-            <div style={{ width: 52, fontSize: 13, fontWeight: 800 }}>{label}</div>
+            <div style={{ width: 52, fontSize: 14, fontWeight: 800 }}>{label}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ height: 8, borderRadius: 4, background: COLOR.track, overflow: 'hidden' }}>
                 <div style={{ width: `${(strokes / leakMax) * 100}%`, height: '100%', borderRadius: 4, background: color, minWidth: strokes > 0 ? 4 : 0 }} />
               </div>
-              <div style={{ fontSize: 11, color: COLOR.faint, marginTop: 4 }}>{sub}</div>
+              <div style={{ fontSize: 13, color: COLOR.faint, marginTop: 4 }}>{sub}</div>
             </div>
-            <div data-role={`${id}-strokes`} style={{ width: 60, textAlign: 'right', fontSize: 15, fontWeight: 900 }}>−{fmtNum(strokes)}<span style={{ fontSize: 11, color: COLOR.muted, fontWeight: 700 }}>타</span></div>
+            <div data-role={`${id}-strokes`} style={{ width: 60, textAlign: 'right', fontSize: 16, fontWeight: 900 }}>−{fmtNum(strokes)}<span style={{ fontSize: 13, color: COLOR.muted, fontWeight: 700 }}>타</span></div>
           </div>
         ))}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-          <div data-role="leak-double" style={{ flex: 1, textAlign: 'center', padding: '8px 4px', borderRadius: 10, background: COLOR.track, fontSize: 11, color: COLOR.muted }}>
-            더블보기 이상 <b style={{ display: 'block', fontSize: 16, color: COLOR.text }}>{fmtNum(leaks.doubleHoles.perRound)}홀</b>
+          <div data-role="leak-double" style={{ flex: 1, textAlign: 'center', padding: '8px 4px', borderRadius: 10, background: COLOR.track, fontSize: 13, color: COLOR.muted }}>
+            더블보기 이상 <b style={{ display: 'block', fontSize: 17, color: COLOR.text }}>{fmtNum(leaks.doubleHoles.perRound)}홀</b>
           </div>
         </div>
         <Takeaway tone={leakTake.tone}>{leakTake.text}</Takeaway>
@@ -147,9 +151,9 @@ export default function OverviewTab({ report, onGo }) {
             <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
               {composition.byPar.map((p) => (
                 <div key={p.par} data-role={`par-${p.par}`} style={{ flex: 1, textAlign: 'center', padding: '10px 4px', background: COLOR.track, borderRadius: 12, border: `1px solid ${p === parWorst && composition.byPar.length > 1 ? COLOR.red : 'transparent'}` }}>
-                  <div style={{ fontSize: 10, color: COLOR.muted, fontWeight: 700, letterSpacing: '0.06em' }}>PAR {p.par}</div>
-                  <div style={{ fontSize: 17, fontWeight: 900, marginTop: 3, color: p === parWorst && composition.byPar.length > 1 ? COLOR.red : COLOR.text }}>{fmtSigned(p.avgDiff, 2)}</div>
-                  <div style={{ fontSize: 10, color: COLOR.faint, marginTop: 2 }}>{p.count}홀 평균</div>
+                  <div style={{ fontSize: 12, color: COLOR.muted, fontWeight: 700, letterSpacing: '0.06em' }}>PAR {p.par}</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, marginTop: 3, color: p === parWorst && composition.byPar.length > 1 ? COLOR.red : COLOR.text }}>{fmtSigned(p.avgDiff, 2)}</div>
+                  <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 2 }}>{p.count}홀 평균</div>
                 </div>
               ))}
             </div>

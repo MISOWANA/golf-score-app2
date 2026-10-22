@@ -20,6 +20,9 @@ import { landingCounts, landingSummary, landingCaption } from './landing.js';
 import { aggregateSG, sgTier } from './strokesGained.js';
 import { buildRoundBreakdown, toBreakdownInput } from './scoreBreakdown.js';
 import { clubLabelOf } from './clubRecommend.js';
+import { totalPar } from './players.js';
+import { buildGreenMissStats } from './greenMiss.js';
+import { isFullRound, FULL_ROUND_HOLES } from './nines.js';
 
 export const RECENT_ROUNDS = 5;                 // 추세의 '최근' 라운드 수
 const MIN_TREND_SAMPLE = 10;                    // 추세를 내려면 양쪽 모두 이만큼의 홀(샷)이 필요
@@ -51,14 +54,21 @@ function trendOf(rounds, perRound, minSample = MIN_TREND_SAMPLE) {
 }
 
 // ─── 스코어 ──────────────────────────────────────────────────────────────────
+// 평균·베스트·추세는 18홀 라운드끼리만 견준다 — 9홀 점수가 섞이면 평균이 반토막 나고 '베스트'가 9홀 라운드가 된다.
+// 9홀 라운드는 홀 단위 통계(GIR·퍼팅·티샷 …)에는 그대로 들어가고, 몇 개를 뺐는지만 nineHoleRounds 로 알려 준다.
 export function buildScoreSummary(rounds) {
-  const per = rounds.map((r) => {
+  if (rounds.length === 0) return null;
+  const full = rounds.filter(isFullRound);
+  const nineHoleRounds = rounds.length - full.length;
+  const per = full.map((r) => {
     const p = me(r);
     const total = r.holes.reduce((s, h) => s + (h.scores?.[p]?.strokes || 0), 0);
-    const par = r.pars.reduce((a, b) => a + b, 0);
+    const par = totalPar(r);
     return { id: r.id, date: r.date, course: r.courseName, total, par, diff: total - par };
   });
-  if (per.length === 0) return null;
+  if (per.length === 0) {
+    return { rounds: 0, nineHoleRounds, avg: null, avgDiff: null, best: null, recentAvg: null, priorAvg: null, improvement: null, trend: [] };
+  }
   const best = per.reduce((a, b) => (b.total < a.total ? b : a));       // 동률이면 최신 라운드
   const recent = per.slice(0, RECENT_ROUNDS), prior = per.slice(RECENT_ROUNDS, RECENT_ROUNDS * 2);
   return {
@@ -71,6 +81,7 @@ export function buildScoreSummary(rounds) {
     // +면 좋아졌다 (최근 타수가 줄었다)
     improvement: prior.length >= 3 ? mean(prior.map((x) => x.total)) - mean(recent.map((x) => x.total)) : null,
     trend: per.slice(0, 10).reverse(),
+    nineHoleRounds,
   };
 }
 
@@ -118,7 +129,9 @@ export function buildLeaks(rounds) {
       if ((s.strokes ?? h.par) - h.par >= 2) double++;
     });
   });
-  const n = rounds.length || 1;
+  // '라운드당'은 18홀 기준이다 — 9홀 라운드는 0.5라운드로 센다 (18홀 라운드만 있으면 라운드 수와 같다)
+  const holeCount = rounds.reduce((s, r) => s + r.holes.length, 0);
+  const n = holeCount > 0 ? holeCount / FULL_ROUND_HOLES : 1;
   const per = (v) => v / n;
   return {
     rounds: rounds.length,
@@ -289,6 +302,7 @@ export function buildApproachStats(rounds) {
     byLie: buildLieStats(rounds),
     shotCount: byDistance.reduce((a, x) => a + x.n, 0),
     landing: { total: lc.total, summary: ls, caption: landingCaption(ls) },
+    greenMiss: buildGreenMissStats(rounds),
   };
 }
 

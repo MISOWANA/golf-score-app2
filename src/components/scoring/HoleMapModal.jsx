@@ -465,10 +465,10 @@ export default function HoleMapModal({
     return (
       <Shell holeNo={holeNo} par={par} onClose={close}>
         <div style={{ padding: '28px 20px', overflowY: 'auto' }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: COLOR.line, marginBottom: 10 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: COLOR.line, marginBottom: 10 }}>
             지도를 쓰려면 VWorld 인증키가 필요합니다
           </div>
-          <div style={{ fontSize: 12, lineHeight: 1.8, color: COLOR.dim, marginBottom: 18 }}>
+          <div style={{ fontSize: 14, lineHeight: 1.8, color: COLOR.dim, marginBottom: 18 }}>
             국토교통부가 운영하는 무료 위성영상입니다. 가입과 키 발급 모두 무료이고
             결제 카드 등록은 없습니다.
             <br /><br />
@@ -486,7 +486,7 @@ export default function HoleMapModal({
             style={{
               display: 'block', textAlign: 'center', padding: '11px', borderRadius: 12,
               border: `1.5px solid ${COLOR.gold}`, color: COLOR.gold,
-              fontSize: 13, fontWeight: 700, textDecoration: 'none', marginBottom: 16,
+              fontSize: 14, fontWeight: 700, textDecoration: 'none', marginBottom: 16,
             }}
           >VWorld 인증키 발급 페이지 열기 ↗</a>
 
@@ -498,7 +498,7 @@ export default function HoleMapModal({
             style={{
               width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 12,
               border: '1.5px solid #3a4e72', background: '#131d35', color: COLOR.line,
-              fontSize: 13, marginBottom: 10,
+              fontSize: 14, marginBottom: 10,
             }}
           />
           <div style={{ display: 'flex', gap: 8 }}>
@@ -508,7 +508,7 @@ export default function HoleMapModal({
                 style={{
                   flex: 1, padding: '13px 8px', borderRadius: 12, cursor: 'pointer',
                   border: '1px solid #3a4e72', background: 'transparent', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                  color: COLOR.dim, fontSize: 13, fontWeight: 700,
+                  color: COLOR.dim, fontSize: 14, fontWeight: 700,
                 }}
               >취소하고 지도로 돌아가기</button>
             )}
@@ -525,12 +525,12 @@ export default function HoleMapModal({
               style={{
                 flex: 1, padding: '13px 8px', borderRadius: 12, cursor: 'pointer',
                 border: '1px solid transparent', background: keyDraft.trim() ? COLOR.gold : '#252f4a', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                color: keyDraft.trim() ? COLOR.ink : '#4d5a78', fontSize: 14, fontWeight: 800,
+                color: keyDraft.trim() ? COLOR.ink : '#4d5a78', fontSize: 15, fontWeight: 800,
               }}
             >저장하고 지도 열기</button>
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 10, lineHeight: 1.7, color: '#4d5a78' }}>
+          <div style={{ marginTop: 14, fontSize: 12, lineHeight: 1.7, color: '#4d5a78' }}>
             여기서 넣은 키는 이 기기에만 저장되고 서버로 전송되지 않습니다.
             배포본에 키를 넣어두면 이 화면 없이 바로 지도가 열립니다
             (저장소 시크릿 VITE_VWORLD_KEY).
@@ -578,7 +578,7 @@ export default function HoleMapModal({
           )}
         </MetricPanel>
       ) : (
-        <div style={{ padding: '14px 0', textAlign: 'center', fontSize: 13, fontWeight: 700, color: posError ? COLOR.red : COLOR.dim }}>
+        <div style={{ padding: '14px 0', textAlign: 'center', fontSize: 14, fontWeight: 700, color: posError ? COLOR.red : COLOR.dim }}>
           {posError ? '측위 불가 — 지도에서 위치를 직접 찍을 수 있어요' : '측위 중… 내 위치가 잡히면 거리가 여기에 표시돼요'}
         </div>
       )}
@@ -598,7 +598,7 @@ export default function HoleMapModal({
             position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
             zIndex: 500, padding: '7px 14px', borderRadius: 999, whiteSpace: 'nowrap',
             background: draft ? 'rgba(142,192,255,0.95)' : 'rgba(201,162,40,0.94)',
-            color: COLOR.ink, fontSize: 12, fontWeight: 800, pointerEvents: 'none',
+            color: COLOR.ink, fontSize: 14, fontWeight: 800, pointerEvents: 'none',
           }}>
             {draft
               ? '마커를 끌어 맞춘 뒤 아래에서 확정하세요'
@@ -610,7 +610,7 @@ export default function HoleMapModal({
           <div style={{
             position: 'absolute', top: 10, left: 12, right: 12, zIndex: 500,
             padding: '9px 12px', borderRadius: 12, background: 'rgba(239,83,80,0.92)',
-            color: '#fff', fontSize: 11, lineHeight: 1.6, fontWeight: 600,
+            color: '#fff', fontSize: 13, lineHeight: 1.6, fontWeight: 600,
           }}>
             타일을 불러오지 못했습니다. 인증키가 만료됐거나, 현재 위치가 국내가
             아닐 수 있습니다 (VWorld 위성영상은 대한민국만 제공합니다).
@@ -619,7 +619,7 @@ export default function HoleMapModal({
               style={{
                 display: 'block', marginTop: 6, padding: '4px 10px', borderRadius: 8,
                 border: '1px solid rgba(255,255,255,0.6)', background: 'transparent',
-                color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
             >키 다시 입력</button>
           </div>
@@ -650,18 +650,18 @@ export default function HoleMapModal({
             width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
             background: posError ? COLOR.red : (quality?.color ?? '#4d5a78'),
           }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: posError ? COLOR.red : (quality?.color ?? COLOR.dim) }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: posError ? COLOR.red : (quality?.color ?? COLOR.dim) }}>
             {posError ? '측위 불가' : pos ? `내 위치 ${fmtAcc(pos.acc)} ${quality?.label ?? ''}` : '측위 중…'}
           </span>
         </div>
 
         {posError && (
-          <div style={{ padding: '0 14px 8px', fontSize: 12, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
+          <div style={{ padding: '0 14px 8px', fontSize: 14, lineHeight: 1.5, color: COLOR.red }}>{posError}</div>
         )}
 
         {/* 지도를 닫을 때 남은 거리에 먼저 들어갈 값 안내 (거리 숫자는 위쪽 고정 띠에 있다) */}
         {!draft && fill && (
-          <div style={{ padding: '0 14px 10px', fontSize: 12, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
+          <div style={{ padding: '0 14px 10px', fontSize: 14, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
             지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
             {fillHint && <ClubHint hint={fillHint} />}
           </div>
@@ -695,7 +695,7 @@ export default function HoleMapModal({
                     border: `1.5px solid ${on ? COLOR.gold : s.point ? 'rgba(61,184,122,0.5)' : '#2c3855'}`,
                     background: on ? 'rgba(201,162,40,0.18)' : '#1a2235',
                     color: on ? COLOR.gold : s.point ? COLOR.green : '#b4c0d6',
-                    fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                    fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap',
                   }}
                 >{s.point ? '✓ ' : blocked ? '🔒 ' : ''}{s.label}</button>
 
@@ -707,7 +707,7 @@ export default function HoleMapModal({
                     style={{
                       flexShrink: 0, padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
                       border: '1.5px dashed #3a4e72', background: 'transparent',
-                      color: '#8ec0ff', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                      color: '#8ec0ff', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
                   >＋ 샷</button>
                 )}
@@ -722,7 +722,7 @@ export default function HoleMapModal({
                     style={{
                       flexShrink: 0, padding: '9px 12px', borderRadius: 12, cursor: 'pointer',
                       border: '1px solid rgba(239,83,80,0.4)', background: 'transparent',
-                      color: 'rgba(239,83,80,0.9)', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+                      color: 'rgba(239,83,80,0.9)', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
                   >− 취소</button>
                 )}
@@ -750,8 +750,8 @@ export default function HoleMapModal({
                 background: i % 2 ? 'rgba(255,255,255,0.015)' : 'transparent',
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: COLOR.line }}>{r.label}</div>
-                  {r.note && <div style={{ fontSize: 11, fontWeight: 600, color: COLOR.dim, marginTop: 1 }}>{r.note}</div>}
+                  <div style={{ fontSize: 15, fontWeight: 700, color: COLOR.line }}>{r.label}</div>
+                  {r.note && <div style={{ fontSize: 13, fontWeight: 600, color: COLOR.dim, marginTop: 1 }}>{r.note}</div>}
                 </div>
                 <TableNumber value={r.arrived} width={92} color={COLOR.line} />
                 <TableNumber value={r.toPin} width={74} color={COLOR.gold} />
@@ -772,7 +772,7 @@ export default function HoleMapModal({
               style={{
                 flex: 2, padding: '15px 10px', borderRadius: 12, cursor: 'pointer',
                 border: 'none', background: COLOR.gold, color: COLOR.ink,
-                fontSize: 16, fontWeight: 800,
+                fontSize: 17, fontWeight: 800,
               }}
             >✓ 이 위치로 확정</button>
             <button
@@ -780,7 +780,7 @@ export default function HoleMapModal({
               style={{
                 flex: 1, padding: '15px 8px', borderRadius: 12, cursor: 'pointer',
                 border: '1.5px solid #3a4e72', background: 'transparent',
-                color: '#d4dcec', fontSize: 14, fontWeight: 700,
+                color: '#d4dcec', fontSize: 15, fontWeight: 700,
               }}
             >취소</button>
           </div>
@@ -793,7 +793,7 @@ export default function HoleMapModal({
                 flex: 2, padding: '15px 10px', borderRadius: 12,
                 cursor: pos && !blockedSlot ? 'pointer' : 'default',
                 border: 'none', background: pos && !blockedSlot ? COLOR.gold : '#252f4a',
-                color: pos && !blockedSlot ? COLOR.ink : '#7d8aa6', fontSize: 16, fontWeight: 800,
+                color: pos && !blockedSlot ? COLOR.ink : '#7d8aa6', fontSize: 17, fontWeight: 800,
               }}
             >
               {blockedSlot
@@ -808,7 +808,7 @@ export default function HoleMapModal({
                 cursor: blockedSlot ? 'default' : 'pointer', opacity: blockedSlot ? 0.4 : 1,
                 border: `1.5px solid ${placeMode ? COLOR.gold : '#3a4e72'}`,
                 background: placeMode ? 'rgba(201,162,40,0.18)' : 'transparent',
-                color: placeMode ? COLOR.gold : '#d4dcec', fontSize: 14, fontWeight: 700,
+                color: placeMode ? COLOR.gold : '#d4dcec', fontSize: 15, fontWeight: 700,
               }}
             >{placeMode ? '취소' : '지도에서'}</button>
             {selectedSlot?.point && (
@@ -817,7 +817,7 @@ export default function HoleMapModal({
                 style={{
                   width: 50, borderRadius: 12, cursor: 'pointer',
                   border: '1px solid rgba(239,83,80,0.45)', background: 'transparent',
-                  color: 'rgba(239,83,80,0.95)', fontSize: 15, fontWeight: 700,
+                  color: 'rgba(239,83,80,0.95)', fontSize: 16, fontWeight: 700,
                 }}
               >✕</button>
             )}
@@ -837,10 +837,10 @@ export default function HoleMapModal({
 // 마이백 거리로 추천한 클럽 한 줄. 구간 안이면 클럽의 거리 구간을, 아니면 얼마나 모자라거나 긴지를 보여준다.
 function ClubHint({ hint }) {
   return (
-    <div style={{ marginTop: 6, textAlign: 'center', fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>
+    <div style={{ marginTop: 6, textAlign: 'center', fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>
       <span style={{ color: COLOR.green }}>★ 추천</span>
-      <span style={{ color: COLOR.line, fontWeight: 900, fontSize: 17, margin: '0 6px' }}>{hint.label}</span>
-      <span style={{ color: hint.fit === 'in' ? COLOR.dim : '#e6b94a', fontSize: 12 }}>
+      <span style={{ color: COLOR.line, fontWeight: 900, fontSize: 18, margin: '0 6px' }}>{hint.label}</span>
+      <span style={{ color: hint.fit === 'in' ? COLOR.dim : '#e6b94a', fontSize: 14 }}>
         {hint.fit === 'in' ? hint.range : hint.text}
       </span>
     </div>
@@ -851,12 +851,12 @@ function Metric({ label, value, tone = 'line', compact = false }) {
   const color = tone === 'gold' ? COLOR.gold : COLOR.line;
   return (
     <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-      <div style={{ fontSize: compact ? 12 : 13, fontWeight: 700, color: '#b4c0d6', marginBottom: compact ? 3 : 5, lineHeight: 1.3 }}>
+      <div style={{ fontSize: compact ? 14 : 14, fontWeight: 700, color: '#b4c0d6', marginBottom: compact ? 3 : 5, lineHeight: 1.3 }}>
         {label}
       </div>
       <div style={{ color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
         <span style={{ fontSize: compact ? 28 : 30, fontWeight: 900 }}>{value != null ? Math.round(value) : '—'}</span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>m</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>m</span>
       </div>
     </div>
   );
@@ -873,7 +873,7 @@ function MetricPanel({ children, title, accent = false, compact = false }) {
       border: `1px solid ${border}`,
     }}>
       {title && (
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#8ec0ff', textAlign: 'center', marginBottom: compact ? 6 : 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#8ec0ff', textAlign: 'center', marginBottom: compact ? 6 : 10 }}>
           {title}
         </div>
       )}
@@ -891,18 +891,18 @@ function MetricPanel({ children, title, accent = false, compact = false }) {
 
 // 요약 표 — 칸 너비를 고정해 줄마다 숫자 자리가 맞게 한다.
 const TABLE_ROW = { display: 'flex', alignItems: 'center', gap: 8 };
-const TABLE_HEAD = { fontSize: 11, fontWeight: 700, color: '#9aa8c2', letterSpacing: '0.04em' };
+const TABLE_HEAD = { fontSize: 13, fontWeight: 700, color: '#9aa8c2', letterSpacing: '0.04em' };
 
 function TableNumber({ value, width, color }) {
   return (
     <span style={{ width, textAlign: 'right', color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
       {value != null ? (
         <>
-          <span style={{ fontSize: 17, fontWeight: 800 }}>{Math.round(value)}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#9aa8c2', marginLeft: 1 }}>m</span>
+          <span style={{ fontSize: 18, fontWeight: 800 }}>{Math.round(value)}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 1 }}>m</span>
         </>
       ) : (
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#56637f' }}>—</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#56637f' }}>—</span>
       )}
     </span>
   );
@@ -924,10 +924,10 @@ function Shell({ holeNo, par, onClose, topExtra = null, children }) {
         padding: '12px 14px', borderBottom: '1px solid #1b2238',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: COLOR.gold, letterSpacing: '0.22em' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.gold, letterSpacing: '0.22em' }}>
             HOLE {holeNo}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: COLOR.line }}>PAR {par}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: COLOR.line }}>PAR {par}</span>
         </div>
         <button
           onClick={onClose}

@@ -58,12 +58,12 @@ export default function LandingRadar({ counts }) {
                 <>
                   <circle cx={fix(pts[i][0])} cy={fix(pts[i][1])} r={peak ? 6 : 3.4} fill={peak ? '#f3d36b' : '#fff'}
                     stroke={peak ? '#fff' : 'rgba(0,0,0,0.3)'} strokeWidth={peak ? 1.6 : 1} filter={peak ? `url(#${uid}-glow)` : undefined} />
-                  <text x={fix(label[0])} y={fix(label[1])} textAnchor="middle" dominantBaseline="central" fontSize="10.5" fontWeight="900"
+                  <text x={fix(label[0])} y={fix(label[1])} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="900"
                     fill={peak ? '#f3d36b' : '#e8edf8'}>{c}</text>
                 </>
               )}
               {!KEY_NAME[h] && (
-                <text x={fix(num[0])} y={fix(num[1])} textAnchor="middle" dominantBaseline="central" fontSize="9.5" fill="#6e84a8">{h}</text>
+                <text x={fix(num[0])} y={fix(num[1])} textAnchor="middle" dominantBaseline="central" fontSize="11" fill="#6e84a8">{h}</text>
               )}
             </g>
           );
@@ -81,7 +81,7 @@ export default function LandingRadar({ counts }) {
           const p = pol(RMAX + 40, hourAngle(KEY_HOURS[q])), hl = q === sum.top;
           return (
             <g key={q} data-role="landing-label" data-quadrant={q}>
-              <text x={fix(p[0])} y={fix(p[1] - 9)} textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="700"
+              <text x={fix(p[0])} y={fix(p[1] - 9)} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700"
                 letterSpacing="0.1em" fill={hl ? '#f3d36b' : '#8896b0'}>{QUADRANT_NAME[q]}</text>
               <text x={fix(p[0])} y={fix(p[1] + 7)} textAnchor="middle" dominantBaseline="central" fontSize="16" fontWeight="900"
                 fill={hl ? '#f3d36b' : '#e8edf8'}>{pctOf(q)}%</text>
@@ -89,7 +89,7 @@ export default function LandingRadar({ counts }) {
           );
         })}
       </svg>
-      <div data-role="landing-caption" style={{ textAlign: 'center', fontSize: 13, color: '#8896b0', marginTop: 4 }}>
+      <div data-role="landing-caption" style={{ textAlign: 'center', fontSize: 14, color: '#8896b0', marginTop: 4 }}>
         {sum.bias >= 0.2 && (
           <span aria-hidden="true" style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#fff', border: '2px solid #c9a228', verticalAlign: -1, marginRight: 6, boxSizing: 'border-box' }} />
         )}

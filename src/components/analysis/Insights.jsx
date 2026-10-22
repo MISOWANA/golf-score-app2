@@ -56,7 +56,7 @@ export default function Insights({ round, player }) {
             </div>
             <div style={styles.insightCardContent}>
               {ins.holeNumber != null && (
-                <div style={{ fontSize: 10, color: '#c9a228', fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
+                <div style={{ fontSize: 12, color: '#c9a228', fontWeight: 700, letterSpacing: 1, marginBottom: 2 }}>
                   HOLE {ins.holeNumber}
                 </div>
               )}

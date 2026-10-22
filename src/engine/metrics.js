@@ -37,11 +37,18 @@ export function getScoreCategory(h) {
   return 'triple_plus';
 }
 
+// 스코어 입력은 구질을 한글 라벨('훅'·'슬라이스' …)로 저장한다. 영문 값은 예전 기록·외부 입력용으로 함께 읽는다.
+const SHAPE_ALIAS = { 훅: 'hook', 슬라이스: 'slice' };
+
 export function getTeeMissCategory(h) {
   if (h.par === 3) return 'not_applicable';
-  const { teeShotShape, fairwayHit, landingPoint } = h;
-  if (teeShotShape === 'hook')  return 'severe_left';
-  if (teeShotShape === 'slice') return 'severe_right';
+  const { fairwayHit, landingPoint } = h;
+  const teeShotShape = SHAPE_ALIAS[h.teeShotShape] ?? h.teeShotShape;
+  // 훅·슬라이스는 '심각한 미스'로 보되, 페어웨이에 올렸다면 미스가 아니다 (구질 라벨만으로 경고하지 않는다)
+  if (fairwayHit !== true) {
+    if (teeShotShape === 'hook')  return 'severe_left';
+    if (teeShotShape === 'slice') return 'severe_right';
+  }
   if (fairwayHit === false) {
     if (landingPoint === 'L') return 'miss_left';
     if (landingPoint === 'R') return 'miss_right';
@@ -199,7 +206,11 @@ export function buildDerivedHoleMetrics(h) {
 
 // ─── Round aggregates ────────────────────────────────────────────────────────
 
-export function buildRoundMetrics(holes) {
+export function buildRoundMetrics(allHoles) {
+  // 입력하지 않은 홀(touched === false)은 기본값(파·2퍼트·GIR 성공)뿐이라 세지 않는다. 섞으면 9홀만 친
+  // 라운드의 GIR 이 부풀고 '후반 강세' 같은 근거 없는 인사이트가 나온다 (스탯 탭은 이미 입력한 홀만 센다).
+  // 입력한 홀이 없으면 null.
+  const holes = allHoles.filter(h => h.touched !== false);
   const holeCount = holes.length;
   if (holeCount === 0) return null;
 
@@ -255,9 +266,21 @@ export function buildRoundMetrics(holes) {
   const teeMissRightCount = teeMetrics.filter(t => t === 'miss_right' || t === 'severe_right').length;
   const teeMissLeftCount  = teeMetrics.filter(t => t === 'miss_left'  || t === 'severe_left').length;
 
+  // 전반·후반은 홀 번호(1~9 / 10~18)로 가른다. 번호가 없는 예전 입력은 순서의 절반으로 가른다.
+  const byNumber = holes.every(h => Number.isInteger(h.holeNumber));
   const half = Math.floor(holeCount / 2);
-  const frontNineScoreToPar = holes.slice(0, half).reduce((s, h) => s + (h.score - h.par), 0);
-  const backNineScoreToPar  = holes.slice(half).reduce((s, h)  => s + (h.score - h.par), 0);
+  const isBack = (h, i) => (byNumber ? h.holeNumber > 9 : i >= half);
+  const frontHoles = holes.filter((h, i) => !isBack(h, i));
+  const backHoles = holes.filter((h, i) => isBack(h, i));
+  const sumDiff = (list) => list.reduce((s, h) => s + (h.score - h.par), 0);
+  const frontNineScoreToPar = sumDiff(frontHoles);
+  const backNineScoreToPar  = sumDiff(backHoles);
+  // 후반 − 전반 타수 차이(9홀 기준). 한쪽을 거의 치지 않았으면 비교할 수 없어 0 이다 — 입력하지 않은
+  // 후반을 '후반 강세'로 읽지 않도록. 양쪽이 9홀이면 단순한 타수 차이와 같다.
+  const MIN_HALF_HOLES = 3;
+  const backFade = frontHoles.length >= MIN_HALF_HOLES && backHoles.length >= MIN_HALF_HOLES
+    ? Math.round((backNineScoreToPar / backHoles.length - frontNineScoreToPar / frontHoles.length) * 9)
+    : 0;
 
   const recoveryCount     = metrics.filter(x => x.m.recoveryCategory !== 'no_recovery').length;
   const catastrophicCount = metrics.filter(x => x.m.damageCategory === 'catastrophic').length;
@@ -352,7 +375,7 @@ export function buildRoundMetrics(holes) {
     greenMissLongRate:  safe(greenMissLong,  greenMissTotal),
     sliceCount, hookCount, teeMissRightCount, teeMissLeftCount,
     frontNineScoreToPar, backNineScoreToPar,
-    backFade: backNineScoreToPar - frontNineScoreToPar,
+    backFade,
     recoveryCount, catastrophicCount,
     // 숏게임·전환
     scrambleAttempts, scrambleSaves, scrambleRate: safe(scrambleSaves, scrambleAttempts),

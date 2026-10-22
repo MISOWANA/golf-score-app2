@@ -7,7 +7,7 @@ export function ChapterIntro({ no, past = false }) {
   const c = CHAPTERS.find((x) => x.no === no);
   return (
     <div id={c.id} data-role={c.id}
-      style={{ fontSize: 12, color: '#8896b0', textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+      style={{ fontSize: 14, color: '#8896b0', textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5, wordBreak: 'keep-all' }}>
       {past ? c.question.replace('이번 라운드', '이 라운드') : c.question}
     </div>
   );
@@ -21,8 +21,8 @@ export function NextChapter({ current, onGo }) {
   return (
     <button type="button" data-role="next-chapter" onClick={() => onGo(next.key)}
       style={{ width: '100%', height: 52, marginTop: 6, padding: '0 16px', borderRadius: 14, background: '#111a2e', border: '1px solid #252f4a', color: '#e8edf8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: '#8896b0', letterSpacing: '0.12em' }}>다음</span>
-      <span style={{ flex: 1, fontSize: 14, fontWeight: 800 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#8896b0', letterSpacing: '0.12em' }}>다음</span>
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 800 }}>
         <span style={{ color: '#c9a228', marginRight: 6 }}>{next.no}</span>{next.short}
       </span>
       <ChevronRight size={18} color="#8896b0" aria-hidden="true" />

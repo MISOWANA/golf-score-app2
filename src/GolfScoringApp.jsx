@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
   saveActiveRound, loadActiveRound, clearActiveRound,
   migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf, deleteProfile,
-  requestPersistentStorage, migrateRoundData,
+  requestPersistentStorage, migrateRoundData, migrateNineHoleRounds,
 } from './db.js';
-import { isValidRound } from './engine/roundValidation.js';
+import { isValidRound, normalizeRound } from './engine/roundValidation.js';
 import { fixPar3MissedGreenStrokes } from './engine/migrations.js';
+import { convertPartialToNine } from './engine/nineConversion.js';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import globalCSS from './styles/globalCSS';
 import styles from './styles/styles';
@@ -21,7 +22,8 @@ import HistoryView from './components/history/HistoryView';
 import StatsView from './components/stats/StatsView';
 import InsightsView from './components/insights/InsightsView';
 import MyBagView from './components/mybag/MyBagView';
-import { validSpeed } from './engine/greenSpeed.js';
+import { createRound } from './engine/newRound.js';
+import { holeNoOf, isNineHoleRound, isFullRound, roundKindLabel } from './engine/nines.js';
 
 export default function GolfScoringApp() {
   const [view, setView] = useState('login');
@@ -36,12 +38,15 @@ export default function GolfScoringApp() {
   const [loading, setLoading] = useState(true);
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [profiles, setProfiles] = useState([]);   // 이 기기에 기록이 있는 사용자들 (로그인 화면용)
+  // 이어하기 창에서 '기존 기록 삭제'를 한 번 눌러 확인을 기다리는 중
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // 형식이 깨진 라운드는 화면에 넘기지 않는다 (DB에서는 지우지 않음).
+  // pars 가 없는 예전 백업은 홀의 파로 채워서 넘긴다 — 화면들이 round.pars 를 읽는다.
   const loadUserRounds = useCallback(async (user) => {
     try {
       const userRounds = await loadRoundsByUser(userIdsOf(user));
-      const valid = userRounds.filter(isValidRound);
+      const valid = userRounds.filter(isValidRound).map(normalizeRound);
       if (valid.length < userRounds.length) {
         console.warn(`형식이 맞지 않는 라운드 ${userRounds.length - valid.length}개를 제외했습니다`);
       }
@@ -63,6 +68,11 @@ export default function GolfScoringApp() {
           const fixed = await migrateRoundData(fixPar3MissedGreenStrokes);
           if (fixed > 0) console.info(`파3 타수 보정: ${fixed}개 홀`);
         } catch (e) { console.error('Round data migration failed', e); }
+        // 예전에 '18홀 중 9홀만 입력'하고 끝낸 라운드를 9홀 라운드로 바꾼다 (한 번만 · 원본은 백업에 남는다)
+        try {
+          const converted = await migrateNineHoleRounds(convertPartialToNine);
+          if (converted > 0) console.info(`9홀 라운드로 변환: ${converted}개`);
+        } catch (e) { console.error('Nine-hole migration failed', e); }
         const user = await getCurrentProfile();
         if (user) {
           setCurrentUserState(user);
@@ -103,13 +113,18 @@ export default function GolfScoringApp() {
     setProfiles(await listProfiles());
   };
 
-  const handleResumeRound = () => {
+  const closeResumeModal = () => {
     setShowResumeModal(false);
+    setConfirmDiscard(false);
+  };
+
+  const handleResumeRound = () => {
+    closeResumeModal();
     setView('scoring');
   };
 
   const handleDiscardAndSetup = async () => {
-    setShowResumeModal(false);
+    closeResumeModal();
     await clearActiveRound(userIdsOf(currentUser));
     setCurrentRound(null);
     setView('setup');
@@ -135,48 +150,12 @@ export default function GolfScoringApp() {
     setView('login');
   };
 
-  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate, clubRecommend, greenSpeed) => {
-    const newRound = {
-      id: Date.now().toString(),
-      date: roundDate || new Date().toISOString(),
-      courseName,
-      outCourseName: outCourseName || 'OUT',
-      inCourseName: inCourseName || 'IN',
-      teeBox: teeBox || null,
-      players,
-      pars,
-      holes: Array.from({ length: 18 }, (_, i) => ({
-        holeNumber: i + 1,
-        par: pars[i],
-        scores: players.reduce((acc, p) => {
-          acc[p] = {
-            strokes: pars[i],
-            putts: 2,
-            fairway: null,
-            fairwayHit: null,
-            shotShape: null,
-            ob: 0,
-            hazard: 0,
-            unplayable: 0,
-            gir: true,
-            girAuto: true,
-            greenMiss: null,
-            memo: '',
-            touched: false
-          };
-          return acc;
-        }, {})
-      })),
-      currentHole: 0,
-      completed: false,
-      // 진행률·누적 스코어를 '확정한 홀'(confirmed) 기준으로 센다. 이 표시가 없는
-      // 예전 진행 중 라운드는 입력한 홀(touched) 기준 그대로 둔다.
-      trackConfirm: true,
-      // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한다. 이 값이 없는 예전 라운드는 켜짐으로 본다.
-      clubRecommend: clubRecommend !== false,
-      // 그날의 그린 스피드(스팀프 피트). 설정하지 않았으면 null — 퍼팅 분석에서 속도별 비교에 쓴다.
-      greenSpeed: validSpeed(greenSpeed) ? greenSpeed : null,
-    };
+  // nine: null = 18홀 · 'out' = 전반 9홀 · 'in' = 후반 9홀 (engine/newRound.js)
+  const startNewRound = (players, courseName, pars, outCourseName, inCourseName, teeBox, roundDate, clubRecommend, greenSpeed, nine = null) => {
+    const newRound = createRound({
+      id: Date.now().toString(), players, courseName, pars, outCourseName, inCourseName, teeBox,
+      date: roundDate, clubRecommend, greenSpeed, nine,
+    });
     setCurrentRound(newRound);
     saveActiveRound(currentUser.userId, newRound).catch(console.error);
     setView('scoring');
@@ -194,7 +173,8 @@ export default function GolfScoringApp() {
   // 콜백이 리렌더 이전 시점의 stale currentRound를 참조해 마지막 홀 데이터가 유실될 수 있다.
   const finishRound = async (finalRound) => {
     const source = finalRound || currentRound;
-    const finished = { ...source, completed: true, finishedAt: new Date().toISOString() };
+    // 한쪽 9홀만 입력하고 끝내면 9홀 라운드로 저장한다 (치지 않은 9홀을 파로 채운 18홀이 아니라)
+    const finished = convertPartialToNine({ ...source, completed: true, finishedAt: new Date().toISOString() }).round;
     try {
       await saveRound(finished, currentUser.userId);
     } catch (e) {
@@ -257,8 +237,12 @@ export default function GolfScoringApp() {
       }
 
       // 보정 전에 내보낸 예전 백업도 가져올 때 같은 보정을 거친다 (이미 고친 홀은 건너뛴다).
+      // pars 가 없는 백업은 홀의 파로 채워 저장하고, '18홀 중 9홀만 입력'한 예전 라운드는 9홀 라운드로 바꿔 저장한다.
+      let nineConverted = 0;
       const validRounds = importedData.data.rounds.filter(isValidRound)
-        .map((r) => fixPar3MissedGreenStrokes(r).round);
+        .map(normalizeRound)
+        .map((r) => fixPar3MissedGreenStrokes(r).round)
+        .map((r) => { const c = convertPartialToNine(r); nineConverted += c.changed; return c.round; });
       const skipped = importedData.data.rounds.length - validRounds.length;
 
       const sanitized = {
@@ -266,15 +250,27 @@ export default function GolfScoringApp() {
         data: { ...importedData.data, rounds: validRounds },
       };
 
-      await importUserData(currentUser.userId, sanitized);
+      const { remapped } = await importUserData(currentUser.userId, sanitized, userIdsOf(currentUser));
       await loadUserRounds(currentUser);
       alert(`데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
-        + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : ''));
+        + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : '')
+        + (nineConverted > 0 ? `\n9홀만 입력된 ${nineConverted}개는 9홀 라운드로 저장했습니다 (통계에서는 제외돼요).` : '')
+        + (remapped > 0 ? `\n다른 사용자의 기록과 번호가 겹친 ${remapped}개는 그 기록을 건드리지 않고 사본으로 추가했습니다.` : ''));
     } catch (e) {
       console.error('Import failed', e);
       alert('데이터 가져오기 실패: ' + e.message);
     }
   };
+
+  // 통계에 들어가는 라운드: 1인 · 18홀. 빠지는 라운드 수는 각 화면이 안내한다 (동반자 라운드와 9홀 라운드는 따로 센다)
+  const statRounds = useMemo(() => rounds.filter(r => r.players.length === 1 && isFullRound(r)), [rounds]);
+  const multiPlayerCount = rounds.filter(r => r.players.length > 1).length;
+  const nineHoleCount = rounds.filter(r => r.players.length === 1 && isNineHoleRound(r)).length;
+
+  // 이어하기 창에 보여 줄 '지금까지 입력한 홀 수'
+  const enteredHoles = currentRound
+    ? currentRound.holes.filter(h => currentRound.players.some(p => h.scores[p]?.touched)).length
+    : 0;
 
   return (
     <div style={styles.app}>
@@ -300,6 +296,7 @@ export default function GolfScoringApp() {
           onNewRound={handleNewRound}
           onResume={handleResumeRound}
           onViewHistory={() => setView('history')}
+          onSelectRound={(id) => { setSelectedRoundId(id); setView('analysis'); }}
           onSwitchUser={handleSwitchUser}
           onExportData={handleExportData}
           onImportData={handleImportData}
@@ -341,7 +338,7 @@ export default function GolfScoringApp() {
           onBack={() => setView('home')}
           onGoHome={() => setView('home')}
           onGoHistory={() => setView('history')}
-          onNewRound={() => setView('setup')}
+          onNewRound={handleNewRound}
           onUpdateRound={updateCompletedRound}
         />
       )}
@@ -356,18 +353,21 @@ export default function GolfScoringApp() {
         />
       )}
 
+      {/* 스탯·인사이트·마이백 실측은 1인으로 18홀을 끝낸 라운드만 집계한다. 동반자 라운드와 9홀 라운드는 뺀다 */}
       {view === 'stats' && (
         <StatsView
-          rounds={rounds.filter(r => r.players.length === 1)}
-          excludedCount={rounds.filter(r => r.players.length > 1).length}
+          rounds={statRounds}
+          excludedCount={multiPlayerCount}
+          nineExcludedCount={nineHoleCount}
           onBack={() => setView('home')}
         />
       )}
 
       {view === 'insights' && (
         <InsightsView
-          rounds={rounds.filter(r => r.players.length === 1)}
-          excludedCount={rounds.filter(r => r.players.length > 1).length}
+          rounds={statRounds}
+          excludedCount={multiPlayerCount}
+          nineExcludedCount={nineHoleCount}
           onBack={() => setView('home')}
         />
       )}
@@ -375,7 +375,7 @@ export default function GolfScoringApp() {
       {view === 'mybag' && currentUser && (
         <MyBagView
           currentUser={currentUser}
-          rounds={rounds.filter(r => r.players.length === 1)}
+          rounds={statRounds}
           registerLeaveGuard={registerLeaveGuard}
           onBack={() => setView('home')}
         />
@@ -400,7 +400,7 @@ export default function GolfScoringApp() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 9999, padding: '24px'
           }}
-          onClick={() => setShowResumeModal(false)}
+          onClick={closeResumeModal}
         >
           <div
             style={{
@@ -410,38 +410,69 @@ export default function GolfScoringApp() {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ fontSize: 26, marginBottom: 12 }}>⛳</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
               진행 중인 라운드가 있어요
             </div>
-            <div style={{ fontSize: 14, color: '#c9a228', fontWeight: 700, marginBottom: 4 }}>
+            <div style={{ fontSize: 15, color: '#c9a228', fontWeight: 700, marginBottom: 4 }}>
               {currentRound.courseName}
             </div>
-            <div style={{ fontSize: 13, color: '#8896b0', marginBottom: 20 }}>
-              {currentRound.currentHole + 1}홀 진행 중 · {currentRound.players.join(', ')}
+            <div style={{ fontSize: 14, color: '#8896b0', marginBottom: confirmDiscard ? 14 : 20 }}>
+              {isNineHoleRound(currentRound) ? `${roundKindLabel(currentRound)} · ` : ''}{holeNoOf(currentRound, currentRound.currentHole)}번 홀 진행 중 · {currentRound.players.join(', ')}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-              <button
-                onClick={handleResumeRound}
-                style={{
-                  flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                  background: '#c9a228', color: '#0b0e18', border: '1.5px solid transparent',
-                  borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer'
-                }}
-              >
-                이어서 기록하기
-              </button>
-              <button
-                onClick={handleDiscardAndSetup}
-                style={{
-                  flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                  background: 'transparent', color: '#ef5350',
-                  border: '1.5px solid rgba(239,83,80,0.5)', borderRadius: 10,
-                  fontSize: 13, fontWeight: 700, cursor: 'pointer'
-                }}
-              >
-                기존 기록 삭제하고 새 라운드
-              </button>
-            </div>
+            {confirmDiscard ? (
+              <>
+                {/* 삭제는 되돌릴 수 없다 — 한 번 더 확인한다 */}
+                <div role="alert" style={{ fontSize: 14, color: '#ef5350', background: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, lineHeight: 1.6 }}>
+                  입력한 {enteredHoles}개 홀의 기록이 삭제돼요.<br />되돌릴 수 없어요.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                  <button
+                    onClick={() => setConfirmDiscard(false)}
+                    style={{
+                      flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                      background: '#c9a228', color: '#0b0e18', border: '1.5px solid transparent',
+                      borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: 'pointer'
+                    }}
+                  >
+                    돌아가기
+                  </button>
+                  <button
+                    onClick={handleDiscardAndSetup}
+                    style={{
+                      flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                      background: '#ef5350', color: '#fff', border: '1.5px solid transparent',
+                      borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer'
+                    }}
+                  >
+                    삭제하고 새 라운드
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                <button
+                  onClick={handleResumeRound}
+                  style={{
+                    flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                    background: '#c9a228', color: '#0b0e18', border: '1.5px solid transparent',
+                    borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: 'pointer'
+                  }}
+                >
+                  이어서 기록하기
+                </button>
+                <button
+                  onClick={() => setConfirmDiscard(true)}
+                  style={{
+                    flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
+                    background: 'transparent', color: '#ef5350',
+                    border: '1.5px solid rgba(239,83,80,0.5)', borderRadius: 10,
+                    fontSize: 14, fontWeight: 700, cursor: 'pointer'
+                  }}
+                >
+                  기존 기록 삭제하고 새 라운드
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

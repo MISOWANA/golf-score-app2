@@ -1,6 +1,7 @@
 import { Plus, PlayCircle } from 'lucide-react';
 import styles from '../../styles/styles';
 import { tintWash } from '../ui/tint.js';
+import { holeNoOf, isNineHoleRound, roundKindLabel } from '../../engine/nines.js';
 
 // 홈 화면의 카드들 — 새 라운드(항상 맨 위) · 진행 중인 라운드(바로 아래) · 요약.
 
@@ -37,6 +38,7 @@ export function ActiveRoundCard({ round, onResume }) {
   const total = round.holes?.length || 18;
   const current = Math.min(total, (round.currentHole ?? 0) + 1);
   const pct = Math.round((current / total) * 100);
+  const holeNo = holeNoOf(round, Math.min(total - 1, round.currentHole ?? 0));
   return (
     <div style={{ ...styles.liveCard, ...tintWash('#3db87a', { strength: 0.17, border: 0.38 }) }} data-role="home-active-round">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -47,7 +49,7 @@ export function ActiveRoundCard({ round, onResume }) {
           </div>
           <div style={styles.liveCourse}>{round.courseName}</div>
           <div style={styles.liveMeta}>
-            {current}홀 진행 중 · {round.players.join(', ')}
+            {isNineHoleRound(round) ? `${roundKindLabel(round)} · ` : ''}{holeNo}번 홀 진행 중 · {round.players.join(', ')}
           </div>
         </div>
         <button className="bb-press" onClick={onResume} style={styles.liveResume}>

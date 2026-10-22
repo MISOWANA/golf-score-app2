@@ -11,6 +11,7 @@
 
 import { analyzePutts, summarizePuttCauses, puttSequence } from './puttAnalysis.js';
 import { aggregateSG } from './strokesGained.js';
+import { FULL_ROUND_HOLES } from './nines.js';
 
 export const STIMP_MIN = 6;
 export const STIMP_MAX = 14;
@@ -69,11 +70,15 @@ export function puttingOfRound(round) {
     analyses.push(analyzePutts(s));
   });
   const sgPutting = aggregateSG([round]).categories.putting;
+  // 18홀 환산 — 9홀 라운드의 퍼트·3퍼트 수를 18홀 라운드와 견주려면 같은 눈금이어야 한다 (18홀이면 그대로)
+  const k = FULL_ROUND_HOLES / Math.max(1, round.holes.length);
   return {
     putts, three, one,
+    putts18: putts * k, three18: three * k, one18: one * k,
     firstDist: firstN > 0 ? firstSum / firstN : null,
     causes: summarizePuttCauses(analyses),
     sgPutting: sgPutting.segments > 0 ? sgPutting.sg : null,
+    sgPutting18: sgPutting.segments > 0 ? sgPutting.sg * k : null,
   };
 }
 
@@ -85,14 +90,14 @@ const toRow = (round) => {
   return { id: round.id, date: round.date, courseName: round.courseName, speed, band: speedBand(speed), ...puttingOfRound(round) };
 };
 
-// 라운드 간 비교에 쓰는 평균 — 퍼트·3퍼트·1퍼트(라운드당)
+// 라운드 간 비교에 쓰는 평균 — 퍼트·3퍼트·1퍼트(라운드당, 18홀 환산)
 const summarize = (rows) => ({
   rounds: rows.length,
-  putts: avgOf(rows, 'putts'),
-  three: avgOf(rows, 'three'),
-  one: avgOf(rows, 'one'),
+  putts: avgOf(rows, 'putts18'),
+  three: avgOf(rows, 'three18'),
+  one: avgOf(rows, 'one18'),
   firstDist: avgOf(rows, 'firstDist'),
-  sgPutting: avgOf(rows, 'sgPutting'),
+  sgPutting: avgOf(rows, 'sgPutting18'),
   sgRounds: rows.filter((r) => r.sgPutting != null).length,
 });
 
@@ -134,7 +139,7 @@ export function buildGreenSpeedReport(rounds, mode = 'round') {
   else if (others.length >= 2) basis = { label: `다른 ${others.length}라운드`, rows: others };
   if (basis) {
     const s = summarize(basis.rows);
-    out.compare = { label: basis.label, rounds: basis.rows.length, dPutts: latest.putts - s.putts, dThree: latest.three - s.three };
+    out.compare = { label: basis.label, rounds: basis.rows.length, dPutts: latest.putts18 - s.putts, dThree: latest.three18 - s.three };
   }
   return out;
 }
@@ -149,7 +154,7 @@ export function greenSpeedRoundInsights(round) {
   const speed = validSpeed(round.greenSpeed) ? round.greenSpeed : null;
   if (speed == null || round.players.length !== 1) return [];
   const band = speedBand(speed);
-  const { putts, three, causes } = puttingOfRound(round);
+  const { putts, three, putts18, three18, causes } = puttingOfRound(round);
   const where = `스팀프 ${speed.toFixed(1)}(약 ${stimpToMeters(speed).toFixed(1)}m, ${band.label}) 그린`;
   const fast = band.id === 'fast' || band.id === 'veryFast';
   const out = [];
@@ -160,7 +165,7 @@ export function greenSpeedRoundInsights(round) {
       '빠른 그린에서 3퍼트',
       `${where}에서 3퍼트가 ${three}회 나왔습니다 (퍼트 ${putts}개).${lag}`,
       GREEN_SPEED_TIPS.fast, ['three_putt', 'fast_green']));
-  } else if (fast && three <= 1 && putts <= 31) {
+  } else if (fast && three18 <= 1 && putts18 <= 31) {
     out.push(mkInsight('G002', 'round', 28, 'positive', 'fast_green_putting_steady',
       '빠른 그린에서도 퍼팅이 안정적',
       `${where}에서 퍼트 ${putts}개 · 3퍼트 ${three}회로 막았습니다.`,

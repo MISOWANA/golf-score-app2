@@ -24,7 +24,7 @@ export default class ErrorBoundary extends React.Component {
     if (!error) return this.props.children;
 
     const btn = {
-      flex: 1, padding: '14px 8px', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+      flex: 1, padding: '14px 8px', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer',
     };
     return (
       <div style={{
@@ -36,7 +36,7 @@ export default class ErrorBoundary extends React.Component {
           <div style={{ fontSize: 18, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
             화면을 표시하지 못했어요
           </div>
-          <div style={{ fontSize: 13, color: '#8896b0', lineHeight: 1.7, marginBottom: 20 }}>
+          <div style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.7, marginBottom: 20 }}>
             저장된 기록은 그대로 있어요.<br />
             아래 버튼으로 다시 시도해 주세요.
           </div>
@@ -52,7 +52,7 @@ export default class ErrorBoundary extends React.Component {
               onClick={() => window.location.reload()}
             >새로고침</button>
           </div>
-          <div style={{ marginTop: 16, fontSize: 11, color: '#4d5a78', wordBreak: 'break-all' }}>
+          <div style={{ marginTop: 16, fontSize: 13, color: '#4d5a78', wordBreak: 'break-all' }}>
             {String(error?.message || error)}
           </div>
         </div>

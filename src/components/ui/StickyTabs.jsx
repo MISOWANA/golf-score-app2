@@ -66,7 +66,7 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
               ? {
                 flex: '1 1 0', minWidth: 0, height: 46, padding: '0 2px', background: 'none', border: 'none',
                 borderBottom: `2px solid ${on ? '#c9a228' : 'transparent'}`, borderRadius: 0,
-                color: on ? '#f3d36b' : '#8896b0', fontSize: 12.5, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer',
+                color: on ? '#f3d36b' : '#8896b0', fontSize: 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer',
               }
               : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', ...(on ? styles.riToggleBtnActive : {}) };
             return (

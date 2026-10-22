@@ -197,16 +197,19 @@ export const migrateProfiles = async () => {
 
 // ─── 저장된 기록 보정 (한 번만) ──────────────────────────────────────────────
 //
-// 계산식 버그로 잘못 저장된 기록을 고친다. 끝나면 users 스토어에 표시를 남겨
-// 다음부터는 건너뛴다. 끝난 라운드와 진행 중 라운드 모두 대상이다.
-// 반환: 고친 홀 수 (이미 끝났으면 0).
+// 계산식 버그로 잘못 저장된 기록을 고치거나 기록 형식을 바꾼다. 끝나면 users 스토어에 표시를 남겨
+// 다음부터는 건너뛴다.
+//   includeActive  진행 중 라운드도 대상으로 할지
+//   backup         바꾼 라운드의 원본을 users 스토어('backup:<key>')에 남길지 — 되돌릴 길을 둔다
+// 반환: 고친 개수 (이미 끝났으면 0).
 const MIGRATION_PAR3_KEY = 'migration:par3-missed-green-strokes';
+const MIGRATION_NINE_KEY = 'migration:partial-18-to-nine';
 
-export const migrateRoundData = async (fixRound) => {
+const runRoundMigration = async (key, fixRound, { includeActive = true, backup = false } = {}) => {
   await ensureDB();
   const readTx = db.transaction([USERS_STORE, ROUNDS_STORE], 'readonly');
   const [done, rounds, userRows] = await Promise.all([
-    asPromise(readTx.objectStore(USERS_STORE).get(MIGRATION_PAR3_KEY)),
+    asPromise(readTx.objectStore(USERS_STORE).get(key)),
     asPromise(readTx.objectStore(ROUNDS_STORE).getAll()),
     asPromise(readTx.objectStore(USERS_STORE).getAll()),
   ]);
@@ -214,17 +217,20 @@ export const migrateRoundData = async (fixRound) => {
 
   let total = 0;
   const fixedRounds = [];
+  const originals = [];
   rounds.forEach((r) => {
     const { round, changed } = fixRound(r);
-    if (changed > 0) { fixedRounds.push(round); total += changed; }
+    if (changed > 0) { fixedRounds.push(round); originals.push(r); total += changed; }
   });
   const fixedActive = [];
-  userRows
-    .filter((row) => typeof row.id === 'string' && row.id.startsWith('active_round_') && row.round)
-    .forEach((row) => {
-      const { round, changed } = fixRound(row.round);
-      if (changed > 0) { fixedActive.push({ ...row, round }); total += changed; }
-    });
+  if (includeActive) {
+    userRows
+      .filter((row) => typeof row.id === 'string' && row.id.startsWith('active_round_') && row.round)
+      .forEach((row) => {
+        const { round, changed } = fixRound(row.round);
+        if (changed > 0) { fixedActive.push({ ...row, round }); total += changed; }
+      });
+  }
 
   // 고친 기록과 완료 표시를 한 트랜잭션으로 — 중간에 끊겨도 반만 고쳐진 채
   // 완료로 남지 않는다 (다음 실행 때 처음부터 다시 한다).
@@ -234,12 +240,31 @@ export const migrateRoundData = async (fixRound) => {
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
   });
+  const at = new Date().toISOString();
   fixedRounds.forEach((r) => tx.objectStore(ROUNDS_STORE).put(r));
   fixedActive.forEach((row) => tx.objectStore(USERS_STORE).put(row));
-  tx.objectStore(USERS_STORE).put({ id: MIGRATION_PAR3_KEY, at: new Date().toISOString(), fixedHoles: total });
+  if (backup && originals.length > 0) tx.objectStore(USERS_STORE).put({ id: `backup:${key}`, at, rounds: originals });
+  tx.objectStore(USERS_STORE).put({ id: key, at, fixedHoles: total });
   await committed;
   return total;
 };
+
+// 파3 타수 누락 보정 — 끝난 라운드와 진행 중 라운드 모두 대상. 반환: 고친 홀 수
+export const migrateRoundData = (fixRound) => runRoundMigration(MIGRATION_PAR3_KEY, fixRound);
+
+// "18홀 중 9홀만 입력"한 예전 라운드를 9홀 라운드로 바꾼다 (engine/nineConversion.js). 끝난 라운드만 대상이고,
+// 바꾼 라운드의 원본은 'backup:migration:partial-18-to-nine' 에 남긴다. 반환: 바꾼 라운드 수
+export const migrateNineHoleRounds = (convert) => runRoundMigration(MIGRATION_NINE_KEY, convert, { includeActive: false, backup: true });
+
+// 보정 전 원본 백업 (없으면 null) — 변환을 되돌릴 때 쓴다
+export const loadNineConversionBackup = async () => {
+  await ensureDB();
+  const store = db.transaction([USERS_STORE], 'readonly').objectStore(USERS_STORE);
+  return (await asPromise(store.get(`backup:${MIGRATION_NINE_KEY}`))) ?? null;
+};
+
+// 시각만으로 만들면 같은 밀리초에 만든 두 프로필의 id 가 같아져 기록이 섞인다 — 무작위 꼬리를 붙인다.
+const newUserId = () => `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 // 이름으로 로그인 — 같은 이름(대소문자·앞뒤 공백 무시)의 프로필이 있으면 그대로 쓴다.
 export const loginByName = async (userName) => {
@@ -247,7 +272,7 @@ export const loginByName = async (userName) => {
   const existing = (await listProfiles()).find((p) => normName(p.userName) === normName(name));
   const profile = existing
     ? { ...existing, lastUsedAt: new Date().toISOString() }
-    : { userId: `user_${Date.now()}`, userName: name, aliases: [], lastUsedAt: new Date().toISOString() };
+    : { userId: newUserId(), userName: name, aliases: [], lastUsedAt: new Date().toISOString() };
   await putProfiles([profile]);
   await setCurrentUser(profile.userId, profile.userName);
   return profile;
@@ -276,6 +301,14 @@ export const deleteProfile = async (profile) => {
     users.delete(`active_round_${id}`);
   });
   users.delete(PROFILE_PREFIX + profile.userId);
+  // 9홀 변환 원본 백업에 남은 이 사용자의 라운드도 함께 지운다 ('영구히 삭제'에 백업이 빠지지 않게)
+  users.get(`backup:${MIGRATION_NINE_KEY}`).onsuccess = (e) => {
+    const row = e.target.result;
+    if (!row) return;
+    const rest = (row.rounds || []).filter((r) => !ids.includes(r.userId));
+    if (rest.length === 0) users.delete(row.id);
+    else if (rest.length !== row.rounds.length) users.put({ ...row, rounds: rest });
+  };
   users.get('current').onsuccess = (e) => {
     if (ids.includes(e.target.result?.userId)) users.delete('current');
   };
@@ -376,18 +409,45 @@ export const exportUserData = async (user) => {
 // (예전에는 기존 라운드를 전부 지운 뒤 넣어서, 오래된 백업을 가져오면 그 뒤
 // 기록이 사라졌다. 화면 안내 문구도 '병합'이었다.)
 // 클럽은 파일에 들어 있을 때만 바꾼다 — 빈 배열로 기존 설정을 지우지 않게.
-export const importUserData = async (userId, importedData) => {
+//
+// ownIds: 이 사용자의 기록이 들어 있을 수 있는 userId 전부(대표 userId + 예전 aliases). 같은 id 의
+// 라운드가 이미 있어도 그 소유자가 ownIds 안이면 같은 사용자의 기록이라 파일 내용으로 바꾼다.
+// 소유자가 다른 사용자면 그 기록을 빼앗지 않는다 — 한 기기에서 A 의 백업을 B 프로필로 복원해도 A 의
+// 라운드가 B 로 옮겨가 사라지지 않게, 가져온 쪽에 새 id 를 줘서 사본으로 넣는다.
+// 반환: { imported: 저장한 라운드 수, remapped: 새 id 를 받은 라운드 수 }
+export const importUserData = async (userId, importedData, ownIds = [userId]) => {
   const { data } = importedData;
-  await saveImportedRounds(userId, data.rounds || []);
+  const result = await saveImportedRounds(userId, data.rounds || [], ownIds);
   if (Array.isArray(data.clubs) && data.clubs.length > 0) {
     await saveClubsForUser(userId, data.clubs);
   }
+  return result;
 };
 
+// 다른 사용자와 id 가 겹친 라운드의 새 id. 가져오는 사용자별로 정해져 있어서 같은 파일을 다시 가져와도
+// 같은 사본을 덮어쓸 뿐 늘어나지 않는다.
+const remappedRoundId = (roundId, userId) => `${roundId}__${userId}`;
+
 // Import할 라운드 저장
-const saveImportedRounds = async (userId, rounds) => {
-  if (rounds.length === 0) return;
+const saveImportedRounds = async (userId, rounds, ownIds) => {
+  if (rounds.length === 0) return { imported: 0, remapped: 0 };
   await ensureDB();
+  // 겹치는 id 의 현재 소유자를 먼저 한 번에 조회한다 (한 트랜잭션에 요청을 모두 건다)
+  const readStore = db.transaction([ROUNDS_STORE], 'readonly').objectStore(ROUNDS_STORE);
+  const existing = await Promise.all(rounds.map((round) => asPromise(readStore.get(round.id))));
+  const own = new Set(ownIds);
+
+  let remapped = 0;
+  const toSave = rounds.map((round, i) => {
+    const owner = existing[i]?.userId;
+    if (owner && !own.has(owner)) {
+      remapped++;
+      return { ...round, id: remappedRoundId(round.id, userId), userId };
+    }
+    return { ...round, userId };
+  });
+
   const store = db.transaction([ROUNDS_STORE], 'readwrite').objectStore(ROUNDS_STORE);
-  await Promise.all(rounds.map((round) => asPromise(store.put({ ...round, userId }))));
+  await Promise.all(toSave.map((round) => asPromise(store.put(round))));
+  return { imported: toSave.length, remapped };
 };

@@ -7,7 +7,7 @@ import { speedLabel } from '../../engine/greenSpeed.js';
 //   누적: 느림·보통·빠름·매우 빠름 구간별 평균 (속도를 기록한 라운드만)
 
 const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
-const dim = { fontSize: 11, color: '#6e84a8', lineHeight: 1.6 };
+const dim = { fontSize: 13, color: '#6e84a8', lineHeight: 1.6 };
 
 // 라운드 수가 쌓인 만큼의 신뢰도 (stats.js 의 low/mid/high 와 같은 이름)
 const roundsTier = (n) => (n >= 5 ? 'high' : n >= 3 ? 'mid' : 'low');
@@ -17,8 +17,8 @@ const sgText = (v) => (v == null ? '–' : (v >= 0 ? '+' : '') + v.toFixed(2));
 function Stat({ label, value }) {
   return (
     <div style={{ flex: 1, textAlign: 'center' }}>
-      <div style={{ fontSize: 10, color: '#8896b0', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 17, fontWeight: 800, color: '#e8edf8', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#8896b0', marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#e8edf8', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
     </div>
   );
 }
@@ -31,7 +31,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
     return (
       <div style={card} data-role="green-speed-panel">
         {report.speedRounds === 0 ? (
-          <div data-role="gs-empty" style={{ fontSize: 12, color: '#8896b0', lineHeight: 1.6 }}>
+          <div data-role="gs-empty" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6 }}>
             그린 스피드를 기록한 라운드가 아직 없어요.
             <InfoNote title="그린 스피드 기록하기">
               라운드를 시작할 때(또는 퍼팅 화면·지난 라운드 수정에서) 그날의 그린 스피드를 정해 두면 빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.
@@ -39,7 +39,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', fontSize: 10, color: '#6e84a8', padding: '0 0 6px', borderBottom: '1px solid #1b2238' }}>
+            <div style={{ display: 'flex', fontSize: 12, color: '#6e84a8', padding: '0 0 6px', borderBottom: '1px solid #1b2238' }}>
               <div style={{ flex: '1 1 78px' }}>
                 구간
                 <InfoNote title="구간별 평균 보는 법">
@@ -54,7 +54,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
               <div style={{ width: 48, textAlign: 'right' }}>퍼팅SG</div>
             </div>
             {report.bands.map((b) => (
-              <div key={b.id} data-role={`gs-band-${b.id}`} style={{ display: 'flex', alignItems: 'center', fontSize: 12.5, color: '#e8edf8', padding: '8px 0', borderBottom: '1px solid #151c30', fontVariantNumeric: 'tabular-nums' }}>
+              <div key={b.id} data-role={`gs-band-${b.id}`} style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#e8edf8', padding: '8px 0', borderBottom: '1px solid #151c30', fontVariantNumeric: 'tabular-nums' }}>
                 <div style={{ flex: '1 1 78px', display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span style={{ fontWeight: 700 }}>{b.label}</span>
                   <ConfidenceBadge tier={roundsTier(b.rounds)} />
@@ -83,7 +83,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
   return (
     <div style={card} data-role="green-speed-panel">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 12, color: '#8896b0' }}>
+        <div style={{ fontSize: 14, color: '#8896b0' }}>
           {past ? '그날' : '오늘'} 그린
           {r.speed == null && (
             <InfoNote title="그린 스피드 기록하기">
@@ -91,7 +91,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
             </InfoNote>
           )}
         </div>
-        <div data-role="gs-latest" style={{ fontSize: 13, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#6e84a8' }}>
+        <div data-role="gs-latest" style={{ fontSize: 14, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#6e84a8' }}>
           {r.speed != null ? speedLabel(r.speed) : '설정 안 함'}
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
         <Stat label="첫 퍼트 평균" value={r.firstDist != null ? `${r.firstDist.toFixed(1)}m` : '–'} />
       </div>
       {report.compare && (
-        <div data-role="gs-compare" style={{ fontSize: 12, color: '#b4c0d8', lineHeight: 1.6, marginTop: 8 }}>
+        <div data-role="gs-compare" style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 8 }}>
           {report.compare.label} 평균 대비 퍼트 <b style={{ color: report.compare.dPutts > 0 ? '#ef8a87' : report.compare.dPutts < 0 ? '#3db87a' : '#e8edf8' }}>{signed(report.compare.dPutts)}</b>개 ·
           3퍼트 <b style={{ color: report.compare.dThree > 0 ? '#ef8a87' : report.compare.dThree < 0 ? '#3db87a' : '#e8edf8' }}>{signed(report.compare.dThree)}</b>회
         </div>

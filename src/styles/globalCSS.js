@@ -14,6 +14,10 @@ const globalCSS = `
   body {
     margin: 0;
     color: #e8edf8;
+    /* 한글은 띄어쓰기 단위로 줄을 바꾼다 ('퍼/팅'처럼 단어가 중간에서 끊기지 않게).
+       한 단어가 칸보다 길 때만 글자 사이에서 꺾어 넘치지 않게 한다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
 
   button {

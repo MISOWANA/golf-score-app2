@@ -2,6 +2,7 @@ import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, RateRow, Takeaway, TrendChip, Hint, SplitBar } from './widgets.jsx';
 import { COLOR, fmtMeters, fmtNum, fmtPct } from './format.js';
 
+const MIN_MISS_DIRECTIONS = 4;   // 놓친 방향의 쏠림을 말하려면 필요한 기록 수
 const MIN_BEST_WORST = 5;      // 가장 잘/못 맞는 구간·클럽을 말하려면 필요한 샷 수
 
 // 가장 높은/낮은 한 줄을 뽑는다 (표본이 충분한 줄만, 둘이 달라야 의미가 있다)
@@ -49,6 +50,15 @@ export default function ApproachTab({ report }) {
     ? { tone: 'warn', text: `평지에서는 그린 적중 ${fmtPct(flat.hitPct)}, ${worstLie.label} 라이에서는 ${fmtPct(worstLie.hitPct)}예요. 경사에서는 그린 중앙을 겨냥해 보세요.` }
     : lieRows.length >= 2 ? { tone: 'info', text: '라이에 따른 적중률 차이가 크지 않아요.' } : null;
 
+  // 그린을 놓친 방향 — 한 방향이 절반 이상이면 그쪽으로 치우친 것으로 말한다
+  const { greenMiss } = approach;
+  const missTop = greenMiss.top ? DIRECTION.find(([k]) => k === greenMiss.top) : null;
+  const missShare = greenMiss.top ? (greenMiss.counts[greenMiss.top] / greenMiss.recorded) * 100 : 0;
+  const MISS_PHRASE = { long: '핀 뒤로 넘기는', right: '오른쪽으로 빠지는', short: '짧게 떨어지는', left: '왼쪽으로 빠지는' };
+  const missTake = missTop && missShare >= 50
+    ? { tone: 'warn', text: `그린을 놓칠 때 ${MISS_PHRASE[greenMiss.top]} 경우가 가장 많아요 (${fmtPct(missShare)}).` }
+    : { tone: 'info', text: '특정 방향으로 쏠리지 않고 고르게 퍼져 있어요.' };
+
   const ls = landing.summary;
   const top = ls.top && landing.total >= 5 ? DIRECTION.find(([k]) => k === ls.top) : null;
 
@@ -65,19 +75,19 @@ export default function ApproachTab({ report }) {
         <div style={{ display: 'flex', gap: 8 }}>
           {parRows.map((p) => (
             <div key={p.par} data-role={`gir-par-${p.par}`} style={{ flex: 1, textAlign: 'center', padding: '9px 4px', background: COLOR.track, borderRadius: 12 }}>
-              <div style={{ fontSize: 10, color: COLOR.muted, fontWeight: 700, letterSpacing: '0.06em' }}>PAR {p.par}</div>
-              <div style={{ fontSize: 16, fontWeight: 900, marginTop: 3 }}>{fmtPct(p.pct)}</div>
-              <div style={{ fontSize: 10, color: COLOR.faint, marginTop: 2 }}>{p.hit}/{p.n}홀</div>
+              <div style={{ fontSize: 12, color: COLOR.muted, fontWeight: 700, letterSpacing: '0.06em' }}>PAR {p.par}</div>
+              <div style={{ fontSize: 17, fontWeight: 900, marginTop: 3 }}>{fmtPct(p.pct)}</div>
+              <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 2 }}>{p.hit}/{p.n}홀</div>
             </div>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <div data-role="girp" style={{ flex: 1, padding: '9px 10px', background: COLOR.track, borderRadius: 12, fontSize: 11, color: COLOR.muted }}>
-            18홀당 규정+1타 온 (GIRP) <b style={{ display: 'block', fontSize: 16, color: COLOR.text }}>{girp.per18 != null ? `${fmtNum(girp.per18)}홀` : '–'}</b>
+          <div data-role="girp" style={{ flex: 1, padding: '9px 10px', background: COLOR.track, borderRadius: 12, fontSize: 13, color: COLOR.muted }}>
+            18홀당 규정+1타 온 (GIRP) <b style={{ display: 'block', fontSize: 17, color: COLOR.text }}>{girp.per18 != null ? `${fmtNum(girp.per18)}홀` : '–'}</b>
           </div>
-          <div data-role="conversion" style={{ flex: 1, padding: '9px 10px', background: COLOR.track, borderRadius: 12, fontSize: 11, color: COLOR.muted }}>
+          <div data-role="conversion" style={{ flex: 1, padding: '9px 10px', background: COLOR.track, borderRadius: 12, fontSize: 13, color: COLOR.muted }}>
             그린 올린 홀 버디↑
-            <b style={{ display: 'block', fontSize: 16, color: COLOR.text }}>{conversion.ratePct != null ? `${fmtPct(conversion.ratePct)}` : '–'}</b>
+            <b style={{ display: 'block', fontSize: 17, color: COLOR.text }}>{conversion.ratePct != null ? `${fmtPct(conversion.ratePct)}` : '–'}</b>
           </div>
         </div>
         <Takeaway tone={girTake.tone}>{girTake.text}</Takeaway>
@@ -92,11 +102,11 @@ export default function ApproachTab({ report }) {
             {distRows.map((b) => (
               <RateRow key={b.id} id={`approach-bucket-${b.id}`} label={b.label} sub={`${b.n}샷`} value={b.hitPct} text={fmtPct(b.hitPct)} labelWidth={78}
                 color={b.hitPct >= 50 ? COLOR.green : b.hitPct >= 25 ? COLOR.amber : COLOR.red} tier={b.tier}
-                tag={b.puttMedian != null ? <span data-role="bucket-putt" style={{ fontSize: 10.5, color: COLOR.faint, whiteSpace: 'nowrap' }}>첫 퍼트 {fmtMeters(b.puttMedian, 1)}</span> : null} />
+                tag={b.puttMedian != null ? <span data-role="bucket-putt" style={{ fontSize: 12, color: COLOR.faint, whiteSpace: 'nowrap' }}>첫 퍼트 {fmtMeters(b.puttMedian, 1)}</span> : null} />
             ))}
             {distTake && <Takeaway tone={distTake.tone}>{distTake.text}</Takeaway>}
             {firstPutt.n >= 3 && (
-              <div data-role="first-putt" style={{ fontSize: 11, color: COLOR.faint, marginTop: 8 }}>그린에 올린 홀의 첫 퍼트 거리 중앙값 {fmtMeters(firstPutt.median, 1)} ({firstPutt.n}홀)</div>
+              <div data-role="first-putt" style={{ fontSize: 13, color: COLOR.faint, marginTop: 8 }}>그린에 올린 홀의 첫 퍼트 거리 중앙값 {fmtMeters(firstPutt.median, 1)} ({firstPutt.n}홀)</div>
             )}
           </>
         ) : <Hint>세컨샷 이후의 남은 거리를 입력하면 거리 구간별 적중률을 보여드려요.</Hint>}
@@ -108,7 +118,7 @@ export default function ApproachTab({ report }) {
             {clubRows.map((r) => (
               <RateRow key={r.key} id={`approach-club-${r.key}`} label={r.label} sub={r.median != null ? `${Math.round(r.median)}m` : `${r.hitN}샷`} value={r.hitPct} text={fmtPct(r.hitPct)}
                 color={r.hitPct >= 50 ? COLOR.green : r.hitPct >= 25 ? COLOR.amber : COLOR.red} tier={r.hitTier}
-                tag={<span style={{ fontSize: 10.5, color: COLOR.faint, whiteSpace: 'nowrap' }}>{r.hitN}샷</span>} />
+                tag={<span style={{ fontSize: 12, color: COLOR.faint, whiteSpace: 'nowrap' }}>{r.hitN}샷</span>} />
             ))}
             {clubTake && <Takeaway tone={clubTake.tone}>{clubTake.text}</Takeaway>}
           </>
@@ -122,6 +132,26 @@ export default function ApproachTab({ report }) {
               color={r.hitPct >= 50 ? COLOR.green : r.hitPct >= 25 ? COLOR.amber : COLOR.red} />
           ))}
           {lieTake && <Takeaway tone={lieTake.tone} id="lie-take">{lieTake.text}</Takeaway>}
+        </Card>
+      )}
+
+      {greenMiss.missed > 0 && (
+        <Card id="green-miss" title="GREEN MISS · 그린을 놓친 방향" info={<>
+          <p>그린을 놓친 홀에서 공이 핀 기준으로 어느 쪽으로 빠졌는지예요. 스코어 입력의 필드샷 탭 "놓친 방향"에서 고른 값이에요.</p>
+          <p>방향을 기록한 홀이 4번 이상 쌓이면 어느 쪽으로 치우치는지 보여드려요.</p>
+        </>}>
+          <div data-role="green-miss-count" style={{ fontSize: 14, color: COLOR.muted, marginBottom: 10 }}>
+            그린을 놓친 {greenMiss.missed}홀 중 방향을 기록한 홀 <b style={{ color: COLOR.text }}>{greenMiss.recorded}</b>
+          </div>
+          {greenMiss.recorded >= MIN_MISS_DIRECTIONS ? (
+            <>
+              <SplitBar id="green-miss-bar" segments={DIRECTION.map(([k, , ko]) => ({
+                key: k, label: ko, pct: (greenMiss.counts[k] / greenMiss.recorded) * 100, count: `${greenMiss.counts[k]}번`,
+                color: k === greenMiss.top ? COLOR.red : COLOR.blue,
+              }))} />
+              <Takeaway tone={missTake.tone} id="green-miss-take">{missTake.text}</Takeaway>
+            </>
+          ) : <Hint id="green-miss-hint">방향을 {MIN_MISS_DIRECTIONS}번 이상 기록하면 어느 쪽으로 빠지는지 보여드려요.</Hint>}
         </Card>
       )}
 

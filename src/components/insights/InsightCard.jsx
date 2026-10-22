@@ -5,7 +5,7 @@ import { tintWash, TINT_SOFT } from '../ui/tint.js';
 
 const chip = (color, bg) => ({
   display: 'inline-flex', alignItems: 'center', padding: '2px 7px', borderRadius: 999,
-  fontSize: 10, fontWeight: 700, letterSpacing: '0.02em', color, background: bg, whiteSpace: 'nowrap',
+  fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color, background: bg, whiteSpace: 'nowrap',
 });
 
 const dateLabel = (d) => {
@@ -55,10 +55,10 @@ export default function InsightCard({ insight, showContext = false, compact = fa
         )}
         {insight.count > 1 && <span style={chip('#e8edf8', 'rgba(255,255,255,0.08)')}>{insight.grouped ? `${insight.count}개 홀` : `×${insight.count}`}</span>}
       </div>
-      <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, marginBottom: 4 }}>{hl(insight.title)}</div>
-      <div style={{ fontSize: 12.5, color: '#b4c0d8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{hl(summary)}</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, marginBottom: 4 }}>{hl(insight.title)}</div>
+      <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{hl(summary)}</div>
       {!compact && insight.recommendation && (
-        <div style={{ fontSize: 12, color: '#7f8db0', lineHeight: 1.55, marginTop: 6, wordBreak: 'keep-all' }}>
+        <div style={{ fontSize: 14, color: '#7f8db0', lineHeight: 1.55, marginTop: 6, wordBreak: 'keep-all' }}>
           <span style={{ color, fontWeight: 700 }}>제안 </span>{hl(insight.recommendation)}
         </div>
       )}

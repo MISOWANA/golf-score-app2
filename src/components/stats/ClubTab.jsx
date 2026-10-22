@@ -38,11 +38,11 @@ export default function ClubTab({ report }) {
         {rows.map((r) => (
           <div key={r.key} data-role={`club-${r.key}`} style={{ padding: '10px 0', borderBottom: `1px solid ${COLOR.line}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 900, width: 58, whiteSpace: 'nowrap' }}>{r.label}</span>
-              <span style={{ fontSize: 11, color: COLOR.faint, flex: 1, whiteSpace: 'nowrap' }}>풀샷 {r.hitN}번</span>
-              {r.hitPct != null && <span data-role="club-hit" style={{ fontSize: 11, fontWeight: 700, color: COLOR.muted, whiteSpace: 'nowrap' }}>적중 <b style={{ color: COLOR.text }}>{fmtPct(r.hitPct)}</b></span>}
+              <span style={{ fontSize: 14, fontWeight: 900, width: 58, whiteSpace: 'nowrap' }}>{r.label}</span>
+              <span style={{ fontSize: 13, color: COLOR.faint, flex: 1, whiteSpace: 'nowrap' }}>풀샷 {r.hitN}번</span>
+              {r.hitPct != null && <span data-role="club-hit" style={{ fontSize: 13, fontWeight: 700, color: COLOR.muted, whiteSpace: 'nowrap' }}>적중 <b style={{ color: COLOR.text }}>{fmtPct(r.hitPct)}</b></span>}
               <ConfidenceBadge tier={r.tier} />
-              <span data-role="club-median" style={{ fontSize: 15, fontWeight: 900, width: 56, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtMeters(r.median)}</span>
+              <span data-role="club-median" style={{ fontSize: 16, fontWeight: 900, width: 56, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtMeters(r.median)}</span>
             </div>
             <div style={{ position: 'relative', height: 8, borderRadius: 4, background: COLOR.track, marginTop: 8 }}>
               {r.q1 != null && r.q3 != null && r.q3 > r.q1 && (
@@ -52,7 +52,7 @@ export default function ClubTab({ report }) {
             </div>
           </div>
         ))}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: COLOR.faint, marginTop: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: COLOR.faint, marginTop: 6 }}>
           <span>0m</span><span>{scaleMax}m</span>
         </div>
       </Card>

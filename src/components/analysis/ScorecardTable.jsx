@@ -1,12 +1,14 @@
+import { Fragment } from 'react';
 import styles from '../../styles/styles';
+import { totalPar as sumPar } from '../../engine/players.js';
+import { ninesOf } from '../../engine/nines.js';
 
 const getHeaderFontSize = (text) => {
   const len = (text || '').length;
-  if (len <= 3) return '11px';
-  if (len <= 5) return '9px';
-  if (len <= 7) return '8px';
-  if (len <= 10) return '7px';
-  return '6px';
+  if (len <= 3) return '13px';
+  if (len <= 5) return '12px';
+  if (len <= 7) return '11px';
+  return '10px';
 };
 
 export default function ScorecardTable({ round, player, onSelectHole }) {
@@ -39,7 +41,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
                     ...(onSelectHole ? { cursor: 'pointer', color: '#c9a228' } : {}),
                   }}
                 >
-                  {idx + 1}
+                  {h.holeNumber ?? idx + 1}
                 </div>
               );
             })}
@@ -127,14 +129,16 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
   };
 
   const totalStrokes = round.holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
-  const totalPar = round.pars.reduce((a, b) => a + b, 0);
+  const totalPar = sumPar(round);
   const totalPutts = round.holes.reduce((s, h) => s + (h.scores[player]?.putts || 0), 0);
   const totalDiff = totalStrokes - totalPar;
 
   return (
     <div style={styles.scorecardWrap}>
-      {renderTable(round.holes.slice(0, 9), round.outCourseName || 'OUT', 0)}
-      {renderTable(round.holes.slice(9), round.inCourseName || 'IN', 9)}
+      {/* 18홀은 OUT·IN 두 표, 9홀은 친 9홀 한 표 */}
+      {ninesOf(round).map(({ key, label, holes }) => (
+        <Fragment key={key}>{renderTable(holes.map(x => x.hole), label, holes[0].index)}</Fragment>
+      ))}
 
       <div style={styles.scorecardGrandTotal}>
         <div style={styles.scorecardGrandRow}>

@@ -5,6 +5,8 @@
 import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 import { penaltyCount } from './penalties.js';
 import { greenSpeedCareerInsights } from './greenSpeed.js';
+import { totalPar } from './players.js';
+import { isFullRound } from './nines.js';
 
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const std = (a) => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
@@ -14,9 +16,11 @@ function roundStats(r) {
   const p = r.players[0];
   const holes = r.holes;
   const score = holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
-  const par = r.pars.reduce((a, b) => a + b, 0);
+  const par = totalPar(r);
+  // 퍼트는 입력하지 않은 홀을 2퍼트로 채워 라운드끼리 견준다(중립 값). GIR 은 기본값이 '성공'이라
+  // 채우면 부풀므로 입력한 홀만 센다.
   const putts = holes.reduce((s, h) => s + (h.scores[p]?.putts ?? 2), 0);
-  const gir = holes.filter(h => h.scores[p]?.gir === true).length;
+  const gir = holes.filter(h => h.scores[p]?.touched !== false && h.scores[p]?.gir === true).length;
   const pen = holes.reduce((s, h) => s + (h.scores[p] ? penaltyCount(h.scores[p]) : 0), 0);
   const three = holes.filter(h => (h.scores[p]?.putts ?? 2) >= 3).length;
   return { id: r.id, course: r.courseName, score, par, diff: score - par, putts, gir, pen, three, holeCount: holes.length };
@@ -29,8 +33,13 @@ const mk = (id, severity, category, insightType, title, summary, recommendation,
 export function buildCareerInsights(rounds) {
   const out = [];
   if (!rounds || rounds.length < 2) return out;
-  const st = rounds.map(roundStats);
-  const n = rounds.length;
+  // 스코어·퍼트 수·페널티 '라운드 합계' 기반 인사이트(추세·베스트·편차)는 18홀 라운드끼리만 견준다 —
+  // 9홀 라운드의 합계가 섞이면 추세가 거짓으로 좋아지고 '베스트 라운드'가 9홀 라운드가 된다.
+  // 홀 단위 분석(3퍼트 원인 · 같은 홀 반복 손실)은 9홀 라운드도 포함한다.
+  const fullRounds = rounds.filter(isFullRound);
+  const st = fullRounds.map(roundStats);
+  const n = fullRounds.length;
+  const roundCount = rounds.length;
 
   // ── 스코어 추세 (최근 3 vs 그 이전)
   if (n >= 4) {
@@ -110,7 +119,7 @@ export function buildCareerInsights(rounds) {
           : '3~6m 구간의 라인 확정과 속도(홀 뒤 60cm)를 우선하세요.';
       out.push(mk('C007', 'warning', 'putting', 'three_putt_cause_dominant',
         `누적 3퍼트의 주원인: ${which}`,
-        `${n}라운드 동안 3퍼트 ${cs.total}회 중 원인이 구분된 ${cs.known}회에서 ${which}이 ${top}회(${Math.round((top / cs.known) * 100)}%)였습니다.${cs.counts.unknown ? ` (판단 보류 ${cs.counts.unknown}회)` : ''}`,
+        `${roundCount}라운드 동안 3퍼트 ${cs.total}회 중 원인이 구분된 ${cs.known}회에서 ${which}이 ${top}회(${Math.round((top / cs.known) * 100)}%)였습니다.${cs.counts.unknown ? ` (판단 보류 ${cs.counts.unknown}회)` : ''}`,
         advice,
         ['putting', 'three_putt', 'pattern', 'trend']));
     }

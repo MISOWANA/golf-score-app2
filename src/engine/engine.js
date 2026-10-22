@@ -1,10 +1,13 @@
 import { buildDerivedHoleMetrics, buildRoundMetrics } from './metrics.js';
 import { offGreenCount, offGreenHoled } from './offGreen.js';
+import { effectiveGreenMiss, GREEN_MISS_WORD } from './greenMiss.js';
 
 // ─── App data → engine format ─────────────────────────────────────────────────
 
 export function toHoleInput(h, player) {
   const s = h.scores?.[player] ?? {};
+  // 그린을 놓친 홀에서만 방향을 쓴다 — 방향을 고른 뒤 성공으로 고친 홀의 값은 무시
+  const greenMiss = effectiveGreenMiss(s, h.par);
   return {
     holeNumber:         h.holeNumber,
     par:                h.par,
@@ -14,7 +17,8 @@ export function toHoleInput(h, player) {
     // 티샷 랜딩 L/C/R — 앱은 s.fairwayHit에 문자열로 저장한다 (s.landingPoint는 예전 이름)
     landingPoint:       typeof s.fairwayHit === 'string' ? s.fairwayHit : (s.landingPoint ?? null),
     gir:                s.gir         ?? null,
-    greenMissDirection: s.greenMiss   ?? null,
+    greenMissDirection: greenMiss,
+    greenMissWord:      greenMiss ? GREEN_MISS_WORD[greenMiss] : null,   // 문구용 ('오른쪽')
     obCount:            s.ob          ?? 0,
     hazardCount:        s.hazard      ?? 0,
     unplayableCount:    s.unplayable  ?? 0,

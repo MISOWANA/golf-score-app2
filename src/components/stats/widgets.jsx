@@ -12,7 +12,7 @@ export function Card({ id, title, info, infoTitle, right, children }) {
     <div data-role={id ? `card-${id}` : undefined}
       style={{ ...tintWash(COLOR.gold, { strength: 0.06, border: 0.18 }), borderRadius: 18, padding: '14px 14px 14px', marginBottom: 12, textAlign: 'left' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10, minHeight: 22 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', color: COLOR.slate }}>
+        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', color: COLOR.slate }}>
           {title}
           {info && <InfoNote title={infoTitle ?? title}>{info}</InfoNote>}
         </div>
@@ -28,12 +28,12 @@ export function Metric({ id, value, unit, label, sub, tone, align = 'left' }) {
   const color = tone === 'good' ? COLOR.green : tone === 'bad' ? COLOR.red : COLOR.text;
   return (
     <div data-role={id} style={{ minWidth: 0, textAlign: align }}>
-      {label && <div style={{ fontSize: 11, color: COLOR.muted, marginBottom: 3, fontWeight: 600 }}>{label}</div>}
+      {label && <div style={{ fontSize: 13, color: COLOR.muted, marginBottom: 3, fontWeight: 600 }}>{label}</div>}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
         <span style={{ fontSize: 30, fontWeight: 900, lineHeight: 1.05, color, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-        {unit && <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.muted }}>{unit}</span>}
+        {unit && <span style={{ fontSize: 14, fontWeight: 700, color: COLOR.muted }}>{unit}</span>}
       </div>
-      {sub && <div style={{ fontSize: 11, color: COLOR.faint, marginTop: 3 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 13, color: COLOR.faint, marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function TrendChip({ delta, unit = '%p', goodWhen = 'up', digits = 0, fla
   return (
     <span data-role={id ?? 'trend'} data-trend={steady ? 'flat' : better ? 'better' : 'worse'}
       aria-label={`${label} ${word}`}
-      style={{ fontSize: 11, fontWeight: 700, color, whiteSpace: 'nowrap', padding: '2px 8px', borderRadius: 999, border: `1px solid ${color}55`, background: `${color}14` }}>
+      style={{ fontSize: 13, fontWeight: 700, color, whiteSpace: 'nowrap', padding: '2px 8px', borderRadius: 999, border: `1px solid ${color}55`, background: `${color}14` }}>
       {label} {arrow} {steady ? word : `${fmtNum(abs, digits)}${unit}`}
     </span>
   );
@@ -61,7 +61,7 @@ export function Takeaway({ tone = 'info', children, id, bare = false }) {
   const color = tone === 'good' ? COLOR.green : tone === 'warn' ? COLOR.amber : COLOR.slate;
   return (
     <div data-role={id ?? 'takeaway'} data-tone={tone}
-      style={{ display: 'flex', gap: 8, alignItems: 'flex-start', ...(bare ? { padding: '4px 0' } : { marginTop: 12, paddingTop: 10, borderTop: `1px solid ${COLOR.line}` }), fontSize: 12.5, lineHeight: 1.55, color: '#c4cfe0', wordBreak: 'keep-all' }}>
+      style={{ display: 'flex', gap: 8, alignItems: 'flex-start', ...(bare ? { padding: '4px 0' } : { marginTop: 12, paddingTop: 10, borderTop: `1px solid ${COLOR.line}` }), fontSize: 14, lineHeight: 1.55, color: '#c4cfe0', wordBreak: 'keep-all' }}>
       <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0, marginTop: 7 }} />
       <span>{children}</span>
     </div>
@@ -71,7 +71,7 @@ export function Takeaway({ tone = 'info', children, id, bare = false }) {
 export function Hint({ children, id }) {
   return (
     <div data-role={id ?? 'hint'}
-      style={{ fontSize: 12.5, color: COLOR.muted, lineHeight: 1.6, padding: '14px 12px', border: `1px dashed ${COLOR.line}`, borderRadius: 12, textAlign: 'center', wordBreak: 'keep-all' }}>
+      style={{ fontSize: 14, color: COLOR.muted, lineHeight: 1.6, padding: '14px 12px', border: `1px dashed ${COLOR.line}`, borderRadius: 12, textAlign: 'center', wordBreak: 'keep-all' }}>
       {children}
     </div>
   );
@@ -90,12 +90,12 @@ export function SplitBar({ segments, id }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${segments.length}, minmax(0, 1fr))`, gap: 6, marginTop: 8 }}>
         {segments.map((s) => (
-          <div key={s.key} data-legend={s.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: 11, color: COLOR.muted, minWidth: 0 }}>
+          <div key={s.key} data-legend={s.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: 13, color: COLOR.muted, minWidth: 0 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
               <i style={{ width: 8, height: 8, borderRadius: 3, background: s.color, display: 'block' }} />{s.label}
             </span>
-            <b style={{ fontSize: 15, fontWeight: 900, color: COLOR.text, fontVariantNumeric: 'tabular-nums' }}>{Math.round(s.pct ?? 0)}%</b>
-            {s.count != null && <span style={{ fontSize: 10.5, color: COLOR.faint }}>{s.count}</span>}
+            <b style={{ fontSize: 16, fontWeight: 900, color: COLOR.text, fontVariantNumeric: 'tabular-nums' }}>{Math.round(s.pct ?? 0)}%</b>
+            {s.count != null && <span style={{ fontSize: 12, color: COLOR.faint }}>{s.count}</span>}
           </div>
         ))}
       </div>
@@ -110,7 +110,7 @@ export function RateRow({ id, label, sub, value, scale = 100, text, tier, color 
     <div data-role={id ?? 'rate-row'} style={{ ...styles.riStatRow, opacity: dim ? 0.55 : 1, alignItems: 'center' }}>
       <div style={{ ...styles.riStatRowLabel, width: labelWidth }}>
         {label}
-        {sub && <div style={{ fontSize: 10.5, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{sub}</div>}
       </div>
       <div style={styles.riStatRowBarTrack}><div style={{ ...styles.riStatRowBarFill, width: `${width}%`, background: color }} /></div>
       <div style={{ ...styles.riStatRowValue, width: 56 }}>{text ?? (value == null ? '–' : Math.round(value))}</div>
@@ -128,7 +128,7 @@ export function RangeRow({ id, label, sub, median, q1, q3, scaleMax, text, right
     <div data-role={id ?? 'range-row'} style={{ ...styles.riStatRow, alignItems: 'center' }}>
       <div style={{ ...styles.riStatRowLabel, width: labelWidth }}>
         {label}
-        {sub && <div style={{ fontSize: 10.5, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{sub}</div>}
       </div>
       <div style={{ ...styles.riStatRowBarTrack, position: 'relative', overflow: 'visible', height: 8 }}>
         {hasRange && <div style={{ position: 'absolute', top: 0, bottom: 0, left: at(q1), width: `calc(${at(q3)} - ${at(q1)})`, borderRadius: 4, background: 'rgba(201,162,40,0.35)' }} />}

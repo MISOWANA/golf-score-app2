@@ -9,7 +9,7 @@ const QUICK = ['3퍼트', '숏퍼트', '그린스피드', '거리감', 'OB', '�
 const PAGE = 30;
 
 const pill = (active, color = '#c9a228') => ({
-  padding: '6px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+  padding: '6px 10px', borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: 'pointer',
   border: `1px solid ${active ? color : '#252f4a'}`,
   background: active ? `${color}22` : '#111827',
   color: active ? color : '#8896b0', whiteSpace: 'nowrap',
@@ -57,7 +57,7 @@ export default function InsightSearchPanel({ rounds }) {
           value={query}
           onChange={e => { setQuery(e.target.value); setLimit(PAGE); }}
           placeholder="예: 3퍼트, 숏퍼트, 거리감, OB, 드라이버, 7번"
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#e8edf8', fontSize: 14, padding: '12px 0' }}
+          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#e8edf8', fontSize: 15, padding: '12px 0' }}
         />
         {query && (
           <button aria-label="검색어 지우기" onClick={() => { setQuery(''); setLimit(PAGE); }}
@@ -81,12 +81,12 @@ export default function InsightSearchPanel({ rounds }) {
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: '#111827', border: '1px solid #1b2238', borderRadius: 14, padding: '10px 12px',
-          marginBottom: filtersOpen ? 8 : 12, cursor: 'pointer', color: '#e8edf8', fontSize: 13, fontWeight: 700,
+          marginBottom: filtersOpen ? 8 : 12, cursor: 'pointer', color: '#e8edf8', fontSize: 14, fontWeight: 700,
         }}>
         <span>
           필터
           {activeFilterCount > 0 && (
-            <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: 'rgba(201,162,40,0.18)', color: '#c9a228', fontSize: 11 }}>
+            <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: 'rgba(201,162,40,0.18)', color: '#c9a228', fontSize: 13 }}>
               {activeFilterCount}개 선택
             </span>
           )}
@@ -95,13 +95,13 @@ export default function InsightSearchPanel({ rounds }) {
       </button>
       {filtersOpen && (
       <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 14, padding: '10px 12px', marginBottom: 12 }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>심각도</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>심각도</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {['critical', 'warning', 'neutral', 'positive'].map(s => (
             <button key={s} style={pill(severities.includes(s), SEVERITY_COLOR[s])} onClick={() => toggle(severities, setSeverities, s)}>{SEVERITY_LABEL[s]}</button>
           ))}
         </div>
-        <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>분류</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>분류</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {INSIGHT_CATEGORY_ORDER.filter(c => catCounts[c] || categories.includes(c)).map(c => (
             <button key={c} style={pill(categories.includes(c))} onClick={() => toggle(categories, setCategories, c)}>
@@ -109,7 +109,7 @@ export default function InsightSearchPanel({ rounds }) {
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 10, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>범위</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>범위</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {[['all', '전체'], ['hole', '홀별'], ['round', '라운드 요약'], ['career', '누적 추세']].map(([v, l]) => (
             <button key={v} style={pill(scope === v)} onClick={() => { setScope(v); setLimit(PAGE); }}>{l}</button>
@@ -119,7 +119,7 @@ export default function InsightSearchPanel({ rounds }) {
               aria-label="라운드 선택"
               value={roundId}
               onChange={e => { setRoundId(e.target.value); setLimit(PAGE); }}
-              style={{ background: '#111827', color: '#e8edf8', border: '1px solid #252f4a', borderRadius: 10, padding: '6px 8px', fontSize: 12, maxWidth: 180 }}
+              style={{ background: '#111827', color: '#e8edf8', border: '1px solid #252f4a', borderRadius: 10, padding: '6px 8px', fontSize: 14, maxWidth: 180 }}
             >
               <option value="">모든 라운드</option>
               {solo.map(r => <option key={r.id} value={r.id}>{dateLabel(r.date)} {r.courseName}</option>)}
@@ -131,17 +131,17 @@ export default function InsightSearchPanel({ rounds }) {
 
       {/* 결과 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ fontSize: 12, color: '#8896b0' }} data-role="result-count">
+        <div style={{ fontSize: 14, color: '#8896b0' }} data-role="result-count">
           {query.trim() ? `"${query.trim()}" ` : ''}<b style={{ color: '#e8edf8' }}>{results.length}건</b>
           {activeFilterCount > 0 && ` · 필터 ${activeFilterCount}개`}
         </div>
         {(query || activeFilterCount > 0) && (
-          <button onClick={reset} style={{ background: 'none', border: 'none', color: '#c9a228', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>초기화</button>
+          <button onClick={reset} style={{ background: 'none', border: 'none', color: '#c9a228', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>초기화</button>
         )}
       </div>
 
       {results.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 13, lineHeight: 1.7, padding: '28px 12px', background: '#111827', border: '1px solid #1b2238', borderRadius: 16 }}>
+        <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 14, lineHeight: 1.7, padding: '28px 12px', background: '#111827', border: '1px solid #1b2238', borderRadius: 16 }}>
           {index.length === 0
             ? '아직 분석할 인사이트가 없어요. 라운드를 기록하면 여기서 찾아볼 수 있어요.'
             : <>검색 결과가 없어요.<br />다른 말로 찾아보거나 필터를 줄여 보세요.</>}

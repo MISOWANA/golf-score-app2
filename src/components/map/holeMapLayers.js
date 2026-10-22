@@ -39,7 +39,7 @@ export const pointIcon = (label) => L.divIcon({
         position:absolute;right:14px;top:-22px;white-space:nowrap;
         padding:2px 7px;border-radius:4px;
         background:rgba(6,8,15,0.82);border:1px solid rgba(240,201,58,0.55);
-        color:#f0c93a;font-size:10px;font-weight:800;letter-spacing:0.04em;
+        color:#f0c93a;font-size:12px;font-weight:800;letter-spacing:0.04em;
       ">${label}</div>
     </div>`,
   iconSize: [0, 0],
@@ -64,7 +64,7 @@ export const pinIcon = () => L.divIcon({
         position:absolute;left:18px;top:-44px;white-space:nowrap;
         padding:2px 7px;border-radius:4px;
         background:rgba(6,8,15,0.82);border:1px solid rgba(239,83,80,0.6);
-        color:#ff8a87;font-size:10px;font-weight:800;letter-spacing:0.04em;
+        color:#ff8a87;font-size:12px;font-weight:800;letter-spacing:0.04em;
       ">핀</div>
     </div>`,
   iconSize: [0, 0],
@@ -109,7 +109,7 @@ export const distanceIcon = (meters, nx = 1, ny = 0) => L.divIcon({
         transform:translate(${(-50 + nx * 50).toFixed(0)}%,${(-50 + ny * 50).toFixed(0)}%);
         width:max-content;padding:2px 7px;border-radius:4px;white-space:nowrap;
         background:rgba(6,8,15,0.88);border:1px solid rgba(255,255,255,0.35);
-        color:#ffffff;font-size:11px;font-weight:800;line-height:1.4;
+        color:#ffffff;font-size:13px;font-weight:800;line-height:1.4;
       ">${Math.round(meters)}m</div>
     </div>`,
   iconSize: [0, 0],

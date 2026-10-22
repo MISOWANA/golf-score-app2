@@ -33,7 +33,7 @@ function BirdieBuddyLogo() {
 
       {/* BUDDY — light with wide tracking */}
       <div style={{
-        fontSize: '17px',
+        fontSize: '18px',
         fontWeight: '300',
         color: '#e8edf8',
         letterSpacing: '0.40em',
@@ -55,7 +55,7 @@ function BirdieBuddyLogo() {
 
       {/* Tagline */}
       <div style={{
-        fontSize: '10px',
+        fontSize: '12px',
         fontWeight: '500',
         color: '#4d5a78',
         letterSpacing: '0.22em',
@@ -125,11 +125,11 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                       flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                       padding: '13px 16px', borderRadius: 14, cursor: 'pointer',
                       border: '1.5px solid rgba(201,162,40,0.45)', background: 'rgba(201,162,40,0.08)',
-                      color: '#e8edf8', fontSize: 15, fontWeight: 700, textAlign: 'left',
+                      color: '#e8edf8', fontSize: 16, fontWeight: 700, textAlign: 'left',
                     }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.userName}</span>
-                    <span style={{ color: '#c9a228', fontSize: 13, flexShrink: 0 }}>계속 →</span>
+                    <span style={{ color: '#c9a228', fontSize: 14, flexShrink: 0 }}>계속 →</span>
                   </button>
                   <button
                     type="button"
@@ -139,13 +139,13 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                     style={{
                       width: 48, flexShrink: 0, borderRadius: 14, cursor: 'pointer',
                       border: '1.5px solid #252f4a', background: 'transparent',
-                      color: '#8896b0', fontSize: 16,
+                      color: '#8896b0', fontSize: 17,
                     }}
                   >🗑</button>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: '#4d5a78', marginTop: 8, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: '#4d5a78', marginTop: 8, lineHeight: 1.6 }}>
               같은 이름을 입력해도 기존 기록으로 이어집니다.
             </div>
           </div>
@@ -194,10 +194,10 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 26, marginBottom: 12 }}>🗑</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
               '{pendingDelete.profile.userName}' 사용자를 삭제할까요?
             </div>
-            <div style={{ fontSize: 12, color: '#ef5350', background: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 20, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: '#ef5350', background: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 12, padding: '10px 14px', marginBottom: 20, lineHeight: 1.6 }}>
               라운드 {pendingDelete.rounds ?? '…'}개, MY BAG 설정, 진행 중인 라운드가<br />
               이 기기에서 영구히 삭제돼요. 되돌릴 수 없어요.
             </div>
@@ -206,7 +206,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                 type="button"
                 disabled={deleting}
                 onClick={() => setPendingDelete(null)}
-                style={{ flex: 1, padding: '13px 8px', borderRadius: 12, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '13px 8px', borderRadius: 12, border: '1.5px solid #252f4a', background: 'transparent', color: '#e8edf8', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
               >취소</button>
               <button
                 type="button"
@@ -214,7 +214,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                 onClick={confirmDelete}
                 style={{
                   flex: 1, padding: '13px 8px', borderRadius: 12, border: '1.5px solid transparent', background: '#ef5350', color: '#fff',
-                  fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                  fontSize: 15, fontWeight: 800, cursor: 'pointer',
                   opacity: deleting || pendingDelete.rounds == null ? 0.5 : 1,
                 }}
               >{deleting ? '삭제 중…' : '삭제'}</button>

@@ -53,7 +53,7 @@ function Stat({ label, value, color }) {
   return (
     <div style={{ flex: 1, padding: '12px 4px', textAlign: 'center' }}>
       <div style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1.1 }}>{value}</div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: LABEL, marginTop: 4 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: LABEL, marginTop: 4 }}>{label}</div>
     </div>
   );
 }
@@ -69,26 +69,26 @@ function Row({ badge, badgeColor, title, sub, meta, value, valueColor, result, r
         width: 46, height: 46, borderRadius: 12, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: tint(badgeColor, 0.14), border: `1.5px solid ${tint(badgeColor, 0.55)}`,
-        color: badgeColor, fontSize: 15, fontWeight: 900, letterSpacing: '-0.02em',
+        color: badgeColor, fontSize: 16, fontWeight: 900, letterSpacing: '-0.02em',
       }}>{badge}</div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: C.line, flexShrink: 0 }}>{title}</span>
+          <span style={{ fontSize: 17, fontWeight: 800, color: C.line, flexShrink: 0 }}>{title}</span>
           {sub && (
             <span style={{
-              fontSize: 13, fontWeight: 700, color: LABEL,
+              fontSize: 14, fontWeight: 700, color: LABEL,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{sub}</span>
           )}
         </div>
-        {meta && <div style={{ fontSize: 13, color: LABEL, marginTop: 3, lineHeight: 1.4 }}>{meta}</div>}
+        {meta && <div style={{ fontSize: 14, color: LABEL, marginTop: 3, lineHeight: 1.4 }}>{meta}</div>}
       </div>
 
       {(value != null || result) && (
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           {value != null && <div style={{ fontSize: 20, fontWeight: 900, color: valueColor, lineHeight: 1.1 }}>{value}</div>}
-          {result && <div style={{ fontSize: 12, fontWeight: 800, color: resultColor, marginTop: value != null ? 4 : 0 }}>{result}</div>}
+          {result && <div style={{ fontSize: 14, fontWeight: 800, color: resultColor, marginTop: value != null ? 4 : 0 }}>{result}</div>}
         </div>
       )}
     </div>
@@ -99,8 +99,8 @@ function Section({ title, aside, children }) {
   return (
     <div style={{ padding: '16px 14px 0' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '0 4px 8px' }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: C.gold, letterSpacing: '0.1em' }}>{title}</span>
-        {aside && <span style={{ fontSize: 12, fontWeight: 700, color: LABEL }}>{aside}</span>}
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.gold, letterSpacing: '0.1em' }}>{title}</span>
+        {aside && <span style={{ fontSize: 14, fontWeight: 700, color: LABEL }}>{aside}</span>}
       </div>
       <div style={{ borderRadius: 14, background: CARD, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
         {children}
@@ -116,7 +116,7 @@ function ScoreEditor({ par, strokes, putts, onSave, onCancel }) {
   const setStrokes = (v) => { const nv = Math.max(1, Math.min(20, v)); setSt(nv); setPt((p) => Math.min(p, nv - 1)); };
   const stepper = (label, value, onDec, onInc) => (
     <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: LABEL, textAlign: 'center', marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: LABEL, textAlign: 'center', marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', height: 48, borderRadius: 10, background: '#0d1425', border: `1px solid ${BORDER}` }}>
         <button onClick={onDec} style={{ flex: 1, height: '100%', background: 'none', border: 'none', color: C.green, fontSize: 22, fontWeight: 800, cursor: 'pointer' }}>−</button>
         <span style={{ minWidth: 40, textAlign: 'center', fontSize: 24, fontWeight: 900, color: C.line }}>{value}</span>
@@ -130,12 +130,12 @@ function ScoreEditor({ par, strokes, putts, onSave, onCancel }) {
         {stepper('스코어', st, () => setStrokes(st - 1), () => setStrokes(st + 1))}
         {stepper('퍼팅', pt, () => setPt(Math.max(0, pt - 1)), () => setPt(Math.min(st - 1, pt + 1)))}
       </div>
-      <div style={{ fontSize: 12, color: LABEL, lineHeight: 1.6, marginTop: 8 }}>
+      <div style={{ fontSize: 14, color: LABEL, lineHeight: 1.6, marginTop: 8 }}>
         GIR은 스코어와 퍼팅 수로 다시 계산돼요. 퍼팅 수를 바꾸면 퍼팅별 상세 기록은 지워져요.
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        <button onClick={onCancel} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${BORDER}`, background: 'transparent', color: LABEL, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
-        <button onClick={() => onSave({ strokes: st, putts: pt })} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: C.gold, color: C.ink, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>저장</button>
+        <button onClick={onCancel} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${BORDER}`, background: 'transparent', color: LABEL, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+        <button onClick={() => onSave({ strokes: st, putts: pt })} style={{ flex: 2, padding: 12, borderRadius: 10, border: 'none', background: C.gold, color: C.ink, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>저장</button>
       </div>
     </div>
   );
@@ -245,7 +245,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
   const navBtn = (enabled) => ({
     flex: 1, padding: '13px', borderRadius: 12, cursor: enabled ? 'pointer' : 'default',
     border: `1px solid ${enabled ? '#2c3a58' : BORDER}`, background: enabled ? CARD : 'transparent',
-    color: enabled ? C.line : '#2a3650', fontSize: 15, fontWeight: 800,
+    color: enabled ? C.line : '#2a3650', fontSize: 16, fontWeight: 800,
   });
 
   return (
@@ -261,10 +261,10 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: C.gold, letterSpacing: '0.12em' }}>HOLE</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.gold, letterSpacing: '0.12em' }}>HOLE</span>
             <span style={{ fontSize: 30, fontWeight: 900, color: C.line, lineHeight: 1 }}>{review.holeNo}</span>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: LABEL, marginTop: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: LABEL, marginTop: 4 }}>
             PAR {review.par}{review.holeLength != null && ` · ${m(review.holeLength)}`}
           </div>
         </div>
@@ -274,14 +274,14 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
             padding: '5px 10px', borderRadius: 8,
             background: tint(nameTone === C.line ? C.dim : nameTone, 0.14),
             border: `1px solid ${tint(nameTone === C.line ? C.dim : nameTone, 0.5)}`,
-            fontSize: 13, fontWeight: 900, letterSpacing: '0.06em', color: nameTone,
+            fontSize: 14, fontWeight: 900, letterSpacing: '0.06em', color: nameTone,
           }}>{name ?? '—'}</span>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
             <span style={{ fontSize: 22, fontWeight: 900, color: C.line }}>
               {review.par}/{review.strokes ?? '—'}
             </span>
             {review.diff != null && (
-              <span style={{ fontSize: 15, fontWeight: 800, color: nameTone }}>({scoreText(review.diff)})</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: nameTone }}>({scoreText(review.diff)})</span>
             )}
           </span>
         </div>
@@ -323,7 +323,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                 style={{
                   width: '100%', padding: '10px', borderRadius: 12, cursor: 'pointer',
                   border: `1px dashed ${BORDER}`, background: 'transparent',
-                  color: LABEL, fontSize: 13, fontWeight: 700,
+                  color: LABEL, fontSize: 14, fontWeight: 700,
                 }}
               >✎ 이 홀 스코어 수정</button>
             )}
@@ -342,7 +342,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                 <div style={{
                   position: 'absolute', top: 8, left: 10, right: 10, zIndex: 500,
                   padding: '7px 10px', borderRadius: 7, background: 'rgba(239,83,80,0.9)',
-                  color: '#fff', fontSize: 13, lineHeight: 1.6, fontWeight: 600,
+                  color: '#fff', fontSize: 14, lineHeight: 1.6, fontWeight: 600,
                 }}>위성 타일을 불러오지 못했습니다. 인증키가 만료됐을 수 있습니다.</div>
               )}
               <button
@@ -352,21 +352,21 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                   position: 'absolute', left: 10, bottom: 10, zIndex: 500,
                   padding: '8px 13px', borderRadius: 999, cursor: rendering ? 'default' : 'pointer',
                   border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(11,14,24,0.85)',
-                  color: rendering ? C.gold : C.line, fontSize: 13, fontWeight: 800,
+                  color: rendering ? C.gold : C.line, fontSize: 14, fontWeight: 800,
                 }}
               >{rendering ? '만드는 중…' : shownImage ? '↻ 이미지 다시 만들기' : '🖼 이미지로 저장'}</button>
             </div>
           </div>
         )}
         {!hasMap && review.gps.hasAny && (
-          <div style={{ padding: '10px 18px 0', fontSize: 12, color: LABEL }}>
+          <div style={{ padding: '10px 18px 0', fontSize: 14, color: LABEL }}>
             지도를 보려면 VWorld 인증키가 필요합니다.
           </div>
         )}
 
         {(shownError || shownImage) && (
           <div style={{ padding: '10px 14px 0' }}>
-            {shownError && <div style={{ fontSize: 13, lineHeight: 1.6, color: C.red }}>{shownError}</div>}
+            {shownError && <div style={{ fontSize: 14, lineHeight: 1.6, color: C.red }}>{shownError}</div>}
             {shownImage && (
               <>
                 <img
@@ -382,10 +382,10 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                   style={{
                     display: 'block', marginTop: 7, padding: '10px', borderRadius: 12,
                     textAlign: 'center', textDecoration: 'none',
-                    border: '1px solid #3a4e72', color: '#d6dfec', fontSize: 14, fontWeight: 700,
+                    border: '1px solid #3a4e72', color: '#d6dfec', fontSize: 15, fontWeight: 700,
                   }}
                 >이미지 저장</a>
-                <div style={{ marginTop: 6, fontSize: 11, color: LABEL, textAlign: 'center' }}>
+                <div style={{ marginTop: 6, fontSize: 13, color: LABEL, textAlign: 'center' }}>
                   저장이 안 되면 위 이미지를 길게 눌러 저장하세요
                 </div>
               </>
@@ -462,7 +462,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
 
           {/* 3퍼트 이상 — 퍼트 거리로 본 원인 (거리가 없으면 판단 보류) */}
           {review.puttAnalysis && (
-            <div data-role="putt-cause" style={{ padding: '12px 14px', borderTop: `1px solid ${C.line}22`, fontSize: 14, lineHeight: 1.7, color: '#d6dfec' }}>
+            <div data-role="putt-cause" style={{ padding: '12px 14px', borderTop: `1px solid ${C.line}22`, fontSize: 15, lineHeight: 1.7, color: '#d6dfec' }}>
               <div style={{ fontWeight: 800, color: review.puttAnalysis.cause === 'unknown' ? MUTED : C.goldBright, marginBottom: 2 }}>
                 3퍼트 원인 · {review.puttAnalysis.label}
               </div>
@@ -485,7 +485,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
 
         {review.memo && (
           <Section title="메모">
-            <div style={{ padding: '12px 14px', fontSize: 15, lineHeight: 1.8, color: '#d6dfec', whiteSpace: 'pre-wrap' }}>
+            <div style={{ padding: '12px 14px', fontSize: 16, lineHeight: 1.8, color: '#d6dfec', whiteSpace: 'pre-wrap' }}>
               {review.memo}
             </div>
           </Section>

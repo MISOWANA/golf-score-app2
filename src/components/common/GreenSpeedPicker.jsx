@@ -55,8 +55,8 @@ export default function GreenSpeedPicker({ value, onChange }) {
           return (
             <button key={b.id} type="button" data-role={`gs-preset-${b.id}`} aria-pressed={active}
               style={chip(active)} onClick={() => onChange(b.preset)}>
-              <div style={{ fontSize: 13, fontWeight: 800 }}>{b.label}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, marginTop: 2, color: active ? GOLD : '#8896b0' }}>{b.preset.toFixed(1)}ft</div>
+              <div style={{ fontSize: 14, fontWeight: 800 }}>{b.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: active ? GOLD : '#8896b0' }}>{b.preset.toFixed(1)}ft</div>
             </button>
           );
         })}
@@ -67,8 +67,8 @@ export default function GreenSpeedPicker({ value, onChange }) {
         <button type="button" data-role="gs-value" onClick={() => speed == null && onChange(STIMP_DEFAULT)}
           style={{ flex: 1, minWidth: 0, textAlign: 'center', padding: '4px 0', background: 'transparent', border: 'none', cursor: speed == null ? 'pointer' : 'default' }}>
           <span style={{ fontSize: 32, fontWeight: 900, color: speed == null ? '#4d5a78' : '#e8edf8', lineHeight: 1 }}>{mainText}</span>
-          <span style={{ fontSize: 13, color: '#8896b0', marginLeft: 4 }}>{unit === 'ft' ? 'ft' : 'm'}</span>
-          <div style={{ fontSize: 11, color: '#8896b0', marginTop: 4 }}>
+          <span style={{ fontSize: 14, color: '#8896b0', marginLeft: 4 }}>{unit === 'ft' ? 'ft' : 'm'}</span>
+          <div style={{ fontSize: 13, color: '#8896b0', marginTop: 4 }}>
             {speed == null ? '탭하면 보통(스팀프 9.0)부터 시작' : `${subText}${band ? ` · ${band.label}` : ''}`}
           </div>
         </button>
@@ -80,14 +80,14 @@ export default function GreenSpeedPicker({ value, onChange }) {
           {[['ft', '피트(스팀프)'], ['m', '미터']].map(([u, l]) => (
             <button key={u} type="button" data-role={`gs-unit-${u}`} aria-pressed={unit === u} onClick={() => pickUnit(u)}
               style={{
-                border: 'none', cursor: 'pointer', borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 700,
+                border: 'none', cursor: 'pointer', borderRadius: 999, padding: '4px 10px', fontSize: 13, fontWeight: 700,
                 background: unit === u ? GOLD : 'transparent', color: unit === u ? '#0b0e18' : '#8896b0',
               }}>{l}</button>
           ))}
         </div>
         {speed != null && (
           <button type="button" data-role="gs-clear" onClick={() => onChange(null)}
-            style={{ background: 'none', border: 'none', color: '#8896b0', fontSize: 12, textDecoration: 'underline', cursor: 'pointer' }}>
+            style={{ background: 'none', border: 'none', color: '#8896b0', fontSize: 14, textDecoration: 'underline', cursor: 'pointer' }}>
             설정 안 함
           </button>
         )}

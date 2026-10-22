@@ -1,4 +1,5 @@
 import { hasHoleMap } from '../../engine/geo.js';
+import { ninesOf } from '../../engine/nines.js';
 
 // ROUND REPORT 상단의 홀별 복기 진입 그리드.
 // 스코어카드의 작은 숫자를 누르게 하는 대신, 홀 번호와 스코어를 큼직하게 깔아
@@ -17,10 +18,8 @@ const TONE = (diff) => {
 const DEFAULT_TONE = { color: '#8ca4bc', bg: '#101a30', border: '#33415f' };
 
 export default function HoleReviewGrid({ round, player, onSelectHole }) {
-  const rows = [
-    { label: round.outCourseName || 'OUT', from: 0 },
-    { label: round.inCourseName || 'IN', from: 9 },
-  ];
+  // 18홀은 OUT·IN 두 줄, 9홀은 친 9홀 한 줄 (idx 는 round.holes 안의 위치)
+  const rows = ninesOf(round).map(({ label, holes }) => ({ label, items: holes }));
 
   const defaultCount = round.holes.filter((h) => !h.scores?.[player]?.touched).length;
 
@@ -33,22 +32,21 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
         gap: 10, marginBottom: 12,
       }}>
         <div style={{
-          fontSize: 16, fontWeight: 800, color: '#e8edf8', letterSpacing: '0.02em',
+          fontSize: 17, fontWeight: 800, color: '#e8edf8', letterSpacing: '0.02em',
         }}>홀별 복기</div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#8ca4bc' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#8ca4bc' }}>
           {gpsCount > 0 ? `${gpsCount}개 홀에 지도 기록` : '홀을 눌러 샷 기록 보기'}
         </div>
       </div>
 
-      {rows.map(({ label, from }) => (
+      {rows.map(({ label, items }) => (
         <div key={label} style={{ marginBottom: 12 }}>
           <div style={{
-            fontSize: 12, fontWeight: 800, color: '#6e84a8',
+            fontSize: 14, fontWeight: 800, color: '#6e84a8',
             letterSpacing: '0.18em', marginBottom: 6,
           }}>{label}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 5 }}>
-            {round.holes.slice(from, from + 9).map((h, i) => {
-              const idx = from + i;
+            {items.map(({ hole: h, index: idx }) => {
               const s = h.scores?.[player];
               const entered = !!s?.touched;
               // 입력하지 않은 홀도 합계에는 저장된 스코어(파)가 들어가므로 같은 값을 보여준다
@@ -68,8 +66,8 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
                     alignItems: 'center', gap: 2,
                   }}
                 >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#8ca4bc', lineHeight: 1 }}>
-                    {idx + 1}
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', lineHeight: 1 }}>
+                    {h.holeNumber ?? idx + 1}
                   </span>
                   <span style={{ fontSize: 19, fontWeight: 900, color: t.color, lineHeight: 1 }}>
                     {strokes ?? '–'}
@@ -87,7 +85,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
       ))}
 
       {defaultCount > 0 && (
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#6e84a8', lineHeight: 1.5, textAlign: 'right' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#6e84a8', lineHeight: 1.5, textAlign: 'right' }}>
           점선 칸 {defaultCount}개: 입력 없이 파(2퍼트)로 저장된 홀
         </div>
       )}

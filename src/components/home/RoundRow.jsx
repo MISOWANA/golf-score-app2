@@ -3,6 +3,8 @@ import styles from '../../styles/styles';
 import { scoreTone, diffLabel } from '../ui/scoreTone.js';
 import { tintWash, TINT_ROW } from '../ui/tint.js';
 import { myPlayer, totalPar as sumPar } from '../../engine/players.js';
+import { isNineHoleRound } from '../../engine/nines.js';
+import { nineBadgeStyle } from '../ui/nineBadge.js';
 
 export default function RoundRow({ round, onClick, userName }) {
   const firstPlayer = myPlayer(round, userName);
@@ -14,7 +16,10 @@ export default function RoundRow({ round, onClick, userName }) {
   return (
     <button className="bb-press" style={{ ...styles.roundRow, ...tintWash(tone.fg, TINT_ROW) }} onClick={onClick}>
       <div style={styles.roundRowLeft}>
-        <div style={styles.roundCourse}>{round.courseName}</div>
+        <div style={styles.roundCourse}>
+          {round.courseName}
+          {isNineHoleRound(round) && <span data-role="nine-badge" style={nineBadgeStyle}>9홀</span>}
+        </div>
         <div style={styles.roundDate}>
           {new Date(round.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
           <span style={styles.dot}> · </span>

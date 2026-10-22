@@ -174,8 +174,15 @@ const PUTT_DISTANCE_BUCKETS = [
   { id: 'gte5',  label: '5m+',  min: 5, max: Infinity },
 ];
 
+// 퍼트 라이 id('flat' · 'uphill-break-left' …). 스코어 입력은 문자열로 저장하고, 고르지 않았을 때의 기본값은
+// 빈 배열 []이다 — 예전 기록은 [id] 배열도 있다. 고르지 않은 것은 null(= 평지로 세지 않는다).
+const puttLieId = (lie) => {
+  const id = Array.isArray(lie) ? lie[0] : lie;
+  return typeof id === 'string' && id !== '' ? id : null;
+};
+
 function decomposePuttLie(lieId) {
-  if (!lieId || lieId === 'flat') return { slope: 'flat', brk: 'straight' };
+  if (lieId === 'flat') return { slope: 'flat', brk: 'straight' };
   const slope = lieId.includes('uphill') ? 'uphill' : lieId.includes('downhill') ? 'downhill' : 'flat';
   const brk = lieId.includes('break-left') ? 'slice' : lieId.includes('break-right') ? 'hook' : 'straight';
   return { slope, brk };
@@ -202,8 +209,9 @@ export function buildPuttingStats(rounds) {
           const bucket = byDistance.find(b => putt.distance >= b.min && putt.distance < b.max);
           if (bucket) { bucket.total++; if (made) bucket.made++; }
         }
-        if (putt.lie != null) {
-          const { slope, brk } = decomposePuttLie(putt.lie);
+        const lieId = puttLieId(putt.lie);
+        if (lieId != null) {
+          const { slope, brk } = decomposePuttLie(lieId);
           bySlope[slope].total++; if (made) bySlope[slope].made++;
           byBreak[brk].total++; if (made) byBreak[brk].made++;
         }

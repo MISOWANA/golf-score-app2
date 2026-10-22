@@ -19,13 +19,13 @@ export default function DistanceField({ label, sub, value, onChange, id, color }
   const btn = (d, text) => (
     <button type="button" aria-label={`${label} ${d > 0 ? '+' : ''}${d}m`} data-role={`${id}-${d > 0 ? 'up' : 'down'}${Math.abs(d)}`}
       disabled={(d < 0 && v <= 0) || (d > 0 && v >= MAX_M)} onClick={() => step(d)}
-      style={{ width: 40, height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#131c30', color: COLOR.muted, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0, padding: 0, opacity: (d < 0 && v <= 0) || (d > 0 && v >= MAX_M) ? 0.35 : 1 }}>{text}</button>
+      style={{ width: 'clamp(30px, 9.5vw, 40px)', height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#131c30', color: COLOR.muted, fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0, padding: 0, opacity: (d < 0 && v <= 0) || (d > 0 && v >= MAX_M) ? 0.35 : 1 }}>{text}</button>
   );
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <div style={{ width: 40, flexShrink: 0, textAlign: 'left' }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color }}>{label}</div>
-        <div style={{ fontSize: 9.5, color: COLOR.faint, letterSpacing: '0.08em' }}>{sub}</div>
+      <div style={{ width: 'clamp(42px, 12.5vw, 46px)', flexShrink: 0, textAlign: 'left' }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color }}>{label}</div>
+        <div style={{ fontSize: 11, color: COLOR.faint, letterSpacing: '0.02em' }}>{sub}</div>
       </div>
       {btn(-5, '−5')}{btn(-1, '−1')}
       <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2, height: 44, borderRadius: 10, background: '#0b0e18', border: `1px solid ${COLOR.line}` }}>
@@ -35,8 +35,8 @@ export default function DistanceField({ label, sub, value, onChange, id, color }
           onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-          style={{ width: 46, border: 'none', background: 'transparent', color: COLOR.text, fontSize: 19, fontWeight: 900, textAlign: 'right', fontVariantNumeric: 'tabular-nums', outline: 'none', padding: 0, alignSelf: 'center' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.muted, alignSelf: 'center' }}>m</span>
+          style={{ width: 'clamp(34px, 11vw, 46px)', border: 'none', background: 'transparent', color: COLOR.text, fontSize: 19, fontWeight: 900, textAlign: 'right', fontVariantNumeric: 'tabular-nums', outline: 'none', padding: 0, alignSelf: 'center' }} />
+        <span style={{ fontSize: 13, fontWeight: 700, color: COLOR.muted, alignSelf: 'center' }}>m</span>
       </label>
       {btn(1, '+1')}{btn(5, '+5')}
     </div>

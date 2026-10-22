@@ -98,7 +98,7 @@ export default function TeeTab({ report }) {
               <RateRow key={r.key} id={`tee-shape-${r.key}`} label={r.label} sub={`${r.n}번 · ${fmtPct((r.n / shapeTotal) * 100)}`} value={r.hitPct} text={fmtPct(r.hitPct)}
                 color={tee.hitPct != null && r.hitPct >= tee.hitPct ? COLOR.green : COLOR.amber} tier={r.tier} />
             ))}
-            <div style={{ fontSize: 10.5, color: COLOR.faint, marginTop: 6 }}>막대는 그 구질의 페어웨이 적중률이에요.</div>
+            <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 6 }}>막대는 그 구질의 페어웨이 적중률이에요.</div>
             <Takeaway tone={shapeTake.tone}>{shapeTake.text}</Takeaway>
           </>
         ) : <Hint>구질은 3번 이상 기록된 것부터 보여드려요.</Hint>}

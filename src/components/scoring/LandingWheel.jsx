@@ -56,9 +56,9 @@ export default function LandingWheel({ value, onChange }) {
               filter={on ? `url(#${uid}-glow)` : undefined} />
             {key ? (
               <>
-                <text x={fix(p[0])} y={fix(p[1] - 6)} textAnchor="middle" dominantBaseline="central" fontSize="11.5" fontWeight="900"
+                <text x={fix(p[0])} y={fix(p[1] - 6)} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="900"
                   letterSpacing="0.06em" fill={on ? '#1a1405' : '#e8edf8'}>{KEY_NAME[h]}</text>
-                <text x={fix(p[0])} y={fix(p[1] + 9)} textAnchor="middle" dominantBaseline="central" fontSize="9.5"
+                <text x={fix(p[0])} y={fix(p[1] + 9)} textAnchor="middle" dominantBaseline="central" fontSize="11"
                   fill={on ? 'rgba(26,20,5,0.7)' : '#6e84a8'}>{h}시</text>
               </>
             ) : (
@@ -75,12 +75,12 @@ export default function LandingWheel({ value, onChange }) {
         <>
           <text x={CENTER} y="163" textAnchor="middle" dominantBaseline="central" fontSize="25" fontWeight="900" fill="#f3d36b"
             data-role="landing-wheel-hour">{sel}시</text>
-          <text x={CENTER} y="187" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="700" letterSpacing="0.06em" fill="#8896b0">{nameOf(sel)}</text>
+          <text x={CENTER} y="187" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" letterSpacing="0.06em" fill="#8896b0">{nameOf(sel)}</text>
         </>
       ) : (
         <>
           <FlagMark x={163} y={166} k={1.05} />
-          <text x={CENTER} y="203" textAnchor="middle" fontSize="9" fill="#6e84a8">탭해서 선택</text>
+          <text x={CENTER} y="203" textAnchor="middle" fontSize="11" fill="#6e84a8">탭해서 선택</text>
         </>
       )}
 

@@ -76,7 +76,7 @@ export default function PuttingTab({ report }) {
       </>} right={causes.total > 0 && <ConfidenceBadge tier={causes.known >= 8 ? 'high' : causes.known >= 4 ? 'mid' : 'low'} />}>
         {causes.total > 0 ? (
           <>
-            <div style={{ fontSize: 12, color: COLOR.muted, marginBottom: 4 }}>3퍼트 이상 <b style={{ color: COLOR.text }}>{causes.total}홀</b></div>
+            <div style={{ fontSize: 14, color: COLOR.muted, marginBottom: 4 }}>3퍼트 이상 <b style={{ color: COLOR.text }}>{causes.total}홀</b></div>
             {causeRows.map((c) => (
               <RateRow key={c} id={`cause-${c}`} label={PUTT_CAUSE_LABEL[c]} value={(causes.counts[c] / causes.total) * 100} text={`${causes.counts[c]}홀`}
                 color={c === 'unknown' ? '#4d5a78' : c === causes.dominant ? COLOR.red : COLOR.amber} labelWidth={110} />
@@ -101,7 +101,7 @@ export default function PuttingTab({ report }) {
         ) : <Hint>그린을 놓친 홀이 쌓이면 스크램블링을 보여드려요.</Hint>}
         {near.n >= 5 && (
           <div data-role="near-green" style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLOR.line}` }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: COLOR.slate, marginBottom: 8 }}>80m 안에서 친 샷</div>
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', color: COLOR.slate, marginBottom: 8 }}>80m 안에서 친 샷</div>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
               <Metric id="m-near-hit" value={fmtPct(near.hitPct)} label="그린에 올린 비율" sub={`${near.n}샷 중 ${near.hit}샷`} />
               {near.puttMedian != null && <Metric id="m-near-putt" value={fmtMeters(near.puttMedian, 1)} label="올린 뒤 첫 퍼트" sub={`중앙값 · ${near.puttN}샷`} align="right" />}

@@ -13,6 +13,8 @@ import { analyzePutts, summarizePuttCauses, PUTT_CAUSE_LABEL } from './puttAnaly
 import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from './scoreBreakdown.js';
 import { buildCareerInsights, roundStats } from './careerInsights.js';
 import { penaltyCount } from './penalties.js';
+import { totalPar } from './players.js';
+import { isBackHole } from './nines.js';
 import { hasHoleMap } from './geo.js';
 import { greenSpeedRoundInsights, buildGreenSpeedReport, GREEN_SPEED_TIPS } from './greenSpeed.js';
 
@@ -81,11 +83,17 @@ export function buildRoundReplay(round) {
   });
 
   const score = holes.reduce((a, h) => a + h.strokes, 0);
-  const par = round.pars.reduce((a, b) => a + b, 0);
-  const front = holes.slice(0, 9).reduce((a, h) => a + h.strokes, 0);
-  const back = holes.slice(9).reduce((a, h) => a + h.strokes, 0);
-  const frontPar = round.pars.slice(0, 9).reduce((a, b) => a + b, 0);
-  const backPar = round.pars.slice(9).reduce((a, b) => a + b, 0);
+  // 파는 홀에서 구한다 — round.pars 가 없는 예전 백업도 계산된다
+  const par = totalPar(round);
+  // 전반(1~9번)·후반(10~18번)은 홀 번호로 가른다 — 9홀 라운드는 한쪽만 있다
+  const backAt = (i) => isBackHole(round.holes[i], i);
+  const frontHoles = holes.filter((_, i) => !backAt(i));
+  const backHoles = holes.filter((_, i) => backAt(i));
+  const front = frontHoles.reduce((a, h) => a + h.strokes, 0);
+  const back = backHoles.reduce((a, h) => a + h.strokes, 0);
+  const sumPar = (list) => list.reduce((a, h) => a + (h.par || 0), 0);
+  const frontPar = sumPar(frontHoles);
+  const backPar = sumPar(backHoles);
   const touchedHoles = holes.filter(h => h.touched);
   const analyses = round.holes.map(h => analyzePutts(h.scores[player]));
   const causes = summarizePuttCauses(round.holes.map((h, i) => (holes[i].touched ? analyses[i] : null)));
@@ -100,11 +108,21 @@ export function buildRoundReplay(round) {
 
   // 그날의 그린 스피드를 설정했으면 퍼팅 인사이트(빠른·느린 그린)를 더한다 — 리포트·검색도 이 복기를 쓴다
   const sortedRound = sortInsights([...roundInsights, ...greenSpeedRoundInsights(round)]);
-  const headline = buildHeadline({ score, par, front, back, frontPar, backPar, breakdown, causes, penalties, threePutts });
+  // 후반 − 전반 (9홀 환산) — 입력한 홀만 본다. 입력하지 않은 후반(파로 저장됨)을 '후반이 적음'으로 읽지 않게,
+  // 양쪽 모두 3홀 이상 입력했을 때만 비교한다 (metrics.buildRoundMetrics 의 backFade 와 같은 기준).
+  const MIN_HALF_HOLES = 3;
+  const frontPlayed = frontHoles.filter(h => h.touched);
+  const backPlayed = backHoles.filter(h => h.touched);
+  const avgDiff = (list) => list.reduce((a, h) => a + h.diff, 0) / list.length;
+  const fade = frontPlayed.length >= MIN_HALF_HOLES && backPlayed.length >= MIN_HALF_HOLES
+    ? Math.round((avgDiff(backPlayed) - avgDiff(frontPlayed)) * 9)
+    : 0;
+  const headline = buildHeadline({ score, par, fade, breakdown, causes, penalties, threePutts });
 
   return {
     roundId: round.id, date: round.date, courseName: round.courseName, player, greenSpeed: round.greenSpeed ?? null,
     score, par, diff: score - par, front, back, frontPar, backPar,
+    hasFront: frontHoles.length > 0, hasBack: backHoles.length > 0,   // 9홀 라운드는 한쪽만 보여 준다
     holes, roundInsights: sortedRound,
     breakdown, causes, penalties, threePutts,
     worstHoles, bestHoles,
@@ -115,7 +133,7 @@ export function buildRoundReplay(round) {
   };
 }
 
-function buildHeadline({ score, par, front, back, frontPar, backPar, breakdown, causes, penalties, threePutts }) {
+function buildHeadline({ score, par, fade, breakdown, causes, penalties, threePutts }) {
   const diff = score - par;
   const sign = diff > 0 ? `+${diff}` : diff === 0 ? 'E' : `${diff}`;
   const top = breakdown.topCause;
@@ -131,9 +149,8 @@ function buildHeadline({ score, par, front, back, frontPar, backPar, breakdown, 
     bits.push(`3퍼트 ${threePutts}회${detail.length ? `(${detail.join(' · ')})` : ''}`);
   }
   if (penalties > 0) bits.push(`페널티 ${penalties}회`);
-  const half = (back - backPar) - (front - frontPar);
-  if (half >= 4) bits.push(`후반이 전반보다 ${half}타 많음`);
-  else if (half <= -3) bits.push(`후반이 전반보다 ${-half}타 적음`);
+  if (fade >= 4) bits.push(`후반이 전반보다 ${fade}타 많음`);
+  else if (fade <= -3) bits.push(`후반이 전반보다 ${-fade}타 적음`);
   const tail = bits.length ? ` — ${bits.join(', ')}` : ' — 큰 손실 없이 마무리';
   return `${score}타 (${sign})${tail}`;
 }

@@ -16,11 +16,11 @@ const CAUSE_COLOR = { lag: '#c9a228', short: '#ef5350', both: '#c04a3e', mid: '#
 export const Section = ({ title, sub, note, noteTitle, children }) => (
   <div style={{ marginBottom: 22 }}>
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em' }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em' }}>
         {title}
         {note && <InfoNote title={noteTitle}>{note}</InfoNote>}
       </div>
-      {sub && <div style={{ fontSize: 11, color: '#6e84a8' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 13, color: '#6e84a8' }}>{sub}</div>}
     </div>
     {children}
   </div>
@@ -32,13 +32,13 @@ export function ReportHeader({ rep, past = false }) {
   const speed = rep.mode === 'round' ? rep.greenSpeed?.latest?.speed : null;
   return (
     <div data-panel="report" style={{ background: 'linear-gradient(135deg, #0e1c14 0%, #0f2218 100%)', border: '1px solid #1d3a2a', borderRadius: 16, padding: '16px 16px 16px', marginBottom: 22 }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }} data-role="report-headline">
+      <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }} data-role="report-headline">
         {single
           ? single.headline
           : `평균 ${rep.stats.avgScore.toFixed(1)}타 · 3퍼트 ${rep.stats.threePutts}회 · 페널티 ${rep.stats.penalties}회 (${rep.stats.rounds}라운드)`}
       </div>
       {speed != null && (
-        <div data-role="report-green-speed" style={{ fontSize: 11.5, color: '#8ca4bc', marginTop: 8 }}>{past ? '그날' : '오늘'} 그린 · {speedLabel(speed)}</div>
+        <div data-role="report-green-speed" style={{ fontSize: 13, color: '#8ca4bc', marginTop: 8 }}>{past ? '그날' : '오늘'} 그린 · {speedLabel(speed)}</div>
       )}
     </div>
   );
@@ -49,12 +49,12 @@ export function ReportFindings({ rep }) {
     <>
       <Section title="STRENGTHS · 잘한 점" sub={`${rep.strengths.length}개`}>
         {rep.strengths.length === 0
-          ? <div style={{ fontSize: 12, color: '#8896b0' }}>이번에는 뚜렷한 강점 신호가 없어요. 기록이 쌓이면 강점이 보입니다.</div>
+          ? <div style={{ fontSize: 14, color: '#8896b0' }}>이번에는 뚜렷한 강점 신호가 없어요. 기록이 쌓이면 강점이 보입니다.</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rep.strengths.map(i => <InsightCard key={i.insightType} insight={i} compact />)}</div>}
       </Section>
       <Section title="IMPROVE · 개선 포인트" sub={`${rep.issues.length}개`}>
         {rep.issues.length === 0
-          ? <div style={{ fontSize: 12, color: '#3db87a' }}>눈에 띄는 약점 신호가 없습니다.</div>
+          ? <div style={{ fontSize: 14, color: '#3db87a' }}>눈에 띄는 약점 신호가 없습니다.</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{rep.issues.map(i => <InsightCard key={i.insightType} insight={i} />)}</div>}
       </Section>
     </>
@@ -78,7 +78,7 @@ export function ThreePuttCause({ rep }) {
           ))}
         </div>
         {PUTT_CAUSE_ORDER.filter(k => c.counts[k] > 0).map(k => (
-          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, marginBottom: 6 }}>
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, marginBottom: 6 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: CAUSE_COLOR[k], flexShrink: 0 }} />
             <span style={{ flex: 1, color: '#b4c0d8' }}>{PUTT_CAUSE_LABEL[k]}</span>
             <b style={{ color: '#e8edf8' }}>{c.counts[k]}회</b>
@@ -95,11 +95,11 @@ export function NextFocus({ rep }) {
     <Section title="FOCUS · 다음 라운드 포커스">
       <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '4px 14px' }}>
         {rep.focus.length === 0
-          ? <div style={{ fontSize: 12, color: '#8896b0', padding: '12px 0' }}>지금처럼 루틴을 유지하세요.</div>
+          ? <div style={{ fontSize: 14, color: '#8896b0', padding: '12px 0' }}>지금처럼 루틴을 유지하세요.</div>
           : rep.focus.map((f, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 0', borderBottom: i < rep.focus.length - 1 ? '1px solid #1b2238' : 'none' }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(201,162,40,0.15)', color: '#c9a228', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
-              <div style={{ fontSize: 13, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{f.text}</div>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(201,162,40,0.15)', color: '#c9a228', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ fontSize: 14, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{f.text}</div>
             </div>
           ))}
       </div>

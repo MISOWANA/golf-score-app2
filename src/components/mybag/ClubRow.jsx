@@ -1,54 +1,16 @@
 import { useState } from 'react';
 import { ChevronDown, GripVertical, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { COLOR } from '../stats/format.js';
+import { BAG_COLOR } from './colors.js';
+import DistanceField from './DistanceField';
 import { shotLabelOf, fitToMeasured } from '../../engine/bagStats.js';
 
 // 마이백의 클럽 한 줄. 접힌 줄은 이름과 캐리·토탈만, 누르면 그 자리에서 이름·거리를 고친다.
 // 바깥 요소(data-club-id)가 줄과 편집 칸을 함께 감싼다 — 끌어서 순서 바꾸기가 이 요소를 기준으로 한다.
 
-const MAX_M = 350;
-
-// 거리 입력: [−5][−1] 숫자 [+1][+5]. 숫자를 눌러 직접 쓸 수도 있다 (쓰는 동안은 저장하지 않고, 칸을 벗어나거나 Enter 에서 저장).
-function DistanceField({ label, sub, value, onChange, id }) {
-  const [draft, setDraft] = useState(null);   // 쓰는 중인 글자 (null 이면 value 를 보여 준다)
-  const v = value ?? 0;
-  const commit = () => {
-    if (draft == null) return;
-    const n = Number.parseInt(draft, 10);
-    setDraft(null);
-    if (Number.isFinite(n)) onChange(Math.max(0, Math.min(MAX_M, n)));
-  };
-  const step = (d) => onChange(Math.max(0, Math.min(MAX_M, v + d)));
-  const btn = (d, text) => (
-    <button type="button" aria-label={`${label} ${d > 0 ? '+' : ''}${d}m`} data-role={`${id}-${d > 0 ? 'up' : 'down'}${Math.abs(d)}`}
-      disabled={(d < 0 && v <= 0) || (d > 0 && v >= MAX_M)} onClick={() => step(d)}
-      style={{ width: 40, height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#131c30', color: COLOR.muted, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0, padding: 0, opacity: (d < 0 && v <= 0) || (d > 0 && v >= MAX_M) ? 0.35 : 1 }}>{text}</button>
-  );
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <div style={{ width: 40, flexShrink: 0, textAlign: 'left' }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: COLOR.text }}>{label}</div>
-        <div style={{ fontSize: 9.5, color: COLOR.faint, letterSpacing: '0.08em' }}>{sub}</div>
-      </div>
-      {btn(-5, '−5')}{btn(-1, '−1')}
-      <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2, height: 44, borderRadius: 10, background: '#0b0e18', border: `1px solid ${COLOR.line}` }}>
-        <input type="text" inputMode="numeric" aria-label={`${label} 거리(m)`} data-role={`${id}-input`}
-          value={draft ?? String(v)}
-          onFocus={(e) => { setDraft(String(v)); e.target.select(); }}
-          onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
-          onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-          style={{ width: 46, border: 'none', background: 'transparent', color: COLOR.text, fontSize: 19, fontWeight: 900, textAlign: 'right', fontVariantNumeric: 'tabular-nums', outline: 'none', padding: 0, alignSelf: 'center' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: COLOR.muted, alignSelf: 'center' }}>m</span>
-      </label>
-      {btn(1, '+1')}{btn(5, '+5')}
-    </div>
-  );
-}
-
 export default function ClubRow({
   club, open, onToggle, index, count,
-  measured, onRename, onDistance, onFit, onMove, onDelete,
+  measured, changed = false, unset = false, onConfirm, onRename, onDistance, onFit, onMove, onDelete,
   isDragging, isDragOver,
   onDragStart, onDragEnd, onDragOver, onDrop, onGripTouchStart,
 }) {
@@ -87,9 +49,11 @@ export default function ClubRow({
           style={{ flex: 1, minWidth: 0, minHeight: 54, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: COLOR.text, textAlign: 'left', cursor: 'pointer', padding: '0 12px 0 2px' }}>
           <span style={{ fontSize: 15, fontWeight: 800, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{club.name}</span>
           <span style={{ flex: 1 }} />
+          {changed && <span data-role={`club-changed-${club.id}`} style={{ fontSize: 10.5, fontWeight: 800, color: BAG_COLOR.unsaved, border: '1px solid rgba(239,138,80,0.55)', borderRadius: 999, padding: '1px 7px', whiteSpace: 'nowrap' }}>수정됨</span>}
+          {unset && !isPutter && <span data-role={`club-unset-${club.id}`} style={{ fontSize: 10.5, fontWeight: 800, color: COLOR.amber, border: '1px solid rgba(230,185,74,0.45)', borderRadius: 999, padding: '1px 7px', whiteSpace: 'nowrap' }}>거리 확인 필요</span>}
           {!isPutter && (
             <span data-role={`club-values-${club.id}`} style={{ fontSize: 12.5, color: COLOR.muted, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-              캐리 <b style={{ color: COLOR.text }}>{club.carry ?? '–'}</b> · 토탈 <b style={{ color: COLOR.goldHi }}>{club.total ?? '–'}</b>
+              캐리 <b data-role={`club-carry-${club.id}`} style={{ color: BAG_COLOR.carry }}>{club.carry ?? '–'}</b> · 토탈 <b data-role={`club-total-${club.id}`} style={{ color: BAG_COLOR.total }}>{club.total ?? '–'}</b>
             </span>
           )}
           <ChevronDown size={16} aria-hidden="true" style={{ color: COLOR.faint, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
@@ -117,10 +81,23 @@ export default function ClubRow({
             )}
           </div>
 
+          {!isPutter && unset && (
+            <div data-role="club-confirm-box" style={{ borderRadius: 12, border: '1px solid rgba(230,185,74,0.45)', background: 'rgba(230,185,74,0.08)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.55, color: '#c4cfe0', wordBreak: 'keep-all' }}>
+                <b style={{ color: COLOR.amber }}>아직 확인하지 않은 거리</b>예요. 내 거리와 같으면 ‘맞아요’를 눌러요. 확인하기 전에는 클럽 추천에서 빠져요.
+              </div>
+              <button type="button" data-role="club-confirm" onClick={onConfirm}
+                style={{ height: 44, padding: '0 14px', borderRadius: 10, border: `1px solid ${COLOR.amber}`, background: 'transparent', color: COLOR.amber, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>맞아요</button>
+            </div>
+          )}
+
           {!isPutter && (
             <>
-              <DistanceField id="carry" label="캐리" sub="CARRY" value={club.carry} onChange={(v) => onDistance('carry', v)} />
-              <DistanceField id="total" label="토탈" sub="TOTAL" value={club.total} onChange={(v) => onDistance('total', v)} />
+              <div data-role="club-reg-caption" style={{ fontSize: 11, color: COLOR.muted, fontWeight: 700, marginBottom: -4 }}>
+                마이백에 등록한 거리 <span style={{ color: COLOR.faint, fontWeight: 500 }}>· 내가 직접 정하는 값</span>
+              </div>
+              <DistanceField id="carry" label="캐리" sub="CARRY" color={BAG_COLOR.carry} value={club.carry} onChange={(v) => onDistance('carry', v)} />
+              <DistanceField id="total" label="토탈" sub="TOTAL" color={BAG_COLOR.total} value={club.total} onChange={(v) => onDistance('total', v)} />
               <div style={{ fontSize: 11.5, color: COLOR.faint, lineHeight: 1.5 }}>
                 런(토탈 − 캐리) <b data-role="club-run" style={{ color: run < 0 ? COLOR.amber : COLOR.muted }}>{run > 0 ? '+' : run < 0 ? '−' : ''}{Math.abs(run)}m</b>
               </div>
@@ -128,16 +105,16 @@ export default function ClubRow({
           )}
 
           {measured && fit && (
-            <div data-role="club-measured" style={{ borderRadius: 12, border: '1px solid rgba(61,184,122,0.35)', background: 'rgba(61,184,122,0.08)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div data-role="club-measured" style={{ borderRadius: 12, border: '1px solid rgba(243,211,107,0.4)', background: 'rgba(243,211,107,0.07)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.55, color: '#c4cfe0' }}>
-                라운드에서 잰 거리 <b style={{ color: COLOR.text }}>{measured.median}m</b> <span style={{ color: COLOR.faint }}>(샷 {measured.n}개)</span>
+                <b style={{ color: BAG_COLOR.measured }}>라운드 실측</b> <b style={{ color: BAG_COLOR.measured, fontSize: 14 }}>{measured.median}m</b> <span style={{ color: COLOR.faint }}>(샷 {measured.n}개 · 공이 멈춘 곳)</span>
                 <div style={{ color: diff === 0 ? COLOR.green : COLOR.muted }}>
-                  {diff === 0 ? '내 토탈과 같아요' : `내 토탈보다 ${Math.abs(diff)}m ${diff > 0 ? '더 나가요' : '덜 나가요'}`}
+                  {diff === 0 ? '등록한 토탈과 같아요' : `등록한 토탈보다 ${Math.abs(diff)}m ${diff > 0 ? '더 나가요' : '덜 나가요'}`}
                 </div>
               </div>
               {diff !== 0 && (
                 <button type="button" data-role="club-fit" onClick={() => onFit(fit)}
-                  style={{ height: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${COLOR.green}`, background: 'transparent', color: COLOR.green, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  style={{ height: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${BAG_COLOR.measured}`, background: 'transparent', color: BAG_COLOR.measured, fontSize: 12, fontWeight: 800, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
                   토탈 {measured.median}m로
                 </button>
               )}

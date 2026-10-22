@@ -79,7 +79,9 @@ export function clubLabelOf(club, subClub) {
 const pos = (v) => (Number.isFinite(v) && v > 0 ? v : null);
 
 // 마이백 클럽의 캐리·토탈. 평균(avg)만 있던 예전 저장값도 마이백 화면과 같게 읽는다.
+// 거리를 아직 확인하지 않은 클럽(unset — 새로 추가했거나 등록에서 제안값 그대로인 클럽)은 추천에 쓰지 않는다.
 function reachOf(c) {
+  if (c.unset) return null;
   const total = pos(c.total) ?? pos(c.avg);
   const carry = pos(c.carry) ?? (pos(c.avg) ? c.avg - 10 : null) ?? total;
   if (carry == null && total == null) return null;

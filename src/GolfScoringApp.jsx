@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
   saveActiveRound, loadActiveRound, clearActiveRound,
@@ -25,6 +25,10 @@ import { validSpeed } from './engine/greenSpeed.js';
 
 export default function GolfScoringApp() {
   const [view, setView] = useState('login');
+  // 화면을 떠나기 전에 확인이 필요하면(마이백의 저장 안 한 거리 변경) 그 화면이 여기에 등록한다.
+  // 함수(proceed) → true 면 바로 떠나도 되고, false 면 그 화면이 확인 창을 띄운 뒤 proceed 를 직접 부른다.
+  const leaveGuardRef = useRef(null);
+  const registerLeaveGuard = useCallback((fn) => { leaveGuardRef.current = fn; }, []);
   const [currentUser, setCurrentUserState] = useState(null);
   const [currentRound, setCurrentRound] = useState(null);
   const [rounds, setRounds] = useState([]);
@@ -372,6 +376,7 @@ export default function GolfScoringApp() {
         <MyBagView
           currentUser={currentUser}
           rounds={rounds.filter(r => r.players.length === 1)}
+          registerLeaveGuard={registerLeaveGuard}
           onBack={() => setView('home')}
         />
       )}
@@ -381,7 +386,10 @@ export default function GolfScoringApp() {
       {view !== 'scoring' && view !== 'login' && (
         <BottomTabBar
           current={view}
-          onChange={(tab) => setView(tab)}
+          onChange={(tab) => {
+            if (tab !== view && leaveGuardRef.current?.(() => setView(tab)) === false) return;
+            setView(tab);
+          }}
         />
       )}
 

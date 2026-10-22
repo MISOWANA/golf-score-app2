@@ -11,6 +11,7 @@ export const FULL_SWING_MIN_M = 60;    // 클럽 사이 간격은 풀스윙 클�
 export const WIDE_GAP_M = 18;          // 이만큼 벌어지면 그 사이를 칠 클럽이 없다
 export const OVERLAP_GAP_M = 3;        // 이 안이면 사실상 같은 거리
 export const MIN_MEASURED_SHOTS = 3;   // 실측으로 보여 주는 최소 샷 수
+export const MIN_GAP_CLUBS = 3;        // 클럽 간격을 말하려면 필요한 풀스윙 클럽 수
 
 const TYPE_LABEL = { Wood: '우드', Hybrid: '하이브리드', Iron: '아이언', Wedge: '웨지', Putter: '퍼터' };
 export const TYPE_ORDER = ['Wood', 'Hybrid', 'Iron', 'Wedge', 'Putter'];
@@ -21,6 +22,19 @@ export function bagComposition(clubs) {
   (clubs ?? []).forEach((c) => { if (counts[c.type] != null) counts[c.type] += 1; });
   const parts = TYPE_ORDER.filter((t) => counts[t] > 0).map((t) => `${TYPE_LABEL[t]} ${counts[t]}`);
   return { counts, total: (clubs ?? []).length, overLimit: (clubs ?? []).length > BAG_LIMIT, text: parts.join(' · ') };
+}
+
+// 클럽 간격 보고 — 간격은 '내 백'에 적은 거리로 말하는 것이라, 데이터가 모자라면 아무 말도 하지 않는다.
+// 거리가 없는 것은 클럽이 없다는 뜻이 아니라 아직 안 적었다는 뜻일 수 있기 때문이다.
+//   saved       사용자가 구성을 한 번이라도 저장했다 (저장 전에는 기본 클럽·기본 거리를 보고 있을 뿐이라 내 백이 아니다)
+//   풀스윙 클럽  토탈 60m 이상이 MIN_GAP_CLUBS 개 이상이다 (적으면 '고르게 벌어졌다'도 '클럽이 비었다'도 단정하지 않는다)
+//   unset       거리를 아직 확인하지 않은 클럽(새로 추가했거나 등록에서 제안값 그대로인 클럽)은 계산에서 뺀다
+// speak 가 false 이면 화면은 간격 카드를 통째로 감춘다. skippedUnset 은 계산에서 뺀 새 클럽 수.
+export function gapReport(clubs, saved) {
+  const all = clubs ?? [];
+  const used = all.filter((c) => !c.unset);
+  const info = bagGaps(used);
+  return { ...info, speak: !!saved && info.count >= MIN_GAP_CLUBS, skippedUnset: all.length - used.length };
 }
 
 // 토탈 거리순으로 이웃한 클럽의 간격. 드라이버와 그 다음 클럽 사이는 따로 채울 클럽이 없는 게 정상이라 '벌어짐'에서 뺀다.

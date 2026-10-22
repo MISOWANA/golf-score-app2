@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, Plus, X } from 'lucide-react';
+import { ChevronLeft, Plus, X, Briefcase } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
 import { bagCoverage } from '../../engine/clubRecommend.js';
 import { useBagClubs } from '../scoring/useBagClubs';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
+import BagSetupWizard from '../mybag/BagSetupWizard';
 
 // 거리별 클럽 추천을 받을지 마지막으로 고른 값 — 매 라운드마다 다시 끄지 않아도 되게 기기에 기억한다.
 // 기본은 켜짐. 저장소를 못 쓰는 환경이어도 이번 라운드 선택에는 영향이 없다.
@@ -37,7 +38,11 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const [clubRecommend, setClubRecommend] = useState(readClubRecommendPref);
   // 그날의 그린 스피드(스팀프 피트) — 선택 입력. 날마다 다르니 지난 값을 기억하지 않는다.
   const [greenSpeed, setGreenSpeed] = useState(null);
-  const bagClubs = useBagClubs(currentUser);
+  const savedBagClubs = useBagClubs(currentUser);
+  // 이 화면에서 마이백을 방금 등록했으면 그 클럽을 바로 쓴다 (설정 화면은 그대로 두고 등록 화면만 위에 겹쳐 연다)
+  const [registeredBag, setRegisteredBag] = useState(null);
+  const [showBagWizard, setShowBagWizard] = useState(false);
+  const bagClubs = registeredBag ?? savedBagClubs;
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -176,7 +181,7 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   const coverage = Array.isArray(bagClubs) ? bagCoverage(bagClubs) : null;
   const bagNote = (() => {
     if (bagClubs === undefined) return null;   // 불러오는 중
-    if (bagClubs === null) return { warn: true, text: '마이백에 저장된 거리가 없어요. 마이백에서 클럽별 캐리·토탈 거리를 설정하면 추천이 나와요' };
+    if (bagClubs === null) return null;   // 마이백이 비어 있으면 안내 글 대신 아래 '마이백 등록' 카드를 보여 준다
     if (coverage.usable === 0) return { warn: true, text: '마이백에 추천에 쓸 수 있는 클럽이 없어요. 클럽 이름과 캐리·토탈 거리를 확인해 주세요' };
     return {
       warn: false,
@@ -569,6 +574,32 @@ export default function SetupView({ onStart, onBack, currentUser }) {
               {bagNote.text}
             </div>
           )}
+          {/* 마이백에 등록한 클럽이 없으면 — 코스에서는 번거로우니 라운드 전에 등록하게 이끈다 */}
+          {clubRecommend && bagClubs === null && (
+            <div role="region" aria-label="마이백 등록 안내" data-role="bag-register-card"
+              style={{ marginTop: 10, padding: '12px 12px 6px', borderRadius: 16, background: 'rgba(201,162,40,0.07)', border: '1px solid rgba(201,162,40,0.4)' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: 11, background: 'rgba(201,162,40,0.16)', color: '#f3d36b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Briefcase size={18} strokeWidth={1.9} />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#f3d36b', lineHeight: 1.4 }}>마이백에 등록한 클럽이 없어요</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.6, color: '#c4cfe0', marginTop: 2, wordBreak: 'keep-all' }}>
+                    라운드 전에 한 번 등록해 두면 코스에서 남은 거리에 맞는 클럽을 바로 추천받아요.
+                  </div>
+                </div>
+              </div>
+              <button type="button" data-role="bag-register-open" onClick={() => setShowBagWizard(true)}
+                style={{ width: '100%', height: 46, marginTop: 10, borderRadius: 12, border: 'none', background: 'linear-gradient(180deg, #f3d36b 0%, #c9a228 100%)', color: '#0b0e18', fontSize: 14, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                마이백 등록하기<span style={{ fontSize: 11, fontWeight: 700, opacity: 0.75 }}>· 약 1분</span>
+              </button>
+              {/* 이번 라운드만 추천을 끈다 — 스위치의 '마지막 선택 기억'은 건드리지 않아서 다음 라운드에 다시 안내한다 */}
+              <button type="button" data-role="bag-register-later" onClick={() => setClubRecommend(false)}
+                style={{ width: '100%', height: 40, border: 'none', background: 'none', color: '#8896b0', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                나중에 할게요 (추천 없이 시작)
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -579,6 +610,21 @@ export default function SetupView({ onStart, onBack, currentUser }) {
       >
         라운드 시작하기
       </button>
+
+      {/* 마이백 등록 — 설정 화면(입력 중인 코스·선수)을 그대로 두고 그 위에 겹쳐 연다. 끝나면 바로 추천 안내가 바뀐다 */}
+      {showBagWizard && (
+        <div data-role="bag-wizard-overlay" role="dialog" aria-modal="true" aria-label="마이백 등록"
+          style={{ position: 'fixed', inset: 0, zIndex: 200, overflowY: 'auto', background: '#0b0e18' }}>
+          <div style={styles.container}>
+            <BagSetupWizard
+              currentUser={currentUser}
+              onBack={() => setShowBagWizard(false)}
+              onDone={(bag) => { setRegisteredBag(bag); setShowBagWizard(false); }}
+              bottomOffset={0}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

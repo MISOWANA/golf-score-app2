@@ -747,8 +747,8 @@ export const COURSES = [
   {
     name: '버치힐', location: '강원',
     courses: [
-      { name: '아웃', pars: PE },
-      { name: '인',   pars: PF },
+      { name: '힐',   pars: [4,3,5,4,4,3,4,5,4] },
+      { name: '버치', pars: [5,4,3,4,4,4,4,3,5] },
     ],
   },
   {

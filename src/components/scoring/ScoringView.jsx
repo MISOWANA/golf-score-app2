@@ -14,7 +14,7 @@ import { validSpeed, speedLabel } from '../../engine/greenSpeed.js';
 import { applyParEdit } from '../../engine/parEdit.js';
 import { greenMissed, GREEN_MISS_DIRS } from '../../engine/greenMiss.js';
 import { ninesOf, holeNoOf } from '../../engine/nines.js';
-import { SURFACES, shotInfoGaps, fairwayFromSurface, surfaceLabel } from '../../engine/shotInfo.js';
+import { SURFACES, shotInfoGaps, fairwayFromSurface, surfaceLabel, surfaceIdOf } from '../../engine/shotInfo.js';
 import { isYards, unitInfo, unitLabel, fromDisplay, fmtShot } from '../../engine/units.js';
 import { playedNineOf } from '../../engine/nineConversion.js';
 import LandingWheel from './LandingWheel';
@@ -343,19 +343,13 @@ const lieText = (lie) => {
   return (LIE_DIRS.find(d => d.id === v)?.label ?? v).replace('\n', ' ');
 };
 
-// 꼭 받는 항목 표시 — 비어 있을 때만 붙는다
-function RequiredMark() {
-  return <span data-role="required-mark" style={{ fontSize:12, fontWeight:800, color:'#ef5350', letterSpacing:0, textTransform:'none' }}>필수</span>;
-}
-
-// 지형 — 그 샷을 치는 자리의 표면 (페어웨이 · 러프 · 벙커 · 리커버리). 샷마다 꼭 받는다.
+// 지형 — 그 샷을 치는 자리의 표면 (페어웨이 · 러프 · 벙커). 샷마다 꼭 받는다.
 // suggest: 티샷 결과로 짐작한 표면 — 아직 고르지 않았을 때만 ★ 로 알려 주고, 눌러야 기록된다 (자동으로 채우지 않는다).
 function SurfaceRow({ role, value, missing, suggest = null, onChange }) {
   return (
     <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>⛳</span><span style={fLbl}>지형</span>
-        {missing && <RequiredMark />}
         {value == null && suggest && <span style={{ fontSize:12, color:'#8896b0' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
@@ -385,7 +379,6 @@ function LieRow({ role, value, missing, onChange }) {
     <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
-        {missing && <RequiredMark />}
         {other && <span style={{ fontSize:13, fontWeight:700, color:'#c9a228' }}>{lieText(v)}</span>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
@@ -2772,7 +2765,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* 지형 · 라이 — 샷마다 꼭 받는다 (지형은 Strokes Gained 기준선, 라이는 클럽 분석에 쓰인다). 바람은 선택 */}
         <SurfaceRow
           role="second-surface"
-          value={playerScore.secondSurface ?? null}
+          value={surfaceIdOf(playerScore.secondSurface)}
           missing={infoRequired && !playerScore.secondSurface}
           suggest={secondSurfaceSuggest}
           onChange={setSecondSurface}
@@ -2911,7 +2904,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 {/* 지형 · 라이 — 샷마다 꼭 받는다. 바람은 선택 */}
                 <SurfaceRow
                   role={`extra-surface-${idx}`}
-                  value={shot.surface ?? null}
+                  value={surfaceIdOf(shot.surface)}
                   missing={infoRequired && !shot.surface}
                   onChange={v => updateExtraShot(idx, { surface: v })}
                 />

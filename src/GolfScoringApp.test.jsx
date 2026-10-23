@@ -928,19 +928,20 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
   });
 
   describe('세컨샷 지형 · 라이', () => {
-    it('네 가지 지형과 라이 칩이 있고 비어 있으면 "필수"가 붙는다', async () => {
+    it('세 가지 지형과 라이 칩이 있다 ("필수" 글자는 붙이지 않고, 비어 있으면 확인 창이 짚는다)', async () => {
       await resume(shotRound({ ...second }));
       await openTab('field');
       const surface = await waitFor(() => { const r = document.querySelector('[data-role="second-surface"]'); expect(r).toBeTruthy(); return r; });
-      expect([...surface.querySelectorAll('button')].map((b) => b.textContent.replace(/\s*★/, ''))).toEqual(['페어웨이', '러프', '벙커', '리커버리']);
+      expect([...surface.querySelectorAll('button')].map((b) => b.textContent.replace(/\s*★/, ''))).toEqual(['페어웨이', '러프', '벙커']);
       expect(surface.getAttribute('data-missing')).toBe('1');
-      expect(surface.textContent).toContain('필수');
+      expect(surface.textContent).not.toContain('필수');
       const lie = document.querySelector('[data-role="second-lie"]');
       expect([...lie.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['평지', '오르막', '내리막', expect.stringContaining('기타')]);
       expect(lie.getAttribute('data-missing')).toBe('1');
+      expect(lie.textContent).not.toContain('필수');
     });
 
-    it('지형을 고르면 저장되고 다시 누르면 해제된다 — 필수 표시도 따라 바뀐다', async () => {
+    it('지형을 고르면 저장되고 다시 누르면 해제된다 — 비었는지 여부도 따라 바뀐다', async () => {
       await resume(shotRound({ ...second }));
       await openTab('field');
       const surface = () => document.querySelector('[data-role="second-surface"]');
@@ -954,6 +955,14 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       await waitFor(async () => expect((await saved()).secondSurface).toBe('rough'));
       fireEvent.click(document.querySelector('[data-role="second-surface-rough"]'));        // 같은 칩을 다시 누르면 해제
       await waitFor(async () => expect((await saved()).secondSurface).toBeNull());
+    });
+
+    it('예전에 리커버리로 저장한 샷은 러프로 보이고 빠진 것으로 묻지 않는다', async () => {
+      await resume(shotRound({ ...second, secondSurface: 'recovery' }));
+      await openTab('field');
+      const surface = await waitFor(() => { const r = document.querySelector('[data-role="second-surface"]'); expect(r).toBeTruthy(); return r; });
+      expect(surface.getAttribute('data-missing')).toBe('0');
+      expect(document.querySelector('[data-role="second-surface-rough"]').getAttribute('aria-pressed')).toBe('true');
     });
 
     it('라이: 평지 · 오르막 · 내리막은 한 번에, 슬라이스·훅이 섞인 라이는 "기타"에서', async () => {

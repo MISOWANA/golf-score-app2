@@ -1,7 +1,7 @@
 // ─── 샷 정보 (지형 · 라이 · 거리 · 클럽) ────────────────────────────────────────────
 //
 // 상세 입력에서 샷마다 꼭 받는 네 가지 — 실측으로 알 수 있는 정보이고 Strokes Gained 와 클럽 분석에 쓰인다.
-//   지형  그 샷을 치는 자리의 표면: 페어웨이 · 러프 · 벙커 · 리커버리(나무 뒤 등)  (Broadie 기준선의 표면과 같다)
+//   지형  그 샷을 치는 자리의 표면: 페어웨이 · 러프 · 벙커  (Broadie 기준선의 표면과 같다)
 //   라이  경사: 평지 · 오르막 · 내리막 …  (기존 "라이" 입력)
 //   거리  그 샷을 치는 자리에서 핀까지 남은 거리 (파3 티샷은 티샷 거리)
 //   클럽  그 샷에 쓴 클럽
@@ -19,14 +19,18 @@ export const SURFACES = [
   { id: 'fairway', label: '페어웨이', hint: '프린지 포함' },
   { id: 'rough', label: '러프' },
   { id: 'bunker', label: '벙커' },
-  { id: 'recovery', label: '리커버리', hint: '나무 뒤 등' },
 ];
 export const SURFACE_IDS = SURFACES.map((s) => s.id);
-export const surfaceLabel = (id) => SURFACES.find((s) => s.id === id)?.label ?? null;
+
+// 한때 있던 '리커버리'(나무 뒤 등)는 지형이 아니라 상황이라 없앴다 — 그렇게 저장된 기록은 러프로 읽는다
+const LEGACY_SURFACE = { recovery: 'rough' };
+export const surfaceIdOf = (id) => (id == null ? null : LEGACY_SURFACE[id] ?? id);
+
+export const surfaceLabel = (id) => SURFACES.find((s) => s.id === surfaceIdOf(id))?.label ?? null;
 
 // 앱의 표면 값 → Strokes Gained 기준선(data/baseline.js)의 표면 이름
-const BASELINE_LIE = { fairway: 'fairway', rough: 'rough', bunker: 'sand', recovery: 'recovery' };
-export const baselineLieOf = (surface) => BASELINE_LIE[surface] ?? null;
+const BASELINE_LIE = { fairway: 'fairway', rough: 'rough', bunker: 'sand' };
+export const baselineLieOf = (surface) => BASELINE_LIE[surfaceIdOf(surface)] ?? null;
 
 // 라이는 문자열 또는 [문자열] (예전 기록)로 들어온다
 export const lieValueOf = (lie) => (Array.isArray(lie) ? lie[0] || null : lie || null);
@@ -38,11 +42,11 @@ export const SHOT_INFO_ITEMS = ['라이', '지형', '거리', '클럽'];
 export function shotInfoOf(score, slot) {
   if (!score || slot < 1) return null;
   if (slot === 1) {
-    return { club: score.secondClub ?? null, distance: score.remainingDistance ?? null, lie: lieValueOf(score.terrainCondition), surface: score.secondSurface ?? null };
+    return { club: score.secondClub ?? null, distance: score.remainingDistance ?? null, lie: lieValueOf(score.terrainCondition), surface: surfaceIdOf(score.secondSurface) };
   }
   const x = (score.extraShots || [])[slot - 2];
   if (!x) return null;
-  return { club: x.club ?? null, distance: x.remainingDistance ?? null, lie: lieValueOf(x.lie), surface: x.surface ?? null };
+  return { club: x.club ?? null, distance: x.remainingDistance ?? null, lie: lieValueOf(x.lie), surface: surfaceIdOf(x.surface) };
 }
 
 // slot 번째 샷을 치는 자리의 표면 (기록이 없으면 null)
@@ -73,11 +77,11 @@ export function shotInfoGaps(score, par) {
   return gaps;
 }
 
-// 세컨샷 지형으로 티샷의 페어웨이 적중을 알 수 있다: 페어웨이에서 쳤으면 적중, 러프·벙커·리커버리면 놓침.
+// 세컨샷 지형으로 티샷의 페어웨이 적중을 알 수 있다: 페어웨이에서 쳤으면 적중, 러프·벙커면 놓침.
 // 티샷에서 벌타가 났거나 1온이면 알 수 없다 (null).
 export function fairwayFromSurface(score, par) {
   if (par <= 3 || !score || score.teeGIR === true || penaltyAt(score, 0)) return null;
-  const surface = score.secondSurface;
+  const surface = surfaceIdOf(score.secondSurface);
   if (!surface) return null;
   return surface === 'fairway';
 }

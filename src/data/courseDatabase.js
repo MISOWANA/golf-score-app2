@@ -1196,8 +1196,8 @@ export const COURSES = [
   {
     name: '포세븐금강', location: '전북',
     courses: [
-      { name: '아웃', pars: PA },
-      { name: '인',   pars: PB },
+      { name: '서코스', pars: [4,4,5,3,4,4,4,3,5] },
+      { name: '동코스', pars: [5,4,4,4,3,4,4,3,5] },
     ],
   },
 

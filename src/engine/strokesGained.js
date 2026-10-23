@@ -17,7 +17,7 @@
 // 시작 자리를 모르는 앞쪽 샷(홀 길이 없는 티샷 등)만 계산하지 않고 '미측정 타수'로 센다.
 //
 // 이 앱에 없는 정보와 그 대체:
-//   · 표면(페어웨이·러프·벙커·리커버리): 샷마다 입력한 지형(shotInfo.js)을 쓴다. 지형을 입력하지 않은 샷만
+//   · 표면(페어웨이·러프·벙커): 샷마다 입력한 지형(shotInfo.js)을 쓴다. 지형을 입력하지 않은 샷만
 //     세컨샷은 페어웨이 O/X로, 그 뒤는 거리로 추정한다 (91m 안 = 러프, 밖 = 페어웨이).
 //     그래서 지형이 없는 벙커 샷은 기준선이 낮게 잡혀 SG가 좋게/나쁘게 틀어질 수 있다.
 //   · 파4·5 티샷: 홀 길이를 모르면 계산하지 않는다 (티 지점과 핀을 지도로 찍은 홀만).
@@ -99,7 +99,7 @@ export function buildHoleSG(hole, player) {
     states.push({ kind: 'tee', lie: 'tee', dist: teeLen });
 
     const remainingOf = (j) => positive(j === 1 ? s.remainingDistance : (s.extraShots || [])[j - 2]?.remainingDistance);
-    // 그 샷을 치는 자리의 표면 — 입력한 지형(페어웨이·러프·벙커·리커버리)이 있으면 그 값, 없으면 아래처럼 추정한다
+    // 그 샷을 치는 자리의 표면 — 입력한 지형(페어웨이·러프·벙커)이 있으면 그 값, 없으면 아래처럼 추정한다
     const lieAt = (j, dist) => {
       const recorded = baselineLieOf(surfaceOfShot(s, j));
       if (recorded) return recorded;

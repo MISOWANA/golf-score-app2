@@ -697,19 +697,22 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 그날의 그린 스피드 — 라운드 시작 때 못 정했거나 라운드 중 알게 된 값을 퍼팅 화면에서 고친다
   const [showGreenSpeed, setShowGreenSpeed] = useState(false);
   const [speedDraft, setSpeedDraft] = useState(null);
+  const [parEditSpeed, setParEditSpeed] = useState(null);   // 라운드 수정 안의 그린 스피드 (저장하기 전 값)
   const roundSpeed = validSpeed(round.greenSpeed) ? round.greenSpeed : null;
   const holeInCbRef = useRef(null);
   // 홀인/칩인 모달이 화면에 그려지기 전 빠른 연속 탭으로 완료 콜백이 두 번
   // 실행(저장/이동 중복)되는 것을 막는 가드.
   const holeInModalPendingRef = useRef(false);
 
-  const openParEdit = () => { setParDraft([...round.pars]); setShowParEditModal(true); };
+  const openParEdit = () => { setParDraft([...round.pars]); setParEditSpeed(roundSpeed); setShowParEditModal(true); };
 
   const updateParDraft = (idx, val) => { const u = [...parDraft]; u[idx] = val; setParDraft(u); };
 
   // 입력하지 않은 홀은 새 파 기준 기본값으로, 입력한 홀은 타수를 두고 자동 계산된 GIR 만 다시 계산한다 (engine/parEdit.js)
+  // 그린 스피드는 1인 라운드에서만 다루고, 바꾸지 않았으면 건드리지 않는다
   const saveParEdit = () => {
-    onUpdate(applyParEdit(round, parDraft));
+    const edited = applyParEdit(round, parDraft);
+    onUpdate(round.players.length === 1 && parEditSpeed !== roundSpeed ? { ...edited, greenSpeed: parEditSpeed } : edited);
     setShowParEditModal(false);
   };
 
@@ -2010,7 +2013,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       <header style={styles.scoringHeader}>
         <button style={styles.iconBack} onClick={handleBackClick}><ChevronLeft size={22} /></button>
         <div style={styles.scoringCourse}>{round.courseName}</div>
-        <button style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8896b0', borderRadius: 8 }} onClick={openParEdit}>
+        <button style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8896b0', borderRadius: 8 }} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정">
           <Edit3 size={18} strokeWidth={2} />
         </button>
       </header>
@@ -3533,14 +3536,15 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
       )}
 
-      {/* 파 수정 모달 */}
+      {/* 라운드 수정 모달 — 파 · 그린 스피드 */}
       {showParEditModal && (
         <div style={styles.modalOverlay} onClick={()=>setShowParEditModal(false)}>
           <div style={{ ...styles.modalCard, maxWidth:400, width:'calc(100% - 32px)', padding:'20px 16px 24px', maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-              <div style={{ fontSize:17, fontWeight:700, color:'#e8edf8' }}>파 수정</div>
+              <div style={{ fontSize:17, fontWeight:700, color:'#e8edf8' }}>라운드 수정</div>
               <button style={{ background:'none', border:'none', color:'#8896b0', cursor:'pointer', padding:4 }} onClick={()=>setShowParEditModal(false)}><X size={18} /></button>
             </div>
+            <div style={{ fontSize:15, fontWeight:800, color:'#e8edf8', marginBottom:8, textAlign:'left' }}>파</div>
             <div style={{ ...styles.parSummary, marginBottom:12 }}>
               <div style={styles.parSummaryMain}><div style={styles.parSummaryLabel}>TOTAL PAR</div><div style={styles.parSummaryValue}>{parDraft.reduce((a,b)=>a+b,0)}</div></div>
               {nines.length > 1 && (<>
@@ -3579,6 +3583,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               </div>
             ))}
             <div style={{ fontSize:13, color:'#4d5a78', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지됩니다.<br/>* 미입력 홀은 변경된 파 기준으로 초기화됩니다.</div>
+            {round.players.length === 1 && (
+              <div data-role="edit-green-speed" style={{ borderTop:'1px solid #1b2744', paddingTop:14, marginBottom:16 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:'#e8edf8', marginBottom:4, textAlign:'left' }}>그린 스피드</div>
+                <div style={{ fontSize:13, color:'#8896b0', lineHeight:1.5, marginBottom:12, wordBreak:'keep-all', textAlign:'left' }}>그린이 달라졌거나 단위(미터·피트)를 바꾸고 싶을 때 여기서 바꿔요. 퍼팅 분석에 반영돼요</div>
+                <GreenSpeedPicker value={parEditSpeed} onChange={setParEditSpeed} />
+              </div>
+            )}
             <div style={{ display:'flex', gap:8 }}>
               <button style={{ ...styles.modalBtnCancel, flex:1 }} onClick={()=>setShowParEditModal(false)}>취소</button>
               <button style={{ ...styles.memoSaveBtn, flex:2 }} onClick={saveParEdit}>저장</button>

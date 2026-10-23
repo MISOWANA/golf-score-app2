@@ -1818,3 +1818,83 @@ describe('거리 단위 — 화면 전체 훑어보기', () => {
     expect(await scanScreens()).toEqual([]);
   });
 });
+
+describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 스피드', () => {
+  const resume = async (active) => {
+    await setup({ active });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 4');
+  };
+  const openEdit = async () => {
+    fireEvent.click(document.querySelector('[data-role="round-edit"]'));
+    return screen.findByText('라운드 수정');
+  };
+  const savedSpeed = async () => (await db.loadActiveRound([user.userId])).greenSpeed;
+  const pickPreset = (id) => fireEvent.click(document.querySelector(`[data-role="edit-green-speed"] [data-role="gs-preset-${id}"]`));
+  const save = () => fireEvent.click(screen.getAllByText('저장').pop());
+
+  it('연필 버튼으로 연 창에 파와 그린 스피드가 같이 있다', async () => {
+    await resume(makeActiveRound(ME, { greenSpeed: 9 }));
+    await openEdit();
+    expect(document.querySelector('[data-role="edit-green-speed"]')).toBeTruthy();
+    expect(document.querySelector('[data-role="edit-green-speed"] [data-role="gs-preset-medium"]').getAttribute('aria-pressed')).toBe('true');   // 지금 값(보통)이 골라져 있다
+    expect(screen.getByText('TOTAL PAR')).toBeTruthy();
+  });
+
+  it('그린 스피드를 바꿔 저장하면 라운드에 반영되고 퍼팅 화면의 줄에도 보인다', async () => {
+    await resume(makeActiveRound(ME, { greenSpeed: 9 }));
+    await openEdit();
+    pickPreset('fast');
+    save();
+    await waitFor(async () => expect(await savedSpeed()).toBe(10.5));
+    await waitFor(() => expect(screen.queryByText('라운드 수정')).toBeNull());
+  });
+
+  it('단위는 미터가 기본이고, 이 창에서 피트로 바꿀 수 있다', async () => {
+    await resume(makeActiveRound(ME, { greenSpeed: null }));
+    await openEdit();
+    const medium = () => document.querySelector('[data-role="edit-green-speed"] [data-role="gs-preset-medium"]').textContent;
+    expect(medium()).toBe('보통2.7m');
+    fireEvent.click(document.querySelector('[data-role="edit-green-speed"] [data-role="gs-unit-ft"]'));
+    expect(medium()).toBe('보통9.0ft');
+  });
+
+  it('취소하면 그린 스피드는 그대로다', async () => {
+    await resume(makeActiveRound(ME, { greenSpeed: 9 }));
+    await openEdit();
+    pickPreset('veryFast');
+    fireEvent.click(screen.getByText('취소'));
+    await waitFor(() => expect(screen.queryByText('라운드 수정')).toBeNull());
+    expect(await savedSpeed()).toBe(9);
+  });
+
+  it('파만 고쳐도 그린 스피드는 그대로 남는다', async () => {
+    await resume(makeActiveRound(ME, { greenSpeed: 10.5 }));
+    await openEdit();
+    fireEvent.click(document.querySelector('[data-role="edit-green-speed"]').closest('div[style*="overflow"]').querySelector('button[style*="right"]'));   // 첫 홀 파 +1
+    save();
+    await waitFor(async () => expect((await db.loadActiveRound([user.userId])).pars[0]).toBe(5));
+    expect(await savedSpeed()).toBe(10.5);
+  });
+
+  it('값이 없던 라운드에도 정할 수 있고, "설정 안 함"으로 지울 수도 있다', async () => {
+    await resume(makeActiveRound(ME, { greenSpeed: null }));
+    await openEdit();
+    pickPreset('slow');
+    save();
+    await waitFor(async () => expect(await savedSpeed()).toBe(7.5));
+    await openEdit();
+    fireEvent.click(document.querySelector('[data-role="edit-green-speed"] [data-role="gs-clear"]'));
+    save();
+    await waitFor(async () => expect(await savedSpeed()).toBeNull());
+  });
+
+  it('동반자가 있는 라운드에는 그린 스피드 칸이 없다 (퍼팅 분석은 1인 라운드만)', async () => {
+    const multi = { ...makeMultiRound(1), id: 'active-multi', completed: false, currentHole: 3 };
+    await setup({ active: multi });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 4');
+    await openEdit();
+    expect(document.querySelector('[data-role="edit-green-speed"]')).toBeNull();
+  });
+});

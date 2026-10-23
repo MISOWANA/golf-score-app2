@@ -2,15 +2,21 @@ import { useState } from 'react';
 import {
   GREEN_SPEED_BANDS, STIMP_DEFAULT, STIMP_STEP, clampSpeed, metersToStimp, speedBand, stimpToMeters, validSpeed,
 } from '../../engine/greenSpeed.js';
+import { isYards } from '../../engine/units.js';
 
 // 그날의 그린 스피드를 고르는 화면. 새 라운드 설정 · 라운드 중(퍼팅 화면) · 끝난 라운드 수정에서 같이 쓴다.
 //   · 느낌으로 고르는 네 칸(느림·보통·빠름·매우 빠름) — 스팀프 수치를 몰라도 고를 수 있다
 //   · 스팀프 피트 또는 미터로 0.5ft / 0.1m씩 맞추는 스테퍼 — 코스가 알려 주는 숫자를 그대로 넣는다
 // 값은 항상 스팀프 피트로 저장한다(null = 설정 안 함). 단위 선택은 화면 표시만 바꾼다.
 
+// 처음에는 미터로 보여 준다 (거리 단위 설정이 야드이면 피트). 한 번 고른 단위는 기억한다.
 const UNIT_KEY = 'bb.greenSpeedUnit';
 const readUnit = () => {
-  try { return localStorage.getItem(UNIT_KEY) === 'm' ? 'm' : 'ft'; } catch { return 'ft'; }
+  const fallback = isYards() ? 'ft' : 'm';
+  try {
+    const saved = localStorage.getItem(UNIT_KEY);
+    return saved === 'm' || saved === 'ft' ? saved : fallback;
+  } catch { return fallback; }
 };
 const saveUnit = (u) => {
   try { localStorage.setItem(UNIT_KEY, u); } catch { /* 기억만 못 할 뿐 */ }
@@ -18,6 +24,8 @@ const saveUnit = (u) => {
 
 const GOLD = '#c9a228';
 const round1 = (v) => Math.round(v * 10) / 10;
+// 스팀프 피트 값을 고른 단위로 — 느낌으로 고르는 칸과 안내 문구에 쓴다
+const speedText = (ft, unit) => (unit === 'ft' ? `${ft.toFixed(1)}ft` : `${round1(stimpToMeters(ft)).toFixed(1)}m`);
 
 const chip = (active) => ({
   flex: 1, minWidth: 0, padding: '10px 2px', borderRadius: 12, textAlign: 'center', cursor: 'pointer',
@@ -56,7 +64,7 @@ export default function GreenSpeedPicker({ value, onChange }) {
             <button key={b.id} type="button" data-role={`gs-preset-${b.id}`} aria-pressed={active}
               style={chip(active)} onClick={() => onChange(b.preset)}>
               <div style={{ fontSize: 14, fontWeight: 800 }}>{b.label}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: active ? GOLD : '#8896b0' }}>{b.preset.toFixed(1)}ft</div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: active ? GOLD : '#8896b0' }}>{speedText(b.preset, unit)}</div>
             </button>
           );
         })}
@@ -69,7 +77,7 @@ export default function GreenSpeedPicker({ value, onChange }) {
           <span style={{ fontSize: 32, fontWeight: 900, color: speed == null ? '#4d5a78' : '#e8edf8', lineHeight: 1 }}>{mainText}</span>
           <span style={{ fontSize: 14, color: '#8896b0', marginLeft: 4 }}>{unit === 'ft' ? 'ft' : 'm'}</span>
           <div style={{ fontSize: 13, color: '#8896b0', marginTop: 4 }}>
-            {speed == null ? '탭하면 보통(스팀프 9.0)부터 시작' : `${subText}${band ? ` · ${band.label}` : ''}`}
+            {speed == null ? `탭하면 보통(${unit === 'ft' ? `스팀프 ${STIMP_DEFAULT.toFixed(1)}` : speedText(STIMP_DEFAULT, unit)})부터 시작` : `${subText}${band ? ` · ${band.label}` : ''}`}
           </div>
         </button>
         <button type="button" data-role="gs-plus" aria-label="그린 스피드 높이기" style={stepBtn} onClick={() => step(1)}>+</button>
@@ -77,7 +85,7 @@ export default function GreenSpeedPicker({ value, onChange }) {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
         <div role="group" aria-label="단위" style={{ display: 'flex', gap: 2, background: '#0d1425', borderRadius: 999, padding: 2 }}>
-          {[['ft', '피트(스팀프)'], ['m', '미터']].map(([u, l]) => (
+          {[['m', '미터'], ['ft', '피트(스팀프)']].map(([u, l]) => (
             <button key={u} type="button" data-role={`gs-unit-${u}`} aria-pressed={unit === u} onClick={() => pickUnit(u)}
               style={{
                 border: 'none', cursor: 'pointer', borderRadius: 999, padding: '4px 10px', fontSize: 13, fontWeight: 700,

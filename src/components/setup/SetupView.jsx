@@ -1,4 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import GoalLine from '../goals/GoalLine';
+import CourseHistoryCard from './CourseHistoryCard';
+import { buildCourseHistory } from '../../engine/courseHistory.js';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronLeft, Plus, X, Briefcase } from 'lucide-react';
 import styles from '../../styles/styles';
 import { searchCourses } from '../../data/courseDatabase';
@@ -29,7 +32,8 @@ function todayLocalDateStr() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function SetupView({ onStart, onBack, currentUser }) {
+//   rounds  지금까지의 모든 라운드 — 고른 코스의 과거 기록("이 코스 기록")에 쓴다
+export default function SetupView({ onStart, onBack, currentUser, goals = [], rounds = [] }) {
   const [courseName, setCourseName] = useState('');
   const [roundDate, setRoundDate] = useState(todayLocalDateStr);
   const [outCourseName, setOutCourseName] = useState('');
@@ -176,6 +180,11 @@ export default function SetupView({ onStart, onBack, currentUser }) {
   // 시작이 막힌 이유 — 버튼이 흐려지기만 하고 이유를 모르던 문제. OUT·IN 코스 이름은 필수가 아니다
   // (비우면 'OUT'·'IN' 으로 저장된다).
   const blockers = setupBlockers({ courseName, players, teeBox });
+  // 이 코스를 전에 쳤다면 그 기록 (같은 코스·같은 9홀의 홀만 비교한다)
+  const courseHistory = useMemo(
+    () => buildCourseHistory(rounds, { courseName, outName: outCourseName, inName: inCourseName, nine, userName: currentUser?.userName }),
+    [rounds, courseName, outCourseName, inCourseName, nine, currentUser?.userName],
+  );
   const canStart = blockers.length === 0;
 
   const toggleClubRecommend = () => {
@@ -416,6 +425,9 @@ export default function SetupView({ onStart, onBack, currentUser }) {
         <div style={{ fontSize: 12, color: '#6e84a8', marginTop: 8, lineHeight: 1.6 }}>이름을 비워 두면 OUT · IN 으로 저장돼요</div>
       </div>
 
+      {/* 같은 코스를 전에 쳤다면 그 기록 — 코스 이름이 정해진 뒤, 파를 맞추기 전에 */}
+      <CourseHistoryCard history={courseHistory} />
+
       {/* 파 설정 */}
       <div style={styles.formSection}>
         <label style={styles.formLabel}>파 설정</label>
@@ -633,6 +645,8 @@ export default function SetupView({ onStart, onBack, currentUser }) {
           )}
         </div>
       )}
+
+      <GoalLine goals={goals} margin="4px 2px 12px" />
 
       {!canStart && (
         <div data-role="start-blockers" role="status" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.7, marginBottom: 10, textAlign: 'center' }}>

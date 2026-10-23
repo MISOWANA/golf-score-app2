@@ -27,6 +27,7 @@ export function toBreakdownInput(hole, player) {
     unplayable: s.unplayable ?? 0,
     teeGIR: s.teeGIR ?? false,
     fairwayHit: s.fairwayHit ?? null, // 'L' | 'C' | 'R' | null (par>3)
+    fairway: typeof s.fairway === 'boolean' ? s.fairway : null, // 페어웨이 O/X (세컨샷 지형에서 채워지기도 한다)
     gir: s.gir ?? null,
     onGreenLanding: s.onGreenLanding ?? null, // 1~12시, par3 포함 전체 홀
   };
@@ -38,6 +39,8 @@ export function toBreakdownInput(hole, player) {
 function getLandingZone(input) {
   if (input.par > 3) {
     if (input.teeGIR === true) return 'G';
+    // 랜딩 L/C/R 을 비웠어도 페어웨이를 놓쳤다는 건 알면 티샷 쪽 손실로 본다 (지형 입력 덕분에 알 수 있는 경우가 많다)
+    if (input.fairwayHit == null && input.fairway === false) return 'L';
     if (input.fairwayHit === 'L') return 'L';
     if (input.fairwayHit === 'R') return 'R';
     return 'C';

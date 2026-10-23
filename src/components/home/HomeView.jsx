@@ -1,45 +1,38 @@
 import { useState, useRef } from 'react';
-import { Download, Upload, LogOut } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
-import { NewRoundCard, ActiveRoundCard, StatsPanel } from './HomeCards';
+import { NewRoundCard, ActiveRoundCard, StatsPanel, BackupNudge, FormCard } from './HomeCards';
 import { myPlayer } from '../../engine/players.js';
 import { isFullRound } from '../../engine/nines.js';
 import { nowMs } from '../../engine/clock.js';
+import { backupStatus } from '../../engine/backupStatus.js';
+import GoalsCard from '../goals/GoalsCard';
+import { hardRefresh } from '../../platform/hardRefresh.js';
 
-export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onSelectRound, onSwitchUser, onExportData, onImportData, loading }) {
+// 홈 — 새 라운드(항상 맨 위) · 진행 중인 라운드 · 백업 안내(필요할 때만) · 누적/평균/핸디캡 · 내 폼 · 최근 라운드.
+//   onOpenSettings  설정(백업·기기 옮기기) 화면
+//   onBackup        백업 파일을 바로 만든다 (백업 안내의 "지금 백업")
+//   summary         engine/homeSummary.js 의 buildHomeSummary 결과
+//   goals · goalRounds · onOpenGoal  다음 라운드 목표 카드 (판정에 쓰는 라운드, 목표 시트 열기)
+export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onSelectRound, onSwitchUser, onOpenSettings, onBackup, onGoStats, backupMeta, summary, goals = [], goalRounds = [], onOpenGoal, loading }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showExportConfirm, setShowExportConfirm] = useState(false);
-  const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
-  const fileInputRef = useRef(null);
   const logoClickRef = useRef({ count: 0, lastAt: 0 });
   const recentRound = rounds[0];
   const totalRounds = rounds.length;
+  const bStatus = backupStatus(backupMeta, totalRounds);
 
   // 로고 3연속 클릭(700ms 이내) → 강력 새로고침. 배포 후 폰 브라우저가 이전
   // 번들을 그대로 들고 있을 때(캐시) 사용자가 스스로 최신 버전을 받게 하는 탈출구.
-  const handleLogoClick = async () => {
+  const handleLogoClick = () => {
     const now = nowMs();
     const prev = logoClickRef.current;
     logoClickRef.current = { count: now - prev.lastAt < 700 ? prev.count + 1 : 1, lastAt: now };
     if (logoClickRef.current.count < 3) return;
     logoClickRef.current = { count: 0, lastAt: 0 };
-    hardRefresh();
-  };
-
-  const hardRefresh = async () => {
-    const now = nowMs();
     setHardRefreshing(true);
-    try {
-      if (window.caches) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
-    } catch { /* 캐시 API 미지원 환경은 무시 */ }
-    const url = new URL(window.location.href);
-    url.searchParams.set('_r', now.toString());
-    window.location.replace(url.toString());
+    hardRefresh(now);
   };
 
   // 평균 스코어는 18홀 라운드만 — 9홀 점수가 섞이면 평균이 반토막이 된다
@@ -64,30 +57,10 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             </div>
           </div>
           <div style={styles.headerActions}>
-            <button
-              className="bb-press"
-              style={styles.actionButton}
-              onClick={() => setShowExportConfirm(true)}
-              title="데이터 백업 (내보내기)"
-              aria-label="데이터 백업 (내보내기)"
-            >
-              <Download size={16} />
+            <button className="bb-press" style={styles.actionButton} data-role="open-settings" onClick={onOpenSettings}
+              title="설정 · 백업" aria-label="설정 · 백업">
+              <Settings size={16} />
             </button>
-            <button className="bb-press" style={styles.actionButton} title="데이터 복원 (가져오기)" aria-label="데이터 복원 (가져오기)" onClick={() => setShowImportConfirm(true)}>
-              <Upload size={16} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files[0]) {
-                  onImportData(e.target.files[0]);
-                  e.target.value = '';
-                }
-              }}
-            />
             <div style={styles.userChip}>
               <span style={styles.userName}>{currentUser.userName}</span>
               <button style={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)} title="다른 사용자로 로그인" aria-label="다른 사용자로 로그인">
@@ -110,7 +83,13 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
 
       {activeRound && <ActiveRoundCard round={activeRound} onResume={onResume} />}
 
-      <StatsPanel loading={loading} totalRounds={totalRounds} avgScore={avgScore} />
+      {!loading && <BackupNudge status={bStatus} onBackup={onBackup} onSettings={onOpenSettings} />}
+
+      <StatsPanel loading={loading} totalRounds={totalRounds} avgScore={avgScore} handicap={summary?.handicap} />
+
+      {!loading && <FormCard summary={summary} onGoStats={onGoStats} />}
+
+      {!loading && onOpenGoal && <GoalsCard goals={goals} rounds={goalRounds} hasRounds={rounds.length > 0} onOpen={onOpenGoal} />}
 
       {recentRound && (
         <div style={{ ...styles.section, marginBottom: 0 }}>
@@ -120,49 +99,6 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
           </div>
           {/* 눌러서 그 라운드의 리포트를 바로 연다 (예전에는 히스토리 목록으로 갔다) */}
           <RoundRow round={recentRound} userName={currentUser.userName} onClick={() => (onSelectRound ? onSelectRound(recentRound.id) : onViewHistory())} />
-        </div>
-      )}
-
-      {showExportConfirm && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, padding:'24px' }}
-          onClick={() => setShowExportConfirm(false)}>
-          <div style={{ background:'#0f1825', borderRadius:16, padding:'28px 22px', width:'100%', maxWidth:320, border:'1px solid #1b2744', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:26, textAlign:'center', marginBottom:12 }}>💾</div>
-            <div style={{ fontSize:17, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:8 }}>데이터 내보내기</div>
-            <div style={{ fontSize:14, color:'#8896b0', textAlign:'center', lineHeight:1.6, marginBottom:20 }}>
-              현재까지 저장된 모든 라운드 데이터를<br/>JSON 파일로 내보냅니다.
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:15, fontWeight:600, cursor:'pointer' }}
-                onClick={() => setShowExportConfirm(false)}>취소</button>
-              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#c9a228', color:'#0b0e18', fontSize:15, fontWeight:700, cursor:'pointer' }}
-                onClick={() => { setShowExportConfirm(false); onExportData(); }}>내보내기</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showImportConfirm && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, padding:'24px' }}
-          onClick={() => setShowImportConfirm(false)}>
-          <div style={{ background:'#0f1825', borderRadius:16, padding:'28px 22px', width:'100%', maxWidth:320, border:'1px solid #1b2744', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:26, textAlign:'center', marginBottom:12 }}>📂</div>
-            <div style={{ fontSize:17, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:8 }}>데이터 가져오기</div>
-            <div style={{ fontSize:14, color:'#8896b0', textAlign:'center', lineHeight:1.6, marginBottom:8 }}>
-              JSON 백업 파일에서 데이터를 복원합니다.
-            </div>
-            <div style={{ fontSize:14, color:'#ef5350', textAlign:'center', background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>
-              기존 기록은 지우지 않고 합칩니다.<br/>같은 라운드는 파일 내용으로 바뀌어요.
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:15, fontWeight:600, cursor:'pointer' }}
-                onClick={() => setShowImportConfirm(false)}>취소</button>
-              <button style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#3db87a', color:'#0b0e18', fontSize:15, fontWeight:700, cursor:'pointer' }}
-                onClick={() => { setShowImportConfirm(false); fileInputRef.current?.click(); }}>파일 선택</button>
-            </div>
-          </div>
         </div>
       )}
 

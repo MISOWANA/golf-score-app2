@@ -17,7 +17,7 @@ let App;
 let user;
 
 // 모듈(연결을 들고 있는 db.js 포함)과 DB 를 새로 만들고, 로그인된 사용자·기록을 심는다
-async function setup({ rounds = [], active = null } = {}) {
+async function setup({ rounds = [], active = null, backupAtRounds = null, trashed = [], goals = null } = {}) {
   globalThis.indexedDB = new IDBFactory();
   vi.resetModules();
   db = await import('./db.js');
@@ -25,6 +25,10 @@ async function setup({ rounds = [], active = null } = {}) {
   user = await db.loginByName(ME);
   for (const r of rounds) await db.saveRound(r, user.userId);
   if (active) await db.saveActiveRound(user.userId, active);
+  if (backupAtRounds != null) await db.recordBackup(user.userId, { roundCount: backupAtRounds });
+  if (goals) await db.saveGoals(user.userId, goals);
+  // 휴지통에 미리 넣어 둘 라운드 — { round, at(지운 시각) }
+  for (const t of trashed) { await db.saveRound(t.round, user.userId); await db.trashRound(t.round, user.userId, t.at); }
   App = (await import('./GolfScoringApp.jsx')).default;
   render(<App />);
   await screen.findByText('새 라운드');   // 홈 화면
@@ -549,6 +553,1056 @@ describe('인사이트 — 제목 · 상태 표시', () => {
     await waitFor(() => expect(titles().some((t) => t.en === 'SCORE BREAKDOWN')).toBe(true));
     const ko = [...document.querySelectorAll('[data-role="title-ko"]')].find((el) => el.nextElementSibling?.textContent === 'SCORE BREAKDOWN');
     expect(ko.querySelector('[data-role="info-note"]')).toBeTruthy();
+  });
+});
+
+// ── 백업 · 설정 · 핸디캡 · 라운드 요약 카드 (개편 1차) ────────────────────────────
+
+// 다운로드는 링크 클릭으로 일어난다 — jsdom 에는 없는 URL.createObjectURL 과 링크 클릭을 가로채고, 만들어진 파일(Blob)을 모은다
+function captureDownloads() {
+  const blobs = [];
+  URL.createObjectURL = vi.fn((b) => { blobs.push(b); return `blob:test-${blobs.length}`; });
+  URL.revokeObjectURL = vi.fn();
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  return { blobs, click };
+}
+
+// 날짜 · 코스 이름이 다른 18홀 라운드 n 개 (i 번째는 "테스트CCi") — 히스토리에서 하나를 골라 열 수 있게 이름을 다르게 한다
+const rounds18 = (n, from = 1) => Array.from({ length: n }, (_, k) => makeFullRound(from + k, ME, { courseName: `테스트CC${from + k}` }));
+
+describe('홈 — 핸디캡 · 내 폼', () => {
+  it('3라운드부터 핸디캡을 보여 주고, 그전에는 얼마나 더 필요한지 알려 준다', async () => {
+    await setup({ rounds: rounds18(1) });
+    expect(document.querySelector('[data-role="handicap-value"]').textContent).toBe('—');
+    expect(document.querySelector('[data-role="handicap-sub"]').textContent).toMatch(/2라운드 더 쌓이면/);
+    cleanup();
+
+    await setup({ rounds: rounds18(4) });
+    expect(document.querySelector('[data-role="handicap-value"]').textContent).toMatch(/^\d+\.\d$/);
+    expect(document.querySelector('[data-role="home-handicap"]').textContent).toContain('핸디캡');
+  });
+
+  it('핸디캡 숫자는 엔진 계산과 같다 (화면 간 일치)', async () => {
+    const rounds = rounds18(5);
+    await setup({ rounds });
+    const { buildHandicap, formatHandicap } = await import('./engine/handicap.js');
+    expect(document.querySelector('[data-role="handicap-value"]').textContent).toBe(formatHandicap(buildHandicap(rounds, ME).index));
+  });
+
+  it('"내 폼" 카드는 3라운드부터 — 최근 평균이 보이고 누르면 스탯으로 간다', async () => {
+    await setup({ rounds: rounds18(2) });
+    expect(document.querySelector('[data-role="home-form"]')).toBeNull();
+    cleanup();
+
+    await setup({ rounds: rounds18(4) });
+    const form = document.querySelector('[data-role="home-form"]');
+    expect(form).toBeTruthy();
+    expect(document.querySelector('[data-role="form-avg"]').textContent).toMatch(/^\d+\.\d타$/);
+    fireEvent.click(form);
+    await screen.findByText('Stats');
+  });
+});
+
+describe('홈 — 백업 안내', () => {
+  it('백업한 적이 없으면 안내 카드가 뜨고, 기록이 없으면 뜨지 않는다', async () => {
+    await setup({ rounds: rounds18(2) });
+    const nudge = document.querySelector('[data-role="home-backup-nudge"]');
+    expect(nudge.getAttribute('data-level')).toBe('none');
+    expect(nudge.textContent).toMatch(/아직 백업한 적이 없어요.*2라운드/);
+    cleanup();
+
+    await setup({ rounds: [] });
+    expect(document.querySelector('[data-role="home-backup-nudge"]')).toBeNull();
+  });
+
+  it('"지금 백업"은 파일을 내려받고 마지막 백업 시각을 남겨서 안내가 사라진다', async () => {
+    const { blobs, click } = captureDownloads();
+    await setup({ rounds: rounds18(3) });
+    fireEvent.click(document.querySelector('[data-role="nudge-backup"]'));
+
+    await waitFor(() => expect(document.querySelector('[data-role="home-backup-nudge"]')).toBeNull());
+    expect(click).toHaveBeenCalledTimes(1);
+    const { parseBackupFile } = await import('./engine/backupStatus.js');
+    const file = parseBackupFile(await blobs[0].text());
+    expect(file.data.rounds).toHaveLength(3);
+    expect(file.roundCount).toBe(3);
+    expect(await db.getBackupMeta(user.userId)).toMatchObject({ roundCount: 3, via: 'download' });
+  });
+
+  it('백업 뒤 5라운드가 쌓이면 다시 권한다', async () => {
+    await setup({ rounds: rounds18(6), backupAtRounds: 1 });
+    const nudge = document.querySelector('[data-role="home-backup-nudge"]');
+    expect(nudge.getAttribute('data-level')).toBe('stale');
+    expect(nudge.textContent).toMatch(/그 뒤 5라운드가 쌓였어요/);
+  });
+
+  it('"자세히"는 설정 화면을 연다', async () => {
+    await setup({ rounds: rounds18(2) });
+    fireEvent.click(document.querySelector('[data-role="nudge-settings"]'));
+    await screen.findByText('Settings');
+    expect(document.querySelector('[data-role="settings-view"]')).toBeTruthy();
+  });
+});
+
+describe('설정 화면', () => {
+  const openSettings = async () => {
+    fireEvent.click(document.querySelector('[data-role="open-settings"]'));
+    await screen.findByText('Settings');
+  };
+
+  it('홈 위쪽 톱니 버튼으로 열고 뒤로 가면 홈으로 돌아온다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openSettings();
+    fireEvent.click(screen.getByRole('button', { name: '뒤로' }));
+    await screen.findByText('새 라운드');
+  });
+
+  it('백업 상태 · 기기 옮기기 4단계 · 저장 공간 · 앱 정보가 있다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openSettings();
+    expect(document.querySelector('[data-role="backup-status"]').getAttribute('data-level')).toBe('none');
+    expect(document.querySelectorAll('[data-role="move-steps"] li')).toHaveLength(4);
+    await waitFor(() => expect(document.querySelector('[data-role="storage-state"]')).toBeTruthy());
+    expect(document.querySelector('[data-role="app-version"]').textContent).not.toBe('—');   // 테스트에서는 'test'
+    expect(document.querySelector('[data-role="settings-view"]').textContent).toContain('2라운드');
+  });
+
+  it('백업 파일 저장: 파일을 내려받고 상태가 "마지막 백업 오늘"로 바뀐다', async () => {
+    const { blobs, click } = captureDownloads();
+    await setup({ rounds: rounds18(3) });
+    await openSettings();
+    fireEvent.click(document.querySelector('[data-role="backup-download"]'));
+    await waitFor(() => expect(document.querySelector('[data-role="backup-status"]').textContent).toMatch(/마지막 백업 오늘/));
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-role="settings-note"]').textContent).toMatch(/백업 파일을 저장했어요.*birdie-buddy-테스터-\d{4}-\d{2}-\d{2}\.json/);
+    expect(blobs[0].type).toBe('application/json');
+    expect(await blobs[0].text()).not.toMatch(/\n/);                       // 들여쓰기 없는 한 줄 JSON
+  });
+
+  it('공유 시트를 쓸 수 없는 기기에서는 "공유로 보내기"가 없다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openSettings();
+    expect(document.querySelector('[data-role="backup-share"]')).toBeNull();
+  });
+
+  it('공유 시트를 쓸 수 있으면 "공유로 보내기"로 파일을 공유하고 기록한다', async () => {
+    captureDownloads();
+    navigator.share = vi.fn().mockResolvedValue(undefined);
+    navigator.canShare = vi.fn(() => true);
+    try {
+      await setup({ rounds: rounds18(2) });
+      await openSettings();
+      fireEvent.click(document.querySelector('[data-role="backup-share"]'));
+      await waitFor(() => expect(document.querySelector('[data-role="settings-note"]').textContent).toMatch(/공유했어요/));
+      const shared = navigator.share.mock.calls[0][0];
+      expect(shared.files[0].name).toMatch(/^birdie-buddy-테스터-.*\.json$/);
+      expect(await db.getBackupMeta(user.userId)).toMatchObject({ roundCount: 2, via: 'share' });
+    } finally {
+      delete navigator.share; delete navigator.canShare;
+    }
+  });
+
+  it('공유 창을 닫으면 백업한 것으로 치지 않는다', async () => {
+    captureDownloads();
+    navigator.share = vi.fn().mockRejectedValue(Object.assign(new Error('x'), { name: 'AbortError' }));
+    navigator.canShare = vi.fn(() => true);
+    try {
+      await setup({ rounds: rounds18(2) });
+      await openSettings();
+      fireEvent.click(document.querySelector('[data-role="backup-share"]'));
+      await new Promise((r) => setTimeout(r, 50));
+      expect(await db.getBackupMeta(user.userId)).toBeNull();
+      expect(document.querySelector('[data-role="backup-status"]').getAttribute('data-level')).toBe('none');
+    } finally {
+      delete navigator.share; delete navigator.canShare;
+    }
+  });
+
+  describe('백업에서 복원', () => {
+    const pickFile = (file) => fireEvent.change(document.querySelector('[data-role="settings-view"] input[type="file"]'), { target: { files: [file] } });
+
+    it('내보낸 파일을 복원하면 기록이 합쳐진다', async () => {
+      const { serializeBackup } = await import('./engine/backupStatus.js');
+      await setup({ rounds: rounds18(1) });
+      await openSettings();
+      const extra = makeFullRound(7, ME, { id: 'restored-1' });
+      pickFile(new File([serializeBackup({ version: '1.0', userId: 'other', data: { rounds: [extra], clubs: [] } })], 'backup.json', { type: 'application/json' }));
+      await waitFor(() => expect(window.alert).toHaveBeenCalled());
+      expect(window.alert.mock.calls[0][0]).toMatch(/데이터를 가져왔습니다.*1개 라운드/);
+      await waitFor(async () => expect((await db.loadRoundsByUser([user.userId])).map((r) => r.id)).toContain('restored-1'));
+      expect(await db.getBackupMeta(user.userId)).toBeNull();               // 복원은 "백업"이 아니다
+    });
+
+    it('JSON 이 아니거나 더 새로운 형식의 파일은 이유를 알려 주고 아무것도 바꾸지 않는다', async () => {
+      await setup({ rounds: rounds18(1) });
+      await openSettings();
+      pickFile(new File(['이건 JSON 이 아니에요'], 'a.json'));
+      await waitFor(() => expect(window.alert).toHaveBeenCalledTimes(1));
+      expect(window.alert.mock.calls[0][0]).toMatch(/백업 파일을 읽을 수 없어요/);
+
+      pickFile(new File([JSON.stringify({ version: '2.0', data: { rounds: [] } })], 'b.json'));
+      await waitFor(() => expect(window.alert).toHaveBeenCalledTimes(2));
+      expect(window.alert.mock.calls[1][0]).toMatch(/새로운 형식.*갱신/);
+
+      pickFile(new File(['{}'], 'c.txt'));
+      await waitFor(() => expect(window.alert).toHaveBeenCalledTimes(3));
+      expect(window.alert.mock.calls[2][0]).toMatch(/JSON 파일만/);
+      expect(await db.loadRoundsByUser([user.userId])).toHaveLength(1);
+    });
+  });
+});
+
+describe('라운드 요약 카드 (Round Report 맨 위)', () => {
+  it('리포트를 열면 카드가 점수 · KEY STATS 보다 먼저 나온다', async () => {
+    const rounds = rounds18(4);
+    await setup({ rounds });
+    await openReportFromHistory(rounds[3].courseName);
+    const card = document.querySelector('[data-role="round-card"]');
+    expect(card).toBeTruthy();
+    expect(card.textContent).toContain('라운드 요약');
+    expect(card.compareDocumentPosition(screen.getByText('KEY STATS')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(card.compareDocumentPosition(screen.getByText('FRONT 9')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('총평 문장과 점수는 리포트·엔진과 같다 (화면 간 일치)', async () => {
+    const rounds = rounds18(4);
+    await setup({ rounds });
+    await openReportFromHistory(rounds[3].courseName);
+    const { buildRoundCard } = await import('./engine/roundCard.js');
+    const latest = [...rounds].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    const card = buildRoundCard(latest, rounds);
+    const shown = document.querySelector('[data-role="card-headline"]').textContent;
+    expect(shown).toBe(card.headline);
+    expect(shown).toContain(`${summarizeRound(latest, ME).total}타`);
+  });
+
+  it('이전 18홀 라운드가 3개 이상이면 내 평균과 비교하고, 부족하면 안내한다', async () => {
+    const rounds = rounds18(5);
+    await setup({ rounds });
+    await openReportFromHistory(rounds[4].courseName);
+    const compare = document.querySelector('[data-role="card-compare"]');
+    expect(compare.textContent).toMatch(/내 최근 4라운드 평균 대비/);
+    expect(compare.querySelector('[data-role="compare-score"]')).toBeTruthy();
+    cleanup();
+
+    const few = rounds18(2);
+    await setup({ rounds: few });
+    await openReportFromHistory(few[1].courseName);
+    expect(document.querySelector('[data-role="card-compare"]').textContent).toMatch(/3개 쌓이면/);
+  });
+
+  it('잘한 점 · 아쉬운 점은 각각 3개 이하이고 결론 칸이 하나 이상 있다', async () => {
+    const rounds = rounds18(4);
+    await setup({ rounds });
+    await openReportFromHistory(rounds[3].courseName);
+    const card = document.querySelector('[data-role="round-card"]');
+    const sections = ['card-strengths', 'card-issues', 'card-focus'].filter((r) => card.querySelector(`[data-role="${r}"]`));
+    expect(sections.length).toBeGreaterThanOrEqual(1);
+    expect(card.querySelectorAll('[data-role="card-strengths"] li').length).toBeLessThanOrEqual(3);
+    expect(card.querySelectorAll('[data-role="card-issues"] li').length).toBeLessThanOrEqual(3);
+  });
+
+  it('9홀 라운드는 카드가 있고 평균 비교에서 빠진다고 알려 준다', async () => {
+    const nine = makeNineRound(2, 'out');
+    await setup({ rounds: [...rounds18(4), nine] });
+    await openReportFromHistory(nine.courseName);
+    expect(document.querySelector('[data-role="card-compare"]').textContent).toMatch(/9홀 라운드는 평균 비교에서 빠져요/);
+  });
+
+  it('동반자와 함께 기록한 라운드에는 카드가 없다', async () => {
+    const multi = makeMultiRound(1);
+    await setup({ rounds: [multi] });
+    await openReportFromHistory(multi.courseName);
+    expect(document.querySelector('[data-role="round-card"]')).toBeNull();
+  });
+
+  it('라운드를 끝내면 첫 화면이 카드가 있는 리포트다', async () => {
+    const rounds = rounds18(3);
+    const active = makeHalfRound(9, ME, { id: 'fin-1', completed: false, courseName: '방금CC' });
+    delete active.finishedAt;
+    active.holes.forEach((h, i) => { if (i >= 9) h.scores[ME] = played(h.par, { strokes: h.par, putts: 2 }); });
+    active.currentHole = 17;
+    await setup({ rounds, active });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 18');
+    fireEvent.click(screen.getByRole('button', { name: /완료/ }));
+    await screen.findByText('Round Report');
+    expect(document.querySelector('[data-role="round-card"]')).toBeTruthy();
+  });
+
+  describe('이미지 저장 · 공유', () => {
+    const mockImage = () => vi.doMock('./share/reportImage.js', () => ({ renderReportImage: async () => new Blob(['png-bytes'], { type: 'image/png' }) }));
+
+    it('공유 시트가 없으면 PNG 로 저장한다', async () => {
+      mockImage();
+      const { blobs, click } = captureDownloads();
+      const rounds = rounds18(4);
+      await setup({ rounds });
+      await openReportFromHistory(rounds[3].courseName);
+      fireEvent.click(document.querySelector('[data-role="share-image"]'));
+      await waitFor(() => expect(document.querySelector('[data-role="share-note"]')?.textContent).toMatch(/이미지를 저장했어요/));
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(blobs[0].type).toBe('image/png');
+      vi.doUnmock('./share/reportImage.js');
+    });
+
+    it('공유 시트가 되면 이미지 파일을 공유한다', async () => {
+      mockImage();
+      captureDownloads();
+      navigator.share = vi.fn().mockResolvedValue(undefined);
+      navigator.canShare = vi.fn(() => true);
+      try {
+        const rounds = rounds18(4);
+        await setup({ rounds });
+        await openReportFromHistory(rounds[3].courseName);
+        fireEvent.click(document.querySelector('[data-role="share-image"]'));
+        await waitFor(() => expect(document.querySelector('[data-role="share-note"]')?.textContent).toMatch(/공유했어요/));
+        const arg = navigator.share.mock.calls[0][0];
+        expect(arg.files[0].name).toMatch(/^birdie-buddy-.*\.png$/);
+        expect(arg.files[0].type).toBe('image/png');
+      } finally {
+        delete navigator.share; delete navigator.canShare;
+        vi.doUnmock('./share/reportImage.js');
+      }
+    });
+
+    it('이미지를 만들지 못하면 알려 준다', async () => {
+      vi.doMock('./share/reportImage.js', () => ({ renderReportImage: async () => { throw new Error('canvas'); } }));
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const rounds = rounds18(4);
+      await setup({ rounds });
+      await openReportFromHistory(rounds[3].courseName);
+      fireEvent.click(document.querySelector('[data-role="share-image"]'));
+      await waitFor(() => expect(document.querySelector('[data-role="share-note"]')?.textContent).toMatch(/이미지를 만들지 못했어요/));
+      vi.doUnmock('./share/reportImage.js');
+    });
+  });
+});
+
+describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머지는 선택', () => {
+  // i번 홀(파는 홀에서) 상세 입력 중: 티샷 드라이버 + 퍼트 확정까지 입력한 상태 (구질·페어웨이·랜딩은 비어 있다)
+  const shotRound = (over = {}, hole = 0) => {
+    const round = makeActiveRound(ME, { currentHole: hole });
+    const par = round.holes[hole].par;
+    round.holes[hole].scores[ME] = played(par, {
+      confirmed: false, teeClub: 'driver', putts: 2, puttsManual: true, strokes: par, gir: true, girAuto: false, onGreen: true, ...over,
+    });
+    return round;
+  };
+  const saved = async (hole = 0) => (await db.loadActiveRound([user.userId])).holes[hole].scores[ME];
+  const resume = async (active, label = 'HOLE 1') => {
+    await setup({ active });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText(label);
+  };
+  const openTab = async (name) => {
+    const tab = await waitFor(() => { const t = document.querySelector(`[data-role="shot-tab-${name}"]`); expect(t).toBeTruthy(); return t; });
+    fireEvent.click(tab);
+  };
+  const nextButton = () => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '다음');
+  const second = { secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150 };
+
+  it('티샷 클럽만 골라도 필드샷 탭이 열린다 (구질 · 페어웨이 · 랜딩은 선택)', async () => {
+    await resume(shotRound({ onGreen: null, gir: null }));
+    expect(document.querySelector('[data-role="shot-tab-field"]').disabled).toBe(false);
+    expect(document.querySelector('[data-role="shot-tab-putt"]').disabled).toBe(false);
+    await openTab('field');
+    await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+  });
+
+  it('티샷 탭: 선택 항목이 남았다고 알리고 바로 필드샷으로 넘어가는 버튼이 있다', async () => {
+    await resume(shotRound({ onGreen: null, gir: null }));
+    await openTab('tee');
+    const note = await waitFor(() => { const n = document.querySelector('[data-role="tee-optional-note"]'); expect(n).toBeTruthy(); return n; });
+    expect(note.textContent).toMatch(/선택 항목: 구질.*페어웨이 O\/X.*랜딩 L\/C\/R/);
+    fireEvent.click(document.querySelector('[data-role="go-field"]'));
+    await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+  });
+
+  it('티샷 클럽을 아직 안 골랐으면 필드샷 · 퍼팅 탭은 잠겨 있다', async () => {
+    await resume(shotRound({ teeClub: null, onGreen: null, gir: null }));
+    expect(document.querySelector('[data-role="shot-tab-field"]').disabled).toBe(true);
+    expect(document.querySelector('[data-role="shot-tab-putt"]').disabled).toBe(true);
+  });
+
+  describe('세컨샷 지형 · 라이', () => {
+    it('네 가지 지형과 라이 칩이 있고 비어 있으면 "필수"가 붙는다', async () => {
+      await resume(shotRound({ ...second }));
+      await openTab('field');
+      const surface = await waitFor(() => { const r = document.querySelector('[data-role="second-surface"]'); expect(r).toBeTruthy(); return r; });
+      expect([...surface.querySelectorAll('button')].map((b) => b.textContent.replace(/\s*★/, ''))).toEqual(['페어웨이', '러프', '벙커', '리커버리']);
+      expect(surface.getAttribute('data-missing')).toBe('1');
+      expect(surface.textContent).toContain('필수');
+      const lie = document.querySelector('[data-role="second-lie"]');
+      expect([...lie.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['평지', '오르막', '내리막', expect.stringContaining('기타')]);
+      expect(lie.getAttribute('data-missing')).toBe('1');
+    });
+
+    it('지형을 고르면 저장되고 다시 누르면 해제된다 — 필수 표시도 따라 바뀐다', async () => {
+      await resume(shotRound({ ...second }));
+      await openTab('field');
+      const surface = () => document.querySelector('[data-role="second-surface"]');
+      await waitFor(() => expect(surface()).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="second-surface-bunker"]'));
+      await waitFor(async () => expect((await saved()).secondSurface).toBe('bunker'));
+      await waitFor(() => expect(surface().getAttribute('data-missing')).toBe('0'));
+      expect(document.querySelector('[data-role="second-surface-bunker"]').getAttribute('aria-pressed')).toBe('true');
+
+      fireEvent.click(document.querySelector('[data-role="second-surface-rough"]'));        // 다른 지형으로 바꾸기
+      await waitFor(async () => expect((await saved()).secondSurface).toBe('rough'));
+      fireEvent.click(document.querySelector('[data-role="second-surface-rough"]'));        // 같은 칩을 다시 누르면 해제
+      await waitFor(async () => expect((await saved()).secondSurface).toBeNull());
+    });
+
+    it('라이: 평지 · 오르막 · 내리막은 한 번에, 슬라이스·훅이 섞인 라이는 "기타"에서', async () => {
+      await resume(shotRound({ ...second }));
+      await openTab('field');
+      await waitFor(() => expect(document.querySelector('[data-role="second-lie"]')).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="second-lie-uphill"]'));
+      await waitFor(async () => expect((await saved()).terrainCondition).toBe('uphill'));
+      await waitFor(() => expect(document.querySelector('[data-role="second-lie"]').getAttribute('data-missing')).toBe('0'));
+      fireEvent.click(document.querySelector('[data-role="second-lie-flat"]'));
+      await waitFor(async () => expect((await saved()).terrainCondition).toBe('flat'));    // 평지도 입력한 값이다
+      fireEvent.click(document.querySelector('[data-role="second-lie-more"]'));
+      fireEvent.click(await screen.findByText('오르막 슬라이스'));
+      await waitFor(async () => expect((await saved()).terrainCondition).toBe('uphill-slice'));
+    });
+
+    it('티샷 결과로 짐작한 지형에 ★ 를 붙이되, 눌러야 기록된다', async () => {
+      await resume(shotRound({ ...second, fairway: false }));
+      await openTab('field');
+      const rough = await waitFor(() => { const b = document.querySelector('[data-role="second-surface-rough"]'); expect(b).toBeTruthy(); return b; });
+      expect(rough.textContent).toContain('★');
+      expect(document.querySelector('[data-role="second-surface"]').textContent).toMatch(/티샷 결과로는 러프/);
+      expect((await saved()).secondSurface ?? null).toBeNull();                            // 자동으로 채우지 않는다
+      fireEvent.click(rough);
+      await waitFor(async () => expect((await saved()).secondSurface).toBe('rough'));
+    });
+
+    it('지형을 고르면 비어 있던 페어웨이 O/X 가 채워지고, 지형을 바꾸면 따라 바뀐다', async () => {
+      await resume(shotRound({ ...second }));
+      await openTab('field');
+      await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="second-surface-fairway"]'));
+      await waitFor(async () => expect(await saved()).toMatchObject({ fairway: true, fairwayDerived: true }));
+      fireEvent.click(document.querySelector('[data-role="second-surface-bunker"]'));
+      await waitFor(async () => expect((await saved()).fairway).toBe(false));              // 페어웨이 벙커는 페어웨이가 아니다
+      fireEvent.click(document.querySelector('[data-role="second-surface-bunker"]'));      // 지형을 지우면 채웠던 값도 지운다
+      await waitFor(async () => expect(await saved()).toMatchObject({ fairway: null, fairwayDerived: false }));
+    });
+
+    it('직접 누른 페어웨이 O/X 는 지형이 바꾸지 않는다', async () => {
+      await resume(shotRound({ ...second, fairway: true }));
+      await openTab('field');
+      await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="second-surface-rough"]'));
+      await waitFor(async () => expect((await saved()).secondSurface).toBe('rough'));
+      expect((await saved()).fairway).toBe(true);
+    });
+  });
+
+  describe('다음 · 완료 — 빠진 샷 정보 확인', () => {
+    const filled = { ...second, terrainCondition: 'flat', secondSurface: 'fairway' };
+
+    it('라이 · 지형이 비어 있으면 한 번 짚어 주고, "그대로 다음 홀"로 넘어갈 수 있다', async () => {
+      await resume(shotRound({ ...second }));
+      fireEvent.click(nextButton());
+      const ask = await waitFor(() => { const a = document.querySelector('[data-role="hole-check"]'); expect(a).toBeTruthy(); return a; });
+      expect(ask.textContent).toContain('샷 정보가 비어 있어요');
+      expect([...ask.querySelectorAll('[data-role="info-ask-gap"]')].map((g) => g.textContent)).toEqual([expect.stringMatching(/세컨샷.*라이 · 지형$/)]);
+      fireEvent.click(screen.getByRole('button', { name: '그대로 다음 홀' }));
+      await screen.findByText('HOLE 2');
+    });
+
+    it('"입력하러 가기"는 비어 있는 샷의 필드샷 탭을 연다', async () => {
+      await resume(shotRound({ ...second }));
+      fireEvent.click(nextButton());
+      fireEvent.click(await screen.findByText('입력하러 가기'));
+      await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+      expect(screen.queryByText('샷 정보가 비어 있어요')).toBeNull();
+    });
+
+    it('거리 · 클럽까지 비어 있으면 라이 · 지형 · 거리 · 클럽 순서로 알려 준다', async () => {
+      await resume(shotRound({ remainingDistance: null }));
+      fireEvent.click(nextButton());
+      const ask = await waitFor(() => { const a = document.querySelector('[data-role="hole-check"]'); expect(a).toBeTruthy(); return a; });
+      expect(ask.querySelector('[data-role="info-ask-gap"]').textContent).toMatch(/세컨샷 · 라이 · 지형 · 거리 · 클럽$/);
+    });
+
+    it('모두 채우면 확인 없이 다음 홀로 간다 (구질 · 랜딩 · 그린 랜딩 방향이 없어도)', async () => {
+      await resume(shotRound({ ...filled }));
+      fireEvent.click(nextButton());
+      await screen.findByText('HOLE 2');
+      expect(document.querySelector('[data-role="hole-check"]')).toBeNull();
+    });
+
+    it('파3: 티샷 거리가 비어 있으면 알려 준다', async () => {
+      await resume(shotRound({ teeClub: 'iron', teeOnGreen: true, onGreen: null, gir: true }, 2), 'HOLE 3');
+      fireEvent.click(nextButton());
+      const ask = await waitFor(() => { const a = document.querySelector('[data-role="hole-check"]'); expect(a).toBeTruthy(); return a; });
+      expect(ask.querySelector('[data-role="info-ask-gap"]').textContent).toMatch(/^티샷 · 거리$/);
+    });
+
+    it('추가 샷(써드샷)도 지형 · 라이를 받고, 저장된다', async () => {
+      const extra = { club: 'wedge', subClub: '52', lie: [], surface: null, remainingDistance: 25, onGreen: true };
+      await resume(shotRound({ ...filled, gir: false, onGreen: false, strokes: 5, extraShots: [extra] }));
+      await openTab('field');
+      const surface = await waitFor(() => { const r = document.querySelector('[data-role="extra-surface-0"]'); expect(r).toBeTruthy(); return r; });
+      expect(surface.getAttribute('data-missing')).toBe('1');
+      fireEvent.click(document.querySelector('[data-role="extra-surface-0-rough"]'));
+      fireEvent.click(document.querySelector('[data-role="extra-lie-0-downhill"]'));
+      await waitFor(async () => {
+        const x = (await saved()).extraShots[0];
+        expect(x.surface).toBe('rough');
+        expect(x.lie).toBe('downhill');
+      });
+    });
+  });
+
+  describe('온그린 랜딩 방향은 선택', () => {
+    it('방향을 고르지 않아도 퍼팅 입력이 열려 있다', async () => {
+      await resume(shotRound({ putts: 2, puttsManual: true }));
+      await openTab('putt');
+      await waitFor(() => expect(document.querySelector('[data-role="putting-top"]')).toBeTruthy());
+      expect(screen.queryByText(/랜딩 방향을 선택하면 퍼팅/)).toBeNull();
+      expect(await screen.findByText('PUTT 1')).toBeTruthy();
+    });
+  });
+});
+
+describe('삭제 되돌리기 (휴지통)', () => {
+  const openHistory = async () => { tab('히스토리'); await screen.findByText('History'); };
+  const deleteRoundNamed = async (name) => {
+    const card = (await screen.findByText(name)).closest('div[style*="border-radius"]');
+    fireEvent.click(card.querySelector('button[aria-label="라운드 삭제"]'));
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }));
+  };
+  const savedIds = async () => (await db.loadRoundsByUser([user.userId])).map((r) => r.id);
+
+  it('삭제 확인 창이 휴지통에 7일 보관된다고 알려 준다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openHistory();
+    const card = (await screen.findByText('테스트CC1')).closest('div[style*="border-radius"]');
+    fireEvent.click(card.querySelector('button[aria-label="라운드 삭제"]'));
+    expect(await screen.findByText(/휴지통에 7일 보관돼서 되돌릴 수 있어요/)).toBeTruthy();
+  });
+
+  it('지우면 목록에서 빠지고 "되돌리기" 안내가 뜨며, 누르면 그대로 돌아온다', async () => {
+    const rounds = rounds18(2);
+    await setup({ rounds });
+    await openHistory();
+    await deleteRoundNamed('테스트CC1');
+
+    await waitFor(() => expect(screen.queryByText('테스트CC1')).toBeNull());
+    expect(await savedIds()).toEqual([rounds[1].id]);                         // 라운드 목록에서는 빠졌다
+    const toast = await screen.findByRole('status');
+    expect(toast.textContent).toContain('테스트CC1 라운드를 삭제했어요');
+
+    fireEvent.click(document.querySelector('[data-role="undo-delete"]'));
+    expect(await screen.findByText('테스트CC1')).toBeTruthy();
+    expect((await savedIds()).sort()).toEqual(rounds.map((r) => r.id).sort());
+    expect(document.querySelector('[data-role="trash"]')).toBeNull();          // 휴지통도 비었다
+    expect((await db.loadRoundsByUser([user.userId])).find((r) => r.id === rounds[0].id).holes).toEqual(rounds[0].holes);
+  });
+
+  it('되돌리기 안내를 놓쳐도 휴지통에서 복원할 수 있다', async () => {
+    const rounds = rounds18(2);
+    await setup({ rounds });
+    await openHistory();
+    await deleteRoundNamed('테스트CC1');
+    await waitFor(() => expect(screen.queryByText('테스트CC1')).toBeNull());
+
+    const toggle = document.querySelector('[data-role="trash-toggle"]');
+    expect(toggle.textContent).toMatch(/휴지통 1개.*7일 보관/);
+    fireEvent.click(toggle);
+    const row = await waitFor(() => { const r = document.querySelector('[data-role="trash-row"]'); expect(r).toBeTruthy(); return r; });
+    expect(row.textContent).toContain('테스트CC1');
+    expect(row.textContent).toMatch(/7일 뒤 사라져요/);
+
+    fireEvent.click(row.querySelector('[data-role="trash-restore"]'));
+    await waitFor(() => expect(screen.getAllByText('테스트CC1').length).toBeGreaterThan(0));
+    await waitFor(() => expect(document.querySelector('[data-role="trash"]')).toBeNull());
+    expect((await savedIds())).toContain(rounds[0].id);
+  });
+
+  it('영구 삭제는 한 번 더 확인한 뒤에만 지운다', async () => {
+    const rounds = rounds18(2);
+    await setup({ rounds });
+    await openHistory();
+    await deleteRoundNamed('테스트CC1');
+    await waitFor(() => expect(screen.queryByText('테스트CC1')).toBeNull());
+    fireEvent.click(document.querySelector('[data-role="trash-toggle"]'));
+
+    fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="trash-purge"]'); expect(b).toBeTruthy(); return b; }));
+    expect(document.querySelector('[data-role="trash-confirm"]').textContent).toMatch(/되돌릴 수 없어요/);
+    expect((await db.listTrash([user.userId])).length).toBe(1);                // 아직 지우지 않았다
+
+    fireEvent.click(document.querySelector('[data-role="trash-purge-confirm"]'));
+    await waitFor(async () => expect(await db.listTrash([user.userId])).toEqual([]));
+    expect(await savedIds()).toEqual([rounds[1].id]);
+    await waitFor(() => expect(document.querySelector('[data-role="trash"]')).toBeNull());
+  });
+
+  it('지운 라운드는 홈의 누적 라운드와 통계에서 빠지고, 복원하면 돌아온다', async () => {
+    await setup({ rounds: rounds18(4) });
+    expect(document.querySelector('[data-role="home-stats"]').textContent).toContain('4회');
+    await openHistory();
+    await deleteRoundNamed('테스트CC1');
+    await waitFor(() => expect(screen.queryByText('테스트CC1')).toBeNull());
+    tab('홈');
+    await screen.findByText('새 라운드');
+    expect(document.querySelector('[data-role="home-stats"]').textContent).toContain('3회');
+    await openHistory();
+    fireEvent.click(document.querySelector('[data-role="trash-toggle"]'));
+    fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="trash-restore"]'); expect(b).toBeTruthy(); return b; }));
+    await waitFor(() => expect(document.querySelector('[data-role="trash"]')).toBeNull());
+    tab('홈');
+    await screen.findByText('새 라운드');
+    expect(document.querySelector('[data-role="home-stats"]').textContent).toContain('4회');
+  });
+
+  it('앱을 열 때 7일이 지난 휴지통 라운드는 정리하고 나머지는 남긴다', async () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const rounds = rounds18(3);
+    await setup({ rounds: [rounds[2]], trashed: [{ round: rounds[0], at: new Date(Date.now() - 8 * DAY) }, { round: rounds[1], at: new Date(Date.now() - 2 * DAY) }] });
+    await openHistory();
+    const toggle = await waitFor(() => { const t = document.querySelector('[data-role="trash-toggle"]'); expect(t).toBeTruthy(); return t; });
+    expect(toggle.textContent).toMatch(/휴지통 1개/);
+    expect((await db.listTrash([user.userId])).map((r) => r.round.id)).toEqual([rounds[1].id]);
+  });
+
+  it('휴지통이 비어 있으면 휴지통 칸이 없다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openHistory();
+    expect(document.querySelector('[data-role="trash"]')).toBeNull();
+  });
+});
+
+describe('다음 라운드 목표', () => {
+  const G = (metric, target, createdAt = '2026-01-01T00:00:00.000Z') => ({ id: `g-${metric}`, metric, target, createdAt });
+  const sheet = () => document.querySelector('[data-role="goal-sheet"]');
+  const savedGoals = async () => db.getGoals(user.userId);
+
+  describe('홈 카드 · 목표 시트', () => {
+    it('기록이 없으면 목표 카드가 없고, 기록이 있으면 정하도록 이끈다', async () => {
+      await setup({ rounds: [] });
+      expect(document.querySelector('[data-role="goals-empty"]')).toBeNull();
+      cleanup();
+      await setup({ rounds: rounds18(2) });
+      expect(document.querySelector('[data-role="goals-empty"]').textContent).toContain('다음 라운드 목표를 정해 보세요');
+    });
+
+    it('목표를 정하면 저장되고 카드에 문장으로 보인다', async () => {
+      await setup({ rounds: rounds18(4) });
+      fireEvent.click(document.querySelector('[data-role="goal-add"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="goal-metric-penalties"]'));
+      expect(document.querySelector('[data-role="goal-metric-penalties"]').getAttribute('aria-pressed')).toBe('true');
+      const before = document.querySelector('[data-role="goal-text"]').textContent;
+      expect(before).toMatch(/^벌타 \d+개 이하$/);
+      fireEvent.click(document.querySelector('[data-role="goal-plus"]'));
+      expect(document.querySelector('[data-role="goal-text"]').textContent).not.toBe(before);
+      fireEvent.click(document.querySelector('[data-role="goal-save"]'));
+
+      await waitFor(() => expect(sheet()).toBeNull());
+      const [g] = await savedGoals();
+      expect(g).toMatchObject({ metric: 'penalties' });
+      expect(document.querySelector('[data-role="goal-row-text"]').textContent).toBe(`벌타 ${g.target}개 이하`);
+      expect(document.querySelector('[data-role="goal-row-progress"]').textContent).toBe('다음 라운드부터 판정해요');
+    });
+
+    it('목표값은 최근 라운드 평균을 보고 먼저 채워 주고, 평균도 보여 준다', async () => {
+      await setup({ rounds: rounds18(4) });
+      fireEvent.click(document.querySelector('[data-role="goal-add"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="goal-metric-score"]'));
+      const { recentAverage, suggestTarget } = await import('./engine/goals.js');
+      const rounds = rounds18(4);
+      expect(document.querySelector('[data-role="goal-target"]').textContent).toContain(String(suggestTarget('score', rounds)));
+      expect(document.querySelector('[data-role="goal-recent"]').textContent).toMatch(new RegExp(`최근 4라운드 평균 .*${Math.round(recentAverage('score', rounds).avg)}`));
+    });
+
+    it('목표는 최대 2개 — 가득 차면 추가 버튼이 없고, 이미 쓴 지표는 고를 수 없다', async () => {
+      await setup({ rounds: rounds18(4), goals: [G('threePutts', 2)] });
+      fireEvent.click(document.querySelector('[data-role="goal-add"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      expect(document.querySelector('[data-role="goal-metric-threePutts"]').disabled).toBe(true);
+      fireEvent.click(document.querySelector('[data-role="goal-metric-penalties"]'));
+      fireEvent.click(document.querySelector('[data-role="goal-save"]'));
+      await waitFor(async () => expect(await savedGoals()).toHaveLength(2));
+      await waitFor(() => expect(document.querySelector('[data-role="goal-add"]')).toBeNull());
+    });
+
+    it('목표를 눌러 값을 고치고 지울 수 있다', async () => {
+      await setup({ rounds: rounds18(4), goals: [G('threePutts', 2)] });
+      fireEvent.click(document.querySelector('[data-role="goal-row"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      expect(document.querySelector('[data-role="goal-metric-penalties"]')).toBeNull();       // 고칠 때는 지표를 바꾸지 않는다
+      fireEvent.click(document.querySelector('[data-role="goal-minus"]'));
+      fireEvent.click(document.querySelector('[data-role="goal-save"]'));
+      await waitFor(async () => expect((await savedGoals())[0].target).toBe(1));
+      await waitFor(() => expect(document.querySelector('[data-role="goal-row-text"]').textContent).toBe('3퍼트 1회 이하'));
+
+      fireEvent.click(document.querySelector('[data-role="goal-row"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="goal-remove"]'));
+      await waitFor(async () => expect(await savedGoals()).toEqual([]));
+      await waitFor(() => expect(document.querySelector('[data-role="goals-empty"]')).toBeTruthy());
+    });
+
+    it('취소하면 아무것도 저장하지 않는다', async () => {
+      await setup({ rounds: rounds18(4) });
+      fireEvent.click(document.querySelector('[data-role="goal-add"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      fireEvent.click(screen.getByRole('button', { name: '취소' }));
+      await waitFor(() => expect(sheet()).toBeNull());
+      expect(await savedGoals()).toEqual([]);
+    });
+
+    it('목표를 세운 뒤 쌓인 라운드로 "최근 N라운드 중 M번 달성"이 보인다', async () => {
+      const rounds = rounds18(4);
+      await setup({ rounds, goals: [G('score', 140)] });                                       // 140타 이하(최대값) — 모두 달성
+      expect(document.querySelector('[data-role="goal-row-progress"]').textContent).toBe('최근 4라운드 중 4번 달성');
+      expect(document.querySelectorAll('[data-role="goal-row"] [data-met="1"]')).toHaveLength(4);
+    });
+  });
+
+  describe('라운드 리포트의 달성 판정', () => {
+    it('이 라운드의 지표 값으로 달성 · 미달을 알려 준다', async () => {
+      const rounds = rounds18(4);
+      await setup({ rounds, goals: [G('score', 140), G('birdies', 9)] });
+      await openReportFromHistory(rounds[3].courseName);
+      const items = [...document.querySelectorAll('[data-role="card-goal"]')];
+      expect(items).toHaveLength(2);
+      const { goalValue } = await import('./engine/goals.js');
+      const latest = [...rounds].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      expect(items[0].getAttribute('data-met')).toBe('1');
+      expect(items[0].textContent).toContain(`스코어 140타 이하 → ${goalValue(latest, 'score')}타 달성`);
+      expect(items[1].getAttribute('data-met')).toBe('0');
+      expect(items[1].textContent).toMatch(/버디 이상 9개 이상 → \d+개 미달/);
+      expect(items[0].textContent).toMatch(/최근 4라운드 중 4번 달성/);
+    });
+
+    it('목표를 정하기 전에 친 라운드는 판정하지 않는다', async () => {
+      const rounds = rounds18(3);
+      await setup({ rounds, goals: [G('score', 140, '2099-01-01T00:00:00.000Z')] });
+      await openReportFromHistory(rounds[2].courseName);
+      expect(document.querySelector('[data-role="card-goal"]')).toBeNull();
+      expect(document.querySelector('[data-role="card-goals-note"]').textContent).toContain('정한 날부터 판정해요');
+    });
+
+    it('9홀 라운드는 목표를 판정하지 않는다고 알려 준다', async () => {
+      const nine = makeNineRound(2, 'out');
+      await setup({ rounds: [...rounds18(3), nine], goals: [G('score', 140)] });
+      await openReportFromHistory(nine.courseName);
+      expect(document.querySelector('[data-role="card-goals-note"]').textContent).toContain('9홀 라운드는 목표를 판정하지 않아요');
+    });
+
+    it('"이걸 목표로"는 포커스에 맞는 지표를 미리 골라 목표 시트를 연다', async () => {
+      const rounds = rounds18(4);
+      await setup({ rounds });
+      await openReportFromHistory(rounds[3].courseName);
+      const { buildRoundCard } = await import('./engine/roundCard.js');
+      const { FOCUS_METRIC } = await import('./engine/goals.js');
+      const latest = [...rounds].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      const card = buildRoundCard(latest, rounds);
+      const metric = FOCUS_METRIC[card.focusCategory];
+      expect(metric).toBeTruthy();
+      fireEvent.click(document.querySelector('[data-role="focus-set-goal"]'));
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      expect(document.querySelector(`[data-role="goal-metric-${metric}"]`).getAttribute('aria-pressed')).toBe('true');
+      fireEvent.click(document.querySelector('[data-role="goal-save"]'));
+      await waitFor(async () => expect((await savedGoals()).map((g) => g.metric)).toEqual([metric]));
+      await waitFor(() => expect(document.querySelector('[data-role="focus-set-goal"]')).toBeNull());   // 이미 정했으니 버튼은 사라진다
+    });
+  });
+
+  describe('라운드 중에 보이는 목표', () => {
+    it('라운드 설정 화면에 오늘의 목표가 한 줄 보인다', async () => {
+      await setup({ rounds: rounds18(2), goals: [G('threePutts', 2)] });
+      fireEvent.click(screen.getByText('시작하기'));
+      await screen.findByText('New Round');
+      expect(document.querySelector('[data-role="goal-line"]').textContent).toContain('오늘의 목표 · 3퍼트 2회 이하');
+    });
+
+    it('목표가 없으면 아무것도 보이지 않는다', async () => {
+      await setup({ rounds: rounds18(2) });
+      fireEvent.click(screen.getByText('시작하기'));
+      await screen.findByText('New Round');
+      expect(document.querySelector('[data-role="goal-line"]')).toBeNull();
+    });
+
+    it('스코어 입력 화면에서는 지금까지의 값도 보여 준다 (낮을수록 좋은 지표가 목표를 넘으면 초과 표시)', async () => {
+      const active = makeActiveRound(ME, { currentHole: 3 });
+      active.holes.slice(0, 3).forEach((h) => { h.scores[ME] = played(h.par, { strokes: h.par + 1, putts: 3 }); });
+      await setup({ active, goals: [G('threePutts', 2), G('birdies', 1)] });
+      fireEvent.click(screen.getByText('이어서'));
+      await screen.findByText('HOLE 4');
+      const items = [...document.querySelectorAll('[data-role="goal-line-item"]')];
+      expect(items).toHaveLength(2);
+      expect(items[0].textContent).toContain('3퍼트 2회 이하');
+      expect(items[0].querySelector('[data-role="goal-now"]').textContent).toMatch(/지금 3회 \(초과\)/);
+      expect(items[1].querySelector('[data-role="goal-now"]').textContent).toMatch(/지금 0개$/);
+    });
+  });
+
+  describe('인사이트 · 백업', () => {
+    it('인사이트의 다음 라운드 포커스에서도 목표로 정할 수 있다', async () => {
+      await setup({ rounds: rounds18(4) });
+      tab('인사이트');
+      await screen.findByText('Insights');
+      fireEvent.click(document.querySelector('[data-role="insights-tab-next"]'));
+      const btn = await waitFor(() => { const b = document.querySelector('[data-role="focus-set-goal"]'); expect(b).toBeTruthy(); return b; });
+      fireEvent.click(btn);
+      await waitFor(() => expect(sheet()).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="goal-save"]'));
+      await waitFor(async () => expect(await savedGoals()).toHaveLength(1));
+    });
+
+    it('백업 파일에 목표가 들어가고, 복원하면 돌아온다', async () => {
+      const { blobs } = captureDownloads();
+      await setup({ rounds: rounds18(3), goals: [G('penalties', 1)] });
+      fireEvent.click(document.querySelector('[data-role="nudge-backup"]'));
+      await waitFor(() => expect(blobs.length).toBe(1));
+      const { parseBackupFile } = await import('./engine/backupStatus.js');
+      const file = parseBackupFile(await blobs[0].text());
+      expect(file.data.goals).toEqual([G('penalties', 1)]);
+    });
+  });
+});
+
+describe('같은 코스 과거 기록 카드 (라운드 설정)', () => {
+  // 남서울CC 를 친 i번째 라운드 — 4번 홀은 늘 +2, 12번 홀은 +1, 7번 홀에는 메모
+  const at = (i, extra = {}) => {
+    const r = makeFullRound(i, ME, { courseName: '남서울CC', id: `ns${i}`, ...extra });
+    r.holes.forEach((h, idx) => { h.scores[ME] = played(h.par, { strokes: h.par + (idx === 3 ? 2 : idx === 11 ? 1 : 0), putts: 2, memo: idx === 6 && i === 3 ? '왼쪽 OB 조심' : '' }); });
+    return r;
+  };
+  const openSetup = async () => { fireEvent.click(screen.getByText('시작하기')); await screen.findByText('New Round'); };
+  const typeCourse = (name) => fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: name } });
+  const card = () => document.querySelector('[data-role="course-history"]');
+
+  it('이 코스를 친 적이 없으면 카드가 없다', async () => {
+    await setup({ rounds: [at(1), at(2)] });
+    await openSetup();
+    expect(card()).toBeNull();
+    typeCourse('처음가는CC');
+    expect(card()).toBeNull();
+  });
+
+  it('코스 이름을 입력하면 횟수 · 최근 스코어 · 베스트가 나온다', async () => {
+    await setup({ rounds: [at(1), at(2), at(3), at(4)] });
+    await openSetup();
+    typeCourse('남서울CC');
+    await waitFor(() => expect(card()).toBeTruthy());
+    expect(document.querySelector('[data-role="course-count"]').textContent).toBe('4번 쳤어요');
+    expect(card().querySelectorAll('[data-role="course-recent"] > div')).toHaveLength(3);
+    const { buildCourseHistory } = await import('./engine/courseHistory.js');
+    const h = buildCourseHistory([at(1), at(2), at(3), at(4)], { courseName: '남서울CC', outName: '', inName: '', userName: ME });
+    expect(document.querySelector('[data-role="course-best"]').textContent).toContain(`${h.best.total}타`);
+    expect(card().textContent).toContain(`${h.recent[0].total}타`);
+  });
+
+  it('입력한 이름이 다른 코스로 바뀌면 카드가 사라진다', async () => {
+    await setup({ rounds: [at(1), at(2)] });
+    await openSetup();
+    typeCourse('남서울CC');
+    await waitFor(() => expect(card()).toBeTruthy());
+    typeCourse('다른CC');
+    await waitFor(() => expect(card()).toBeNull());
+  });
+
+  it('어려웠던 홀을 평균 순으로 보여 주고, 번호는 이번 라운드 번호다', async () => {
+    await setup({ rounds: [at(1), at(2), at(3)] });
+    await openSetup();
+    typeCourse('남서울CC');
+    await waitFor(() => expect(card()).toBeTruthy());
+    const holes = [...document.querySelectorAll('[data-role="course-hard-hole"]')].map((e) => e.textContent);
+    expect(holes).toHaveLength(2);
+    expect(holes[0]).toMatch(/^4번 \+2/);
+    expect(holes[1]).toMatch(/^12번 \+1/);
+  });
+
+  it('후반 9홀로 시작하면 그 9홀의 기록만 보고 번호는 1~9 로 부른다', async () => {
+    await setup({ rounds: [at(1), at(2), at(3)] });
+    await openSetup();
+    typeCourse('남서울CC');
+    fireEvent.click(screen.getByRole('radio', { name: /후반 9홀/ }));
+    await waitFor(() => expect(card()).toBeTruthy());
+    const holes = [...document.querySelectorAll('[data-role="course-hard-hole"]')].map((e) => e.textContent);
+    expect(holes).toHaveLength(1);
+    expect(holes[0]).toMatch(/^3번 \+1/);                                  // 18홀의 12번 = 후반 9홀의 3번째 홀
+  });
+
+  it('지난 홀 메모를 보여 준다', async () => {
+    await setup({ rounds: [at(1), at(2), at(3)] });
+    await openSetup();
+    typeCourse('남서울CC');
+    await waitFor(() => expect(card()).toBeTruthy());
+    expect(document.querySelector('[data-role="course-memos"]').textContent).toContain('7번 홀 왼쪽 OB 조심');
+  });
+
+  it('9홀 라운드 기록은 "9홀"로 표시한다', async () => {
+    const nine = makeNineRound(2, 'out', ME, { courseName: '남서울CC', id: 'nine-ns' });
+    await setup({ rounds: [at(1), nine] });
+    await openSetup();
+    typeCourse('남서울CC');
+    await waitFor(() => expect(card()).toBeTruthy());
+    expect(card().querySelector('[data-role="course-recent"]').textContent).toContain('9홀');
+  });
+});
+
+describe('개인 기록 배지 (라운드 리포트)', () => {
+  // 모든 홀을 파 + over 로 친 라운드 — i 일, 코스 이름은 name
+  const scored = (i, over, name) => {
+    const r = makeFullRound(i, ME, { courseName: name ?? `기록CC${i}`, id: `rec${i}` });
+    r.holes.forEach((h) => { h.scores[ME] = played(h.par, { strokes: h.par + over, putts: 2, gir: true }); });
+    return r;
+  };
+
+  it('이전 기록을 깬 라운드는 맨 위에 금색 기록 배지가 뜬다', async () => {
+    const rounds = [scored(1, 2), scored(2, 2), scored(3, 2), scored(4, 0, '대박CC')];
+    await setup({ rounds });
+    await openReportFromHistory('대박CC');
+    const badge = await waitFor(() => { const b = document.querySelector('[data-role="card-record"][data-record="score"]'); expect(b).toBeTruthy(); return b; });
+    expect(badge.textContent).toBe('베스트 스코어 72타 (이전 108타)');
+    const cardEl = document.querySelector('[data-role="round-card"]');
+    expect(cardEl.querySelector('[data-role="card-records"]').compareDocumentPosition(cardEl.querySelector('[data-role="card-headline"]')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();   // 총평보다 위
+  });
+
+  it('기록을 깨지 못한 라운드에는 배지가 없다', async () => {
+    const rounds = [scored(1, 0), scored(2, 0), scored(3, 0), scored(4, 2, '평범CC')];
+    await setup({ rounds });
+    await openReportFromHistory('평범CC');
+    expect(document.querySelector('[data-role="round-card"]')).toBeTruthy();
+    expect(document.querySelector('[data-role="card-records"]')).toBeNull();
+  });
+
+  it('이전 라운드가 적으면 기록으로 치지 않는다 (처음 몇 라운드가 전부 신기록이 되지 않게)', async () => {
+    const rounds = [scored(1, 2), scored(2, 0, '둘째CC')];
+    await setup({ rounds });
+    await openReportFromHistory('둘째CC');
+    expect(document.querySelector('[data-role="card-records"]')).toBeNull();
+  });
+
+  it('옛 라운드의 리포트는 그 당시 기록으로 본다 (나중에 더 잘 친 라운드가 있어도 배지가 남는다)', async () => {
+    const rounds = [scored(1, 2), scored(2, 2), scored(3, 2), scored(4, 1, '당시CC'), scored(9, 0, '최근CC')];
+    await setup({ rounds });
+    await openReportFromHistory('당시CC');
+    expect(document.querySelector('[data-record="score"]').textContent).toBe('베스트 스코어 90타 (이전 108타)');
+  });
+
+  it('리포트 이미지에도 기록이 들어간다', async () => {
+    let model = null;
+    vi.doMock('./share/reportImage.js', () => ({ renderReportImage: async (m) => { model = m; return new Blob(['png'], { type: 'image/png' }); } }));
+    captureDownloads();
+    const rounds = [scored(1, 2), scored(2, 2), scored(3, 2), scored(4, 0, '대박CC')];
+    await setup({ rounds });
+    await openReportFromHistory('대박CC');
+    fireEvent.click(document.querySelector('[data-role="share-image"]'));
+    await waitFor(() => expect(model).toBeTruthy());
+    expect(model.records).toEqual(['베스트 스코어 72타 (이전 108타)']);
+    vi.doUnmock('./share/reportImage.js');
+  });
+});
+
+describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
+  const shotRound = (over = {}, hole = 0) => {
+    const round = makeActiveRound(ME, { currentHole: hole });
+    const par = round.holes[hole].par;
+    round.holes[hole].scores[ME] = played(par, {
+      confirmed: false, teeClub: 'driver', putts: 2, puttsManual: true, strokes: par, gir: true, girAuto: false, onGreen: true, ...over,
+    });
+    return round;
+  };
+  const filled = { secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, terrainCondition: 'flat', secondSurface: 'fairway' };
+  const resume = async (active, label = 'HOLE 1') => {
+    await setup({ active });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText(label);
+  };
+  const nextButton = () => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '다음');
+  const checks = () => document.querySelectorAll('[data-role="hole-check"]');
+  const saved = async (hole = 0) => (await db.loadActiveRound([user.userId])).holes[hole].scores[ME];
+
+  it('확인할 게 없으면 창 없이 바로 다음 홀로 간다', async () => {
+    await resume(shotRound({ ...filled }));
+    fireEvent.click(nextButton());
+    await screen.findByText('HOLE 2');
+    expect(checks()).toHaveLength(0);
+  });
+
+  it('퍼팅 수만 모르면 퍼팅 수 창 하나 — 숫자 한 번으로 확정하고 넘어간다', async () => {
+    await resume(shotRound({ ...filled, puttsManual: false, putts: 2 }));
+    fireEvent.click(nextButton());
+    const box = await waitFor(() => { const b = document.querySelector('[data-role="hole-check"]'); expect(b).toBeTruthy(); return b; });
+    expect(box.getAttribute('data-info')).toBe('0');
+    expect(box.getAttribute('data-putts')).toBe('1');
+    expect(box.textContent).toContain('퍼팅을 몇 번 했나요?');
+    expect(box.querySelector('[data-role="info-ask-gap"]')).toBeNull();
+    fireEvent.click(box.querySelector('[data-role="putt-ask-3"]'));
+    await screen.findByText('HOLE 2');
+    expect(checks()).toHaveLength(0);
+    expect((await saved(0))).toMatchObject({ putts: 3, puttsManual: true, confirmed: true });
+  });
+
+  it('샷 정보만 비었으면 샷 정보 창 하나 — "그대로 다음 홀"에 퍼팅 칸은 없다', async () => {
+    await resume(shotRound({ secondClub: 'iron', remainingDistance: 150 }));
+    fireEvent.click(nextButton());
+    const box = await waitFor(() => { const b = document.querySelector('[data-role="hole-check"]'); expect(b).toBeTruthy(); return b; });
+    expect(box.getAttribute('data-info')).toBe('1');
+    expect(box.getAttribute('data-putts')).toBe('0');
+    expect(box.querySelector('[data-role="putt-ask"]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '그대로 다음 홀' }));
+    await screen.findByText('HOLE 2');
+    expect(checks()).toHaveLength(0);                                       // 연속으로 다른 창이 뜨지 않는다
+  });
+
+  it('둘 다 해당하면 한 창에 같이 나온다 — 퍼팅 수를 누르면 샷 정보는 비운 채 넘어가고 창은 더 뜨지 않는다', async () => {
+    await resume(shotRound({ secondClub: 'iron', remainingDistance: 150, puttsManual: false }));
+    fireEvent.click(nextButton());
+    const box = await waitFor(() => { const b = document.querySelector('[data-role="hole-check"]'); expect(b).toBeTruthy(); return b; });
+    expect(checks()).toHaveLength(1);
+    expect(box.getAttribute('data-info')).toBe('1');
+    expect(box.getAttribute('data-putts')).toBe('1');
+    expect(box.querySelector('[data-role="info-ask-gap"]').textContent).toMatch(/세컨샷 · 라이 · 지형/);
+    expect(box.querySelector('[data-role="putt-ask"]')).toBeTruthy();
+    expect(box.textContent).toMatch(/숫자를 누르면 샷 정보는 비운 채 다음 홀로 이동해요/);
+    fireEvent.click(box.querySelector('[data-role="putt-ask-2"]'));
+    await screen.findByText('HOLE 2');
+    expect(checks()).toHaveLength(0);
+    expect((await saved(0)).putts).toBe(2);
+  });
+
+  it('둘 다 해당할 때 "입력하러 가기"는 홀을 확정하지 않고 샷 정보 입력으로 데려간다', async () => {
+    await resume(shotRound({ secondClub: 'iron', remainingDistance: 150, puttsManual: false }));
+    fireEvent.click(nextButton());
+    fireEvent.click(await screen.findByText('입력하러 가기'));
+    await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+    expect(checks()).toHaveLength(0);
+    expect((await saved(0)).confirmed).toBe(false);                         // 아직 확정하지 않았다
+    expect(screen.queryByText('HOLE 2')).toBeNull();
+  });
+
+  it('둘 다 해당할 때 "취소"는 아무것도 바꾸지 않고 닫는다', async () => {
+    await resume(shotRound({ secondClub: 'iron', remainingDistance: 150, puttsManual: false }));
+    fireEvent.click(nextButton());
+    fireEvent.click(await screen.findByRole('button', { name: '취소' }));
+    await waitFor(() => expect(checks()).toHaveLength(0));
+    expect((await saved(0)).confirmed).toBe(false);
+  });
+
+  it('마지막 홀 "완료"도 같은 한 창이다', async () => {
+    const round = makeActiveRound(ME, { currentHole: 17 });
+    round.holes[17].scores[ME] = played(4, { confirmed: false, teeClub: 'driver', putts: 2, puttsManual: false, strokes: 4, gir: true, girAuto: false, onGreen: true, secondClub: 'iron', remainingDistance: 150 });
+    await resume(round, 'HOLE 18');
+    fireEvent.click(screen.getByRole('button', { name: /완료/ }));
+    const box = await waitFor(() => { const b = document.querySelector('[data-role="hole-check"]'); expect(b).toBeTruthy(); return b; });
+    expect(box.getAttribute('data-info')).toBe('1');
+    expect(box.getAttribute('data-putts')).toBe('1');
+    expect(box.textContent).toMatch(/숫자를 누르면 샷 정보는 비운 채 완료해요/);
+    fireEvent.click(box.querySelector('[data-role="putt-ask-2"]'));
+    await waitFor(() => expect(checks()).toHaveLength(0));
   });
 });
 

@@ -4,6 +4,7 @@
 // clubDistance.js 의 extractClubShots 는 통계용이라 거리를 못 구한 샷을 버리지만,
 // 복기에서는 클럽만 입력된 샷도 그대로 보여야 하므로 별도로 조립한다.
 
+import { surfaceOfShot, surfaceLabel } from './shotInfo.js';
 import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, saneRemaining, shotDistanceTrusted, hasHoleMap } from './geo.js';
 import { penaltyAt, penaltyCount, penaltyResultText, shotTitle } from './penalties.js';
 import { analyzePutts } from './puttAnalysis.js';
@@ -106,10 +107,12 @@ export function buildHoleReview(hole, player, holeIdx) {
     const e = s.extraShots?.[slot - 2];
     return clubCode(e?.club, e?.subClub);
   };
+  // 샷을 치는 자리: 지형(러프 · 벙커 …) + 라이(오르막 …) — 예: "러프 · 오르막"
   const lieFor = (slot) => {
     if (slot === 0) return null;                 // 티샷은 티업
-    if (slot === 1) return lieLabel(s.terrainCondition);
-    return lieLabel(s.extraShots?.[slot - 2]?.lie);
+    const slope = slot === 1 ? lieLabel(s.terrainCondition) : lieLabel(s.extraShots?.[slot - 2]?.lie);
+    const parts = [surfaceLabel(surfaceOfShot(s, slot)), slope].filter(Boolean);
+    return parts.length ? parts.join(' · ') : null;
   };
   // 그 샷을 치기 전 남은 거리 — 핀을 찍었으면 실측, 아니면 사용자 입력값.
   const fromFor = (slot) => {

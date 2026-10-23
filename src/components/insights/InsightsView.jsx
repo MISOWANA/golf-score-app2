@@ -130,7 +130,7 @@ function swapPast(v) {
   return v;
 }
 
-export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0, nineExcludedCount = 0 }) {
+export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0, nineExcludedCount = 0, goals = [], onOpenGoal }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
   const [pickIdx, setPickIdx] = useState(0);   // 리포트로 볼 라운드 — allRounds 안의 위치 (0 = 최신)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -892,7 +892,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 5장 · 다음 라운드 — 무엇을 연습할까 ───────────────────────────────── */}
       {chapter === 'next' && <>
       <ChapterIntro no={5} />
-      <NextFocus rep={rep} />
+      <NextFocus rep={rep} goals={goals} onSetGoal={onOpenGoal ? (metric) => onOpenGoal({ metric }) : undefined} />
       <Section title="PRACTICE · 연습 처방">
         <PracticeCard prescriptions={prescriptions} />
       </Section>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  initDB, loadRoundsByUser, saveRound, deleteRound, exportUserData, importUserData,
+  initDB, loadRoundsByUser, saveRound, exportUserData, importUserData,
   saveActiveRound, loadActiveRound, clearActiveRound,
   migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf, deleteProfile,
-  requestPersistentStorage, migrateRoundData, migrateNineHoleRounds,
+  requestPersistentStorage, migrateRoundData, migrateNineHoleRounds, getBackupMeta, recordBackup,
+  trashRound, listTrash, restoreFromTrash, deleteFromTrash, purgeExpiredTrash, getGoals, saveGoals,
 } from './db.js';
 import { isValidRound, normalizeRound } from './engine/roundValidation.js';
 import { fixPar3MissedGreenStrokes } from './engine/migrations.js';
@@ -22,7 +23,12 @@ import HistoryView from './components/history/HistoryView';
 import StatsView from './components/stats/StatsView';
 import InsightsView from './components/insights/InsightsView';
 import MyBagView from './components/mybag/MyBagView';
+import SettingsView from './components/settings/SettingsView';
+import GoalSheet from './components/goals/GoalSheet';
 import { createRound } from './engine/newRound.js';
+import { buildHomeSummary } from './engine/homeSummary.js';
+import { serializeBackup, backupFileName, parseBackupFile } from './engine/backupStatus.js';
+import { shareOrDownload, downloadFile } from './platform/shareFile.js';
 import { holeNoOf, isNineHoleRound, isFullRound, roundKindLabel } from './engine/nines.js';
 
 export default function GolfScoringApp() {
@@ -34,6 +40,10 @@ export default function GolfScoringApp() {
   const [currentUser, setCurrentUserState] = useState(null);
   const [currentRound, setCurrentRound] = useState(null);
   const [rounds, setRounds] = useState([]);
+  const [goals, setGoals] = useState([]);               // 다음 라운드 목표 (최대 2개)
+  const [goalSheet, setGoalSheet] = useState(null);      // 목표 시트가 열려 있으면 { goalId?, metric? }
+  const [trash, setTrash] = useState([]);                // 휴지통에 있는 라운드들 (지운 지 7일 안)
+  const [backupMeta, setBackupMeta] = useState(null);   // 마지막 백업 시각 · 그때의 라운드 수 (홈의 백업 안내)
   const [selectedRoundId, setSelectedRoundId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showResumeModal, setShowResumeModal] = useState(false);
@@ -73,10 +83,15 @@ export default function GolfScoringApp() {
           const converted = await migrateNineHoleRounds(convertPartialToNine);
           if (converted > 0) console.info(`9홀 라운드로 변환: ${converted}개`);
         } catch (e) { console.error('Nine-hole migration failed', e); }
+        // 휴지통에서 보관 기간(7일)이 지난 라운드를 정리한다
+        try { await purgeExpiredTrash(); } catch (e) { console.error('Trash purge failed', e); }
         const user = await getCurrentProfile();
         if (user) {
           setCurrentUserState(user);
-          const [, active] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user))]);
+          const [, active, meta, bin, savedGoals] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user)), getBackupMeta(user.userId).catch(() => null), listTrash(userIdsOf(user)).catch(() => []), getGoals(user.userId).catch(() => [])]);
+          setBackupMeta(meta);
+          setTrash(bin);
+          setGoals(savedGoals);
           if (active) {
             setCurrentRound(active);
           }
@@ -99,7 +114,10 @@ export default function GolfScoringApp() {
     try {
       const user = await loginByName(userName);
       setCurrentUserState(user);
-      const [, active] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user))]);
+      const [, active, meta, bin, savedGoals] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user)), getBackupMeta(user.userId).catch(() => null), listTrash(userIdsOf(user)).catch(() => []), getGoals(user.userId).catch(() => [])]);
+      setBackupMeta(meta);
+      setTrash(bin);
+      setGoals(savedGoals);
       setCurrentRound(active || null);
       setView('home');
     } catch (e) {
@@ -145,6 +163,10 @@ export default function GolfScoringApp() {
     try { setProfiles(await listProfiles()); } catch { setProfiles([]); }
     setCurrentUserState(null);
     setRounds([]);
+    setGoals([]);
+    setGoalSheet(null);
+    setTrash([]);
+    setBackupMeta(null);
     setCurrentRound(null);
     setSelectedRoundId(null);
     setView('login');
@@ -190,10 +212,36 @@ export default function GolfScoringApp() {
     setView('analysis');
   };
 
+  // 라운드를 지우면 휴지통으로 옮긴다 (7일 보관) — 되돌리기·복원이 가능하다
   const handleDeleteRound = async (id) => {
-    await deleteRound(id);
-    const updated = rounds.filter(r => r.id !== id);
-    setRounds(updated);
+    const round = rounds.find(r => r.id === id);
+    if (!round) return;
+    await trashRound(round, currentUser.userId);
+    setRounds(prev => prev.filter(r => r.id !== id));
+    setTrash(await listTrash(userIdsOf(currentUser)));
+  };
+
+  // 목표 저장 · 지우기 — 같은 id 면 그 목표를 바꾼다. 저장소에서 검사(최대 2개 등)를 거친 목록으로 화면을 맞춘다
+  const handleSaveGoal = async (goal) => {
+    const next = [...goals.filter((g) => g.id !== goal.id), goal];
+    setGoals(await saveGoals(currentUser.userId, next));
+    setGoalSheet(null);
+  };
+
+  const handleRemoveGoal = async (id) => {
+    setGoals(await saveGoals(currentUser.userId, goals.filter((g) => g.id !== id)));
+    setGoalSheet(null);
+  };
+
+  const handleRestoreRound = async (id) => {
+    await restoreFromTrash(id);
+    await loadUserRounds(currentUser);
+    setTrash(await listTrash(userIdsOf(currentUser)));
+  };
+
+  const handlePurgeRound = async (id) => {
+    await deleteFromTrash(id);
+    setTrash(await listTrash(userIdsOf(currentUser)));
   };
 
   const updateCompletedRound = async (updatedRound) => {
@@ -201,40 +249,37 @@ export default function GolfScoringApp() {
     setRounds(prev => prev.map(r => r.id === updatedRound.id ? updatedRound : r));
   };
 
-  const handleExportData = async () => {
-    try {
-      const exportedData = await exportUserData(currentUser);
-      const jsonStr = JSON.stringify(exportedData, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `golf-data-${currentUser.userName}-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error('Export failed', e);
-      alert('데이터 내보내기 실패: ' + e.message);
+  // 백업 파일 만들기 — share 면 공유 시트(지원 기기), 아니면 다운로드. 끝나면 마지막 백업 시각을 남긴다.
+  // 반환: { status: 'downloaded' | 'shared' | 'cancelled', fileName }
+  const handleExportData = async ({ share = false } = {}) => {
+    const exported = await exportUserData(currentUser);
+    const blob = new Blob([serializeBackup(exported)], { type: 'application/json' });
+    const fileName = backupFileName(currentUser.userName);
+    let status;
+    if (share) {
+      status = await shareOrDownload(blob, fileName, { title: 'Birdie Buddy 백업', text: `${currentUser.userName}님의 골프 기록 백업 파일이에요` });
+    } else {
+      downloadFile(blob, fileName);
+      status = 'downloaded';
     }
+    if (status === 'cancelled') return { status, fileName };
+    const via = status === 'shared' ? 'share' : 'download';
+    setBackupMeta(await recordBackup(currentUser.userId, { roundCount: exported.data.rounds.length, via }));
+    return { status, fileName };
+  };
+
+  // 홈의 "지금 백업" — 실패하면 알린다
+  const handleQuickBackup = async () => {
+    try { await handleExportData(); } catch (e) { console.error('Export failed', e); alert('백업하지 못했어요: ' + (e?.message || '')); }
   };
 
   const handleImportData = async (file) => {
     try {
-      if (!file.name.endsWith('.json')) {
+      if (!file.name.toLowerCase().endsWith('.json')) {
         throw new Error('JSON 파일만 가져올 수 있습니다');
       }
-      if (file.size > 10 * 1024 * 1024) {
-        throw new Error('파일 크기가 너무 큽니다 (최대 10MB)');
-      }
-
-      const text = await file.text();
-      const importedData = JSON.parse(text);
-
-      if (!importedData.data || !Array.isArray(importedData.data.rounds)) {
-        throw new Error('유효하지 않은 파일 형식입니다');
-      }
+      // 크기 · 형식 · 버전 검사 (engine/backupStatus.js) — 문제가 있으면 사용자에게 보일 메시지로 던진다
+      const importedData = parseBackupFile(await file.text(), file.size);
 
       // 보정 전에 내보낸 예전 백업도 가져올 때 같은 보정을 거친다 (이미 고친 홀은 건너뛴다).
       // pars 가 없는 백업은 홀의 파로 채워 저장하고, '18홀 중 9홀만 입력'한 예전 라운드는 9홀 라운드로 바꿔 저장한다.
@@ -266,6 +311,8 @@ export default function GolfScoringApp() {
   const statRounds = useMemo(() => rounds.filter(r => r.players.length === 1 && isFullRound(r)), [rounds]);
   const multiPlayerCount = rounds.filter(r => r.players.length > 1).length;
   const nineHoleCount = rounds.filter(r => r.players.length === 1 && isNineHoleRound(r)).length;
+  // 홈의 핸디캡 · 내 폼 (18홀 라운드의 내 점수 / 통계 라운드의 약점·강점)
+  const homeSummary = useMemo(() => (currentUser ? buildHomeSummary(rounds, statRounds, currentUser.userName) : null), [rounds, statRounds, currentUser]);
 
   // 이어하기 창에 보여 줄 '지금까지 입력한 홀 수'
   const enteredHoles = currentRound
@@ -298,9 +345,26 @@ export default function GolfScoringApp() {
           onViewHistory={() => setView('history')}
           onSelectRound={(id) => { setSelectedRoundId(id); setView('analysis'); }}
           onSwitchUser={handleSwitchUser}
-          onExportData={handleExportData}
-          onImportData={handleImportData}
+          onOpenSettings={() => setView('settings')}
+          onBackup={handleQuickBackup}
+          onGoStats={() => setView('stats')}
+          backupMeta={backupMeta}
+          summary={homeSummary}
+          goals={goals}
+          goalRounds={statRounds}
+          onOpenGoal={setGoalSheet}
           loading={loading}
+        />
+      )}
+
+      {view === 'settings' && currentUser && (
+        <SettingsView
+          currentUser={currentUser}
+          rounds={rounds}
+          backupMeta={backupMeta}
+          onBackup={handleExportData}
+          onImport={handleImportData}
+          onBack={() => setView('home')}
         />
       )}
 
@@ -309,6 +373,8 @@ export default function GolfScoringApp() {
           onStart={startNewRound}
           onBack={() => setView('home')}
           currentUser={currentUser}
+          goals={goals}
+          rounds={rounds}
         />
       )}
 
@@ -318,6 +384,7 @@ export default function GolfScoringApp() {
           currentUser={currentUser}
           onUpdate={updateRound}
           onFinish={finishRound}
+          goals={goals}
           onGoHome={() => setView('home')}
           onExit={async () => {
             await clearActiveRound(userIdsOf(currentUser));
@@ -335,6 +402,11 @@ export default function GolfScoringApp() {
       {view === 'analysis' && (
         <AnalysisView
           round={rounds.find(r => r.id === selectedRoundId)}
+          historyRounds={statRounds}
+          allRounds={rounds}
+          userName={currentUser?.userName}
+          goals={goals}
+          onOpenGoal={setGoalSheet}
           onBack={() => setView('home')}
           onGoHome={() => setView('home')}
           onGoHistory={() => setView('history')}
@@ -350,6 +422,9 @@ export default function GolfScoringApp() {
           onBack={() => setView('home')}
           onSelect={(id) => { setSelectedRoundId(id); setView('analysis'); }}
           onDelete={handleDeleteRound}
+          trash={trash}
+          onRestore={handleRestoreRound}
+          onPurge={handlePurgeRound}
         />
       )}
 
@@ -368,6 +443,8 @@ export default function GolfScoringApp() {
           rounds={statRounds}
           excludedCount={multiPlayerCount}
           nineExcludedCount={nineHoleCount}
+          goals={goals}
+          onOpenGoal={setGoalSheet}
           onBack={() => setView('home')}
         />
       )}
@@ -383,9 +460,22 @@ export default function GolfScoringApp() {
 
       </ErrorBoundary>
 
+      {/* 다음 라운드 목표 정하기 · 고치기 — 홈 · 리포트 · 인사이트 어디서든 같은 시트 */}
+      {goalSheet && currentUser && (
+        <GoalSheet
+          rounds={statRounds}
+          goals={goals}
+          initialMetric={goalSheet.metric ?? null}
+          existing={goalSheet.goalId ? goals.find((g) => g.id === goalSheet.goalId) ?? null : null}
+          onSave={handleSaveGoal}
+          onRemove={handleRemoveGoal}
+          onClose={() => setGoalSheet(null)}
+        />
+      )}
+
       {view !== 'scoring' && view !== 'login' && (
         <BottomTabBar
-          current={view}
+          current={view === 'settings' ? 'home' : view}
           onChange={(tab) => {
             if (tab !== view && leaveGuardRef.current?.(() => setView(tab)) === false) return;
             setView(tab);

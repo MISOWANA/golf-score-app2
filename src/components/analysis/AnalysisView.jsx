@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, Home, BookOpen, Edit3, X, Calendar, MapPin, User } from 'lucide-react';
 import styles from '../../styles/styles';
 import StatTile from './StatTile';
@@ -7,6 +7,12 @@ import ScorecardTable from './ScorecardTable';
 import Insights from './Insights';
 import HoleReview from './HoleReview';
 import HoleReviewGrid from './HoleReviewGrid';
+import RoundCard from './RoundCard';
+import { buildRoundCard } from '../../engine/roundCard.js';
+import { evaluateGoal, goalProgress, FOCUS_METRIC, MAX_GOALS } from '../../engine/goals.js';
+import { buildRoundRecords } from '../../engine/records.js';
+import { shareOrDownload } from '../../platform/shareFile.js';
+import { buildReportImageModel, reportImageFileName } from '../../share/reportImageModel.js';
 import { offGreenShots } from '../../engine/offGreen.js';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import { validSpeed } from '../../engine/greenSpeed.js';
@@ -15,7 +21,10 @@ import { applyParEdit } from '../../engine/parEdit.js';
 import { localNoonISO } from '../../engine/roundDate.js';
 import { ninesOf, holeNoOf, isNineHoleRound, roundKindLabel } from '../../engine/nines.js';
 
-export default function AnalysisView({ round: initialRound, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
+// historyRounds: 요약 카드가 "내 평균과 비교"할 때 쓰는 라운드들 (통계에 들어가는 라운드)
+//   goals · onOpenGoal  정해 둔 목표(이 라운드로 판정해 카드에 보여 준다)와 목표 시트 열기 — onOpenGoal({ metric })
+//   allRounds · userName  개인 기록(베스트 스코어 등)을 견줄 모든 라운드와 "나"의 이름
+export default function AnalysisView({ round: initialRound, historyRounds = [], allRounds = [], userName, goals = [], onOpenGoal, onBack, onGoHome, onGoHistory, onNewRound, onUpdateRound }) {
   const [round, setRound] = useState(initialRound);
   const [activePlayer, setActivePlayer] = useState(initialRound?.players[0]);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -23,6 +32,21 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
   const [editError, setEditError] = useState(null);
   // 홀별 복기 — 스코어카드에서 홀 번호를 누르면 열린다.
   const [reviewHoleIdx, setReviewHoleIdx] = useState(null);
+  // 리포트 이미지 저장·공유 상태: null | 'working' | 'shared' | 'downloaded' | 'error'
+  const [shareState, setShareState] = useState(null);
+
+  // 맨 위 라운드 요약 카드 — 라운드가 바뀌면(점수·파 수정) 다시 만든다. 동반자 라운드는 카드가 없다.
+  const card = useMemo(() => (round ? buildRoundCard(round, historyRounds) : null), [round, historyRounds]);
+
+  // 정해 둔 목표를 이 라운드로 판정한 결과, 그리고 포커스를 목표로 정하는 버튼에 쓸 지표
+  const goalResults = useMemo(
+    () => (card?.eligible ? goals.map((g) => ({ goal: g, ev: evaluateGoal(g, round), progress: goalProgress(g, historyRounds) })) : []),
+    [card, goals, round, historyRounds],
+  );
+  // 이 라운드가 깬 개인 기록 — 이 라운드보다 먼저 친 18홀 라운드와 견준다
+  const records = useMemo(() => (round && card?.eligible ? buildRoundRecords(round, allRounds, userName) : []), [round, card, allRounds, userName]);
+  const focusMetric = card?.focusCategory ? FOCUS_METRIC[card.focusCategory] : null;
+  const goalSuggest = focusMetric && goals.length < MAX_GOALS && !goals.some((g) => g.metric === focusMetric) ? { metric: focusMetric } : null;
 
   if (!round) return null;
 
@@ -66,6 +90,20 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
     const updated = { ...round, holes };
     setRound(updated);
     onUpdateRound?.(updated);
+  };
+
+  // 요약 카드를 한 장의 이미지로 — 공유 시트가 되는 기기는 공유, 아니면 저장. 그림 코드는 이때 처음 불러온다.
+  const handleShareImage = async () => {
+    setShareState('working');
+    try {
+      const { renderReportImage } = await import('../../share/reportImage.js');
+      const blob = await renderReportImage(buildReportImageModel(card, { records }));
+      const result = await shareOrDownload(blob, reportImageFileName(card), { title: `${card.courseName} 라운드 요약` });
+      setShareState(result === 'cancelled' ? null : result);
+    } catch (e) {
+      console.error('Report image failed', e);
+      setShareState('error');
+    }
   };
 
   const openEditModal = () => {
@@ -163,6 +201,10 @@ export default function AnalysisView({ round: initialRound, onBack, onGoHome, on
           <Edit3 size={18} />
         </button>
       </header>
+
+      {/* 라운드 요약 — 결론을 맨 위에 (잘한 점 · 아쉬운 점 · 다음 포커스 · 내 평균과의 비교) */}
+      <RoundCard card={card} share={{ state: shareState, onShare: handleShareImage }} records={records}
+        goalResults={goalResults} goalSuggest={goalSuggest} onSetGoal={onOpenGoal ? (metric) => onOpenGoal({ metric }) : undefined} />
 
       <div style={styles.reportHero}>
         <div style={styles.reportDate}>

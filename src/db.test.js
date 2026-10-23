@@ -263,3 +263,183 @@ describe('9홀 라운드 변환 마이그레이션 ("18홀 중 9홀만 입력" �
     expect(await db.migrateNineHoleRounds(convertPartialToNine)).toBe(1);   // par3 가 끝났어도 변환은 따로 돈다
   });
 });
+
+describe('백업 기록 (마지막 백업 시각)', () => {
+  it('기록이 없으면 null, 저장하면 시각 · 라운드 수 · 방식을 돌려준다', async () => {
+    const p = await db.loginByName('홍길동');
+    expect(await db.getBackupMeta(p.userId)).toBeNull();
+    const row = await db.recordBackup(p.userId, { roundCount: 12, via: 'share' });
+    expect(row).toMatchObject({ userId: p.userId, roundCount: 12, via: 'share' });
+    expect(Number.isNaN(new Date(row.lastBackupAt).getTime())).toBe(false);
+    expect(await db.getBackupMeta(p.userId)).toMatchObject({ roundCount: 12, via: 'share' });
+  });
+
+  it('다시 백업하면 덮어쓴다 (사용자마다 하나)', async () => {
+    const a = await db.loginByName('A');
+    const b = await db.loginByName('B');
+    await db.recordBackup(a.userId, { roundCount: 3 });
+    await db.recordBackup(a.userId, { roundCount: 9 });
+    await db.recordBackup(b.userId, { roundCount: 1 });
+    expect((await db.getBackupMeta(a.userId)).roundCount).toBe(9);
+    expect((await db.getBackupMeta(b.userId)).roundCount).toBe(1);
+  });
+
+  it('프로필을 지우면 그 사용자의 백업 기록도 함께 지운다', async () => {
+    const a = await db.loginByName('A');
+    const b = await db.loginByName('B');
+    await db.recordBackup(a.userId, { roundCount: 3 });
+    await db.recordBackup(b.userId, { roundCount: 4 });
+    await db.deleteProfile(a);
+    expect(await db.getBackupMeta(a.userId)).toBeNull();
+    expect(await db.getBackupMeta(b.userId)).not.toBeNull();
+  });
+
+  it('내보내기는 라운드 수와 함께 한 줄 파일로 직렬화돼 다시 읽힌다', async () => {
+    const { serializeBackup, parseBackupFile } = await import('./engine/backupStatus.js');
+    const p = await db.loginByName('홍길동');
+    await db.saveRound(roundFor('x1', '홍길동'), p.userId);
+    const text = serializeBackup(await db.exportUserData(p));
+    expect(text).not.toMatch(/\n/);
+    const parsed = parseBackupFile(text);
+    expect(parsed).toMatchObject({ app: 'birdie-buddy', roundCount: 1 });
+    expect(parsed.data.rounds[0].id).toBe('x1');
+  });
+});
+
+describe('휴지통 (삭제 되돌리기)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const seeded = async (name = '홍길동') => {
+    const p = await db.loginByName(name);
+    const r = await db.saveRound(roundFor('t1', name), p.userId);
+    return { p, r };
+  };
+
+  it('휴지통으로 옮기면 라운드 목록에서 빠지고 휴지통에 남는다', async () => {
+    const { p, r } = await seeded();
+    await db.trashRound(r, p.userId);
+    expect(await db.loadRoundsByUser([p.userId])).toEqual([]);
+    const trash = await db.listTrash([p.userId]);
+    expect(trash).toHaveLength(1);
+    expect(trash[0]).toMatchObject({ id: 'trash:t1', userId: p.userId });
+    expect(trash[0].round.id).toBe('t1');
+    expect(Number.isNaN(new Date(trash[0].deletedAt).getTime())).toBe(false);
+  });
+
+  it('되살리면 같은 라운드가 그대로 돌아오고 휴지통은 빈다', async () => {
+    const { p, r } = await seeded();
+    await db.trashRound(r, p.userId);
+    const back = await db.restoreFromTrash('t1');
+    expect(back.id).toBe('t1');
+    expect((await db.loadRoundsByUser([p.userId])).map((x) => x.id)).toEqual(['t1']);
+    expect(await db.listTrash([p.userId])).toEqual([]);
+    expect((await db.loadRoundsByUser([p.userId]))[0].holes).toEqual(r.holes);          // 내용이 그대로
+  });
+
+  it('없는 라운드를 되살리면 null', async () => {
+    await db.loginByName('A');
+    expect(await db.restoreFromTrash('nope')).toBeNull();
+  });
+
+  it('같은 번호의 라운드가 이미 있으면 덮어쓰지 않고 휴지통에서만 지운다', async () => {
+    const { p, r } = await seeded();
+    await db.trashRound(r, p.userId);
+    await db.saveRound({ ...r, courseName: '새로 가져온 기록' }, p.userId);             // 백업을 가져와 다시 생긴 경우
+    expect(await db.restoreFromTrash('t1')).toBeNull();
+    expect((await db.loadRoundsByUser([p.userId]))[0].courseName).toBe('새로 가져온 기록');
+    expect(await db.listTrash([p.userId])).toEqual([]);
+  });
+
+  it('휴지통에서 영구 삭제', async () => {
+    const { p, r } = await seeded();
+    await db.trashRound(r, p.userId);
+    await db.deleteFromTrash('t1');
+    expect(await db.listTrash([p.userId])).toEqual([]);
+    expect(await db.restoreFromTrash('t1')).toBeNull();
+  });
+
+  it('사용자마다 자기 휴지통만 보고, 최근에 지운 것이 앞이다', async () => {
+    const a = await db.loginByName('A');
+    const b = await db.loginByName('B');
+    const t0 = new Date('2026-10-01T00:00:00Z');
+    await db.trashRound(await db.saveRound(roundFor('a1', 'A'), a.userId), a.userId, t0);
+    await db.trashRound(await db.saveRound(roundFor('a2', 'A'), a.userId), a.userId, new Date(t0.getTime() + DAY));
+    await db.trashRound(await db.saveRound(roundFor('b1', 'B'), b.userId), b.userId, t0);
+    expect((await db.listTrash([a.userId])).map((x) => x.round.id)).toEqual(['a2', 'a1']);
+    expect((await db.listTrash([b.userId])).map((x) => x.round.id)).toEqual(['b1']);
+  });
+
+  it('7일이 지난 것만 자동으로 지운다', async () => {
+    const p = await db.loginByName('A');
+    const t0 = new Date('2026-10-01T00:00:00Z');
+    await db.trashRound(await db.saveRound(roundFor('old', 'A'), p.userId), p.userId, t0);
+    await db.trashRound(await db.saveRound(roundFor('new', 'A'), p.userId), p.userId, new Date(t0.getTime() + 3 * DAY));
+    const now = t0.getTime() + 7 * DAY;                                                // 첫 번째는 정확히 7일, 두 번째는 4일
+    expect(await db.purgeExpiredTrash(now)).toBe(1);
+    expect((await db.listTrash([p.userId])).map((x) => x.round.id)).toEqual(['new']);
+    expect(await db.purgeExpiredTrash(now)).toBe(0);
+  });
+
+  it('프로필을 지우면 그 사용자의 휴지통도 함께 지운다', async () => {
+    const a = await db.loginByName('A');
+    const b = await db.loginByName('B');
+    await db.trashRound(await db.saveRound(roundFor('a1', 'A'), a.userId), a.userId);
+    await db.trashRound(await db.saveRound(roundFor('b1', 'B'), b.userId), b.userId);
+    await db.deleteProfile(a);
+    expect(await db.listTrash([a.userId])).toEqual([]);
+    expect((await db.listTrash([b.userId])).map((x) => x.round.id)).toEqual(['b1']);
+  });
+
+  it('휴지통 행은 프로필 목록·진행 중 라운드를 어지럽히지 않는다', async () => {
+    const { p, r } = await seeded();
+    await db.trashRound(r, p.userId);
+    expect(await db.listProfiles()).toHaveLength(1);
+    expect(await db.loadActiveRound([p.userId])).toBeNull();
+  });
+});
+
+describe('목표 저장', () => {
+  const G = (metric, target) => ({ id: `g-${metric}`, metric, target, createdAt: '2026-10-01T00:00:00.000Z' });
+
+  it('없으면 빈 목록, 저장하면 그대로 읽힌다', async () => {
+    const p = await db.loginByName('홍길동');
+    expect(await db.getGoals(p.userId)).toEqual([]);
+    expect(await db.saveGoals(p.userId, [G('threePutts', 2)])).toEqual([G('threePutts', 2)]);
+    expect(await db.getGoals(p.userId)).toEqual([G('threePutts', 2)]);
+  });
+
+  it('검사를 거쳐 저장한다 — 알 수 없는 지표는 버리고 최대 2개', async () => {
+    const p = await db.loginByName('홍길동');
+    const saved = await db.saveGoals(p.userId, [G('threePutts', 2), { ...G('x', 1), metric: 'nope' }, G('penalties', 1), G('score', 90)]);
+    expect(saved.map((g) => g.metric)).toEqual(['threePutts', 'penalties']);
+    expect((await db.getGoals(p.userId)).map((g) => g.metric)).toEqual(['threePutts', 'penalties']);
+  });
+
+  it('사용자마다 따로 저장한다', async () => {
+    const a = await db.loginByName('A');
+    const b = await db.loginByName('B');
+    await db.saveGoals(a.userId, [G('gir', 50)]);
+    expect(await db.getGoals(b.userId)).toEqual([]);
+  });
+
+  it('프로필을 지우면 목표도 함께 지운다', async () => {
+    const a = await db.loginByName('A');
+    await db.saveGoals(a.userId, [G('gir', 50)]);
+    await db.deleteProfile(a);
+    expect(await db.getGoals(a.userId)).toEqual([]);
+  });
+
+  it('내보내기에 목표가 들어가고, 가져오면 돌아온다 (파일에 목표가 없으면 지금 목표를 지우지 않는다)', async () => {
+    const a = await db.loginByName('A');
+    await db.saveGoals(a.userId, [G('threePutts', 2)]);
+    const exported = await db.exportUserData(a);
+    expect(exported.data.goals).toEqual([G('threePutts', 2)]);
+
+    const b = await db.loginByName('B');
+    await db.importUserData(b.userId, exported, [b.userId]);
+    expect(await db.getGoals(b.userId)).toEqual([G('threePutts', 2)]);
+
+    await db.saveGoals(b.userId, [G('penalties', 1)]);
+    await db.importUserData(b.userId, { data: { rounds: [], goals: [] } }, [b.userId]);
+    expect(await db.getGoals(b.userId)).toEqual([G('penalties', 1)]);
+  });
+});

@@ -1,6 +1,7 @@
 import InsightCard from './InsightCard.jsx';
 import InfoNote from '../ui/InfoNote';
 import KoEnTitle from '../ui/KoEnTitle';
+import { FOCUS_METRIC, MAX_GOALS } from '../../engine/goals.js';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
 import { speedLabel } from '../../engine/greenSpeed.js';
 
@@ -90,7 +91,8 @@ export function ThreePuttCause({ rep }) {
   );
 }
 
-export function NextFocus({ rep }) {
+// goals · onSetGoal(metric): 포커스를 목표로 정하는 버튼 — 그 영역의 목표 지표가 아직 없고 목표가 2개 미만일 때만
+export function NextFocus({ rep, goals = [], onSetGoal }) {
   return (
     <Section title="FOCUS · 다음 라운드 포커스">
       <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '4px 14px' }}>
@@ -99,7 +101,17 @@ export function NextFocus({ rep }) {
           : rep.focus.map((f, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, padding: '11px 0', borderBottom: i < rep.focus.length - 1 ? '1px solid #1b2238' : 'none' }}>
               <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(201,162,40,0.15)', color: '#c9a228', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
-              <div style={{ fontSize: 14, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{f.text}</div>
+              <div style={{ fontSize: 14, color: '#e8edf8', lineHeight: 1.55, wordBreak: 'keep-all', flex: 1, minWidth: 0 }}>
+                {f.text}
+                {(() => {
+                  const metric = FOCUS_METRIC[f.category];
+                  if (!onSetGoal || !metric || goals.length >= MAX_GOALS || goals.some((g) => g.metric === metric)) return null;
+                  return (
+                    <div><button type="button" data-role="focus-set-goal" onClick={() => onSetGoal(metric)}
+                      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.14)', color: '#f3d36b', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>목표로 정하기</button></div>
+                  );
+                })()}
+              </div>
             </div>
           ))}
       </div>

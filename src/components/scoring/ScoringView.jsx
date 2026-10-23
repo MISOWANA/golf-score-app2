@@ -14,9 +14,11 @@ import { validSpeed, speedLabel } from '../../engine/greenSpeed.js';
 import { applyParEdit } from '../../engine/parEdit.js';
 import { greenMissed, GREEN_MISS_DIRS } from '../../engine/greenMiss.js';
 import { ninesOf, holeNoOf } from '../../engine/nines.js';
+import { SURFACES, shotInfoGaps, fairwayFromSurface, surfaceLabel } from '../../engine/shotInfo.js';
 import { playedNineOf } from '../../engine/nineConversion.js';
 import LandingWheel from './LandingWheel';
 import StickyTabs from '../ui/StickyTabs';
+import GoalLine from '../goals/GoalLine';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -263,7 +265,8 @@ function WindInput({ direction, strength, onDir, onStrength }) {
 // children(close) — 선택이 끝나면 섹션을 접을 수 있도록 close를 넘긴다.
 // required — 꼭 골라야 하는 선택. 값이 없으면 처음부터 펼쳐 둔다 ('필수' 표시는 따로 하지 않는다).
 // defaultOpen: 처음부터 펼쳐 둔다 (값이 있어도). 없으면 필수인데 아직 값이 없을 때만 펼친다.
-function OptionalSection({ icon, label, enabled, summary, required = false, defaultOpen, children }) {
+// hint: 값이 없고 접혀 있을 때 보이는 안내 글 (null 이면 생략 — 라벨이 길어 좁은 폭에서 잘리는 칸용)
+function OptionalSection({ icon, label, enabled, summary, required = false, defaultOpen, hint = '선택 입력', children }) {
   const [open, setOpen] = useState(defaultOpen ?? (required && !summary));
   const hasValue = !!summary;
   const accent = hasValue ? '#c9a228' : enabled ? '#8896b0' : '#4d5a78';
@@ -282,8 +285,8 @@ function OptionalSection({ icon, label, enabled, summary, required = false, defa
         <span style={{ ...fLbl, color: hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#4d5a78' }}>{label}</span>
         <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {hasValue ? summary
-            : !open && <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
-                {enabled ? '선택 입력' : '클럽 선택 후 입력'}
+            : !open && hint != null && <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
+                {enabled ? hint : '클럽 선택 후 입력'}
               </span>}
         </span>
         <span style={{ fontSize:14, fontWeight:800, color: accent }}>{open ? '접기 ▴' : '펼치기 ▾'}</span>
@@ -326,16 +329,71 @@ const lieText = (lie) => {
   return (LIE_DIRS.find(d => d.id === v)?.label ?? v).replace('\n', ' ');
 };
 
-function LieSection({ label = '라이', enabled, value, onChange }) {
+// 꼭 받는 항목 표시 — 비어 있을 때만 붙는다
+function RequiredMark() {
+  return <span data-role="required-mark" style={{ fontSize:12, fontWeight:800, color:'#ef5350', letterSpacing:0, textTransform:'none' }}>필수</span>;
+}
+
+// 지형 — 그 샷을 치는 자리의 표면 (페어웨이 · 러프 · 벙커 · 리커버리). 샷마다 꼭 받는다.
+// suggest: 티샷 결과로 짐작한 표면 — 아직 고르지 않았을 때만 ★ 로 알려 주고, 눌러야 기록된다 (자동으로 채우지 않는다).
+function SurfaceRow({ role, value, missing, suggest = null, onChange }) {
   return (
-    <OptionalSection icon="▲" label={label} enabled={enabled} summary={lieText(value)}>
-      {(close) => (
-        <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS} alwaysOpen
-          value={lieValue(value)}
-          onChange={v => { onChange(v); if (v) close(); }}
-        />
+    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
+        <span style={fIcon}>⛳</span><span style={fLbl}>지형</span>
+        {missing && <RequiredMark />}
+        {value == null && suggest && <span style={{ fontSize:12, color:'#8896b0' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
+        {SURFACES.map((x) => {
+          const on = value === x.id;
+          const hinted = value == null && suggest === x.id;
+          return (
+            <button key={x.id} type="button" data-role={`${role}-${x.id}`} aria-pressed={on}
+              style={{ ...fChip, textAlign:'center', padding:'11px 4px', fontSize:14, borderRadius:8, ...(on ? fChipOn : {}), ...(hinted ? { border:'1.5px dashed #c9a228' } : {}) }}
+              onClick={() => onChange(on ? null : x.id)}>
+              {x.label}{hinted ? ' ★' : ''}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 라이 — 경사. 평지 · 오르막 · 내리막은 한 번에, 슬라이스·훅이 섞인 라이는 "기타"에서 고른다. 샷마다 꼭 받는다.
+const QUICK_LIES = [['flat', '평지'], ['uphill', '오르막'], ['downhill', '내리막']];
+function LieRow({ role, value, missing, onChange }) {
+  const [more, setMore] = useState(false);
+  const v = lieValue(value);
+  const other = !!v && !QUICK_LIES.some(([id]) => id === v);
+  return (
+    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
+        <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
+        {missing && <RequiredMark />}
+        {other && <span style={{ fontSize:13, fontWeight:700, color:'#c9a228' }}>{lieText(v)}</span>}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
+        {QUICK_LIES.map(([id, label]) => {
+          const on = v === id;
+          return (
+            <button key={id} type="button" data-role={`${role}-${id}`} aria-pressed={on}
+              style={{ ...fChip, textAlign:'center', padding:'11px 4px', fontSize:14, borderRadius:8, ...(on ? fChipOn : {}) }}
+              onClick={() => { onChange(on ? null : id); setMore(false); }}>{label}</button>
+          );
+        })}
+        <button type="button" data-role={`${role}-more`} aria-pressed={other || more}
+          style={{ ...fChip, textAlign:'center', padding:'11px 4px', fontSize:14, borderRadius:8, ...(other || more ? fChipOn : {}) }}
+          onClick={() => setMore(m => !m)}>기타 {more ? '▴' : '▾'}</button>
+      </div>
+      {more && (
+        <div style={{ marginTop:10 }}>
+          <RadialPicker centerId="flat" centerLabel="평지" dirs={LIE_DIRS} alwaysOpen value={v}
+            onChange={(x) => { onChange(x); if (x) setMore(false); }} />
+        </div>
       )}
-    </OptionalSection>
+    </div>
   );
 }
 
@@ -596,7 +654,7 @@ const PUTT_LIE_DIRS = [
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup }) {
+export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup, goals = [] }) {
   // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한 설정. 값이 없는 예전 라운드는 켜짐.
   const recommendOn = round.clubRecommend !== false;
   // 클럽 추천의 재료 — 마이백에 저장한 클럽별 거리. 마이백을 고친 뒤 이 화면으로 돌아오면
@@ -608,8 +666,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
   const [pendingSkip, setPendingSkip] = useState(null);       // 입력 없는 홀에서 '다음' — 이동할 홀 번호
   const [penaltyChoice, setPenaltyChoice] = useState(null);   // 벌타 처리 방법(OB티·드롭·다시 치기 …)을 고르는 중인 { slot, type }
-  const [puttAsk, setPuttAsk] = useState(null);               // 퍼팅 수를 모른 채 '다음'/'완료' — { next } 또는 { finish: true }
-  const [landingAsk, setLandingAsk] = useState(null);         // 필수 랜딩(티샷 L/C/R·그린 방향)이 빈 채 '다음'/'완료' — { miss, next } 또는 { miss, finish: true }
+  // '다음'/'완료'를 누른 홀에 확인할 게 있을 때 — { next } 또는 { finish: true }. 빠진 샷 정보(라이·지형·거리·클럽)와
+  // 모르는 퍼팅 수를 한 창에서 한 번만 묻는다 (예전에는 창이 차례로 둘 떠서 같은 홀에서 연속으로 눌러야 했다).
+  const [holeCheck, setHoleCheck] = useState(null);
   const finishingRef = useRef(false);                          // 완료 버튼 연타 방지
   const [showMemoModal, setShowMemoModal] = useState(false);
   const [memoDraft, setMemoDraft] = useState('');
@@ -912,24 +971,26 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 홀 번호 칸을 눌러 이동하는 건 둘러보기라 확정하지 않는다.
   const holeUntouched = (idx) => round.players.every(p => round.holes[idx].scores[p]?.touched !== true);
 
-  // 상세 입력 중인데 퍼팅 수를 모르면 2퍼트로 가정하지 않고 퍼팅 수를 먼저 묻는다.
-  const advanceFromHole = (next) => {
-    if (scorePending(playerScore)) { setPuttAsk({ next }); return; }
-    confirmAndGoToHole(next);
-  };
+  // 홀을 확정하기 전에 확인할 것: 빠진 샷 정보(라이·지형·거리·클럽)와, 상세 입력 중인데 모르는 퍼팅 수.
+  // 퍼팅 수는 2퍼트로 가정하지 않고 묻는다. 둘 다 막지는 않는다 — 코스 위에서 급하게 넘겨야 할 때를 위해
+  // 샷 정보는 '그대로'를 둔다. 확인할 게 없으면 창 없이 바로 넘어간다.
+  const needsCheck = () => infoGaps.length > 0 || scorePending(playerScore);
 
-  // 필수 랜딩(티샷 L/C/R·그린 방향)을 비워 둔 채면 확정하기 전에 한 번 짚어 준다.
-  // 막지는 않는다 — 코스 위에서 급하게 넘겨야 할 때를 위해 '그대로' 선택지를 둔다.
   const handleNext = () => {
     if (holeUntouched(holeIdx)) { setPendingSkip(holeIdx + 1); return; }
-    if (landingMissing) { setLandingAsk({ miss: landingMissing, next: holeIdx + 1 }); return; }
-    advanceFromHole(holeIdx + 1);
+    if (needsCheck()) { setHoleCheck({ next: holeIdx + 1 }); return; }
+    confirmAndGoToHole(holeIdx + 1);
   };
 
-  // 비어 있는 랜딩 입력으로 데려간다 — 티샷은 티샷 탭, 그린은 퍼팅 탭.
-  const goFillLanding = (miss) => {
-    setLandingAsk(null);
-    setStage(miss === 'tee' ? 'tee' : 'putt');
+  // 비어 있는 샷 정보 입력으로 데려간다 — 그 샷이 있는 필드샷 탭(파3 티샷 거리는 티샷 탭), 그 샷의 칸을 펼친다.
+  const goFillShotInfo = (gap) => {
+    setHoleCheck(null);
+    if (gap.slot === 0) {
+      setStage('tee');
+    } else {
+      setStage('field');
+      if (gap.slot === 1) setSecondShotExpanded(true); else setExpandedExtraShot(gap.slot - 2);
+    }
     scrollToTabs();
   };
 
@@ -942,33 +1003,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   };
 
   // 마지막 홀이 비어 있으면 확정하지 않고 넘긴다 — 완료 전 미입력 홀 확인에 함께 잡힌다.
-  const proceedFinish = () => {
-    if (scorePending(playerScore)) { setPuttAsk({ finish: true }); return; }
+  const handleFinishClick = () => {
+    if (holeUntouched(holeIdx)) { requestFinish(round); return; }
+    if (needsCheck()) { setHoleCheck({ finish: true }); return; }
     finishWith(null);
   };
 
-  const handleFinishClick = () => {
-    if (holeUntouched(holeIdx)) { requestFinish(round); return; }
-    if (landingMissing) { setLandingAsk({ miss: landingMissing, finish: true }); return; }
-    proceedFinish();
-  };
-
-  // 필수 랜딩 확인 창에서 '그대로' — 비워 둔 채 확정하고 넘어간다.
-  const skipLandingAndGo = () => {
-    const ask = landingAsk;
-    setLandingAsk(null);
+  // 확인 창에서 이대로 넘어간다. putts: 퍼팅 수를 골랐으면 그 수로 스코어를 계산해 확정한다.
+  const goOnFromCheck = (putts = null) => {
+    const ask = holeCheck;
+    setHoleCheck(null);
     if (!ask) return;
-    if (ask.finish) proceedFinish(); else advanceFromHole(ask.next);
-  };
-
-  // 퍼팅 수를 고르면 그 수로 스코어를 계산해 확정하고 넘어간다.
-  const confirmWithPutts = (n) => {
-    const ask = puttAsk;
-    setPuttAsk(null);
-    if (!ask) return;
-    const details = Array.from({ length: n }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
-    const keptOffGreen = offGreenShots({ putts: n, puttDetails: details, offGreen: playerScore.offGreen });
-    const fresh = withAutoStrokes({ ...playerScore, putts: n, puttDetails: details, offGreen: keptOffGreen, puttsManual: true, puttsHeld: null, touched: true });
+    let fresh = null;
+    if (putts != null) {
+      const details = Array.from({ length: putts }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
+      const keptOffGreen = offGreenShots({ putts, puttDetails: details, offGreen: playerScore.offGreen });
+      fresh = withAutoStrokes({ ...playerScore, putts, puttDetails: details, offGreen: keptOffGreen, puttsManual: true, puttsHeld: null, touched: true });
+    }
     if (ask.finish) finishWith(fresh); else confirmAndGoToHole(ask.next, fresh);
   };
 
@@ -1070,22 +1121,28 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 필수 선택은 지금 입력 중인 홀에만 적용한다. 이미 확정한 홀(confirmed)이나 확정 기록이
   // 없는 예전 진행 중 라운드는 고쳐 보러 들어갔을 때 탭이 잠기면 안 되므로 예전 기준을 쓴다.
   const strictRequired = !!round.trackConfirm && !playerScore.confirmed;
-  const teeMissing = (() => {
+  // 티샷에서 꼭 받는 것은 클럽이다 (파3은 티샷 결과도 — 그린에 올랐는지에 따라 이어지는 입력이 달라진다).
+  // 구질 · 페어웨이 O/X · 랜딩 L/C/R 은 선택이다: 입력하면 분석에 쓰이고, 비워 두어도 필드샷으로 넘어갈 수 있다.
+  // 파3 티샷 거리를 비워 두면 '다음'을 누를 때 한 번 묻는다 (샷 정보 확인 — shotInfoGaps).
+  const teeRequired = (() => {
     const s = playerScore;
     if (!s.teeClub) return ['클럽'];
+    if (!penaltyAt(s, 0) && hole.par === 3 && s.teeOnGreen == null && s.girAuto) return ['GIR 성공/실패'];
+    return [];
+  })();
+  const teeOptionalLeft = (() => {
+    const s = playerScore;
+    if (!s.teeClub) return [];
     const out = [];
     if (!s.shotShape) out.push('구질');
-    if (!penaltyAt(s, 0)) {
-      if (hole.par === 3) {
-        if (s.teeOnGreen == null && s.girAuto) out.push('GIR 성공/실패');
-      } else if (!s.teeGIR) {
-        if (strictRequired && s.fairway == null) out.push('페어웨이 O/X');
-        if (s.fairwayHit == null) out.push('랜딩 L/C/R');
-      }
+    if (!penaltyAt(s, 0) && hole.par > 3 && !s.teeGIR) {
+      if (strictRequired && s.fairway == null) out.push('페어웨이 O/X');
+      if (s.fairwayHit == null) out.push('랜딩 L/C/R');
     }
     return out;
   })();
-  const teeComplete = teeMissing.length === 0;
+  const teeReady = teeRequired.length === 0;                          // 필드샷·퍼팅 탭이 열린다
+  const teeComplete = teeReady && teeOptionalLeft.length === 0;        // 선택 항목까지 모두 입력 — 자동으로 다음 탭으로 넘어간다
   const isLastHole = holeIdx === holeTotal - 1;
   const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
   const isPar5 = hole.par === 5;
@@ -1101,12 +1158,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     </div>
   );
 
-  // ─── 그린 랜딩 방향 (필수) ────────────────────────────────────────────────────
-  // 볼이 그린에 올라간 홀은 온그린 랜딩 방향을 골라야 퍼팅 입력이 열린다. 홀인원·칩인은
-  // 볼이 그린에 멈추지 않으므로 해당 없다. 확정한 홀·예전 라운드는 막지 않는다(strictRequired).
-  const greenLandingRequired = strictRequired && !isHoledOut(playerScore);
-  const greenLandingMissing = greenLandingRequired && !playerScore.onGreenLanding;
-
   // 볼이 그린에 올라갔다고 '기록된' 홀인지 — 사용자가 고른 결과만 본다. gir는 홀을 확정할 때
   // 타수로 다시 계산되고 기본값이 true라서 입력 여부를 판단하는 데 쓸 수 없다.
   const ballOnGreen = (() => {
@@ -1120,15 +1171,24 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     return s.teeGIR === true || s.onGreen === true || (s.gir === true && s.girAuto === false);
   })();
 
-  // '다음'·'완료'를 눌렀을 때 빠져 있는 필수 랜딩 — 'tee' | 'green' | null.
-  // 티샷 클럽을 고른 상세 입력 홀에만 적용한다 (간편 입력 홀은 스코어만 적는다).
-  const landingMissing = (() => {
-    const s = playerScore;
-    if (!strictRequired || isSimpleMode || !s.teeClub) return null;
-    if (hole.par > 3 && !s.teeGIR && !penaltyAt(s, 0) && s.fairwayHit == null) return 'tee';
-    if (ballOnGreen && greenLandingMissing) return 'green';
-    return null;
-  })();
+  // 샷 정보 — 샷마다 꼭 받는 네 가지: 라이 · 지형 · 거리 · 클럽 (engine/shotInfo.js).
+  // 지금 입력 중인 상세 입력 홀에서만 필수 표시를 하고, '다음'·'완료'에서 비어 있으면 한 번 짚어 준다.
+  // 확정한 홀·예전 라운드·간편 입력(동반자) 홀은 막지 않는다 (strictRequired).
+  const infoRequired = strictRequired && !isSimpleMode;
+  const infoGaps = infoRequired ? shotInfoGaps(playerScore, hole.par) : [];
+
+  // 세컨샷 지형 추천 — 티샷에서 페어웨이를 지켰으면 페어웨이, 놓쳤으면 러프 (고르기 전에만 ★ 로 알려 준다)
+  const secondSurfaceSuggest = penaltyAt(playerScore, 0) ? null : playerScore.fairway === true ? 'fairway' : playerScore.fairway === false ? 'rough' : null;
+
+  // 세컨샷 지형을 고르면 티샷의 페어웨이 적중도 알 수 있다 — 따로 입력하지 않았다면 채워 둔다.
+  // (직접 O/X 를 누른 값은 지형 입력이 바꾸지 않는다. 채워 둔 값(fairwayDerived)만 지형을 바꾸면 따라 바뀐다.)
+  const setSecondSurface = (v) => {
+    const patch = { secondSurface: v };
+    const fw = v ? fairwayFromSurface({ ...playerScore, secondSurface: v }, hole.par) : null;
+    if (fw != null && (playerScore.fairway == null || playerScore.fairwayDerived)) Object.assign(patch, { fairway: fw, fairwayDerived: true });
+    else if (v == null && playerScore.fairwayDerived) Object.assign(patch, { fairway: null, fairwayDerived: false });
+    updateFields(patch);
+  };
 
   const clubs = hole.par === 3
     ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
@@ -1154,9 +1214,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 예전에는 '접힌 + 완료' 헤더를 금색으로 칠해서, 그린을 입력하는 중에도 티샷이
   // 강조돼 티샷 차례로 착각하게 만들었다.
   const currentTurn = (() => {
-    // 그린 랜딩 방향은 필수 선택이라, 그린 지점을 찍었어도 방향을 고르기 전에는 그린 차례다.
-    if (stage === 'putt') return greenLandingMissing ? 'green' : 'putt';
-    if (!teeComplete) return 'tee';
+    if (stage === 'putt') return 'putt';
+    if (!teeReady) return 'tee';
     if (extraShots.length === 0) return 'second';
     return expandedExtraShot >= 0 ? expandedExtraShot : extraShots.length - 1;
   })();
@@ -1187,6 +1246,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     ? shotTitle(playerScore, idx + 2)
     : (EXTRA_SHOT_NAMES[idx] ?? `${idx + 3}번째 샷`));
   const secondShotName = titleShifted(playerScore, 1) ? shotTitle(playerScore, 1) : '세컨샷 ( 2nd )';
+  // 확인 창에 쓰는 짧은 이름 — '써드샷 ( 3rd )' 의 영문 표기는 뺀다
+  const shortShotName = (slot) => (slot === 0 ? '티샷' : (slot === 1 ? secondShotName : extraShotName(slot - 2)).replace(/\s*\([^)]*\)\s*$/, ''));
 
   // ─── GPS 샷 지점 ────────────────────────────────────────────────────────────
   // gpsPoints[slot] = (slot+1)번째 샷을 친 지점, gpsGreen = 그린 도착 지점.
@@ -1320,7 +1381,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     if (prev) {
       const moved = haversine(prev, livePos);
       if (moved != null && moved < Math.max(15, livePos.acc ?? 0)) return null;
-    } else if (slot === 1 && !teeComplete) {
+    } else if (slot === 1 && !teeReady) {
       return null;   // 티 지점도 없고 티샷도 아직 안 끝났으면 어디서 보는 거리인지 알 수 없다
     }
     const d = roundM(haversine(livePos, gpsPin));
@@ -1452,7 +1513,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const addExtraShot = (extraFields = {}) => {
     const newIdx = extraShots.length;
     updateFields({
-      extraShots: [...extraShots, { club: null, subClub: null, lie: [], remainingDistance: null, windDirection: null, windStrength: null, onGreen: null }],
+      extraShots: [...extraShots, { club: null, subClub: null, lie: [], surface: null, remainingDistance: null, windDirection: null, windStrength: null, onGreen: null }],
       ...extraFields,
     });
     setExpandedExtraShot(newIdx);
@@ -1524,7 +1585,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     }
     updateField('extraShots', [
       ...extraShots.map((s, i) => i === lastIdx ? { ...s, onGreen: false } : s),
-      { club: null, subClub: null, lie: [], remainingDistance: null,
+      { club: null, subClub: null, lie: [], surface: null, remainingDistance: null,
         windDirection: null, windStrength: null, onGreen: null },
     ]);
     setExpandedExtraShot(extraShots.length);
@@ -1621,7 +1682,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 샷 결과에서 [OB]·[해저드]를 누르면 그 샷의 벌타로 기록한다 (penalties.js 참고).
   // 한 샷에는 벌타가 하나뿐이다. 위쪽 합계 칸도 함께 올린다.
   // 벌타가 난 샷은 그린에 가지 못한 것이므로 결과를 맞추고 다음 샷 자리를 연다.
-  const emptyShot = () => ({ club: null, subClub: null, lie: [], remainingDistance: null, windDirection: null, windStrength: null, onGreen: null });
+  const emptyShot = () => ({ club: null, subClub: null, lie: [], surface: null, remainingDistance: null, windDirection: null, windStrength: null, onGreen: null });
 
   const addShotPenalty = (slot, type, mode = null) => {
     const old = penaltyAt(playerScore, slot);
@@ -1895,7 +1956,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [syncedHoleIdx, setSyncedHoleIdx] = useState(null);
   if (syncedHoleIdx !== holeIdx) {
     setSyncedHoleIdx(holeIdx);
-    setStage(!teeComplete ? 'tee' : ballOnGreen ? 'putt' : 'field');
+    setStage(!teeReady ? 'tee' : ballOnGreen ? 'putt' : 'field');
     setSecondShotExpanded(true); setExpandedExtraShot(0); setExpandedOffGreen(null); setShowPuttsDropdown(false);
   }
 
@@ -1918,16 +1979,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   }, [extraShots.length]);
   useEffect(() => { lastViewRef.current = { hole: holeIdx, stage }; });
 
-  // 티샷 입력이 끝나면 다음 탭으로 넘어간다 (볼이 이미 그린이면 퍼팅, 아니면 필드샷).
-  // 남은 항목이 생기면 티샷 탭으로 되돌린다 (다른 탭에서는 '남은 항목'을 채울 수 없다)
+  // 티샷 입력을 선택 항목까지 모두 마치면 다음 탭으로 넘어간다 (볼이 이미 그린이면 퍼팅, 아니면 필드샷).
+  // 꼭 받는 항목(클럽 등)이 비면 티샷 탭으로 되돌린다. 선택 항목만 비는 건 되돌리지 않는다 — 필드샷에서 지형을 지우다가
+  // 티샷 탭으로 끌려 가면 안 된다.
   const [syncedTeeComplete, setSyncedTeeComplete] = useState(null);
   if (syncedTeeComplete !== teeComplete) {
     setSyncedTeeComplete(teeComplete);
-    setStage(teeComplete ? (ballOnGreen ? 'putt' : 'field') : 'tee');
+    if (teeComplete) setStage(ballOnGreen ? 'putt' : 'field');
+    else if (!teeReady) setStage('tee');
   }
 
   // 미입력 홀 확인 모달에 보여 줄 홀 번호들
   const pendingMissing = pendingFinish ? untouchedHoles(pendingFinish) : [];
+
+  // '다음'/'완료' 확인 창 — 샷 정보가 비었는지 · 퍼팅 수를 모르는지에 따라 제목과 버튼이 달라진다
+  const checkInfo = infoGaps.length > 0;
+  const checkPutts = scorePending(playerScore);
+  const checkTitle = checkInfo && checkPutts ? '확인할 게 있어요' : checkPutts ? '퍼팅을 몇 번 했나요?' : '샷 정보가 비어 있어요';
 
   return (
     <div style={styles.container}>
@@ -1950,6 +2018,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           </div>
         );
       })()}
+
+      <GoalLine goals={goals} round={round} margin="0 16px 8px" />
 
       {/* Running Score */}
       {isSimpleMode ? (() => {
@@ -2407,9 +2477,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* ── 입력 탭: 티샷 · 필드샷 · 퍼팅 — 화면을 내려도 맨 위에 붙고, 한 단계를 마치면 다음 탭으로 넘어간다 ── */}
         <StickyTabs
           tabs={[
-            ['tee', '티샷', { done: teeComplete }],
-            ['field', '필드샷', { disabled: !teeComplete, done: teeComplete && ballOnGreen }],
-            ['putt', '퍼팅', { disabled: !teeComplete }],
+            ['tee', '티샷', { done: teeReady }],
+            ['field', '필드샷', { disabled: !teeReady, done: teeReady && ballOnGreen }],
+            ['putt', '퍼팅', { disabled: !teeReady }],
           ]}
           current={stage} onChange={setStage} label="샷 입력 단계" rolePrefix="shot-tab"
           scrollOnChange="always" anchorRef={tabsTopRef}
@@ -2492,8 +2562,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           ) : null
         )}
 
-        {/* PAR3 전용: GIR - 구질 선택 후 등장 */}
-        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && (() => {
+        {/* PAR3 전용: GIR - 클럽 선택 후 등장 (티샷 결과라 꼭 받는다) */}
+        {hole.par === 3 && playerScore.teeClub && !teeClubInteracting && (() => {
           const hioSelected = playerScore.putts===0 && playerScore.girAuto===false && (playerScore.puttDetails?.length||0)===0 && playerScore.touched;
           return (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
@@ -2540,10 +2610,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true && teeOnGreenBlockedHint}
           </div>
         );})()}
-        {hole.par === 3 && playerScore.teeClub && playerScore.shotShape && !teeClubInteracting && penaltyRow(0)}
+        {hole.par === 3 && playerScore.teeClub && !teeClubInteracting && penaltyRow(0)}
 
-        {/* FAIRWAY HIT - 구질 선택 후 등장 */}
-        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
+        {/* FAIRWAY HIT - 클럽 선택 후 등장 (선택 입력 — 세컨샷 지형을 고르면 따로 안 눌러도 채워진다) */}
+        {hole.par > 3 && playerScore.teeClub && (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
@@ -2556,10 +2626,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           </div>
         )}
 
-        {/* LANDING POINT (L/C/R/그린) — 필수 선택. 페어웨이 O/X와 별개로 L/C/R을 직접
-            골라야 티샷이 끝난다 (O를 눌러도 C로 자동 기록되지 않는다). 1온이면
-            G만 눌러도 된다. */}
-        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && (
+        {/* LANDING POINT (L/C/R/그린) — 선택 입력. 티샷이 어디로 갔는지 방향성 분석에 쓰인다.
+            1온(G)은 결과라서 여기서 고른다 — 1온이면 필드샷이 없다. */}
+        {hole.par > 3 && playerScore.teeClub && (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
@@ -2605,25 +2674,34 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {penaltyBlocksTeeOnGreen && !playerScore.teeGIR && teeOnGreenBlockedHint}
           </div>
         )}
-        {hole.par > 3 && playerScore.teeClub && playerScore.shotShape && penaltyRow(0)}
+        {hole.par > 3 && playerScore.teeClub && penaltyRow(0)}
         </>}
 
-        {stage === 'tee' && !teeComplete && playerScore.teeClub && (
+        {stage === 'tee' && !teeReady && playerScore.teeClub && (
           <div style={{ padding:'8px 16px', textAlign:'center' }}>
             <span style={{ fontSize:13, color:'#6e84a8', letterSpacing:'0.06em' }}>
-              {`티샷을 마치면 필드샷·퍼팅을 입력할 수 있어요 · 남은 항목: ${teeMissing.join(' · ')}`}
+              {`티샷을 마치면 필드샷·퍼팅을 입력할 수 있어요 · 남은 항목: ${teeRequired.join(' · ')}`}
             </span>
+          </div>
+        )}
+        {stage === 'tee' && teeReady && !teeComplete && hole.par > 3 && !playerScore.teeGIR && (
+          <div data-role="tee-optional-note" style={{ padding:'10px 16px 14px', textAlign:'center' }}>
+            <div style={{ fontSize:13, color:'#6e84a8', lineHeight:1.6, marginBottom:8, wordBreak:'keep-all' }}>
+              {`선택 항목: ${teeOptionalLeft.join(' · ')} — 비워 두고 필드샷으로 넘어가도 돼요`}
+            </div>
+            <button type="button" data-role="go-field" onClick={() => { setStage('field'); scrollToTabs(); }}
+              style={{ ...fChipWide, width:'100%', padding:'12px 8px', color:'#c9a228', border:'1.5px solid rgba(201,162,40,0.5)', fontSize:15, fontWeight:800 }}>필드샷 입력하기 ›</button>
           </div>
         )}
 
         {/* 1온이면 필드샷이 없다 — 필드샷 탭을 눌러 본 경우를 위한 안내 */}
-        {teeComplete && stage === 'field' && hole.par > 3 && playerScore.teeGIR && (
+        {teeReady && stage === 'field' && hole.par > 3 && playerScore.teeGIR && (
           <div data-role="field-empty" style={{ padding:'22px 16px', textAlign:'center', borderBottom:'1px solid #0e1320' }}>
             <span style={{ fontSize:14, color:'#8896b0', lineHeight:1.6 }}>티샷으로 그린에 올려서 필드샷이 없어요 · 퍼팅 탭에서 이어 입력하세요</span>
           </div>
         )}
 
-        {teeComplete && stage === 'field' && !playerScore.teeGIR && <>
+        {teeReady && stage === 'field' && !playerScore.teeGIR && <>
         {/* ── 세컨샷 아코디언 헤더 ── */}
         <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
           {(() => {
@@ -2677,12 +2755,19 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           suggest={clubSuggest(1, playerScore.remainingDistance, (club, sub) => { updateFields({ secondClub: club, secondClubSub: sub }); if (club) scrollDown(); })}
         />
 
-        {/* 라이·바람 — 기본 접힘, 세컨샷 클럽을 고르면 금색으로 활성화 */}
-        <LieSection
+        {/* 지형 · 라이 — 샷마다 꼭 받는다 (지형은 Strokes Gained 기준선, 라이는 클럽 분석에 쓰인다). 바람은 선택 */}
+        <SurfaceRow
+          role="second-surface"
+          value={playerScore.secondSurface ?? null}
+          missing={infoRequired && !playerScore.secondSurface}
+          suggest={secondSurfaceSuggest}
+          onChange={setSecondSurface}
+        />
+        <LieRow
           key={`lie-${holeIdx}-${activePlayer}`}
-          label="세컨샷 라이"
-          enabled={!!playerScore.secondClub}
+          role="second-lie"
           value={playerScore.terrainCondition}
+          missing={infoRequired && !lieValue(playerScore.terrainCondition)}
           onChange={v => updateField('terrainCondition', v)}
         />
         <WindSection
@@ -2809,11 +2894,18 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   suggest={clubSuggest(idx + 2, shot.remainingDistance, (club, sub) => { updateExtraShot(idx, { club, subClub: sub }); if (club) scrollDown(); })}
                 />
 
-                {/* 라이·바람 — 기본 접힘, 클럽을 고르면 금색으로 활성화 */}
-                <LieSection
+                {/* 지형 · 라이 — 샷마다 꼭 받는다. 바람은 선택 */}
+                <SurfaceRow
+                  role={`extra-surface-${idx}`}
+                  value={shot.surface ?? null}
+                  missing={infoRequired && !shot.surface}
+                  onChange={v => updateExtraShot(idx, { surface: v })}
+                />
+                <LieRow
                   key={`lie-${holeIdx}-${activePlayer}-${idx}`}
-                  enabled={!!shot.club}
+                  role={`extra-lie-${idx}`}
                   value={shot.lie}
+                  missing={infoRequired && !lieValue(shot.lie)}
                   onChange={v => updateExtraShot(idx, { lie: v })}
                 />
                 <WindSection
@@ -2852,7 +2944,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                           setExpandedExtraShot(idx + 1);
                           return;
                         }
-                        const newShot = { club:null, subClub:null, lie:[], remainingDistance: null, windDirection:null, windStrength:null, onGreen:null };
+                        const newShot = { club:null, subClub:null, lie:[], surface:null, remainingDistance: null, windDirection:null, windStrength:null, onGreen:null };
                         updateField('extraShots', [...updated, newShot]);
                         setExpandedExtraShot(extraShots.length);
                       }}>실패</button>
@@ -2887,7 +2979,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </>}
 
         {/* ── 그린 밖으로 나간 퍼트 뒤의 칩 — 필드샷이므로 클럽과 온그린 결과를 여기서 받는다 ── */}
-        {teeComplete && stage === 'field' && offGreenList.length > 0 && (<>
+        {teeReady && stage === 'field' && offGreenList.length > 0 && (<>
           <div ref={offGreenTopRef} data-role="off-green-section" />
           {offGreenList.map((chip, idx) => {
             const chain = offGreenList.filter(r => r.after === chip.after);
@@ -2953,7 +3045,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           })}
         </>)}
 
-        {teeComplete && stage === 'putt' && <>
+        {teeReady && stage === 'putt' && <>
 
         {/* ── 그린 ── */}
         {secHdr('그 린', null, turnState('green', !!playerScore.onGreenLanding))}
@@ -3000,14 +3092,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
         )}
 
-        {/* 온그린 랜딩 방향 (12-clock) — 필수 선택. 고르기 전에는 펼쳐 두고, 퍼팅 입력도 열리지 않는다
-            (확정한 홀·홀인은 제외, greenLandingRequired 참고). 이미 고른 홀도, 고른 직후에도 접지 않고
-            펼쳐 둔다 — 잘못 눌렀을 때 바로 고칠 수 있게. 직접 접기 전에는 그대로 두고, 고르면 화면만
-            아래 퍼팅 입력으로 옮긴다. */}
+        {/* 온그린 랜딩 방향 (12-clock) — 선택 입력. 그린 어프로치 분석에 쓰이고, 비워 두어도 퍼팅 입력은 열려 있다.
+            접어 두고, 펼쳐서 고르면 화면만 아래 퍼팅 입력으로 옮긴다. */}
         <OptionalSection
           key={`landing-${holeIdx}-${activePlayer}`}
-          icon="⊙" label="온그린 랜딩 방향" enabled defaultOpen
-          required={greenLandingRequired}
+          icon="⊙" label="온그린 랜딩 방향" enabled hint={null}
           summary={playerScore.onGreenLanding ? `${playerScore.onGreenLanding}시 방향` : ''}
         >
           {() => (
@@ -3019,11 +3108,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         <div ref={puttTopRef} data-role="putting-top" />
         {secHdr('퍼 팅', null, turnState('putt', false))}
 
-        {greenLandingMissing ? (
-          <div style={{ padding:'14px 16px', textAlign:'center', borderBottom:'1px solid #0e1320' }}>
-            <span style={{ fontSize:13, color:'#6e84a8', letterSpacing:'0.06em' }}>온그린 랜딩 방향을 선택하면 퍼팅을 입력할 수 있어요</span>
-          </div>
-        ) : playerScore.putts > 0 && (<>
+        {playerScore.putts > 0 && (<>
 
           {/* 퍼팅별 상세 (아코디언) */}
           {puttDetails.slice(0, puttVisibleCount).map((putt, puttIdx) => {
@@ -3358,45 +3443,43 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
       )}
 
-      {/* 퍼팅 수를 모른 채 '다음'/'완료' — 2퍼트로 가정하지 않고 물어본다 */}
-      {puttAsk && (
-        <div style={styles.modalOverlay} onClick={() => setPuttAsk(null)}>
-          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalIcon}>⛳</div>
-            <div style={styles.modalTitle}>퍼팅을 몇 번 했나요?</div>
-            <div style={styles.modalText}>{holeNo}번 홀 · 온그린까지 {strokesToGreen(playerScore, hole.par)}타</div>
-            <div style={{ display:'flex', gap:6, marginBottom:10 }}>
-              {[0, 1, 2, 3, 4, 5].map(n => (
-                <button key={n}
-                  style={{ flex:1, height:48, borderRadius:10, border:'1.5px solid #3a4e72', background:'#1a2235', color:'#e8edf8', fontSize:18, fontWeight:900, cursor:'pointer' }}
-                  onClick={() => confirmWithPutts(n)}>{n}</button>
-              ))}
-            </div>
-            <button style={styles.modalBtnCancel} onClick={() => setPuttAsk(null)}>취소</button>
-          </div>
-        </div>
-      )}
-
-      {/* 필수 랜딩(티샷 L/C/R · 그린 방향)을 비운 채 '다음'/'완료' */}
-      {landingAsk && (
-        <div style={styles.modalOverlay} onClick={() => setLandingAsk(null)}>
-          <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalIcon}>📍</div>
-            <div style={styles.modalTitle}>
-              {landingAsk.miss === 'tee' ? '티샷 랜딩(L/C/R)을 고르지 않았어요' : '온그린 랜딩 방향을 고르지 않았어요'}
-            </div>
+      {/* '다음'/'완료' 확인 — 빠진 샷 정보와 모르는 퍼팅 수를 한 창에서 */}
+      {holeCheck && (
+        <div style={styles.modalOverlay} onClick={() => setHoleCheck(null)}>
+          <div data-role="hole-check" data-info={checkInfo ? '1' : '0'} data-putts={checkPutts ? '1' : '0'} style={styles.modalCard} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalIcon}>{checkPutts && !checkInfo ? '⛳' : '📍'}</div>
+            <div style={styles.modalTitle}>{checkTitle}</div>
             <div style={styles.modalText}>
-              {holeNo}번 홀 · {landingAsk.miss === 'tee'
-                ? '티샷이 어디로 갔는지가 방향성 분석에 쓰여요'
-                : '그린 어프로치 분석에 쓰여요'}
+              {holeNo}번 홀{checkPutts && !checkInfo ? ` · 온그린까지 ${strokesToGreen(playerScore, hole.par)}타` : ''}
+              {checkInfo && (
+                <>
+                  <div style={{ margin: '6px 0', color: '#e8edf8', fontWeight: 700, lineHeight: 1.6 }}>
+                    {infoGaps.map(g => (
+                      <div key={g.slot} data-role="info-ask-gap">{shortShotName(g.slot)} · {g.missing.join(' · ')}</div>
+                    ))}
+                  </div>
+                  라이·지형·거리·클럽은 Strokes Gained와<br/>클럽 분석에 쓰여요
+                </>
+              )}
             </div>
+            {checkPutts && (
+              <div data-role="putt-ask" style={{ marginBottom: 10 }}>
+                {checkInfo && <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', textAlign: 'center', marginBottom: 6 }}>퍼팅을 몇 번 했나요? <span style={{ fontSize: 13, fontWeight: 500, color: '#8896b0' }}>온그린까지 {strokesToGreen(playerScore, hole.par)}타</span></div>}
+                <div style={{ display:'flex', gap:6 }}>
+                  {[0, 1, 2, 3, 4, 5].map(n => (
+                    <button key={n} data-role={`putt-ask-${n}`}
+                      style={{ flex:1, height:48, borderRadius:10, border:'1.5px solid #3a4e72', background:'#1a2235', color:'#e8edf8', fontSize:18, fontWeight:900, cursor:'pointer' }}
+                      onClick={() => goOnFromCheck(n)}>{n}</button>
+                  ))}
+                </div>
+                {checkInfo && <div style={{ fontSize: 13, color: '#6e84a8', textAlign: 'center', marginTop: 6 }}>숫자를 누르면 샷 정보는 비운 채 {holeCheck.finish ? '완료' : '다음 홀로 이동'}해요</div>}
+              </div>
+            )}
             <div style={styles.modalActions}>
-              <button style={styles.modalBtnCancel} onClick={skipLandingAndGo}>
-                {landingAsk.finish ? '그대로 완료' : '그대로 다음 홀'}
-              </button>
-              <button style={styles.modalBtnPrimary} onClick={() => goFillLanding(landingAsk.miss)}>
-                입력하러 가기
-              </button>
+              {checkInfo && !checkPutts && <button style={styles.modalBtnCancel} onClick={() => goOnFromCheck()}>{holeCheck.finish ? '그대로 완료' : '그대로 다음 홀'}</button>}
+              {checkInfo && checkPutts && <button style={styles.modalBtnCancel} onClick={() => setHoleCheck(null)}>취소</button>}
+              {checkInfo && <button data-role="info-ask-fill" style={styles.modalBtnPrimary} onClick={() => goFillShotInfo(infoGaps[0])}>입력하러 가기</button>}
+              {!checkInfo && <button style={styles.modalBtnCancel} onClick={() => setHoleCheck(null)}>취소</button>}
             </div>
           </div>
         </div>

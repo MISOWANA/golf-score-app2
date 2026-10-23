@@ -1,4 +1,7 @@
 // IndexedDB 초기화 및 관리 유틸리티
+import { isTrashExpired } from './engine/trash.js';
+import { sanitizeGoals } from './engine/goals.js';
+
 const DB_NAME = 'GolfScoreDB';
 const DB_VERSION = 2;
 const ROUNDS_STORE = 'rounds';
@@ -309,10 +312,128 @@ export const deleteProfile = async (profile) => {
     if (rest.length === 0) users.delete(row.id);
     else if (rest.length !== row.rounds.length) users.put({ ...row, rounds: rest });
   };
+  ids.forEach((id) => { users.delete(BACKUP_META_PREFIX + id); users.delete(GOALS_PREFIX + id); });
+  // 휴지통에 남은 이 사용자의 라운드도 함께 지운다 ('영구히 삭제'에 휴지통이 빠지지 않게)
+  users.getAll().onsuccess = (e) => {
+    (e.target.result || [])
+      .filter((row) => typeof row.id === 'string' && row.id.startsWith(TRASH_PREFIX) && ids.includes(row.userId))
+      .forEach((row) => users.delete(row.id));
+  };
   users.get('current').onsuccess = (e) => {
     if (ids.includes(e.target.result?.userId)) users.delete('current');
   };
   await done;
+};
+
+// ─── 목표 ────────────────────────────────────────────────────────────────────
+// 다음 라운드 목표 (engine/goals.js) — 사용자마다 최대 2개. { id: 'goals:<userId>', userId, goals: [...], updatedAt }
+const GOALS_PREFIX = 'goals:';
+
+export const getGoals = async (userId) => {
+  await ensureDB();
+  const store = db.transaction([USERS_STORE], 'readonly').objectStore(USERS_STORE);
+  const row = await asPromise(store.get(GOALS_PREFIX + userId));
+  return sanitizeGoals(row?.goals);
+};
+
+// 저장하고, 검사를 거친 목록을 돌려준다
+export const saveGoals = async (userId, goals) => {
+  await ensureDB();
+  const clean = sanitizeGoals(goals);
+  const store = db.transaction([USERS_STORE], 'readwrite').objectStore(USERS_STORE);
+  await asPromise(store.put({ id: GOALS_PREFIX + userId, userId, goals: clean, updatedAt: new Date().toISOString() }));
+  return clean;
+};
+
+// ─── 휴지통 ──────────────────────────────────────────────────────────────────
+// 라운드를 지우면 바로 없애지 않고 휴지통에 7일 보관한다 — 실수로 지운 기록을 되돌릴 수 있게.
+//   { id: 'trash:<roundId>', userId, round, deletedAt }   (users 스토어 — 스키마는 그대로)
+// 보관 기간이 지난 것은 앱을 열 때 purgeExpiredTrash 가 지운다. 백업 파일에는 휴지통이 들어가지 않는다.
+const TRASH_PREFIX = 'trash:';
+
+const txDone = (tx) => new Promise((resolve, reject) => {
+  tx.oncomplete = () => resolve();
+  tx.onerror = () => reject(tx.error);
+  tx.onabort = () => reject(tx.error);
+});
+
+// 라운드를 휴지통으로 옮긴다 (라운드 스토어에서는 지운다). at: 지운 시각 (테스트용)
+export const trashRound = async (round, userId, at = new Date()) => {
+  await ensureDB();
+  const tx = db.transaction([ROUNDS_STORE, USERS_STORE], 'readwrite');
+  const done = txDone(tx);
+  tx.objectStore(USERS_STORE).put({ id: TRASH_PREFIX + round.id, userId: round.userId ?? userId, round, deletedAt: new Date(at).toISOString() });
+  tx.objectStore(ROUNDS_STORE).delete(round.id);
+  await done;
+};
+
+// 이 사용자(들)의 휴지통 — 최근에 지운 것이 앞
+export const listTrash = async (ids) => {
+  await ensureDB();
+  const mine = new Set(toIds(ids));
+  const store = db.transaction([USERS_STORE], 'readonly').objectStore(USERS_STORE);
+  const rows = await asPromise(store.getAll());
+  return rows
+    .filter((r) => typeof r.id === 'string' && r.id.startsWith(TRASH_PREFIX) && mine.has(r.userId))
+    .sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+};
+
+// 휴지통에서 라운드를 되살린다. 같은 번호의 라운드가 이미 있으면(예: 백업을 가져와 다시 생긴 경우) 덮어쓰지 않고
+// 휴지통에서만 지운다. 반환: 되살린 라운드 | null
+export const restoreFromTrash = async (roundId) => {
+  await ensureDB();
+  const read = db.transaction([USERS_STORE, ROUNDS_STORE], 'readonly');
+  const [row, existing] = await Promise.all([
+    asPromise(read.objectStore(USERS_STORE).get(TRASH_PREFIX + roundId)),
+    asPromise(read.objectStore(ROUNDS_STORE).get(roundId)),
+  ]);
+  if (!row) return null;
+  const tx = db.transaction([USERS_STORE, ROUNDS_STORE], 'readwrite');
+  const done = txDone(tx);
+  tx.objectStore(USERS_STORE).delete(TRASH_PREFIX + roundId);
+  if (!existing) tx.objectStore(ROUNDS_STORE).put(row.round);
+  await done;
+  return existing ? null : row.round;
+};
+
+// 휴지통에서 영구 삭제
+export const deleteFromTrash = async (roundId) => {
+  await ensureDB();
+  const store = db.transaction([USERS_STORE], 'readwrite').objectStore(USERS_STORE);
+  await asPromise(store.delete(TRASH_PREFIX + roundId));
+};
+
+// 보관 기간(7일)이 지난 라운드를 모든 사용자에서 지운다. 반환: 지운 개수
+export const purgeExpiredTrash = async (now = Date.now()) => {
+  await ensureDB();
+  const rows = await asPromise(db.transaction([USERS_STORE], 'readonly').objectStore(USERS_STORE).getAll());
+  const expired = rows.filter((r) => typeof r.id === 'string' && r.id.startsWith(TRASH_PREFIX)
+    && isTrashExpired(r.deletedAt, now));
+  if (expired.length === 0) return 0;
+  const tx = db.transaction([USERS_STORE], 'readwrite');
+  const done = txDone(tx);
+  expired.forEach((r) => tx.objectStore(USERS_STORE).delete(r.id));
+  await done;
+  return expired.length;
+};
+
+// ─── 백업 기록 ───────────────────────────────────────────────────────────────
+// 마지막으로 백업 파일을 만든(저장·공유한) 시각과 그때의 라운드 수. 홈이 "마지막 백업 N일 전"을 알리는 데 쓴다.
+//   { id: 'backup-meta:<userId>', userId, lastBackupAt, roundCount, via: 'download' | 'share' }
+const BACKUP_META_PREFIX = 'backup-meta:';
+
+export const getBackupMeta = async (userId) => {
+  await ensureDB();
+  const store = db.transaction([USERS_STORE], 'readonly').objectStore(USERS_STORE);
+  return (await asPromise(store.get(BACKUP_META_PREFIX + userId))) ?? null;
+};
+
+export const recordBackup = async (userId, { roundCount, via = 'download' }) => {
+  await ensureDB();
+  const row = { id: BACKUP_META_PREFIX + userId, userId, lastBackupAt: new Date().toISOString(), roundCount, via };
+  const store = db.transaction([USERS_STORE], 'readwrite').objectStore(USERS_STORE);
+  await asPromise(store.put(row));
+  return row;
 };
 
 // 'current'에 들어 있는 사용자를 프로필 형태로 돌려준다.
@@ -392,7 +513,7 @@ export const clearActiveRound = async (ids) => {
 // 사용자의 모든 데이터 Export (JSON)
 export const exportUserData = async (user) => {
   const ids = userIdsOf(user);
-  const [rounds, clubs] = await Promise.all([loadRoundsByUser(ids), loadClubsByUser(ids)]);
+  const [rounds, clubs, goals] = await Promise.all([loadRoundsByUser(ids), loadClubsByUser(ids), getGoals(user.userId)]);
   return {
     version: '1.0',
     exportDate: new Date().toISOString(),
@@ -400,6 +521,7 @@ export const exportUserData = async (user) => {
     data: {
       rounds: rounds || [],
       clubs: clubs || [],
+      goals,
     },
   };
 };
@@ -420,6 +542,10 @@ export const importUserData = async (userId, importedData, ownIds = [userId]) =>
   const result = await saveImportedRounds(userId, data.rounds || [], ownIds);
   if (Array.isArray(data.clubs) && data.clubs.length > 0) {
     await saveClubsForUser(userId, data.clubs);
+  }
+  // 목표도 파일에 들어 있을 때만 바꾼다 — 빈 목록으로 지금 목표를 지우지 않게 (클럽과 같다)
+  if (Array.isArray(data.goals) && data.goals.length > 0) {
+    await saveGoals(userId, data.goals);
   }
   return result;
 };

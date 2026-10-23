@@ -6,6 +6,7 @@ import { landingCounts } from '../../engine/landing.js';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
+import KoEnTitle from '../ui/KoEnTitle';
 import StickyTabs from '../ui/StickyTabs';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import { ChapterIntro, NextChapter } from './Chapter';
@@ -513,7 +514,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {sg.holes > 0 && (
         <div style={styles.section} data-role="strokes-gained">
           <div style={styles.sectionTitle}>
-            STROKES GAINED · 투어 평균 대비 {isCareerMode ? `(${rounds.length}라운드, 라운드당)` : `(${thisRound})`}
+            <KoEnTitle en="STROKES GAINED" ko={`투어 평균 대비 ${isCareerMode ? `(${rounds.length}라운드, 라운드당)` : `(${thisRound})`}`}>
             <InfoNote title="Strokes Gained 읽는 법">
               {sg.holesWithData === 0 ? (
                 <p>샷마다 남은 거리와 퍼트 거리를 입력하면 투어 평균과 비교한 Strokes Gained를 계산해 드려요. (지도로 핀과 샷 지점을 찍으면 남은 거리가 자동으로 채워져요)</p>
@@ -531,6 +532,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                 </>
               )}
             </InfoNote>
+          </KoEnTitle>
           </div>
           {sg.holesWithData === 0 ? (
             <div style={{ fontSize: 14, color: '#8896b0' }}>아직 계산할 수 있는 샷이 없어요.</div>
@@ -576,10 +578,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 스코어 5단계 분해 ─────────────────────────────────────────────── */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          SCORE BREAKDOWN · 스코어 기준 손실 (파 대비)
+          <KoEnTitle en="SCORE BREAKDOWN" ko="스코어 기준 손실 (파 대비)">
           <InfoNote title="스코어 기준 손실이란?">
             <p>위 SG와 달리 입력이 적어도 늘 계산돼요. 파를 기준으로 퍼팅 · 티샷 · 어프로치 · 숏게임 · 페널티에서 몇 타를 잃었는지 나눕니다.</p>
           </InfoNote>
+          </KoEnTitle>
         </div>
 
         {totalLossForBar > 0 ? (
@@ -653,8 +656,9 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       <ChapterIntro no={3} />
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          BIG MISSES · 빅 미스 {isCareerMode ? `(${rounds.length}라운드 평균)` : `(${thisRound})`}
+          <KoEnTitle en="BIG MISSES" ko={`빅 미스 ${isCareerMode ? `(${rounds.length}라운드 평균)` : `(${thisRound})`}`}>
           <BigMissesInfo career={isCareerMode} awful={awful} awfulPoints={awfulPoints} teePen={teePen} />
+          </KoEnTitle>
         </div>
         <BigMissesCard
           career={isCareerMode} rounds={rounds.length}
@@ -675,7 +679,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 티샷 (드라이빙) ─────────────────────────────────────────────── */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          TEE · 티샷
+          <KoEnTitle en="TEE" ko="티샷">
           <InfoNote title="티샷 읽는 법">
             <p>티샷은 정확도보다 거리가 스코어에 더 크게 기여하는 경향이 있어요 (아주 좁은 코스는 예외). 티샷 OB율은 위 3장에 있어요.</p>
             {driverStat && driverStat.n >= 5 && (
@@ -686,6 +690,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
               </p>
             )}
           </InfoNote>
+          </KoEnTitle>
         </div>
         <SkillHeader cat="tee" sg={sg} career={isCareerMode} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -706,7 +711,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── 어프로치 — 100야드(약 91m) 밖 샷 ─────────────────────────────────── */}
       <div style={styles.section} data-role="approach-section">
-        <div style={styles.sectionTitle}>APPROACH · 어프로치</div>
+        <div style={styles.sectionTitle}><KoEnTitle text="APPROACH · 어프로치" /></div>
         <SkillHeader cat="approach" sg={sg} career={isCareerMode} />
         {girp.holes > 0 && (
           <div style={{ marginBottom: 14 }}>
@@ -770,7 +775,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 클럽 거리 (§3-1, 10라운드+ 부터) ─────────────────────────────────── */}
       {stage >= 4 && clubStats.length > 0 && (
         <div style={styles.section}>
-          <div style={styles.sectionTitle}>CLUB DISTANCE · 클럽별 거리 (최근 20R)</div>
+          <div style={styles.sectionTitle}><KoEnTitle text="CLUB DISTANCE · 클럽별 거리 (최근 20R)" /></div>
           {clubStats.map(c => (
             <div key={c.label} style={styles.riStatRow}>
               <div style={styles.riStatRowLabel}>{c.label}</div>
@@ -790,7 +795,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         if (total === 0) return null;
         return (
           <div style={styles.section} data-role="landing-section">
-            <div style={styles.sectionTitle}>GREEN APPROACH · 그린 랜딩 분포</div>
+            <div style={styles.sectionTitle}><KoEnTitle text="GREEN APPROACH · 그린 랜딩 분포" /></div>
             <LandingRadar counts={counts} />
             <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 14, marginTop: 8 }}>총 {total}회 기록</div>
           </div>
@@ -799,7 +804,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── 숏게임 — 그린 밖 100야드(약 91m) 안 샷 ──────────────────────────── */}
       <div style={styles.section} data-role="shortgame-section">
-        <div style={styles.sectionTitle}>SHORT GAME · 숏게임</div>
+        <div style={styles.sectionTitle}><KoEnTitle text="SHORT GAME · 숏게임" /></div>
         <SkillHeader cat="shortGame" sg={sg} career={isCareerMode} />
         {scrambling.attempts > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -837,10 +842,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 퍼팅 — 그린 위의 샷 ───────────────────────────────────────────── */}
       <div style={styles.section} data-role="putting-section">
         <div style={styles.sectionTitle}>
-          PUTTING · 퍼팅
+          <KoEnTitle en="PUTTING" ko="퍼팅">
           <InfoNote title="퍼트 수 읽는 법">
             <p>퍼트 수는 첫 퍼트 거리와 함께 봐야 해요 — 60피트(18m)에서 2퍼트는 잘한 것이고 2피트(0.6m)에서 2퍼트는 실수지만 둘 다 '2퍼트'로 세어지거든요. 위 SG가 그 거리를 반영한 값이에요.</p>
           </InfoNote>
+          </KoEnTitle>
         </div>
         <SkillHeader cat="putting" sg={sg} career={isCareerMode} />
         <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
@@ -874,7 +880,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {greenSpeedReport && (
           <div style={{ marginTop: 4 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
-              GREEN SPEED · 그린 스피드{isCareerMode ? ' (구간별 라운드 평균)' : ''}
+              <KoEnTitle en="GREEN SPEED" ko={`그린 스피드${isCareerMode ? ' (구간별 라운드 평균)' : ''}`} />
             </div>
             <GreenSpeedPanel report={greenSpeedReport} past={!isLatest} />
           </div>
@@ -900,7 +906,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 홀 결과 분포 + 이벤트 하이라이트 (이번 라운드 / 누적 분리) ──────────── */}
       <div style={styles.section}>
         <div style={styles.sectionTitle}>
-          HOLE RESULTS · {isCareerMode ? `${rounds.length}라운드 누적 홀 결과` : `${thisRound} 홀 결과`}
+          <KoEnTitle en="HOLE RESULTS" ko={isCareerMode ? `${rounds.length}라운드 누적 홀 결과` : `${thisRound} 홀 결과`} />
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {[
@@ -928,7 +934,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 이번 라운드: 홀 타임라인 / 누적: 라운드별 스코어 추이 ────────────── */}
       {isCareerMode ? (
         <div style={styles.section}>
-          <div style={styles.sectionTitle}>ROUND TREND · 라운드별 스코어 추이</div>
+          <div style={styles.sectionTitle}><KoEnTitle text="ROUND TREND · 라운드별 스코어 추이" /></div>
           {roundTrend.map(r => (
             <div key={r.id} style={styles.riStatRow}>
               <div style={styles.riStatRowLabel}>{r.dateLabel}</div>
@@ -948,7 +954,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         </div>
       ) : (
         <div style={styles.section}>
-          <div style={styles.sectionTitle}>HOLE TIMELINE · 홀별 원인</div>
+          <div style={styles.sectionTitle}><KoEnTitle text="HOLE TIMELINE · 홀별 원인" /></div>
           <div style={styles.riTimelineWrap}>
             {timelineHoles.map(h => (
               <div key={h.holeNumber} style={{ ...styles.riTimelineCell, borderTopColor: h.primaryCause ? CATEGORY_COLOR[h.primaryCause] : '#1b2238' }}>
@@ -962,7 +968,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── MY STYLE ─────────────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>MY STYLE · 나의 플레이 스타일</div>
+        <div style={styles.sectionTitle}><KoEnTitle text="MY STYLE · 나의 플레이 스타일" /></div>
         <div style={{ ...styles.styleCard, borderColor: styleColor }}>
           <div style={styles.styleIconWrap}>
             <div style={styles.styleIconEmoji}>{styleIcon}</div>
@@ -1000,7 +1006,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {isCareerMode && patternInsights.length > 0 && (
         <div style={styles.section}>
           <div style={styles.sectionTitle}>
-            PATTERN INSIGHTS · {isCareerMode ? `${rounds.length}라운드 누적 반복 패턴 분석` : `${thisRound} 반복 패턴 분석`}
+            <KoEnTitle en="PATTERN INSIGHTS" ko={isCareerMode ? `${rounds.length}라운드 누적 반복 패턴 분석` : `${thisRound} 반복 패턴 분석`} />
           </div>
           <div style={styles.insightCards}>
             {patternInsights.map((ins, i) => {
@@ -1024,7 +1030,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── 파별 성적 ────────────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>BY PAR · 파별 성적</div>
+        <div style={styles.sectionTitle}><KoEnTitle text="BY PAR · 파별 성적" /></div>
         <div style={styles.parAnalysis}>
           {parBreakdown.map(p => (
             <div key={p.par} style={styles.parAnalysisRow}>
@@ -1051,7 +1057,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 전후반 페이스 ────────────────────────────────────────────────── */}
       {!isNaN(fadeDiff) && (
         <div style={styles.section}>
-          <div style={styles.sectionTitle}>PACE · 전후반 페이스</div>
+          <div style={styles.sectionTitle}><KoEnTitle text="PACE · 전후반 페이스" /></div>
           <div style={styles.paceCard}>
             <div style={styles.paceRow}>
               <div style={styles.paceLabel}>FRONT 9</div>
@@ -1088,7 +1094,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         return (
           <div style={styles.section}>
             <div style={styles.riGrowthBanner}>
-              <div style={styles.riGrowthTitle}>DATA GROWTH · 더 쌓이면 보이는 것들</div>
+              <div style={styles.riGrowthTitle}><KoEnTitle text="DATA GROWTH · 더 쌓이면 보이는 것들" /></div>
               {items.map((t, i) => <div key={i}>· {t}</div>)}
             </div>
           </div>

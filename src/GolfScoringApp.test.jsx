@@ -514,6 +514,44 @@ describe('스코어 입력 — 홀 표의 SCORE · PUTT 줄', () => {
   });
 });
 
+describe('인사이트 — 제목 · 상태 표시', () => {
+  const openInsights = async (chapter) => {
+    tab('인사이트');
+    await screen.findByText('Insights');
+    if (chapter) fireEvent.click(document.querySelector(`[data-role="insights-tab-${chapter}"]`));
+  };
+  const titles = () => [...document.querySelectorAll('[data-role="title-ko"]')].map((ko) => ({ ko: ko.firstChild.textContent, en: ko.nextElementSibling?.textContent }));
+
+  it('상태 칩은 기호 없이 글자만 보인다 (심각 · 주의 · 참고 · 좋은 점)', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    await openInsights();
+    const chips = [...document.querySelectorAll('[data-insight-id]')].map((card) => card.firstElementChild.firstElementChild.textContent);
+    expect(chips.length).toBeGreaterThan(0);
+    chips.forEach((t) => expect(t).toMatch(/^(심각|주의|참고|좋은 점)$/));
+  });
+
+  it('섹션 제목은 한글이 위 줄, 영문이 아래 줄이다 (개선 포인트 · 스코어 기준 손실 등)', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    await openInsights();
+    expect(titles()).toContainEqual({ ko: '잘한 점', en: 'STRENGTHS' });
+    expect(titles()).toContainEqual({ ko: '개선 포인트', en: 'IMPROVE' });
+
+    fireEvent.click(document.querySelector('[data-role="insights-tab-strokes"]'));
+    await waitFor(() => expect(titles().some((t) => t.en === 'SCORE BREAKDOWN')).toBe(true));
+    expect(titles()).toContainEqual({ ko: '스코어 기준 손실 (파 대비)', en: 'SCORE BREAKDOWN' });
+    // 한 줄 "영문 · 한글" 제목이 남아 있지 않다
+    expect(document.body.textContent).not.toMatch(/SCORE BREAKDOWN · /);
+  });
+
+  it('(!) 설명 버튼은 한글 줄 끝에 붙는다', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    await openInsights('strokes');
+    await waitFor(() => expect(titles().some((t) => t.en === 'SCORE BREAKDOWN')).toBe(true));
+    const ko = [...document.querySelectorAll('[data-role="title-ko"]')].find((el) => el.nextElementSibling?.textContent === 'SCORE BREAKDOWN');
+    expect(ko.querySelector('[data-role="info-note"]')).toBeTruthy();
+  });
+});
+
 describe('홈', () => {
   it('최근 라운드를 누르면 그 라운드의 리포트가 열린다', async () => {
     await setup({ rounds: [makeFullRound(1)] });

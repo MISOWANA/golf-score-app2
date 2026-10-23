@@ -1,5 +1,6 @@
 import InsightCard from './InsightCard.jsx';
 import InfoNote from '../ui/InfoNote';
+import KoEnTitle from '../ui/KoEnTitle';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
 import { speedLabel } from '../../engine/greenSpeed.js';
 
@@ -17,8 +18,7 @@ export const Section = ({ title, sub, note, noteTitle, children }) => (
   <div style={{ marginBottom: 22 }}>
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em' }}>
-        {title}
-        {note && <InfoNote title={noteTitle}>{note}</InfoNote>}
+        <KoEnTitle text={title} info={note && <InfoNote title={noteTitle}>{note}</InfoNote>} />
       </div>
       {sub && <div style={{ fontSize: 13, color: '#6e84a8' }}>{sub}</div>}
     </div>

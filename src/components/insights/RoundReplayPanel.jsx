@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import InsightCard from './InsightCard.jsx';
 import HoleReview from '../analysis/HoleReview';
 import InfoNote from '../ui/InfoNote';
+import KoEnTitle from '../ui/KoEnTitle';
 import { buildRoundReplay } from '../../engine/insightIndex.js';
 import { PUTT_CAUSE_LABEL } from '../../engine/puttAnalysis.js';
 import { totalPar } from '../../engine/players.js';
@@ -24,7 +25,7 @@ const pill = (active) => ({
 
 // note: 라벨 옆 (!) 버튼 (InfoNote). 없으면 글자만.
 const label = (t, note = null) => (
-  <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px', textAlign: 'left' }}>{t}{note}</div>
+  <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px', textAlign: 'left' }}><KoEnTitle text={t} info={note} /></div>
 );
 
 // 라운드 복기 — 한 라운드를 홀 순서대로 되짚는다. 어디서 잃었고(분기점), 무엇이 원인이었는지.

@@ -1,6 +1,6 @@
 import { INSIGHT_CATEGORY_LABEL } from '../../engine/rules/category.js';
 import { SEVERITY_LABEL } from '../../engine/insightIndex.js';
-import { SEVERITY_COLOR, SEVERITY_BG, SEVERITY_BADGE } from './insightTheme.js';
+import { SEVERITY_COLOR, SEVERITY_BG } from './insightTheme.js';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
 
 const chip = (color, bg) => ({
@@ -43,7 +43,7 @@ export default function InsightCard({ insight, showContext = false, compact = fa
       ...tintWash(color, TINT_SOFT), borderRadius: 14, padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
     }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 7 }}>
-        <span style={chip(color, bg)}>{SEVERITY_BADGE[insight.severity]} {SEVERITY_LABEL[insight.severity] ?? ''}</span>
+        <span style={chip(color, bg)}>{SEVERITY_LABEL[insight.severity] ?? ''}</span>
         {insight.category && !hideCategory && <span style={chip('#a9b8d6', 'rgba(255,255,255,0.05)')}>{INSIGHT_CATEGORY_LABEL[insight.category] ?? insight.category}</span>}
         {insight.holeNumber != null && !hideHole && (
           <span style={chip('#c9a228', 'rgba(201,162,40,0.10)')}>HOLE {insight.holeNumber}{insight.par ? ` · PAR ${insight.par}` : ''}</span>

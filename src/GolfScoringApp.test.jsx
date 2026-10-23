@@ -1898,3 +1898,23 @@ describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 �
     expect(document.querySelector('[data-role="edit-green-speed"]')).toBeNull();
   });
 });
+
+describe('스코어 입력 — 비어 있는 거리 칸', () => {
+  it('남은 거리가 비어 있으면 굵은 "—" 대신 가는 막대와 안내가 보이고, 옆으로 밀면 출발값에서 바뀐다', async () => {
+    const round = makeActiveRound(ME, { currentHole: 0 });
+    round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: null, putts: 2, puttsManual: true });
+    await setup({ active: round });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 1');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
+    const empty = await waitFor(() => { const e = document.querySelector('[data-role="empty-value"]'); expect(e).toBeTruthy(); return e; });
+    const box = empty.parentElement;
+    expect(box.textContent).not.toContain('—');
+    const start = Number(box.textContent.match(/탭하면 (\d+)m부터 · 밀어서 조정/)[1]);
+    fireEvent.mouseDown(box, { clientX: 100, clientY: 100 });
+    fireEvent.mouseMove(window, { clientX: 120, clientY: 100 });
+    fireEvent.mouseUp(window, { clientX: 120, clientY: 100 });
+    await waitFor(async () => expect((await db.loadActiveRound([user.userId])).holes[0].scores[ME].remainingDistance).toBe(start + 5));   // 4px 마다 1m
+    await waitFor(() => expect(document.querySelector('[data-role="empty-value"]')).toBeNull());
+  });
+});

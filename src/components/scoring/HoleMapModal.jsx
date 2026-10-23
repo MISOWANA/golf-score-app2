@@ -5,6 +5,7 @@ import { haversine, combinedAccuracy, gpsQuality, shotDistances, pinDistances } 
 import { fmtShot, unitLabel } from '../../engine/units.js';
 import { pointIcon, pinIcon, draftIcon, distanceIcon, rightNormal, createSatelliteMap } from '../map/holeMapLayers.js';
 import { getVWorldKey, setVWorldKey, VWORLD_SIGNUP_URL } from '../../engine/mapTiles.js';
+import EmptyValue from '../ui/EmptyValue.jsx';
 
 // 라운드 중에 쓰는 화면이라 기본 줌은 한 홀이 거의 다 들어오는 수준으로 잡는다.
 const INITIAL_ZOOM = 17;
@@ -856,8 +857,9 @@ function Metric({ label, value, tone = 'line', compact = false }) {
         {label}
       </div>
       <div style={{ color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ fontSize: compact ? 28 : 30, fontWeight: 900 }}>{value != null ? fmtShot(value, { unit: false }) : '—'}</span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>{unitLabel('shot')}</span>
+        {value != null
+          ? <><span style={{ fontSize: compact ? 28 : 30, fontWeight: 900 }}>{fmtShot(value, { unit: false })}</span><span style={{ fontSize: 15, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>{unitLabel('shot')}</span></>
+          : <EmptyValue />}
       </div>
     </div>
   );

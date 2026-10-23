@@ -20,6 +20,8 @@ import { playedNineOf } from '../../engine/nineConversion.js';
 import LandingWheel from './LandingWheel';
 import StickyTabs from '../ui/StickyTabs';
 import GoalLine from '../goals/GoalLine';
+import EmptyValue from '../ui/EmptyValue.jsx';
+import { useSwipeAdjust, SWIPE_STYLE } from '../ui/useSwipeAdjust.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -52,11 +54,7 @@ const getNavLabelFontSize = (text) => {
 // 그대로 저장하면 실제와 다른 거리가 통계에 섞이기 때문 — 입력하지 않은 거리는
 // 비워 두는 편이 낫다. start는 처음 조작할 때의 출발값(가운데를 탭하면 이 값으로 입력).
 //
-// 손가락 동작 구분: 가로로 끌면 값 조절, 세로로 밀면 화면 스크롤(touch-action: pan-y),
-// 거의 움직이지 않고 떼면 탭. 예전에는 이 칸 위에서 스크롤 자체가 막혀 있었고,
-// 세로로 민 동작이 탭으로 처리돼 스크롤하려다 기본값이 저장됐다.
-const TAP_SLOP = 8;    // 이 안에서 떼면 탭
-const DRAG_START = 6;  // 가로로 이만큼 움직이면 끌기 시작
+// 손가락 동작(가로로 끌기 · 세로 스크롤 · 탭)은 ui/useSwipeAdjust.js — 그린 스피드 선택기와 같이 쓴다.
 
 // kind('shot'|'putt')를 주면 거리 단위 설정을 따른다 — 야드 모드에서는 야드(퍼트는 피트)로 보이고 조절하며, onChange 에는
 // 늘 미터를 돌려준다. 받는 value·start·min·max 도 미터다 (engine/units.js).
@@ -72,59 +70,23 @@ function SwipeDistance({ value: valueM, start: startM, min: minM = 1, max: maxM 
   const decimals = conv ? 0 : decimalsM;
   const unit = conv ? unitLabel(kind) : unitM;
   const onChange = (v) => onChangeM(conv ? fromDisplay(v, kind, 'yd') : v);
-  const startPos = useRef(null);       // { x, y }
-  const startVal = useRef(value);
-  const modeRef = useRef(null);        // null(아직 모름) | 'drag' | 'scroll'
-  const [active, setActive] = useState(false);
   const clamp = v => parseFloat(Math.max(min, Math.min(max, Math.round(v / step) * step)).toFixed(decimals));
   const empty = value == null;
   const base = empty ? (start ?? min) : value;
+  const { active, bind } = useSwipeAdjust({ base, step, clamp, onChange, onTap: () => { if (empty) onChange(clamp(base)); } });   // 미입력 칸을 탭 → 출발값으로 입력
 
-  const handleStart = (x, y) => { startPos.current = { x, y }; startVal.current = base; modeRef.current = null; setActive(true); };
-  const handleMove  = (x, y) => {
-    if (!startPos.current || modeRef.current === 'scroll') return;
-    const dx = x - startPos.current.x;
-    const dy = y - startPos.current.y;
-    if (modeRef.current == null) {
-      // 세로 움직임이 먼저 크면 스크롤로 보고 이 동작은 끝까지 값을 건드리지 않는다.
-      if (Math.abs(dy) > TAP_SLOP && Math.abs(dy) >= Math.abs(dx)) { modeRef.current = 'scroll'; setActive(false); return; }
-      if (Math.abs(dx) < DRAG_START) return;
-      modeRef.current = 'drag';
-    }
-    onChange(clamp(startVal.current + dx / 4 * step));
-  };
-  const handleEnd = (x, y) => {
-    setActive(false);
-    const p = startPos.current;
-    startPos.current = null;
-    // 떼는 위치로 한 번 더 확인한다 — 스크롤 중에는 움직임 이벤트가 오지 않는 브라우저가 있다.
-    const isTap = modeRef.current == null && p && Math.hypot(x - p.x, y - p.y) < TAP_SLOP;
-    modeRef.current = null;
-    if (empty && isTap) onChange(clamp(base));   // 미입력 칸을 탭 → 출발값으로 입력
-  };
-  const handleCancel = () => { setActive(false); startPos.current = null; modeRef.current = null; };
-
-  const display = empty ? '—' : (decimals > 0 ? Number(value).toFixed(decimals) : Math.round(value));
+  const display = empty ? null : (decimals > 0 ? Number(value).toFixed(decimals) : Math.round(value));
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <button style={fMiniBtn} onClick={() => onChange(clamp(base - step))}>−</button>
       <div
-        style={{ flex: 1, textAlign: 'center', padding: '8px 0', cursor: 'ew-resize', touchAction: 'pan-y', userSelect: 'none', background: active ? 'rgba(201,162,40,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
-        onTouchStart={e => handleStart(e.touches[0].clientX, e.touches[0].clientY)}
-        onTouchMove={e => handleMove(e.touches[0].clientX, e.touches[0].clientY)}
-        // 탭 뒤에 따라오는 가짜 마우스 이벤트로 두 번 입력되지 않게 막는다.
-        onTouchEnd={e => { e.preventDefault(); const t = e.changedTouches[0]; handleEnd(t.clientX, t.clientY); }}
-        onTouchCancel={handleCancel}
-        onMouseDown={e => {
-          handleStart(e.clientX, e.clientY);
-          const move = (me) => handleMove(me.clientX, me.clientY);
-          const up   = (ue) => { handleEnd(ue.clientX, ue.clientY); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
-          window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
-        }}
+        style={{ flex: 1, textAlign: 'center', padding: '8px 0', ...SWIPE_STYLE, background: active ? 'rgba(201,162,40,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
+        {...bind}
       >
-        <span style={{ fontSize: 34, fontWeight: 900, color: empty ? '#4d5a78' : '#e8edf8', lineHeight: 1 }}>{display}</span>
-        <span style={{ fontSize: 14, color: '#8896b0', marginLeft: 4 }}>{unit}</span>
+        {empty
+          ? <EmptyValue />
+          : <><span style={{ fontSize: 34, fontWeight: 900, color: '#e8edf8', lineHeight: 1 }}>{display}</span><span style={{ fontSize: 14, color: '#8896b0', marginLeft: 4 }}>{unit}</span></>}
         {empty && (
           <div style={{ fontSize: 13, color: '#8896b0', marginTop: 4 }}>탭하면 {clamp(base)}{unit}부터 · 밀어서 조정</div>
         )}

@@ -1,6 +1,7 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, SplitBar, RateRow, Takeaway, TrendChip, Hint } from './widgets.jsx';
 import { COLOR, fmtPct } from './format.js';
+import { fmtShot, unitLabel } from '../../engine/units.js';
 
 // 티샷 — 페어웨이(미스 방향) · 클럽별 · 구질 · 티샷 사고
 export default function TeeTab({ report }) {
@@ -66,13 +67,13 @@ export default function TeeTab({ report }) {
       {driverDist && (
         <Card id="tee-distance" title="DRIVER · 드라이버 거리" info={<><p>지도로 티샷 지점을 잰 샷의 거리예요. 최근 20라운드, 3번 이상 쌓이면 보여요. 벌타가 난 티샷은 뺐어요.</p></>}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-            <Metric id="m-driver" value={Math.round(driverDist.median)} unit="m" label="중앙값" sub={`${driverDist.n}번`} />
-            {driverDist.q1 != null && driverDist.q3 != null && <Metric id="m-driver-range" value={`${Math.round(driverDist.q1)}~${Math.round(driverDist.q3)}`} unit="m" label="중간 절반의 샷" align="right" />}
+            <Metric id="m-driver" value={fmtShot(driverDist.median, { unit: false })} unit={unitLabel('shot')} label="중앙값" sub={`${driverDist.n}번`} />
+            {driverDist.q1 != null && driverDist.q3 != null && <Metric id="m-driver-range" value={`${fmtShot(driverDist.q1, { unit: false })}~${fmtShot(driverDist.q3, { unit: false })}`} unit={unitLabel('shot')} label="중간 절반의 샷" align="right" />}
           </div>
           {driverDist.q1 != null && driverDist.q3 != null && (
             <Takeaway tone={driverDist.q3 - driverDist.q1 > driverDist.median * 0.15 ? 'warn' : 'good'}>
               {driverDist.q3 - driverDist.q1 > driverDist.median * 0.15
-                ? `드라이버 거리가 ${Math.round(driverDist.q3 - driverDist.q1)}m 폭으로 들쭉날쭉해요. 일정하게 맞히는 게 거리보다 먼저예요.`
+                ? `드라이버 거리가 ${fmtShot(driverDist.q3 - driverDist.q1)} 폭으로 들쭉날쭉해요. 일정하게 맞히는 게 거리보다 먼저예요.`
                 : '드라이버 거리가 꾸준해요.'}
             </Takeaway>
           )}

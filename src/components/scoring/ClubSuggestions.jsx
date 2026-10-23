@@ -1,4 +1,5 @@
 import { clubLabelOf, fitText, reachText } from '../../engine/clubRecommend.js';
+import { fmtShot } from '../../engine/units.js';
 
 // 클럽 선택 바로 위에 놓이는 추천 카드.
 //   [한 클럽 짧게]  [★ 추천]  [한 클럽 길게]   — 짧게 가는 클럽부터 오른쪽으로 갈수록 멀리 간다
@@ -51,7 +52,7 @@ export default function ClubSuggestions({ suggest, value, subValue, onPick }) {
     if (value) return null;
     return (
       <div style={{ margin: '0 0 10px', padding: '8px 10px', borderRadius: 12, background: 'rgba(142,192,255,0.06)', border: '1px solid rgba(142,192,255,0.2)', fontSize: 13, lineHeight: 1.5, color: '#8ec0ff', wordBreak: 'keep-all' }}>
-        마이백에서 클럽별 캐리·토탈 거리를 설정하면 {suggest.distance}m에 맞는 클럽을 추천해 드려요
+        마이백에서 클럽별 캐리·토탈 거리를 설정하면 {fmtShot(suggest.distance)}에 맞는 클럽을 추천해 드려요
       </div>
     );
   }
@@ -64,7 +65,7 @@ export default function ClubSuggestions({ suggest, value, subValue, onPick }) {
     <div style={wrap} data-role="club-suggestions">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 2px 6px' }}>
         <span style={{ fontSize: 13, fontWeight: 800, color: GREEN, letterSpacing: '0.04em' }}>추천 클럽</span>
-        <span style={{ fontSize: 12, color: '#8896b0', fontVariantNumeric: 'tabular-nums' }}>남은 {rec.distance}m · 마이백 거리 기준</span>
+        <span style={{ fontSize: 12, color: '#8896b0', fontVariantNumeric: 'tabular-nums' }}>남은 {fmtShot(rec.distance)} · 마이백 거리 기준</span>
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
         {/* 없는 쪽은 빈 칸으로 둬서 추천 칩이 늘 가운데 있게 한다 */}

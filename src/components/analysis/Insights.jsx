@@ -3,6 +3,7 @@ import { tintWash, TINT_SOFT } from '../ui/tint.js';
 import { toHoleInput, analyzeRound } from '../../engine/engine.js';
 import { HOLE_RULES } from '../../engine/rules/holeRules.js';
 import { ROUND_RULES } from '../../engine/rules/roundRules.js';
+import { localizeDeep } from '../../engine/units.js';
 
 const SEVERITY_COLOR  = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
 const SEVERITY_BG     = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.12)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
@@ -10,7 +11,7 @@ const SEVERITY_BADGE  = { positive: '✓', neutral: '·', warning: '△', critic
 
 export default function Insights({ round, player }) {
   const holeInputs = round.holes.map(h => toHoleInput(h, player));
-  const { roundInsights, holeInsights } = analyzeRound(holeInputs, HOLE_RULES, ROUND_RULES);
+  const { roundInsights, holeInsights } = localizeDeep(analyzeRound(holeInputs, HOLE_RULES, ROUND_RULES));
 
   // 라운드 인사이트: critical/warning/positive 중 상위 5개
   const topRoundInsights = roundInsights

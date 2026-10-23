@@ -12,6 +12,7 @@ import { nowMs } from '../../engine/clock.js';
 import { bagCoverage } from '../../engine/clubRecommend.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { BAG_LIMIT, MIN_MEASURED_SHOTS, TYPE_ORDER, bagComposition, gapReport, measuredByClub } from '../../engine/bagStats.js';
+import { fmtShot, unitInfo, unitLabel } from '../../engine/units.js';
 
 const DEFAULT_CLUBS = [
   { id: 'driver', name: 'Driver', type: 'Wood', carry: 200, total: 215 },
@@ -532,7 +533,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
       {tab === 'chart' && (
         <div data-role="bag-page-chart">
           <div style={{ fontSize: 14, color: COLOR.muted, textAlign: 'center', margin: '2px 0 14px', lineHeight: 1.5 }}>
-            클럽별 거리를 한눈에 봐요 · 숫자는 모두 미터(m) · 누르면 거리를 고쳐요
+            클럽별 거리를 한눈에 봐요 · 숫자는 모두 {unitInfo().name}({unitLabel('shot')}) · 누르면 거리를 고쳐요
           </div>
 
           <Card id="bag-chart" title="DISTANCE · 거리 분포">
@@ -598,13 +599,13 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                         <span data-role={`bag-chart-total-bar-${club.id}`} style={{ position: 'absolute', left: 0, top: 9, height: 5, width: pct(club.total), borderRadius: 3, background: BAG_COLOR.total }} />
                         {m && <span data-role="bag-chart-measured" style={{ position: 'absolute', top: -2, bottom: -2, left: `calc(${pct(m.median)} - 1.5px)`, width: 3, borderRadius: 1.5, background: BAG_COLOR.measured }} />}
                       </span>
-                      <span data-role={`bag-chart-carry-${club.id}`} style={{ width: CHART_COL.carry, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: 800, color: BAG_COLOR.carry, fontVariantNumeric: 'tabular-nums' }}>{club.carry}</span>
-                      <span data-role={`bag-chart-total-${club.id}`} style={{ width: CHART_COL.total, flexShrink: 0, textAlign: 'right', fontSize: 15, fontWeight: 900, color: BAG_COLOR.total, fontVariantNumeric: 'tabular-nums' }}>{club.total}</span>
+                      <span data-role={`bag-chart-carry-${club.id}`} style={{ width: CHART_COL.carry, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: 800, color: BAG_COLOR.carry, fontVariantNumeric: 'tabular-nums' }}>{fmtShot(club.carry, { unit: false })}</span>
+                      <span data-role={`bag-chart-total-${club.id}`} style={{ width: CHART_COL.total, flexShrink: 0, textAlign: 'right', fontSize: 15, fontWeight: 900, color: BAG_COLOR.total, fontVariantNumeric: 'tabular-nums' }}>{fmtShot(club.total, { unit: false })}</span>
                       {hasMeasured && (
                         <span data-role={`bag-chart-meas-${club.id}`} style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'right', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}>
                           {m ? (
                             <>
-                              <span style={{ display: 'block', fontSize: 15, fontWeight: 900, color: BAG_COLOR.measured }}>{m.median}</span>
+                              <span style={{ display: 'block', fontSize: 15, fontWeight: 900, color: BAG_COLOR.measured }}>{fmtShot(m.median, { unit: false })}</span>
                               <span style={{ display: 'block', fontSize: 11, color: COLOR.faint }}>{m.n}샷</span>
                             </>
                           ) : <span style={{ fontSize: 14, color: COLOR.faint }}>–</span>}
@@ -630,12 +631,12 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
             <Card id="bag-gap" title="GAPPING · 클럽 간격">
               {gapInfo.wide.map((g) => (
                 <Takeaway key={`w-${g.longer}-${g.shorter}`} bare tone="warn" id="gap-take">
-                  {g.longer}와 {g.shorter} 사이가 {g.gap}m나 벌어져 있어요 ({g.from}m → {g.to}m). 그 사이 거리를 칠 클럽이 없어요.
+                  {g.longer}와 {g.shorter} 사이가 {fmtShot(g.gap)}나 벌어져 있어요 ({fmtShot(g.from)} → {fmtShot(g.to)}). 그 사이 거리를 칠 클럽이 없어요.
                 </Takeaway>
               ))}
               {gapInfo.overlap.map((g) => (
                 <Takeaway key={`o-${g.longer}-${g.shorter}`} bare tone="info" id="gap-take">
-                  {g.longer}와 {g.shorter}는 토탈 거리 차이가 {g.gap}m뿐이에요. 한 클럽을 줄여도 괜찮을 수 있어요.
+                  {g.longer}와 {g.shorter}는 토탈 거리 차이가 {fmtShot(g.gap)}뿐이에요. 한 클럽을 줄여도 괜찮을 수 있어요.
                 </Takeaway>
               ))}
               {gapInfo.wide.length === 0 && gapInfo.overlap.length === 0 && (

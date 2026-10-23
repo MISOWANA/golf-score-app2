@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { haversine, combinedAccuracy, gpsQuality } from '../../engine/geo.js';
+import { fmtShot } from '../../engine/units.js';
 
 // ─── 측위 ──────────────────────────────────────────────────────────────────────
 //
@@ -69,7 +70,7 @@ function errorMessage(err) {
   }
 }
 
-const fmtAcc = (acc) => acc == null ? '' : `±${Math.round(acc)}m`;
+const fmtAcc = (acc) => acc == null ? '' : `±${fmtShot(acc)}`;
 
 // ─── 컴포넌트 ──────────────────────────────────────────────────────────────────
 //
@@ -119,9 +120,9 @@ export default function GpsShotPoint({
   const liveToPin = busy && live ? haversine(live, pinPoint) : null;
   const livePreview = (liveDistance != null || liveToPin != null) ? (
     <div style={{ marginTop: 6, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#8ca4bc' }}>
-      {liveDistance != null && <span>{prevLabel}에서 {Math.round(liveDistance)}m</span>}
+      {liveDistance != null && <span>{prevLabel}에서 {fmtShot(liveDistance)}</span>}
       {liveDistance != null && liveToPin != null && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
-      {liveToPin != null && <span style={{ color: '#c9a228' }}>⛳ 핀까지 {Math.round(liveToPin)}m</span>}
+      {liveToPin != null && <span style={{ color: '#c9a228' }}>⛳ 핀까지 {fmtShot(liveToPin)}</span>}
     </div>
   ) : null;
 
@@ -147,7 +148,7 @@ export default function GpsShotPoint({
             <span style={{ fontSize: 14, fontWeight: 800, color: '#3db87a' }}>✓</span>
             {distance != null && (
               <span style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8' }}>
-                {prevLabel}에서 {Math.round(distance)}m
+                {prevLabel}에서 {fmtShot(distance)}
                 {distanceAcc != null && (
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#8896b0', marginLeft: 3 }}>
                     {fmtAcc(distanceAcc)}
@@ -157,7 +158,7 @@ export default function GpsShotPoint({
             )}
             {toPin != null && (
               <span style={{ fontSize: 14, fontWeight: 800, color: '#c9a228' }}>
-                ⛳ 핀까지 {Math.round(toPin)}m
+                ⛳ 핀까지 {fmtShot(toPin)}
               </span>
             )}
             {distance == null && toPin == null && (

@@ -31,6 +31,7 @@ import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strok
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 import ExcludedNote from '../stats/ExcludedNote.jsx';
+import { isYards, tx, fmtShot, fmtPutt, localizeDeep } from '../../engine/units.js';
 
 // 리포트의 장마다 탭 하나 — 장 하나가 한 페이지다. 라운드 복기·검색은 장이 아니라 헤더의 도구 버튼으로 연다.
 const CHAPTER_TABS = CHAPTERS.map((c) => [c.key, c.short]);
@@ -171,7 +172,8 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const rounds = allRounds.slice(pick);
   const isLatest = pick === 0;
   const thisRound = isLatest ? '이번 라운드' : '이 라운드';
-  const localize = (v) => (isLatest ? v : swapPast(v));   // 지난 라운드면 '이번 라운드'·'오늘'을 바꿔 보인다
+  // 지난 라운드면 '이번 라운드'·'오늘'을 바꿔 보이고, 거리 단위가 야드이면 문장 속 미터도 바꾼다
+  const localize = (v) => localizeDeep(isLatest ? v : swapPast(v));
 
   const latestRound = rounds[0];   // 보고 있는 라운드 (기본은 최신)
   const player = latestRound.players[0];
@@ -388,15 +390,15 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const approachRows = approachProximity.filter(b => b.n > 0 && b.id !== 'lt80');
   const approachAllRows = approachAll.filter(b => b.n > 0 && b.id !== 'lt80');
   const shortRows = [
-    { key: 'hit', label: '그린 적중', ...approachProximity.find(b => b.id === 'lt80') },
-    { key: 'all', label: '전체 샷', ...approachAll.find(b => b.id === 'lt80') },
+    { ...approachProximity.find(b => b.id === 'lt80'), key: 'hit', label: '그린 적중' },
+    { ...approachAll.find(b => b.id === 'lt80'), key: 'all', label: '전체 샷' },
   ].filter(r => r.n > 0);
   const approach110 = approachAll.find(b => b.id === '110to140')?.median ?? null;
   const prescriptions = rep
-    ? buildPrescriptions({
+    ? localizeDeep(buildPrescriptions({
       sg, ranked: activeBreakdown.ranked, awful, awfulOverLimit, teePen, puttZone,
       puttCauses: rep.causes, approach110, scrambling, teeBias,
-    })
+    }))
     : null;
 
   const roundPar = sumPar(latestRound);
@@ -684,9 +686,9 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             <p>티샷은 정확도보다 거리가 스코어에 더 크게 기여하는 경향이 있어요 (아주 좁은 코스는 예외). 티샷 OB율은 위 3장에 있어요.</p>
             {driverStat && driverStat.n >= 5 && (
               <p data-role="driver-value">
-                드라이버를 {DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드) 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
+                드라이버를 {isYards() ? '20야드' : `${DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드)`} 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
                 90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
-                내 드라이버 중앙값은 {driverStat.median?.toFixed(0)}m예요.
+                내 드라이버 중앙값은 {fmtShot(driverStat.median)}예요.
               </p>
             )}
           </InfoNote>
@@ -734,11 +736,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 근접도 — 그린에 올린 샷의 첫 퍼트 거리 (최근 20R)</div>
             {approachRows.map(b => (
               <div key={b.id} style={styles.riStatRow}>
-                <div style={styles.riStatRowLabel}>{b.label}</div>
+                <div style={styles.riStatRowLabel}>{tx(b.label, { abbr: true })}</div>
                 <div style={styles.riStatRowBarTrack}>
                   <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 15) * 100)}%` }} />
                 </div>
-                <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
+                <div style={styles.riStatRowValue}>{fmtPutt(b.median, { digits: 1 })}</div>
                 <ConfidenceBadge tier={b.tier} n={b.n} />
               </div>
             ))}
@@ -754,17 +756,17 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
               전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
               <InfoNote title="전체 샷 기준 비교">
-                <p>125야드({APPROACH_125YD.distanceM.toFixed(0)}m)에서 절반의 샷이 들어오는 거리: 투어 {APPROACH_125YD.tourMedianM.toFixed(1)}m · 90타 골퍼 {APPROACH_125YD.golfer90MedianM.toFixed(1)}m예요.</p>
+                <p>125야드{isYards() ? '' : `(${APPROACH_125YD.distanceM.toFixed(0)}m)`}에서 절반의 샷이 들어오는 거리: 투어 {fmtPutt(APPROACH_125YD.tourMedianM, { digits: 1 })} · 90타 골퍼 {fmtPutt(APPROACH_125YD.golfer90MedianM, { digits: 1 })}예요.</p>
                 <p>110-140m 구간과 비교해 보세요. par 3 티샷은 포함되지 않고, 남은 거리는 입력한 값 기준이에요.</p>
               </InfoNote>
             </div>
             {approachAllRows.map(b => (
               <div key={b.id} style={styles.riStatRow}>
-                <div style={styles.riStatRowLabel}>{b.label}</div>
+                <div style={styles.riStatRowLabel}>{tx(b.label, { abbr: true })}</div>
                 <div style={styles.riStatRowBarTrack}>
                   <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (b.median / 25) * 100)}%` }} />
                 </div>
-                <div style={styles.riStatRowValue}>{b.median?.toFixed(1)}m</div>
+                <div style={styles.riStatRowValue}>{fmtPutt(b.median, { digits: 1 })}</div>
                 <ConfidenceBadge tier={b.tier} n={b.n} />
               </div>
             ))}
@@ -782,7 +784,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
               <div style={styles.riStatRowBarTrack}>
                 <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (c.median / 200) * 100)}%` }} />
               </div>
-              <div style={styles.riStatRowValue}>{c.median?.toFixed(0)}m</div>
+              <div style={styles.riStatRowValue}>{fmtShot(c.median)}</div>
               <ConfidenceBadge tier={c.tier} n={c.n} />
             </div>
           ))}
@@ -820,7 +822,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {stage >= 3 && shortRows.length > 0 && (
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
-              80m 안 샷의 근접도
+              {tx('80m 안 샷의 근접도')}
               <InfoNote title="근접도 두 줄의 차이">
                 <p>첫 줄은 그린에 올린 샷의 첫 퍼트 거리, 둘째 줄은 그린을 놓친 샷까지 센 샷 뒤 핀까지 남은 거리예요.</p>
               </InfoNote>
@@ -831,7 +833,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                 <div style={styles.riStatRowBarTrack}>
                   <div style={{ ...styles.riStatRowBarFill, width: `${Math.min(100, (r.median / 15) * 100)}%` }} />
                 </div>
-                <div style={styles.riStatRowValue}>{r.median?.toFixed(1)}m</div>
+                <div style={styles.riStatRowValue}>{fmtPutt(r.median, { digits: 1 })}</div>
                 <ConfidenceBadge tier={r.tier} n={r.n} />
               </div>
             ))}
@@ -852,7 +854,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
         {puttingStats.byDistance.filter(b => b.total > 0).map(b => (
           <div key={b.id} style={styles.riStatRow}>
-            <div style={styles.riStatRowLabel}>{b.label}</div>
+            <div style={styles.riStatRowLabel}>{tx(b.label, { abbr: true })}</div>
             <div style={styles.riStatRowBarTrack}>
               <div style={{ ...styles.riStatRowBarFill, width: `${b.ratePct ?? 0}%`, background: '#3db87a' }} />
             </div>
@@ -865,8 +867,8 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         )}
         {puttZone.total >= 3 && (
           <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
-            퍼팅 실력이 가장 많이 갈리는 <b>1~2m(3~7피트)</b> 구간 성공률 <b style={{ color: '#e8edf8' }}>{Math.round(puttZone.ratePct)}%</b> ({puttZone.made}/{puttZone.total}).
-            <InfoNote title="1~2m 구간이 중요한 이유">
+            퍼팅 실력이 가장 많이 갈리는 <b>{isYards() ? '3~7피트' : '1~2m(3~7피트)'}</b> 구간 성공률 <b style={{ color: '#e8edf8' }}>{Math.round(puttZone.ratePct)}%</b> ({puttZone.made}/{puttZone.total}).
+            <InfoNote title={tx('1~2m 구간이 중요한 이유')}>
               <p>최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</p>
             </InfoNote>
           </div>

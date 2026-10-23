@@ -1,3 +1,4 @@
+import { fmtShot, fmtPutt } from '../../engine/units.js';
 // 스탯 화면의 숫자 표기와 색 — 컴포넌트 파일에는 컴포넌트만 둔다.
 
 export const COLOR = {
@@ -13,7 +14,9 @@ export const fmtSigned = (v, digits = 1) => {
   const s = Math.abs(v).toFixed(digits);
   return `${v > 0 ? '+' : v < 0 && Number(s) !== 0 ? '−' : ''}${s}`;
 };
-export const fmtMeters = (v, digits = 0) => (v == null ? '–' : `${Number(v).toFixed(digits)}m`);
+// 거리 글자 — 단위 설정(미터·야드)을 따른다. 샷 거리는 fmtMeters, 퍼트·근접도처럼 짧은 거리는 fmtPuttMeters (야드 모드에서 피트)
+export const fmtMeters = (v, digits = 0) => fmtShot(v, { digits });
+export const fmtPuttMeters = (v, digits = 1) => fmtPutt(v, { digits });
 
 // 추세 표시에 쓰는 말: 최근 5라운드 값이 이전보다 좋아졌나
 export const isBetter = (delta, goodWhen) => (goodWhen === 'down' ? delta < 0 : delta > 0);

@@ -443,3 +443,47 @@ describe('목표 저장', () => {
     expect(await db.getGoals(b.userId)).toEqual([G('penalties', 1)]);
   });
 });
+
+describe('거리 단위 설정', () => {
+  it('없으면 미터, 저장하면 그대로 읽힌다', async () => {
+    const p = await db.loginByName('홍길동');
+    expect(await db.getPrefs(p.userId)).toEqual({ unit: 'm' });
+    expect(await db.savePrefs(p.userId, { unit: 'yd' })).toEqual({ unit: 'yd' });
+    expect(await db.getPrefs(p.userId)).toEqual({ unit: 'yd' });
+  });
+
+  it('알 수 없는 단위는 미터로 저장한다', async () => {
+    const p = await db.loginByName('홍길동');
+    expect(await db.savePrefs(p.userId, { unit: 'furlong' })).toEqual({ unit: 'm' });
+    expect(await db.savePrefs(p.userId, null)).toEqual({ unit: 'm' });
+  });
+
+  it('사용자마다 따로 저장한다', async () => {
+    const a = await db.loginByName('A');
+    const b = await db.loginByName('B');
+    await db.savePrefs(a.userId, { unit: 'yd' });
+    expect(await db.getPrefs(b.userId)).toEqual({ unit: 'm' });
+  });
+
+  it('프로필을 지우면 설정도 함께 지운다', async () => {
+    const a = await db.loginByName('A');
+    await db.savePrefs(a.userId, { unit: 'yd' });
+    await db.deleteProfile(a);
+    expect(await db.getPrefs(a.userId)).toEqual({ unit: 'm' });
+  });
+
+  it('내보내기에 설정이 들어가고, 가져오면 돌아온다 (예전 백업에는 없으니 지금 설정을 그대로 둔다)', async () => {
+    const a = await db.loginByName('A');
+    await db.savePrefs(a.userId, { unit: 'yd' });
+    const exported = await db.exportUserData(a);
+    expect(exported.data.prefs).toEqual({ unit: 'yd' });
+
+    const b = await db.loginByName('B');
+    await db.importUserData(b.userId, exported, [b.userId]);
+    expect(await db.getPrefs(b.userId)).toEqual({ unit: 'yd' });
+
+    await db.savePrefs(b.userId, { unit: 'm' });
+    await db.importUserData(b.userId, { data: { rounds: [] } }, [b.userId]);      // prefs 가 없는 예전 백업
+    expect(await db.getPrefs(b.userId)).toEqual({ unit: 'm' });
+  });
+});

@@ -41,7 +41,13 @@ const STEPS = [
   ['확인하기', '홈의 누적 라운드 수와 히스토리의 최근 라운드가 맞는지 확인해요.'],
 ];
 
-export default function SettingsView({ currentUser, rounds, backupMeta, onBackup, onImport, onBack }) {
+// 거리 단위 고르기 — 기록은 늘 미터로 저장되고, 화면에 보이고 입력하는 단위만 바뀐다 (engine/units.js)
+const UNIT_CHOICES = [
+  { id: 'm', label: '미터', sub: 'm' },
+  { id: 'yd', label: '야드', sub: 'yd · 퍼트는 ft' },
+];
+
+export default function SettingsView({ currentUser, rounds, backupMeta, unit = 'm', onChangeUnit, onBackup, onImport, onBack }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);                  // { tone: 'ok' | 'error', text }
@@ -84,6 +90,36 @@ export default function SettingsView({ currentUser, rounds, backupMeta, onBackup
         <div style={styles.pageTitle}>Settings</div>
         <div style={{ width: 40 }} />
       </header>
+
+      <Card id="unit" title={(
+        <KoEnTitle text="DISTANCE UNIT · 거리 단위">
+          <InfoNote title="단위를 바꾸면 기록도 바뀌나요?">
+            <p>아니요. 기록은 늘 미터로 저장돼요. 단위는 화면에 보이는 숫자와 거리 입력 방식만 바꿔요.</p>
+            <p>야드를 고르면 샷 거리는 야드(yd)로, 퍼트 거리는 피트(ft)로 보여 줘요. 언제든 다시 미터로 바꿔도 기록은 그대로예요.</p>
+          </InfoNote>
+        </KoEnTitle>
+      )}>
+        <div role="radiogroup" aria-label="거리 단위" data-role="unit-choice" style={{ display: 'flex', gap: 8 }}>
+          {UNIT_CHOICES.map((c) => {
+            const on = unit === c.id;
+            return (
+              <button key={c.id} type="button" role="radio" aria-checked={on} data-role={`unit-${c.id}`} data-on={on ? '1' : '0'}
+                onClick={() => { if (!on) onChangeUnit?.(c.id); }}
+                style={{ flex: '1 1 0', minWidth: 0, padding: '12px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center', wordBreak: 'keep-all',
+                  background: on ? 'rgba(201,162,40,0.16)' : 'transparent', border: `1.5px solid ${on ? '#c9a228' : '#2c3a5c'}`, color: on ? '#f3d36b' : '#e8edf8' }}>
+                <span style={{ display: 'block', fontSize: 16, fontWeight: 800 }}>{c.label}</span>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: on ? '#c9a228' : '#8896b0', marginTop: 2 }}>{c.sub}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div data-role="unit-example" style={{ fontSize: 14, color: '#a9b8d6', lineHeight: 1.6, marginTop: 10, wordBreak: 'keep-all' }}>
+          {unit === 'yd'
+            ? '샷 거리는 야드, 퍼트 거리는 피트로 보이고 입력해요. 예: 150m = 164야드, 3m = 10피트.'
+            : '샷 거리와 퍼트 거리를 모두 미터로 보이고 입력해요. 야드로 쓰고 싶다면 위에서 바꿔 주세요.'}
+        </div>
+        <div style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.6, marginTop: 4, wordBreak: 'keep-all' }}>기록은 미터로 저장되니 바꿔도 지난 기록과 통계는 그대로예요.</div>
+      </Card>
 
       <Card id="backup" title={(
         <KoEnTitle text="BACKUP · 백업 · 기기 옮기기">

@@ -1,3 +1,4 @@
+import { fmtShot, fmtShotRange } from './units.js';
 // ─── 클럽 추천 ────────────────────────────────────────────────────────────────
 //
 // 마이백에 입력한 클럽별 거리(캐리·토탈)와 남은 거리로 칠 클럽을 고른다.
@@ -162,14 +163,14 @@ export function recommendClubs(bagClubs, distance, allowedClubs = null) {
 // 추천 클럽이 이 거리에 얼마나 맞는지 한 줄로.
 export function fitText(rec) {
   const { primary: p, fit, gap, edge } = rec;
-  if (fit === 'in') return p.carry === p.total ? `${p.carry}m 클럽이에요` : `캐리 ${p.carry} · 토탈 ${p.total}m 안에 들어와요`;
+  if (fit === 'in') return p.carry === p.total ? `${fmtShot(p.carry)} 클럽이에요` : `캐리 ${fmtShot(p.carry, { unit: false })} · 토탈 ${fmtShot(p.total)} 안에 들어와요`;
   if (fit === 'under') {
-    return edge === 'longest' ? `마이백에서 가장 긴 클럽도 ${gap}m 모자라요` : `토탈 ${p.hi}m보다 ${gap}m 더 필요해요`;
+    return edge === 'longest' ? `마이백에서 가장 긴 클럽도 ${fmtShot(gap)} 모자라요` : `토탈 ${fmtShot(p.hi)}보다 ${fmtShot(gap)} 더 필요해요`;
   }
   return edge === 'shortest'
-    ? `가장 짧은 클럽(${p.lo}m)보다 ${gap}m 짧아요 · 줄여 치는 샷이에요`
-    : `${p.lo}m보다 ${gap}m 짧아요 · 줄여 치세요`;
+    ? `가장 짧은 클럽(${fmtShot(p.lo)})보다 ${fmtShot(gap)} 짧아요 · 줄여 치는 샷이에요`
+    : `${fmtShot(p.lo)}보다 ${fmtShot(gap)} 짧아요 · 줄여 치세요`;
 }
 
 // 구간 표기 (135–140m · 같으면 135m)
-export const reachText = (c) => (c.lo === c.hi ? `${c.lo}m` : `${c.lo}–${c.hi}m`);
+export const reachText = (c) => fmtShotRange(c.lo, c.hi);

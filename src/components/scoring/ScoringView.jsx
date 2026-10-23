@@ -15,6 +15,7 @@ import { applyParEdit } from '../../engine/parEdit.js';
 import { greenMissed, GREEN_MISS_DIRS } from '../../engine/greenMiss.js';
 import { ninesOf, holeNoOf } from '../../engine/nines.js';
 import { SURFACES, shotInfoGaps, fairwayFromSurface, surfaceLabel } from '../../engine/shotInfo.js';
+import { isYards, unitInfo, unitLabel, fromDisplay, fmtShot } from '../../engine/units.js';
 import { playedNineOf } from '../../engine/nineConversion.js';
 import LandingWheel from './LandingWheel';
 import StickyTabs from '../ui/StickyTabs';
@@ -57,7 +58,20 @@ const getNavLabelFontSize = (text) => {
 const TAP_SLOP = 8;    // 이 안에서 떼면 탭
 const DRAG_START = 6;  // 가로로 이만큼 움직이면 끌기 시작
 
-function SwipeDistance({ value, start, min = 1, max = 300, onChange, step = 1, decimals = 0, unit = 'm' }) {
+// kind('shot'|'putt')를 주면 거리 단위 설정을 따른다 — 야드 모드에서는 야드(퍼트는 피트)로 보이고 조절하며, onChange 에는
+// 늘 미터를 돌려준다. 받는 value·start·min·max 도 미터다 (engine/units.js).
+function SwipeDistance({ value: valueM, start: startM, min: minM = 1, max: maxM = 300, onChange: onChangeM, step: stepM = 1, decimals: decimalsM = 0, unit: unitM = 'm', kind = null }) {
+  const conv = kind != null && isYards();
+  const f = conv ? unitInfo()[`${kind}F`] : 1;
+  const inView = (v) => (v == null || !conv ? v : Math.round(v * f));
+  const value = inView(valueM);
+  const start = inView(startM);
+  const min = conv ? Math.max(1, Math.round(minM * f)) : minM;
+  const max = conv ? Math.round(maxM * f) : maxM;
+  const step = conv ? 1 : stepM;
+  const decimals = conv ? 0 : decimalsM;
+  const unit = conv ? unitLabel(kind) : unitM;
+  const onChange = (v) => onChangeM(conv ? fromDisplay(v, kind, 'yd') : v);
   const startPos = useRef(null);       // { x, y }
   const startVal = useRef(value);
   const modeRef = useRef(null);        // null(아직 모름) | 'drag' | 'scroll'
@@ -90,7 +104,7 @@ function SwipeDistance({ value, start, min = 1, max = 300, onChange, step = 1, d
   };
   const handleCancel = () => { setActive(false); startPos.current = null; modeRef.current = null; };
 
-  const display = empty ? '—' : (decimals > 0 ? Number(value).toFixed(decimals) : value);
+  const display = empty ? '—' : (decimals > 0 ? Number(value).toFixed(decimals) : Math.round(value));
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1344,7 +1358,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       return (
         <button onClick={onApply}
           style={{ ...base, color: '#8ec0ff', background: 'transparent', border: '1px solid rgba(142,192,255,0.5)', cursor: 'pointer' }}>
-          지도 {measured}m 적용
+          지도 {fmtShot(measured)} 적용
         </button>
       );
     }
@@ -2516,8 +2530,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               {mapDistanceTag(measuredTee, playerScore.teeDistance, null,
                 () => updateFields({ teeDistance: measuredTee, teeDistanceAppliedM: measuredTee }))}
             </div>
-            <SwipeDistance value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
-            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
+            <SwipeDistance kind="shot" value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
+            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
           </div>
         )}
 
@@ -2738,8 +2752,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               () => updateFields({ remainingDistance: measuredSecond, remainingAppliedM: measuredSecond, remainingSource: null, replayCopied: false }))}
             {replayTag(playerScore.replayCopied)}
           </div>
-          <SwipeDistance value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
-          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
+          <SwipeDistance kind="shot" value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
+          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
         </div>
 
         {/* 세컨샷 클럽 */}
@@ -2880,8 +2894,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       () => updateExtraShot(idx, { remainingDistance: measuredExtra(idx), remainingAppliedM: measuredExtra(idx), remainingSource: null, replayCopied: false }))}
                     {replayTag(shot.replayCopied)}
                   </div>
-                  <SwipeDistance value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
-                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1m 단위 조정 →</div>}
+                  <SwipeDistance kind="shot" value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
+                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
                 </div>
 
                 {/* 클럽 */}
@@ -3148,11 +3162,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   </div>
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
+                    <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
                   </div>
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance value={putt.aimDistance ?? null} start={putt.distance ?? puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+                    <SwipeDistance kind="putt" value={putt.aimDistance ?? null} start={putt.distance ?? puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
                   </div>
                   {/* 홀인 */}
                   <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>

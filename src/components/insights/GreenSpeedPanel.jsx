@@ -1,6 +1,7 @@
 import ConfidenceBadge from './ConfidenceBadge';
 import InfoNote from '../ui/InfoNote';
 import { speedLabel } from '../../engine/greenSpeed.js';
+import { fmtPutt } from '../../engine/units.js';
 
 // 그린 스피드별 퍼팅. 인사이트(PUTTING)와 리포트가 같은 계산(buildGreenSpeedReport)을 받아 같은 숫자를 보여준다.
 //   이번 라운드: 오늘 그린의 속도 · 퍼트 · 3퍼트 · 비교 · 요령
@@ -63,7 +64,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
                 <div style={{ width: 42, textAlign: 'right' }}>{b.putts.toFixed(1)}</div>
                 <div style={{ width: 42, textAlign: 'right' }}>{b.three.toFixed(1)}</div>
                 <div style={{ width: 42, textAlign: 'right' }}>{b.one.toFixed(1)}</div>
-                <div style={{ width: 48, textAlign: 'right' }}>{b.firstDist != null ? `${b.firstDist.toFixed(1)}m` : '–'}</div>
+                <div style={{ width: 48, textAlign: 'right' }}>{b.firstDist != null ? fmtPutt(b.firstDist, { digits: 1 }) : '–'}</div>
                 <div style={{ width: 48, textAlign: 'right', color: b.sgPutting == null ? '#6e84a8' : b.sgPutting >= 0 ? '#3db87a' : '#ef5350' }}>{sgText(b.sgPutting)}</div>
               </div>
             ))}
@@ -99,7 +100,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
         <Stat label="퍼트" value={r.putts} />
         <Stat label="3퍼트+" value={r.three} />
         <Stat label="1퍼트" value={r.one} />
-        <Stat label="첫 퍼트 평균" value={r.firstDist != null ? `${r.firstDist.toFixed(1)}m` : '–'} />
+        <Stat label="첫 퍼트 평균" value={r.firstDist != null ? fmtPutt(r.firstDist, { digits: 1 }) : '–'} />
       </div>
       {report.compare && (
         <div data-role="gs-compare" style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 8 }}>

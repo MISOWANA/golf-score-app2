@@ -3,6 +3,7 @@ import InfoNote from '../ui/InfoNote';
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { tintWash } from '../ui/tint.js';
 import { COLOR, fmtNum, isBetter } from './format.js';
+import localizeNode from '../ui/localizeNode.js';
 
 // 스탯 화면을 이루는 작은 부품들. 영역마다 같은 모양으로 읽히게 한다:
 //   Card(제목 · 보조 설명(!) · 추세) → 대표 숫자(Metric) → 묶음(SplitBar · RateRow · RangeRow) → 한 줄 해석(Takeaway)
@@ -28,12 +29,12 @@ export function Metric({ id, value, unit, label, sub, tone, align = 'left' }) {
   const color = tone === 'good' ? COLOR.green : tone === 'bad' ? COLOR.red : COLOR.text;
   return (
     <div data-role={id} style={{ minWidth: 0, textAlign: align }}>
-      {label && <div style={{ fontSize: 13, color: COLOR.muted, marginBottom: 3, fontWeight: 600 }}>{label}</div>}
+      {label && <div style={{ fontSize: 13, color: COLOR.muted, marginBottom: 3, fontWeight: 600 }}>{localizeNode(label)}</div>}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
         <span style={{ fontSize: 30, fontWeight: 900, lineHeight: 1.05, color, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
         {unit && <span style={{ fontSize: 14, fontWeight: 700, color: COLOR.muted }}>{unit}</span>}
       </div>
-      {sub && <div style={{ fontSize: 13, color: COLOR.faint, marginTop: 3 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 13, color: COLOR.faint, marginTop: 3 }}>{localizeNode(sub)}</div>}
     </div>
   );
 }
@@ -63,7 +64,7 @@ export function Takeaway({ tone = 'info', children, id, bare = false }) {
     <div data-role={id ?? 'takeaway'} data-tone={tone}
       style={{ display: 'flex', gap: 8, alignItems: 'flex-start', ...(bare ? { padding: '4px 0' } : { marginTop: 12, paddingTop: 10, borderTop: `1px solid ${COLOR.line}` }), fontSize: 14, lineHeight: 1.55, color: '#c4cfe0', wordBreak: 'keep-all' }}>
       <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0, marginTop: 7 }} />
-      <span>{children}</span>
+      <span>{localizeNode(children)}</span>
     </div>
   );
 }
@@ -72,7 +73,7 @@ export function Hint({ children, id }) {
   return (
     <div data-role={id ?? 'hint'}
       style={{ fontSize: 14, color: COLOR.muted, lineHeight: 1.6, padding: '14px 12px', border: `1px dashed ${COLOR.line}`, borderRadius: 12, textAlign: 'center', wordBreak: 'keep-all' }}>
-      {children}
+      {localizeNode(children)}
     </div>
   );
 }
@@ -109,8 +110,8 @@ export function RateRow({ id, label, sub, value, scale = 100, text, tier, color 
   return (
     <div data-role={id ?? 'rate-row'} style={{ ...styles.riStatRow, opacity: dim ? 0.55 : 1, alignItems: 'center' }}>
       <div style={{ ...styles.riStatRowLabel, width: labelWidth }}>
-        {label}
-        {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{sub}</div>}
+        {localizeNode(label, { abbr: true })}
+        {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{localizeNode(sub, { abbr: true })}</div>}
       </div>
       <div style={styles.riStatRowBarTrack}><div style={{ ...styles.riStatRowBarFill, width: `${width}%`, background: color }} /></div>
       <div style={{ ...styles.riStatRowValue, width: 56 }}>{text ?? (value == null ? '–' : Math.round(value))}</div>
@@ -127,8 +128,8 @@ export function RangeRow({ id, label, sub, median, q1, q3, scaleMax, text, right
   return (
     <div data-role={id ?? 'range-row'} style={{ ...styles.riStatRow, alignItems: 'center' }}>
       <div style={{ ...styles.riStatRowLabel, width: labelWidth }}>
-        {label}
-        {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{sub}</div>}
+        {localizeNode(label, { abbr: true })}
+        {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{localizeNode(sub, { abbr: true })}</div>}
       </div>
       <div style={{ ...styles.riStatRowBarTrack, position: 'relative', overflow: 'visible', height: 8 }}>
         {hasRange && <div style={{ position: 'absolute', top: 0, bottom: 0, left: at(q1), width: `calc(${at(q3)} - ${at(q1)})`, borderRadius: 4, background: 'rgba(201,162,40,0.35)' }} />}

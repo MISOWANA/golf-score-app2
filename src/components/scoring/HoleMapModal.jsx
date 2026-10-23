@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState, cloneElement } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { haversine, combinedAccuracy, gpsQuality, shotDistances, pinDistances } from '../../engine/geo.js';
+import { fmtShot, unitLabel } from '../../engine/units.js';
 import { pointIcon, pinIcon, draftIcon, distanceIcon, rightNormal, createSatelliteMap } from '../map/holeMapLayers.js';
 import { getVWorldKey, setVWorldKey, VWORLD_SIGNUP_URL } from '../../engine/mapTiles.js';
 
@@ -17,7 +18,7 @@ const COLOR = {
   ink: '#0b0e18', line: '#e8edf8', dim: '#8896b0',
 };
 
-const fmtAcc = (acc) => (acc == null ? '' : `±${Math.round(acc)}m`);
+const fmtAcc = (acc) => (acc == null ? '' : `±${fmtShot(acc)}`);
 
 // ─── 본체 ─────────────────────────────────────────────────────────────────────
 
@@ -662,7 +663,7 @@ export default function HoleMapModal({
         {/* 지도를 닫을 때 남은 거리에 먼저 들어갈 값 안내 (거리 숫자는 위쪽 고정 띠에 있다) */}
         {!draft && fill && (
           <div style={{ padding: '0 14px 10px', fontSize: 14, fontWeight: 700, color: '#8ec0ff', textAlign: 'center', lineHeight: 1.4 }}>
-            지도를 닫으면 {fill.label} 남은 거리에 {fill.d}m가 먼저 입력돼요
+            지도를 닫으면 {fill.label} 남은 거리에 {fmtShot(fill.d)}가 먼저 입력돼요
             {fillHint && <ClubHint hint={fillHint} />}
           </div>
         )}
@@ -855,8 +856,8 @@ function Metric({ label, value, tone = 'line', compact = false }) {
         {label}
       </div>
       <div style={{ color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-        <span style={{ fontSize: compact ? 28 : 30, fontWeight: 900 }}>{value != null ? Math.round(value) : '—'}</span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>m</span>
+        <span style={{ fontSize: compact ? 28 : 30, fontWeight: 900 }}>{value != null ? fmtShot(value, { unit: false }) : '—'}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#9aa8c2', marginLeft: 3 }}>{unitLabel('shot')}</span>
       </div>
     </div>
   );
@@ -898,8 +899,8 @@ function TableNumber({ value, width, color }) {
     <span style={{ width, textAlign: 'right', color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
       {value != null ? (
         <>
-          <span style={{ fontSize: 18, fontWeight: 800 }}>{Math.round(value)}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 1 }}>m</span>
+          <span style={{ fontSize: 18, fontWeight: 800 }}>{fmtShot(value, { unit: false })}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 1 }}>{unitLabel('shot')}</span>
         </>
       ) : (
         <span style={{ fontSize: 16, fontWeight: 700, color: '#56637f' }}>—</span>

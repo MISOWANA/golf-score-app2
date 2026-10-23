@@ -6,6 +6,7 @@
 import L from 'leaflet';
 import { haversine } from '../../engine/geo.js';
 import { satelliteTileUrl, TILE_MIN_ZOOM, TILE_MAX_ZOOM, TILE_ATTRIBUTION } from '../../engine/mapTiles.js';
+import { fmtShot } from '../../engine/units.js';
 
 export const MAP_COLOR = {
   gold: '#c9a228', goldBright: '#f0c93a', green: '#3db87a', red: '#ef5350',
@@ -110,7 +111,7 @@ export const distanceIcon = (meters, nx = 1, ny = 0) => L.divIcon({
         width:max-content;padding:2px 7px;border-radius:4px;white-space:nowrap;
         background:rgba(6,8,15,0.88);border:1px solid rgba(255,255,255,0.35);
         color:#ffffff;font-size:13px;font-weight:800;line-height:1.4;
-      ">${Math.round(meters)}m</div>
+      ">${fmtShot(meters)}</div>
     </div>`,
   iconSize: [0, 0],
   iconAnchor: [0, 0],

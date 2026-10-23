@@ -53,7 +53,7 @@ export default function ClubTab({ report }) {
           </div>
         ))}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: COLOR.faint, marginTop: 6 }}>
-          <span>0m</span><span>{scaleMax}m</span>
+          <span>{fmtMeters(0)}</span><span>{fmtMeters(scaleMax)}</span>
         </div>
       </Card>
 

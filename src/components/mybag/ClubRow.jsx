@@ -4,9 +4,13 @@ import { COLOR } from '../stats/format.js';
 import { BAG_COLOR } from './colors.js';
 import DistanceField from './DistanceField';
 import { shotLabelOf, fitToMeasured } from '../../engine/bagStats.js';
+import { fmtShot, displayShot, unitLabel } from '../../engine/units.js';
 
 // 마이백의 클럽 한 줄. 접힌 줄은 이름과 캐리·토탈만, 누르면 그 자리에서 이름·거리를 고친다.
 // 바깥 요소(data-club-id)가 줄과 편집 칸을 함께 감싼다 — 끌어서 순서 바꾸기가 이 요소를 기준으로 한다.
+
+// 화면에 보이는 정수 거리 — 접힌 줄의 캐리·토탈과 런이 서로 맞게 보이는 숫자끼리 뺀다
+const D = (m) => displayShot(m) ?? 0;
 
 export default function ClubRow({
   club, open, onToggle, index, count,
@@ -15,7 +19,7 @@ export default function ClubRow({
   onDragStart, onDragEnd, onDragOver, onDrop, onGripTouchStart,
 }) {
   const isPutter = club.type === 'Putter';
-  const run = (club.total ?? 0) - (club.carry ?? 0);
+  const run = D(club.total) - D(club.carry);
   const [nameDraft, setNameDraft] = useState(null);
   const label = isPutter ? null : shotLabelOf(club);   // 스코어 입력의 어느 버튼으로 읽히나 (null = 읽히지 않음)
   const commitName = () => {
@@ -25,7 +29,7 @@ export default function ClubRow({
     if (t && t !== club.name) onRename(t);
   };
   const fit = measured && !isPutter ? fitToMeasured(club, measured.median) : null;
-  const diff = measured ? measured.median - (club.total ?? 0) : null;
+  const diff = measured ? D(measured.median) - D(club.total) : null;
 
   return (
     <div data-club-id={club.id} draggable={!open}
@@ -53,7 +57,7 @@ export default function ClubRow({
           {unset && !isPutter && <span data-role={`club-unset-${club.id}`} style={{ fontSize: 12, fontWeight: 800, color: COLOR.amber, border: '1px solid rgba(230,185,74,0.45)', borderRadius: 999, padding: '1px 7px', whiteSpace: 'nowrap' }}>거리 확인 필요</span>}
           {!isPutter && (
             <span data-role={`club-values-${club.id}`} style={{ fontSize: 14, color: COLOR.muted, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-              캐리 <b data-role={`club-carry-${club.id}`} style={{ color: BAG_COLOR.carry }}>{club.carry ?? '–'}</b> · 토탈 <b data-role={`club-total-${club.id}`} style={{ color: BAG_COLOR.total }}>{club.total ?? '–'}</b>
+              캐리 <b data-role={`club-carry-${club.id}`} style={{ color: BAG_COLOR.carry }}>{fmtShot(club.carry, { unit: false })}</b> · 토탈 <b data-role={`club-total-${club.id}`} style={{ color: BAG_COLOR.total }}>{fmtShot(club.total, { unit: false })}</b>
             </span>
           )}
           <ChevronDown size={16} aria-hidden="true" style={{ color: COLOR.faint, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
@@ -99,7 +103,7 @@ export default function ClubRow({
               <DistanceField id="carry" label="캐리" sub="CARRY" color={BAG_COLOR.carry} value={club.carry} onChange={(v) => onDistance('carry', v)} />
               <DistanceField id="total" label="토탈" sub="TOTAL" color={BAG_COLOR.total} value={club.total} onChange={(v) => onDistance('total', v)} />
               <div style={{ fontSize: 13, color: COLOR.faint, lineHeight: 1.5 }}>
-                런(토탈 − 캐리) <b data-role="club-run" style={{ color: run < 0 ? COLOR.amber : COLOR.muted }}>{run > 0 ? '+' : run < 0 ? '−' : ''}{Math.abs(run)}m</b>
+                런(토탈 − 캐리) <b data-role="club-run" style={{ color: run < 0 ? COLOR.amber : COLOR.muted }}>{run > 0 ? '+' : run < 0 ? '−' : ''}{Math.abs(run)}{unitLabel('shot')}</b>
               </div>
             </>
           )}
@@ -107,15 +111,15 @@ export default function ClubRow({
           {measured && fit && (
             <div data-role="club-measured" style={{ borderRadius: 12, border: '1px solid rgba(243,211,107,0.4)', background: 'rgba(243,211,107,0.07)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0, fontSize: 14, lineHeight: 1.55, color: '#c4cfe0' }}>
-                <b style={{ color: BAG_COLOR.measured }}>라운드 실측</b> <b style={{ color: BAG_COLOR.measured, fontSize: 15 }}>{measured.median}m</b> <span style={{ color: COLOR.faint }}>(샷 {measured.n}개 · 공이 멈춘 곳)</span>
+                <b style={{ color: BAG_COLOR.measured }}>라운드 실측</b> <b style={{ color: BAG_COLOR.measured, fontSize: 15 }}>{fmtShot(measured.median)}</b> <span style={{ color: COLOR.faint }}>(샷 {measured.n}개 · 공이 멈춘 곳)</span>
                 <div style={{ color: diff === 0 ? COLOR.green : COLOR.muted }}>
-                  {diff === 0 ? '등록한 토탈과 같아요' : `등록한 토탈보다 ${Math.abs(diff)}m ${diff > 0 ? '더 나가요' : '덜 나가요'}`}
+                  {diff === 0 ? '등록한 토탈과 같아요' : `등록한 토탈보다 ${Math.abs(diff)}${unitLabel('shot')} ${diff > 0 ? '더 나가요' : '덜 나가요'}`}
                 </div>
               </div>
               {diff !== 0 && (
                 <button type="button" data-role="club-fit" onClick={() => onFit(fit)}
                   style={{ height: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${BAG_COLOR.measured}`, background: 'transparent', color: BAG_COLOR.measured, fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                  토탈 {measured.median}m로
+                  토탈 {fmtShot(measured.median)}로
                 </button>
               )}
             </div>

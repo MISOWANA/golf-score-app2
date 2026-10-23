@@ -5,6 +5,7 @@ import { buildHoleReview } from '../../engine/holeReview.js';
 import { getVWorldKey } from '../../engine/mapTiles.js';
 import { renderHoleImage } from '../../engine/holeImage.js';
 import { createSatelliteMap, drawHoleOverlay, MAP_COLOR as C } from '../map/holeMapLayers.js';
+import { fmtShot, fmtPutt } from '../../engine/units.js';
 
 // 라운드 후 홀별 복기. "어떤 거리에서 어떤 채를 쓰고 어떤 결과였나"를
 // 지도와 샷 목록으로 함께 본다.
@@ -14,8 +15,8 @@ import { createSatelliteMap, drawHoleOverlay, MAP_COLOR as C } from '../map/hole
 //   요약 = 한 줄 스탯 바 (페어웨이 · GIR · 퍼팅 · 벌타)
 //   샷 목록 = 클럽 배지 | 샷·조건 | 친 거리·결과 — 한 행에 한 샷
 
-const m = (v) => (v == null ? '—' : `${Math.round(v)}m`);
-const m1 = (v) => (v == null ? '—' : `${Number(v).toFixed(1)}m`);
+const m = (v) => fmtShot(v, { fallback: '—' });
+const m1 = (v) => fmtPutt(v, { digits: 1, fallback: '—' });
 
 const TONE = { great: C.goldBright, good: C.green, bad: C.red };
 // C.dim(#8896b0)은 작은 글씨에서 대비가 부족해 라벨용 밝은 회색을 따로 쓴다.

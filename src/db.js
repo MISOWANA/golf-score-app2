@@ -1,6 +1,7 @@
 // IndexedDB 초기화 및 관리 유틸리티
 import { isTrashExpired } from './engine/trash.js';
 import { sanitizeGoals } from './engine/goals.js';
+import { sanitizePrefs } from './engine/units.js';
 
 const DB_NAME = 'GolfScoreDB';
 const DB_VERSION = 2;
@@ -312,7 +313,7 @@ export const deleteProfile = async (profile) => {
     if (rest.length === 0) users.delete(row.id);
     else if (rest.length !== row.rounds.length) users.put({ ...row, rounds: rest });
   };
-  ids.forEach((id) => { users.delete(BACKUP_META_PREFIX + id); users.delete(GOALS_PREFIX + id); });
+  ids.forEach((id) => { users.delete(BACKUP_META_PREFIX + id); users.delete(GOALS_PREFIX + id); users.delete(PREFS_PREFIX + id); });
   // 휴지통에 남은 이 사용자의 라운드도 함께 지운다 ('영구히 삭제'에 휴지통이 빠지지 않게)
   users.getAll().onsuccess = (e) => {
     (e.target.result || [])
@@ -342,6 +343,27 @@ export const saveGoals = async (userId, goals) => {
   const clean = sanitizeGoals(goals);
   const store = db.transaction([USERS_STORE], 'readwrite').objectStore(USERS_STORE);
   await asPromise(store.put({ id: GOALS_PREFIX + userId, userId, goals: clean, updatedAt: new Date().toISOString() }));
+  return clean;
+};
+
+// ─── 설정 ────────────────────────────────────────────────────────────────────
+// 사용자별 앱 설정 (지금은 거리 단위 { unit: 'm' | 'yd' }). { id: 'prefs:<userId>', userId, prefs, updatedAt }
+// 기록은 늘 미터로 저장되고, 단위는 화면에 보이고 입력하는 방식만 바꾼다 (engine/units.js).
+const PREFS_PREFIX = 'prefs:';
+
+export const getPrefs = async (userId) => {
+  await ensureDB();
+  const store = db.transaction([USERS_STORE], 'readonly').objectStore(USERS_STORE);
+  const row = await asPromise(store.get(PREFS_PREFIX + userId));
+  return sanitizePrefs(row?.prefs);
+};
+
+// 저장하고, 검사를 거친 설정을 돌려준다
+export const savePrefs = async (userId, prefs) => {
+  await ensureDB();
+  const clean = sanitizePrefs(prefs);
+  const store = db.transaction([USERS_STORE], 'readwrite').objectStore(USERS_STORE);
+  await asPromise(store.put({ id: PREFS_PREFIX + userId, userId, prefs: clean, updatedAt: new Date().toISOString() }));
   return clean;
 };
 
@@ -513,7 +535,7 @@ export const clearActiveRound = async (ids) => {
 // 사용자의 모든 데이터 Export (JSON)
 export const exportUserData = async (user) => {
   const ids = userIdsOf(user);
-  const [rounds, clubs, goals] = await Promise.all([loadRoundsByUser(ids), loadClubsByUser(ids), getGoals(user.userId)]);
+  const [rounds, clubs, goals, prefs] = await Promise.all([loadRoundsByUser(ids), loadClubsByUser(ids), getGoals(user.userId), getPrefs(user.userId)]);
   return {
     version: '1.0',
     exportDate: new Date().toISOString(),
@@ -522,6 +544,7 @@ export const exportUserData = async (user) => {
       rounds: rounds || [],
       clubs: clubs || [],
       goals,
+      prefs,
     },
   };
 };
@@ -546,6 +569,10 @@ export const importUserData = async (userId, importedData, ownIds = [userId]) =>
   // 목표도 파일에 들어 있을 때만 바꾼다 — 빈 목록으로 지금 목표를 지우지 않게 (클럽과 같다)
   if (Array.isArray(data.goals) && data.goals.length > 0) {
     await saveGoals(userId, data.goals);
+  }
+  // 거리 단위 설정도 파일에 들어 있을 때만 (예전 백업에는 없다)
+  if (data.prefs && typeof data.prefs === 'object') {
+    await savePrefs(userId, data.prefs);
   }
   return result;
 };

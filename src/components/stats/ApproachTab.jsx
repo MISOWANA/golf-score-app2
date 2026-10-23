@@ -1,6 +1,6 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, RateRow, Takeaway, TrendChip, Hint, SplitBar } from './widgets.jsx';
-import { COLOR, fmtMeters, fmtNum, fmtPct } from './format.js';
+import { COLOR, fmtMeters, fmtPuttMeters, fmtNum, fmtPct } from './format.js';
 
 const MIN_MISS_DIRECTIONS = 4;   // 놓친 방향의 쏠림을 말하려면 필요한 기록 수
 const MIN_BEST_WORST = 5;      // 가장 잘/못 맞는 구간·클럽을 말하려면 필요한 샷 수
@@ -102,11 +102,11 @@ export default function ApproachTab({ report }) {
             {distRows.map((b) => (
               <RateRow key={b.id} id={`approach-bucket-${b.id}`} label={b.label} sub={`${b.n}샷`} value={b.hitPct} text={fmtPct(b.hitPct)} labelWidth={78}
                 color={b.hitPct >= 50 ? COLOR.green : b.hitPct >= 25 ? COLOR.amber : COLOR.red} tier={b.tier}
-                tag={b.puttMedian != null ? <span data-role="bucket-putt" style={{ fontSize: 12, color: COLOR.faint, whiteSpace: 'nowrap' }}>첫 퍼트 {fmtMeters(b.puttMedian, 1)}</span> : null} />
+                tag={b.puttMedian != null ? <span data-role="bucket-putt" style={{ fontSize: 12, color: COLOR.faint, whiteSpace: 'nowrap' }}>첫 퍼트 {fmtPuttMeters(b.puttMedian, 1)}</span> : null} />
             ))}
             {distTake && <Takeaway tone={distTake.tone}>{distTake.text}</Takeaway>}
             {firstPutt.n >= 3 && (
-              <div data-role="first-putt" style={{ fontSize: 13, color: COLOR.faint, marginTop: 8 }}>그린에 올린 홀의 첫 퍼트 거리 중앙값 {fmtMeters(firstPutt.median, 1)} ({firstPutt.n}홀)</div>
+              <div data-role="first-putt" style={{ fontSize: 13, color: COLOR.faint, marginTop: 8 }}>그린에 올린 홀의 첫 퍼트 거리 중앙값 {fmtPuttMeters(firstPutt.median, 1)} ({firstPutt.n}홀)</div>
             )}
           </>
         ) : <Hint>세컨샷 이후의 남은 거리를 입력하면 거리 구간별 적중률을 보여드려요.</Hint>}
@@ -116,7 +116,7 @@ export default function ApproachTab({ report }) {
         {clubRows.length > 0 ? (
           <>
             {clubRows.map((r) => (
-              <RateRow key={r.key} id={`approach-club-${r.key}`} label={r.label} sub={r.median != null ? `${Math.round(r.median)}m` : `${r.hitN}샷`} value={r.hitPct} text={fmtPct(r.hitPct)}
+              <RateRow key={r.key} id={`approach-club-${r.key}`} label={r.label} sub={r.median != null ? fmtMeters(r.median) : `${r.hitN}샷`} value={r.hitPct} text={fmtPct(r.hitPct)}
                 color={r.hitPct >= 50 ? COLOR.green : r.hitPct >= 25 ? COLOR.amber : COLOR.red} tier={r.hitTier}
                 tag={<span style={{ fontSize: 12, color: COLOR.faint, whiteSpace: 'nowrap' }}>{r.hitN}샷</span>} />
             ))}

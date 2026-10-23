@@ -4,8 +4,9 @@ import {
   saveActiveRound, loadActiveRound, clearActiveRound,
   migrateProfiles, getCurrentProfile, loginByName, clearCurrentUser, listProfiles, userIdsOf, deleteProfile,
   requestPersistentStorage, migrateRoundData, migrateNineHoleRounds, getBackupMeta, recordBackup,
-  trashRound, listTrash, restoreFromTrash, deleteFromTrash, purgeExpiredTrash, getGoals, saveGoals,
+  trashRound, listTrash, restoreFromTrash, deleteFromTrash, purgeExpiredTrash, getGoals, saveGoals, getPrefs, savePrefs,
 } from './db.js';
+import { setUnit } from './engine/units.js';
 import { isValidRound, normalizeRound } from './engine/roundValidation.js';
 import { fixPar3MissedGreenStrokes } from './engine/migrations.js';
 import { convertPartialToNine } from './engine/nineConversion.js';
@@ -42,6 +43,7 @@ export default function GolfScoringApp() {
   const [rounds, setRounds] = useState([]);
   const [goals, setGoals] = useState([]);               // 다음 라운드 목표 (최대 2개)
   const [goalSheet, setGoalSheet] = useState(null);      // 목표 시트가 열려 있으면 { goalId?, metric? }
+  const [unit, setUnitState] = useState('m');             // 거리 단위 'm' | 'yd' — 기록은 늘 미터, 보이고 입력하는 단위만 바뀐다
   const [trash, setTrash] = useState([]);                // 휴지통에 있는 라운드들 (지운 지 7일 안)
   const [backupMeta, setBackupMeta] = useState(null);   // 마지막 백업 시각 · 그때의 라운드 수 (홈의 백업 안내)
   const [selectedRoundId, setSelectedRoundId] = useState(null);
@@ -66,6 +68,9 @@ export default function GolfScoringApp() {
     }
   }, []);
 
+  // 단위를 바꾼다 — 화면과 엔진의 문구 함수가 읽는 모듈 값(engine/units.js)과 화면 상태를 같이 맞춘다
+  const applyUnit = useCallback((next) => { setUnit(next); setUnitState(next); }, []);
+
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -88,10 +93,11 @@ export default function GolfScoringApp() {
         const user = await getCurrentProfile();
         if (user) {
           setCurrentUserState(user);
-          const [, active, meta, bin, savedGoals] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user)), getBackupMeta(user.userId).catch(() => null), listTrash(userIdsOf(user)).catch(() => []), getGoals(user.userId).catch(() => [])]);
+          const [, active, meta, bin, savedGoals, prefs] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user)), getBackupMeta(user.userId).catch(() => null), listTrash(userIdsOf(user)).catch(() => []), getGoals(user.userId).catch(() => []), getPrefs(user.userId).catch(() => ({ unit: 'm' }))]);
           setBackupMeta(meta);
           setTrash(bin);
           setGoals(savedGoals);
+          applyUnit(prefs.unit);
           if (active) {
             setCurrentRound(active);
           }
@@ -107,17 +113,18 @@ export default function GolfScoringApp() {
       setLoading(false);
     };
     initApp();
-  }, [loadUserRounds]);
+  }, [loadUserRounds, applyUnit]);
 
   // 같은 이름이면 기존 프로필로 들어간다 — 로그아웃했다 다시 들어와도 기록이 그대로다.
   const handleUserLogin = async (userName) => {
     try {
       const user = await loginByName(userName);
       setCurrentUserState(user);
-      const [, active, meta, bin, savedGoals] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user)), getBackupMeta(user.userId).catch(() => null), listTrash(userIdsOf(user)).catch(() => []), getGoals(user.userId).catch(() => [])]);
+      const [, active, meta, bin, savedGoals, prefs] = await Promise.all([loadUserRounds(user), loadActiveRound(userIdsOf(user)), getBackupMeta(user.userId).catch(() => null), listTrash(userIdsOf(user)).catch(() => []), getGoals(user.userId).catch(() => []), getPrefs(user.userId).catch(() => ({ unit: 'm' }))]);
       setBackupMeta(meta);
       setTrash(bin);
       setGoals(savedGoals);
+      applyUnit(prefs.unit);
       setCurrentRound(active || null);
       setView('home');
     } catch (e) {
@@ -167,9 +174,16 @@ export default function GolfScoringApp() {
     setGoalSheet(null);
     setTrash([]);
     setBackupMeta(null);
+    applyUnit('m');
     setCurrentRound(null);
     setSelectedRoundId(null);
     setView('login');
+  };
+
+  // 거리 단위 바꾸기 (설정) — 바로 화면에 반영하고, 저장은 뒤에서 한다 (사용자별로 기억)
+  const handleChangeUnit = async (next) => {
+    applyUnit(next);
+    try { await savePrefs(currentUser.userId, { unit: next }); } catch (e) { console.error('Save prefs failed', e); }
   };
 
   // nine: null = 18홀 · 'out' = 전반 9홀 · 'in' = 후반 9홀 (engine/newRound.js)
@@ -297,6 +311,8 @@ export default function GolfScoringApp() {
 
       const { remapped } = await importUserData(currentUser.userId, sanitized, userIdsOf(currentUser));
       await loadUserRounds(currentUser);
+      // 백업 파일에 거리 단위 설정이 들어 있으면 가져오므로 화면도 맞춘다
+      try { applyUnit((await getPrefs(currentUser.userId)).unit); } catch { /* 설정을 못 읽어도 기록 복원은 끝났다 */ }
       alert(`데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
         + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : '')
         + (nineConverted > 0 ? `\n9홀만 입력된 ${nineConverted}개는 9홀 라운드로 저장했습니다 (통계에서는 제외돼요).` : '')
@@ -362,6 +378,8 @@ export default function GolfScoringApp() {
           currentUser={currentUser}
           rounds={rounds}
           backupMeta={backupMeta}
+          unit={unit}
+          onChangeUnit={handleChangeUnit}
           onBackup={handleExportData}
           onImport={handleImportData}
           onBack={() => setView('home')}

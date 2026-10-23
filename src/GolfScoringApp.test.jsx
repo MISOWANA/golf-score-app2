@@ -17,7 +17,7 @@ let App;
 let user;
 
 // 모듈(연결을 들고 있는 db.js 포함)과 DB 를 새로 만들고, 로그인된 사용자·기록을 심는다
-async function setup({ rounds = [], active = null, backupAtRounds = null, trashed = [], goals = null } = {}) {
+async function setup({ rounds = [], active = null, backupAtRounds = null, trashed = [], goals = null, clubs = null, prefs = null } = {}) {
   globalThis.indexedDB = new IDBFactory();
   vi.resetModules();
   db = await import('./db.js');
@@ -27,6 +27,8 @@ async function setup({ rounds = [], active = null, backupAtRounds = null, trashe
   if (active) await db.saveActiveRound(user.userId, active);
   if (backupAtRounds != null) await db.recordBackup(user.userId, { roundCount: backupAtRounds });
   if (goals) await db.saveGoals(user.userId, goals);
+  if (clubs) await db.saveClubsForUser(user.userId, clubs);
+  if (prefs) await db.savePrefs(user.userId, prefs);
   // 휴지통에 미리 넣어 둘 라운드 — { round, at(지운 시각) }
   for (const t of trashed) { await db.saveRound(t.round, user.userId); await db.trashRound(t.round, user.userId, t.at); }
   App = (await import('./GolfScoringApp.jsx')).default;
@@ -1648,5 +1650,162 @@ describe('새 라운드 설정', () => {
       const active = await db.loadActiveRound([user.userId]);
       expect(active).toMatchObject({ courseName: '직접입력CC', outCourseName: 'OUT', inCourseName: 'IN', teeBox: '화이트티' });
     });
+  });
+});
+
+describe('거리 단위 (미터 · 야드)', () => {
+  const openSettings = async () => {
+    fireEvent.click(document.querySelector('[data-role="open-settings"]'));
+    await screen.findByText('Settings');
+  };
+  const checked = (id) => document.querySelector(`[data-role="unit-${id}"]`).getAttribute('aria-checked');
+  const IRON = [{ id: 'iron7', name: '7i', type: 'Iron', carry: 130, total: 140 }];   // 140m = 153야드
+
+  it('설정에 단위 선택이 있고 처음에는 미터다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openSettings();
+    expect(document.querySelector('[data-role="unit-choice"]').getAttribute('role')).toBe('radiogroup');
+    expect([checked('m'), checked('yd')]).toEqual(['true', 'false']);
+    expect(document.querySelector('[data-role="unit-example"]').textContent).toMatch(/미터로/);
+  });
+
+  it('야드를 고르면 예시가 바뀌고 이 사용자의 설정으로 저장된다', async () => {
+    await setup({ rounds: rounds18(2) });
+    await openSettings();
+    fireEvent.click(document.querySelector('[data-role="unit-yd"]'));
+    expect([checked('m'), checked('yd')]).toEqual(['false', 'true']);
+    expect(document.querySelector('[data-role="unit-example"]').textContent).toMatch(/샷 거리는 야드.*피트/);
+    await waitFor(async () => expect(await db.getPrefs(user.userId)).toEqual({ unit: 'yd' }));
+  });
+
+  it('저장된 야드 설정은 앱을 다시 열어도 이어진다', async () => {
+    await setup({ rounds: rounds18(2), prefs: { unit: 'yd' } });
+    await openSettings();
+    expect(checked('yd')).toBe('true');
+  });
+
+  it('마이백: 야드 모드에서는 클럽 거리가 야드로 보이고, 야드로 고친 값은 미터(소수 한 자리)로 저장된다', async () => {
+    await setup({ clubs: IRON, prefs: { unit: 'yd' } });
+    tab('MY BAG');
+    const total = () => document.querySelector('[data-role="club-total-iron7"]').textContent;
+    await waitFor(() => expect(total()).toBe('153'));
+    expect(document.querySelector('[data-role="club-carry-iron7"]').textContent).toBe('142');   // 130m
+    fireEvent.click(document.querySelector('[data-role="club-open-iron7"]'));
+    const input = await waitFor(() => { const i = document.querySelector('[data-role="total-input"]'); expect(i).toBeTruthy(); return i; });
+    expect(input.value).toBe('153');
+    expect(screen.getByLabelText('토탈 거리(yd)')).toBe(input);
+    fireEvent.click(document.querySelector('[data-role="total-up5"]'));
+    expect(total()).toBe('158');
+    fireEvent.click(await screen.findByText('저장'));
+    await waitFor(async () => {
+      const saved = await db.loadClubsByUser([user.userId]);
+      expect(saved[0]).toMatchObject({ carry: 130, total: 144.5 });   // 158야드 = 144.5m, 캐리는 건드리지 않았다
+    });
+  });
+
+  it('마이백: 같은 클럽을 미터로 보면 미터로 보인다 (소수 미터는 반올림)', async () => {
+    await setup({ clubs: [{ ...IRON[0], total: 144.5 }] });
+    tab('MY BAG');
+    await waitFor(() => expect(document.querySelector('[data-role="club-total-iron7"]').textContent).toBe('145'));
+  });
+
+  it('보이는 값 그대로 다시 입력하면 저장된 미터 값을 건드리지 않는다 (변경으로 치지 않는다)', async () => {
+    await setup({ clubs: IRON, prefs: { unit: 'yd' } });
+    tab('MY BAG');
+    fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="club-open-iron7"]'); expect(b).toBeTruthy(); return b; }));
+    const input = await waitFor(() => { const i = document.querySelector('[data-role="total-input"]'); expect(i).toBeTruthy(); return i; });
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: '153' } });
+    fireEvent.blur(input);
+    expect(document.querySelector('[data-role="bag-savebar"]')).toBeNull();
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: '160' } });
+    fireEvent.blur(input);
+    await waitFor(() => expect(document.querySelector('[data-role="bag-dirty"]')).toBeTruthy());
+  });
+
+  it('스코어 입력: 야드 모드에서는 남은 거리가 야드로 보인다', async () => {
+    const round = makeActiveRound(ME, { currentHole: 0 });
+    round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
+    await setup({ active: round, prefs: { unit: 'yd' } });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 1');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
+    await waitFor(() => expect(document.body.textContent).toContain('슬라이드로 1yd 단위 조정'));
+    expect(document.body.textContent).toContain('164');   // 150m = 164야드
+  });
+  it('스코어 입력: 야드로 한 칸 올리면 미터(소수 한 자리)로 저장된다', async () => {
+    const round = makeActiveRound(ME, { currentHole: 0 });
+    round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
+    await setup({ active: round, prefs: { unit: 'yd' } });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 1');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
+    const shown = await waitFor(() => { const s = [...document.querySelectorAll('span')].find((x) => x.textContent === '164'); expect(s).toBeTruthy(); return s; });
+    const plus = [...shown.parentElement.parentElement.querySelectorAll('button')].find((b) => b.textContent === '+');
+    fireEvent.click(plus);
+    await waitFor(() => expect([...document.querySelectorAll('span')].some((x) => x.textContent === '165')).toBe(true));
+    await waitFor(async () => expect((await db.loadActiveRound([user.userId])).holes[0].scores[ME].remainingDistance).toBe(150.9));   // 165야드
+  });
+
+  it('백업 파일에 거리 단위가 들어 있으면 복원하면서 화면도 그 단위가 된다', async () => {
+    const { serializeBackup } = await import('./engine/backupStatus.js');
+    await setup({ rounds: rounds18(1) });
+    await openSettings();
+    expect(checked('m')).toBe('true');
+    const file = new File([serializeBackup({ version: '1.0', userId: 'other', data: { rounds: [], clubs: [], prefs: { unit: 'yd' } } })], 'backup.json', { type: 'application/json' });
+    fireEvent.change(document.querySelector('[data-role="settings-view"] input[type="file"]'), { target: { files: [file] } });
+    await waitFor(() => expect(checked('yd')).toBe('true'));
+    expect(await db.getPrefs(user.userId)).toEqual({ unit: 'yd' });
+  });
+});
+
+// 거리 단위가 야드이면 어느 화면에도 "80m" 같은 미터 표기가 남지 않아야 한다 (미터 값을 그대로 찍은 곳을 찾는 그물)
+describe('거리 단위 — 화면 전체 훑어보기', () => {
+  const METER = /\d(?:\.\d+)?\s?m(?![A-Za-z/²])/g;
+  // 홈 · 스탯 5개 영역 · 인사이트 6개 장 · 마이백 · 라운드 리포트를 차례로 열어, 글자에서 미터 표기를 모은다 (설명창(!)도 모두 연다)
+  async function scanScreens() {
+    const found = new Set();
+    const collect = (where, text) => {
+      for (const m of text.matchAll(METER)) found.add(`${where}: …${text.slice(Math.max(0, m.index - 20), m.index + m[0].length + 8)}`);
+    };
+    const scan = (where) => collect(where, document.body.textContent);
+    const openNotes = (where) => {
+      for (const b of [...document.querySelectorAll('[data-role="info-note"]')]) {
+        fireEvent.click(b);
+        collect(`${where}(!)`, document.querySelector('[data-role="info-note-body"]')?.textContent ?? '');
+        const dlg = document.querySelector('[data-role="info-note-dialog"]');
+        if (dlg) fireEvent.click(dlg);
+      }
+    };
+    const open = (role) => waitFor(() => { const e = document.querySelector(`[data-role="${role}"]`); expect(e).toBeTruthy(); return e; });
+    scan('홈');
+    tab('스탯');
+    for (const t of ['overview', 'tee', 'approach', 'putting', 'club']) {
+      fireEvent.click(await open(`stats-tab-${t}`));
+      scan(`스탯 ${t}`); openNotes(`스탯 ${t}`);
+    }
+    tab('인사이트');
+    for (const t of ['overview', 'strokes', 'bigmiss', 'skills', 'next', 'records']) {
+      fireEvent.click(await open(`insights-tab-${t}`));
+      scan(`인사이트 ${t}`); openNotes(`인사이트 ${t}`);
+    }
+    tab('MY BAG');
+    await open('club-total-iron7');
+    scan('마이백'); openNotes('마이백');
+    await openReportFromHistory('테스트CC3');
+    scan('리포트'); openNotes('리포트');
+    return [...found];
+  }
+  const CLUBS = [{ id: 'iron7', name: '7i', type: 'Iron', carry: 130, total: 140 }];
+
+  it('미터 모드에서는 미터 표기가 보인다 (이 검사가 제대로 찾는지 확인)', async () => {
+    await setup({ rounds: rounds18(8), clubs: CLUBS });
+    expect((await scanScreens()).length).toBeGreaterThan(5);
+  });
+
+  it('야드 모드에서는 미터 표기가 하나도 남지 않는다', async () => {
+    await setup({ rounds: rounds18(8), clubs: CLUBS, prefs: { unit: 'yd' } });
+    expect(await scanScreens()).toEqual([]);
   });
 });

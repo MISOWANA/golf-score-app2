@@ -12,6 +12,7 @@ import {
   CATALOG, CATEGORIES, ALL_TYPES, CATEGORY_LABEL, CATEGORY_TITLE, BAG_LIMIT, DEFAULT_SELECTION, NAME_MAX,
   guessCategory, suggestDistance, checkNewClub, readableInScoring, toBagClubs,
 } from '../../engine/clubCatalog.js';
+import { fmtShot, displayShot, unitLabel } from '../../engine/units.js';
 
 // 마이백 처음 등록 — ① 가진 클럽 고르기 → ② 클럽마다 거리 맞추기 → ③ 완료.
 //
@@ -29,6 +30,9 @@ const chipBase = {
   minWidth: 62, height: 44, padding: '0 14px', borderRadius: 12, cursor: 'pointer', fontSize: 15, fontWeight: 800,
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, boxSizing: 'border-box',
 };
+
+// 화면에 보이는 숫자끼리 뺀 런 (캐리·토탈이 야드로 보일 때도 서로 맞게)
+const runOf = (d) => (displayShot(d.total) ?? 0) - (displayShot(d.carry) ?? 0);
 
 export default function BagSetupWizard({ currentUser, onBack, onLater = null, onDone, bottomOffset = 0 }) {
   const [step, setStep] = useState(1);
@@ -324,7 +328,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
                         {!d.confirmed && <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.faint, border: '1px solid #2a3556', borderRadius: 999, padding: '1px 7px', whiteSpace: 'nowrap' }}>제안값</span>}
                         <span style={{ flex: 1 }} />
                         <span style={{ fontSize: 14, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: d.confirmed ? COLOR.muted : COLOR.faint }}>
-                          캐리 <b style={{ color: BAG_COLOR.carry }}>{d.carry}</b> · 토탈 <b style={{ color: BAG_COLOR.total }}>{d.total}</b>
+                          캐리 <b style={{ color: BAG_COLOR.carry }}>{fmtShot(d.carry, { unit: false })}</b> · 토탈 <b style={{ color: BAG_COLOR.total }}>{fmtShot(d.total, { unit: false })}</b>
                         </span>
                       </button>
                       <button type="button" data-role={`dist-check-${e.type}-${e.name}`} aria-pressed={!!d.confirmed} aria-label={`${e.name} 거리 확인`} onClick={() => toggleConfirm(e)}
@@ -339,7 +343,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
                         <DistanceField id="carry" label="캐리" sub="CARRY" color={BAG_COLOR.carry} value={d.carry} onChange={(v) => setField(e, 'carry', v)} />
                         <DistanceField id="total" label="토탈" sub="TOTAL" color={BAG_COLOR.total} value={d.total} onChange={(v) => setField(e, 'total', v)} />
                         <div style={{ fontSize: 13, color: COLOR.faint, lineHeight: 1.5 }}>
-                          런(토탈 − 캐리) <b style={{ color: d.total < d.carry ? COLOR.amber : COLOR.muted }}>{d.total - d.carry > 0 ? '+' : d.total - d.carry < 0 ? '−' : ''}{Math.abs(d.total - d.carry)}m</b>
+                          런(토탈 − 캐리) <b style={{ color: runOf(d) < 0 ? COLOR.amber : COLOR.muted }}>{runOf(d) > 0 ? '+' : runOf(d) < 0 ? '−' : ''}{Math.abs(runOf(d))}{unitLabel('shot')}</b>
                           {!readable && <span style={{ color: COLOR.amber }}> · 스코어 입력에 없는 클럽이라 추천에서는 빠져요</span>}
                         </div>
                       </div>

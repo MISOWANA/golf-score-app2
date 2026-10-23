@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import localizeNode from './localizeNode.js';
 
 // 설명 문구를 접어 두는 (!) 버튼. 화면에는 동그라미 안의 느낌표만 놓고, 누르면 알림창(노티스)으로 본문을 보여준다.
 //   title     알림창 제목 (버튼의 접근성 이름에도 쓰인다)
@@ -63,7 +64,7 @@ export default function InfoNote({ title = '참고', children }) {
               <div id={titleId} style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, wordBreak: 'keep-all' }}>{title}</div>
             </div>
             <div data-role="info-note-body" className="bb-note-body" style={{ overflowY: 'auto', fontSize: 14, lineHeight: 1.7, color: '#b4c0d8', wordBreak: 'keep-all' }}>
-              {children}
+              {localizeNode(children)}
             </div>
             <button
               ref={closeRef} type="button" onClick={() => setOpen(false)}

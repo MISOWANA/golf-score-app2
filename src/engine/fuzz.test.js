@@ -1,5 +1,5 @@
 // 엔진 견고성 테스트 — 불완전·예전 형식의 라운드를 대량 생성해 모든 분석 함수에 넣어 본다.
-// 확인하는 것: 예외 없음 · NaN/Infinity 없음 · 문구에 undefined/미치환 {키}/[object] 없음 · 점수 분해 항등식.
+// 확인하는 것: 예외 없음 · NaN/Infinity 없음 · 문구에 undefined/미치환 {키}/[object] 없음 (거리 단위를 야드로 바꿔도 같다) · 점수 분해 항등식.
 import { describe, it, expect } from 'vitest';
 import { toHoleInput, analyzeRound } from './engine.js';
 import { buildDerivedHoleMetrics, buildRoundMetrics } from './metrics.js';
@@ -17,6 +17,7 @@ import { landingCounts } from './landing.js';
 import { HOLE_RULES } from './rules/holeRules.js';
 import { ROUND_RULES } from './rules/roundRules.js';
 import { createRng, makeMessyRound, makeFullRound, makeHalfRound, makeNineRound } from '../test/fixtures.js';
+import { localizeDeep } from './units.js';
 
 const ME = '테스터';
 const BAD_TEXT = /NaN|undefined|Infinity|\{\w+\}|\[object/;
@@ -66,6 +67,7 @@ describe('엔진 견고성 (퍼징)', () => {
         const out = fn();
         const found = [];
         scan(label, out, '', found);
+        scan(`${label}(야드)`, localizeDeep(out, 'yd'), '', found);   // 거리 단위가 야드여도 문구가 깨지지 않는다
         found.forEach((f) => problems.set(f, (problems.get(f) || 0) + 1));
         return out;
       } catch (e) {

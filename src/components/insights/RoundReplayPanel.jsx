@@ -7,6 +7,7 @@ import { buildRoundReplay } from '../../engine/insightIndex.js';
 import { PUTT_CAUSE_LABEL } from '../../engine/puttAnalysis.js';
 import { totalPar } from '../../engine/players.js';
 import { isNineHoleRound } from '../../engine/nines.js';
+import { localizeDeep } from '../../engine/units.js';
 
 const diffColor = (d) => (d <= -2 ? '#f0c93a' : d === -1 ? '#3db87a' : d === 0 ? '#e8edf8' : d === 1 ? '#e57373' : '#ef5350');
 const diffBg = (d) => (d <= -2 ? 'rgba(201,162,40,0.18)' : d === -1 ? 'rgba(61,184,122,0.16)' : d === 0 ? '#1a2235' : d === 1 ? 'rgba(229,115,115,0.12)' : 'rgba(239,83,80,0.16)');
@@ -38,7 +39,7 @@ export default function RoundReplayPanel({ rounds, initialRoundId = null }) {
   // 지도·샷 목록 복기(히스토리의 홀별 복기와 같은 화면)를 열어 둔 홀 — round.holes 안의 위치, 없으면 null
   const [mapHole, setMapHole] = useState(null);
   const round = solo[Math.min(roundIdx, solo.length - 1)];
-  const replay = useMemo(() => (round ? buildRoundReplay(round) : null), [round]);
+  const replay = useMemo(() => (round ? localizeDeep(buildRoundReplay(round)) : null), [round]);
 
   if (!replay) {
     return <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 14, padding: '28px 12px' }}>복기할 라운드가 없어요.</div>;

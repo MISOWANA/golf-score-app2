@@ -9,6 +9,7 @@
 
 import { haversine, pinDistances, saneRemaining } from './geo.js';
 import { satelliteTileUrl, TILE_MAX_ZOOM } from './mapTiles.js';
+import { fmtShot } from './units.js';
 
 const TILE = 256;
 const MAX_TILES = 64;        // 한 장에 받을 타일 수 상한 (과도한 요청 방지)
@@ -120,7 +121,7 @@ function flag(ctx, x, y) {
   ctx.strokeStyle = '#e8edf8'; ctx.lineWidth = 1.6; ctx.stroke();
 }
 
-const fmtM = (v) => (v == null ? null : `${Math.round(v)}m`);
+const fmtM = (v) => (v == null ? null : fmtShot(v));
 
 // ── 본 렌더 ─────────────────────────────────────────────────────────────────
 //

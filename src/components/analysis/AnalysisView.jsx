@@ -20,6 +20,7 @@ import { summarizeRound } from '../../engine/roundSummary.js';
 import { applyParEdit } from '../../engine/parEdit.js';
 import { localNoonISO } from '../../engine/roundDate.js';
 import { ninesOf, holeNoOf, isNineHoleRound, roundKindLabel } from '../../engine/nines.js';
+import { localizeDeep } from '../../engine/units.js';
 
 // historyRounds: 요약 카드가 "내 평균과 비교"할 때 쓰는 라운드들 (통계에 들어가는 라운드)
 //   goals · onOpenGoal  정해 둔 목표(이 라운드로 판정해 카드에 보여 준다)와 목표 시트 열기 — onOpenGoal({ metric })
@@ -36,7 +37,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
   const [shareState, setShareState] = useState(null);
 
   // 맨 위 라운드 요약 카드 — 라운드가 바뀌면(점수·파 수정) 다시 만든다. 동반자 라운드는 카드가 없다.
-  const card = useMemo(() => (round ? buildRoundCard(round, historyRounds) : null), [round, historyRounds]);
+  const card = useMemo(() => (round ? localizeDeep(buildRoundCard(round, historyRounds)) : null), [round, historyRounds]);
 
   // 정해 둔 목표를 이 라운드로 판정한 결과, 그리고 포커스를 목표로 정하는 버튼에 쓸 지표
   const goalResults = useMemo(

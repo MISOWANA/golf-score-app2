@@ -1,7 +1,8 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, SplitBar, RateRow, Takeaway, TrendChip, Hint } from './widgets.jsx';
-import { COLOR, fmtMeters, fmtNum, fmtPct, fmtSigned } from './format.js';
+import { COLOR, fmtPuttMeters, fmtNum, fmtPct, fmtSigned } from './format.js';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
+import localizeNode from '../ui/localizeNode.js';
 
 const CAUSE_ADVICE = {
   lag: '롱 퍼트는 홀보다 1m 원 안에 세우는 거리 연습이 먼저예요.',
@@ -101,10 +102,10 @@ export default function PuttingTab({ report }) {
         ) : <Hint>그린을 놓친 홀이 쌓이면 스크램블링을 보여드려요.</Hint>}
         {near.n >= 5 && (
           <div data-role="near-green" style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLOR.line}` }}>
-            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', color: COLOR.slate, marginBottom: 8 }}>80m 안에서 친 샷</div>
+            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', color: COLOR.slate, marginBottom: 8 }}>{localizeNode('80m 안에서 친 샷')}</div>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
               <Metric id="m-near-hit" value={fmtPct(near.hitPct)} label="그린에 올린 비율" sub={`${near.n}샷 중 ${near.hit}샷`} />
-              {near.puttMedian != null && <Metric id="m-near-putt" value={fmtMeters(near.puttMedian, 1)} label="올린 뒤 첫 퍼트" sub={`중앙값 · ${near.puttN}샷`} align="right" />}
+              {near.puttMedian != null && <Metric id="m-near-putt" value={fmtPuttMeters(near.puttMedian, 1)} label="올린 뒤 첫 퍼트" sub={`중앙값 · ${near.puttN}샷`} align="right" />}
             </div>
           </div>
         )}

@@ -29,7 +29,7 @@ const paletteA = {
 
   textPrimary:   '#e8edf8',
   textSecondary: '#8896b0',
-  textMuted:     '#4d5a78',
+  textMuted:     '#8896b0',
   textInverse:   '#0b0e18',
 
   border:      '#1b2238',
@@ -41,7 +41,7 @@ const paletteA = {
   scoreAlbatross:'#e8c84e',
   scoreHio:      '#f0d070',
   scorePar:      '#8896b0',
-  scoreBogey:    '#6b7c9a',
+  scoreBogey:    '#9aa8c2',
   scoreDouble:   '#ef5350',
   scoreTriple:   '#c62828',
 

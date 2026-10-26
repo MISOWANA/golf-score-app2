@@ -15,7 +15,7 @@ const base = {
   gap: '4px',
   fontFamily: "'Noto Sans KR', sans-serif",
   fontWeight: '700',
-  fontSize: '11px',
+  fontSize: '12px',
   letterSpacing: '0.06em',
   padding: '6px 12px',
   borderRadius: radii.xs,

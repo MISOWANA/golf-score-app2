@@ -57,7 +57,7 @@ function BirdieBuddyLogo() {
       <div style={{
         fontSize: '12px',
         fontWeight: '500',
-        color: '#4d5a78',
+        color: '#8896b0',
         letterSpacing: '0.22em',
         textTransform: 'uppercase',
         marginTop: '10px',
@@ -88,11 +88,13 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
 
   const confirmDelete = async () => {
     setDeleting(true);
+    setPendingDelete((cur) => (cur ? { ...cur, error: null } : cur));
     try {
       await onDeleteProfile(pendingDelete.profile);
       setPendingDelete(null);
     } catch (e) {
-      alert(`삭제하지 못했어요. ${e?.message || ''}`);
+      // 브라우저 기본 알림창 대신 창 안에 보인다
+      setPendingDelete((cur) => (cur ? { ...cur, error: `삭제하지 못했어요. ${e?.message || ''}` } : cur));
     } finally {
       setDeleting(false);
     }
@@ -145,7 +147,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 13, color: '#4d5a78', marginTop: 8, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: '#8896b0', marginTop: 8, lineHeight: 1.6 }}>
               같은 이름을 입력해도 기존 기록으로 이어집니다.
             </div>
           </div>
@@ -201,6 +203,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
               라운드 {pendingDelete.rounds ?? '…'}개, MY BAG 설정, 진행 중인 라운드가<br />
               이 기기에서 영구히 삭제돼요. 되돌릴 수 없어요.
             </div>
+            {pendingDelete.error && <div role="alert" data-role="delete-error" style={{ fontSize: 14, color: '#ff8a87', marginBottom: 14, lineHeight: 1.5 }}>{pendingDelete.error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"

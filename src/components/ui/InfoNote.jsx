@@ -38,7 +38,7 @@ export default function InfoNote({ title = '참고', children }) {
         onClick={(e) => { e.stopPropagation(); setOpen(true); }}
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', verticalAlign: 'middle',
-          width: 26, height: 26, margin: '-6px -3px -6px 3px', padding: 0, flexShrink: 0,
+          width: 40, height: 40, margin: '-13px -10px -13px -4px', padding: 0, flexShrink: 0,
           background: 'transparent', border: 'none', cursor: 'pointer', color: open ? '#c9a228' : '#7f93b3',
         }}
       >

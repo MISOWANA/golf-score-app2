@@ -31,6 +31,7 @@ import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strok
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
 import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 import ExcludedNote from '../stats/ExcludedNote.jsx';
+import EmptyGuide from '../common/EmptyGuide';
 import { isYards, tx, fmtShot, fmtPutt, localizeDeep } from '../../engine/units.js';
 
 // 리포트의 장마다 탭 하나 — 장 하나가 한 페이지다. 라운드 복기·검색은 장이 아니라 헤더의 도구 버튼으로 연다.
@@ -131,7 +132,7 @@ function swapPast(v) {
   return v;
 }
 
-export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0, nineExcludedCount = 0, goals = [], onOpenGoal }) {
+export default function InsightsView({ rounds: allRounds, onBack, excludedCount = 0, nineExcludedCount = 0, goals = [], onOpenGoal, onStartRound }) {
   const [mode, setMode] = useState('round'); // 'round' | 'career' — §2 이번 라운드/누적 토글
   const [pickIdx, setPickIdx] = useState(0);   // 리포트로 볼 라운드 — allRounds 안의 위치 (0 = 최신)
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -149,18 +150,15 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     return (
       <div style={styles.container}>
         <header style={styles.pageHeader}>
-          <button style={styles.iconBack} onClick={onBack}>
+          <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
             <ChevronLeft size={22} />
           </button>
           <div style={styles.pageTitle}>Insights</div>
-          <div style={{ width: 40 }} />
+          <div style={{ width: 44 }} />
         </header>
         <ExcludedNote multiCount={excludedCount} nineCount={nineExcludedCount} margin="0 16px 12px" />
-        <div style={styles.emptyState}>
-          <div style={styles.emptyIcon}>⚡</div>
-          <div style={styles.emptyTitle}>분석할 데이터가 없습니다</div>
-          <div style={styles.emptySub}>1인 라운드를 완료하면<br/>스타일 분석이 가능해요</div>
-        </div>
+        <EmptyGuide role="insights-empty" icon="⚡" title="아직 분석할 라운드가 없어요" onStart={onStartRound}
+          lead={<>1명이 18홀을 끝낸 라운드를 하나 완료하면<br />잘한 점과 부족한 점을 짚어 드려요</>} />
       </div>
     );
   }
@@ -418,7 +416,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     <div style={styles.container}>
       {/* 제목 줄 — 뒤로 · 제목 · 도구(라운드 복기 · 검색). 복기·검색은 리포트의 장이 아니라 따로 여는 도구다 */}
       <header style={{ ...styles.pageHeader, display: 'grid', gridTemplateColumns: '96px 1fr 96px', paddingBottom: 12 }}>
-        <button style={{ ...styles.iconBack, justifySelf: 'start' }} onClick={onBack}>
+        <button style={{ ...styles.iconBack, justifySelf: 'start' }} onClick={onBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
         <div style={styles.pageTitle}>Insights</div>
@@ -565,7 +563,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                 </div>
               ))}
               {sg.coverage < 0.5 && (
-                <div data-role="sg-low-coverage" style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.6, marginTop: 8 }}>
+                <div data-role="sg-low-coverage" style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 8 }}>
                   측정된 샷이 전체의 {Math.round(sg.coverage * 100)}%라 참고용이에요.
                 </div>
               )}
@@ -799,7 +797,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={styles.section} data-role="landing-section">
             <div style={styles.sectionTitle}><KoEnTitle text="GREEN APPROACH · 그린 랜딩 분포" /></div>
             <LandingRadar counts={counts} />
-            <div style={{ textAlign: 'center', color: '#6b6558', fontSize: 14, marginTop: 8 }}>총 {total}회 기록</div>
+            <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 14, marginTop: 8 }}>총 {total}회 기록</div>
           </div>
         );
       })()}
@@ -812,7 +810,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ fontSize: 14, color: '#8896b0' }}>
               스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#e8edf8', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
-              <span style={{ marginLeft: 6, color: '#6e84a8' }}>({scrambling.saves}/{scrambling.attempts}홀)</span>
+              <span style={{ marginLeft: 6, color: '#8aa0c4' }}>({scrambling.saves}/{scrambling.attempts}홀)</span>
             </div>
             <ConfidenceBadge tier={scrambling.tier} n={scrambling.attempts} />
           </div>
@@ -1021,7 +1019,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                   <div style={styles.insightCardContent}>
                     <div style={styles.insightCardTitle}>{ins.title}</div>
                     <div style={styles.insightCardDetail}>{ins.summary}</div>
-                    <div style={{ ...styles.insightCardDetail, color: '#888', marginTop: 3 }}>{ins.recommendation}</div>
+                    <div style={{ ...styles.insightCardDetail, color: '#8896b0', marginTop: 3 }}>{ins.recommendation}</div>
                   </div>
                 </div>
               );

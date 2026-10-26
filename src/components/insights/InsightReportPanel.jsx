@@ -12,7 +12,7 @@ import { speedLabel } from '../../engine/greenSpeed.js';
 //   ThreePuttCause   4장  퍼팅 — 3퍼트 원인
 //   NextFocus        5장  다음 라운드 포커스
 
-const CAUSE_COLOR = { lag: '#c9a228', short: '#ef5350', both: '#c04a3e', mid: '#6b8cae', close: '#8a6fb0', unknown: '#4d5a78' };
+const CAUSE_COLOR = { lag: '#c9a228', short: '#ef5350', both: '#c04a3e', mid: '#6b8cae', close: '#8a6fb0', unknown: '#8896b0' };
 
 // note: 제목 옆 (!) 버튼으로 여는 설명 (noteTitle 은 알림창 제목)
 export const Section = ({ title, sub, note, noteTitle, children }) => (
@@ -21,7 +21,7 @@ export const Section = ({ title, sub, note, noteTitle, children }) => (
       <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em' }}>
         <KoEnTitle text={title} info={note && <InfoNote title={noteTitle}>{note}</InfoNote>} />
       </div>
-      {sub && <div style={{ fontSize: 13, color: '#6e84a8' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 13, color: '#8aa0c4' }}>{sub}</div>}
     </div>
     {children}
   </div>
@@ -83,7 +83,7 @@ export function ThreePuttCause({ rep }) {
             <span style={{ width: 10, height: 10, borderRadius: 3, background: CAUSE_COLOR[k], flexShrink: 0 }} />
             <span style={{ flex: 1, color: '#b4c0d8' }}>{PUTT_CAUSE_LABEL[k]}</span>
             <b style={{ color: '#e8edf8' }}>{c.counts[k]}회</b>
-            <span style={{ width: 40, textAlign: 'right', color: '#6e84a8' }}>{Math.round((c.counts[k] / c.total) * 100)}%</span>
+            <span style={{ width: 40, textAlign: 'right', color: '#8aa0c4' }}>{Math.round((c.counts[k] / c.total) * 100)}%</span>
           </div>
         ))}
       </div>

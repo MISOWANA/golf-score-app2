@@ -31,7 +31,7 @@ function Chip({ club, tag, primary, selected, onClick }) {
         color: selected ? GOLD : '#e8edf8',
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', color: selected ? GOLD : primary ? GREEN : '#6e84a8', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color: selected ? GOLD : primary ? GREEN : '#8aa0c4', whiteSpace: 'nowrap' }}>
         {primary && !selected ? '★ ' : ''}{tag}
       </div>
       <div style={{ fontSize: primary ? 20 : 17, fontWeight: 900, lineHeight: 1.25, marginTop: 2 }}>

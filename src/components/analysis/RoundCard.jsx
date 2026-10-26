@@ -88,7 +88,7 @@ export default function RoundCard({ card, share, records = [], goalResults = [],
             </div>
           ))}
           {goalResults.every((r) => !r.ev) && (
-            <div data-role="card-goals-note" style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.5 }}>
+            <div data-role="card-goals-note" style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.5 }}>
               {card.isNine ? '9홀 라운드는 목표를 판정하지 않아요.' : '목표는 정한 날부터 판정해요.'}
             </div>
           )}
@@ -123,7 +123,7 @@ export default function RoundCard({ card, share, records = [], goalResults = [],
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.55 }}>
+              <div style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.55 }}>
                 {card.isNine ? '9홀 라운드는 평균 비교에서 빠져요.' : '내 평균과의 비교는 이전 18홀 라운드가 3개 쌓이면 보여 드려요.'}
               </div>
             )}

@@ -2,22 +2,24 @@ import { useState, useRef } from 'react';
 import { Settings, LogOut } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
-import { NewRoundCard, ActiveRoundCard, StatsPanel, BackupNudge, FormCard } from './HomeCards';
+import { NewRoundCard, ActiveRoundCard, StatsPanel, BackupNudge, FormCard, FirstRunGuide } from './HomeCards';
 import { myPlayer } from '../../engine/players.js';
 import { isFullRound } from '../../engine/nines.js';
 import { nowMs } from '../../engine/clock.js';
 import { backupStatus } from '../../engine/backupStatus.js';
 import GoalsCard from '../goals/GoalsCard';
 import { hardRefresh } from '../../platform/hardRefresh.js';
+import { readNudgeSnooze, snoozeNudge, isNudgeSnoozed } from '../../platform/nudgeSnooze.js';
 
-// 홈 — 새 라운드(항상 맨 위) · 진행 중인 라운드 · 백업 안내(필요할 때만) · 누적/평균/핸디캡 · 내 폼 · 최근 라운드.
+// 홈 — 새 라운드(진행 중인 라운드가 없을 때 맨 위) · 진행 중인 라운드(있으면 맨 위 주인공) · 백업 안내(필요할 때만) · 누적/평균/핸디캡 · 내 폼 · 최근 라운드.
 //   onOpenSettings  설정(백업·기기 옮기기) 화면
 //   onBackup        백업 파일을 바로 만든다 (백업 안내의 "지금 백업")
 //   summary         engine/homeSummary.js 의 buildHomeSummary 결과
 //   goals · goalRounds · onOpenGoal  다음 라운드 목표 카드 (판정에 쓰는 라운드, 목표 시트 열기)
-export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onSelectRound, onSwitchUser, onOpenSettings, onBackup, onGoStats, backupMeta, summary, goals = [], goalRounds = [], onOpenGoal, loading }) {
+export default function HomeView({ rounds, currentUser, activeRound, onNewRound, onResume, onViewHistory, onSelectRound, onSwitchUser, onOpenSettings, onBackup, onGoStats, onGoBag, backupMeta, summary, goals = [], goalRounds = [], onOpenGoal, loading }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
+  const [nudgeUntil, setNudgeUntil] = useState(() => readNudgeSnooze(currentUser.userId));   // 백업 안내를 숨기는 중이면 끝나는 시각
   const logoClickRef = useRef({ count: 0, lastAt: 0 });
   const recentRound = rounds[0];
   const totalRounds = rounds.length;
@@ -78,14 +80,22 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
         </div>
       </header>
 
-      {/* 새 라운드는 항상 맨 위에 고정 — 진행 중인 라운드는 그 아래 */}
-      <NewRoundCard onNewRound={onNewRound} />
+      {/* 진행 중인 라운드가 있으면 "이어서"가 주인공(맨 위 큰 카드), 새 라운드는 그 아래 보조 카드. 없으면 새 라운드가 맨 위 */}
+      {activeRound
+        ? (<>
+          <ActiveRoundCard round={activeRound} onResume={onResume} prominent />
+          <NewRoundCard onNewRound={onNewRound} compact />
+        </>)
+        : <NewRoundCard onNewRound={onNewRound} />}
 
-      {activeRound && <ActiveRoundCard round={activeRound} onResume={onResume} />}
-
-      {!loading && <BackupNudge status={bStatus} onBackup={onBackup} onSettings={onOpenSettings} />}
+      {!loading && !isNudgeSnoozed(nudgeUntil, nowMs()) && (
+        <BackupNudge status={bStatus} onBackup={onBackup} onSettings={onOpenSettings} onSnooze={() => setNudgeUntil(snoozeNudge(currentUser.userId, nowMs()))} />
+      )}
 
       <StatsPanel loading={loading} totalRounds={totalRounds} avgScore={avgScore} handicap={summary?.handicap} />
+
+      {/* 처음 쓰는 사람에게: 빈 화면 대신 다음에 할 일 3가지 */}
+      {!loading && totalRounds === 0 && !activeRound && <FirstRunGuide onGoBag={onGoBag} onNewRound={onNewRound} onSettings={onOpenSettings} />}
 
       {!loading && <FormCard summary={summary} onGoStats={onGoStats} />}
 

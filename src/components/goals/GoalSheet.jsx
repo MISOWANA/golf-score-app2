@@ -54,7 +54,7 @@ export default function GoalSheet({ rounds, goals, initialMetric = null, existin
           {recent ? `최근 ${recent.n}라운드 평균 ${Number.isInteger(recent.avg) ? recent.avg : recent.avg.toFixed(1)}${m.unit}` : '아직 비교할 라운드가 없어요'}
         </div>
         <div data-role="goal-text" style={{ textAlign: 'center', fontSize: 15, fontWeight: 800, color: '#c9a228', marginBottom: 6 }}>{goalText({ metric, target })}</div>
-        <div style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.6, textAlign: 'center', marginBottom: 14, wordBreak: 'keep-all' }}>
+        <div style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, textAlign: 'center', marginBottom: 14, wordBreak: 'keep-all' }}>
           다음 라운드부터 끝날 때마다 달성했는지 알려 드려요. 18홀 1인 라운드만 판정해요.
         </div>
 

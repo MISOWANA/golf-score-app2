@@ -26,6 +26,7 @@ import InsightsView from './components/insights/InsightsView';
 import MyBagView from './components/mybag/MyBagView';
 import SettingsView from './components/settings/SettingsView';
 import GoalSheet from './components/goals/GoalSheet';
+import NoticeToast from './components/common/NoticeToast';
 import { createRound } from './engine/newRound.js';
 import { buildHomeSummary } from './engine/homeSummary.js';
 import { serializeBackup, backupFileName, parseBackupFile } from './engine/backupStatus.js';
@@ -43,6 +44,8 @@ export default function GolfScoringApp() {
   const [rounds, setRounds] = useState([]);
   const [goals, setGoals] = useState([]);               // 다음 라운드 목표 (최대 2개)
   const [goalSheet, setGoalSheet] = useState(null);      // 목표 시트가 열려 있으면 { goalId?, metric? }
+  const [notice, setNotice] = useState(null);           // 앱 안 알림 { tone: 'ok' | 'error', text } — 예전의 브라우저 alert() 자리
+  const closeNotice = useCallback(() => setNotice(null), []);
   const [unit, setUnitState] = useState('m');             // 거리 단위 'm' | 'yd' — 기록은 늘 미터, 보이고 입력하는 단위만 바뀐다
   const [trash, setTrash] = useState([]);                // 휴지통에 있는 라운드들 (지운 지 7일 안)
   const [backupMeta, setBackupMeta] = useState(null);   // 마지막 백업 시각 · 그때의 라운드 수 (홈의 백업 안내)
@@ -215,7 +218,7 @@ export default function GolfScoringApp() {
       await saveRound(finished, currentUser.userId);
     } catch (e) {
       // 진행 중 라운드는 그대로 남아 있으므로 다시 완료를 누르면 된다.
-      alert(`라운드를 저장하지 못했어요. 다시 시도해 주세요.\n${e?.message || ''}`);
+      setNotice({ tone: 'error', text: `라운드를 저장하지 못했어요. 다시 시도해 주세요.\n${e?.message || ''}`.trim() });
       throw e;
     }
     await clearActiveRound(userIdsOf(currentUser));
@@ -284,7 +287,7 @@ export default function GolfScoringApp() {
 
   // 홈의 "지금 백업" — 실패하면 알린다
   const handleQuickBackup = async () => {
-    try { await handleExportData(); } catch (e) { console.error('Export failed', e); alert('백업하지 못했어요: ' + (e?.message || '')); }
+    try { await handleExportData(); } catch (e) { console.error('Export failed', e); setNotice({ tone: 'error', text: '백업하지 못했어요: ' + (e?.message || '') }); }
   };
 
   const handleImportData = async (file) => {
@@ -313,13 +316,13 @@ export default function GolfScoringApp() {
       await loadUserRounds(currentUser);
       // 백업 파일에 거리 단위 설정이 들어 있으면 가져오므로 화면도 맞춘다
       try { applyUnit((await getPrefs(currentUser.userId)).unit); } catch { /* 설정을 못 읽어도 기록 복원은 끝났다 */ }
-      alert(`데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
+      setNotice({ tone: 'ok', text: `데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
         + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : '')
         + (nineConverted > 0 ? `\n9홀만 입력된 ${nineConverted}개는 9홀 라운드로 저장했습니다 (통계에서는 제외돼요).` : '')
-        + (remapped > 0 ? `\n다른 사용자의 기록과 번호가 겹친 ${remapped}개는 그 기록을 건드리지 않고 사본으로 추가했습니다.` : ''));
+        + (remapped > 0 ? `\n다른 사용자의 기록과 번호가 겹친 ${remapped}개는 그 기록을 건드리지 않고 사본으로 추가했습니다.` : '') });
     } catch (e) {
       console.error('Import failed', e);
-      alert('데이터 가져오기 실패: ' + e.message);
+      setNotice({ tone: 'error', text: '데이터 가져오기 실패: ' + e.message });
     }
   };
 
@@ -338,6 +341,7 @@ export default function GolfScoringApp() {
   return (
     <div style={styles.app}>
       <style>{globalCSS}</style>
+      <NoticeToast notice={notice} onClose={closeNotice} />
 
       {/* 화면 하나가 오류를 내도 앱 전체가 멈추지 않게. 화면을 바꾸면 초기화된다. */}
       <ErrorBoundary key={view} onHome={currentUser ? () => setView('home') : null}>
@@ -364,6 +368,7 @@ export default function GolfScoringApp() {
           onOpenSettings={() => setView('settings')}
           onBackup={handleQuickBackup}
           onGoStats={() => setView('stats')}
+          onGoBag={() => setView('mybag')}
           backupMeta={backupMeta}
           summary={homeSummary}
           goals={goals}
@@ -452,6 +457,7 @@ export default function GolfScoringApp() {
           rounds={statRounds}
           excludedCount={multiPlayerCount}
           nineExcludedCount={nineHoleCount}
+          onStartRound={handleNewRound}
           onBack={() => setView('home')}
         />
       )}
@@ -463,6 +469,7 @@ export default function GolfScoringApp() {
           nineExcludedCount={nineHoleCount}
           goals={goals}
           onOpenGoal={setGoalSheet}
+          onStartRound={handleNewRound}
           onBack={() => setView('home')}
         />
       )}

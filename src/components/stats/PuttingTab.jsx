@@ -80,7 +80,7 @@ export default function PuttingTab({ report }) {
             <div style={{ fontSize: 14, color: COLOR.muted, marginBottom: 4 }}>3퍼트 이상 <b style={{ color: COLOR.text }}>{causes.total}홀</b></div>
             {causeRows.map((c) => (
               <RateRow key={c} id={`cause-${c}`} label={PUTT_CAUSE_LABEL[c]} value={(causes.counts[c] / causes.total) * 100} text={`${causes.counts[c]}홀`}
-                color={c === 'unknown' ? '#4d5a78' : c === causes.dominant ? COLOR.red : COLOR.amber} labelWidth={110} />
+                color={c === 'unknown' ? '#8896b0' : c === causes.dominant ? COLOR.red : COLOR.amber} labelWidth={110} />
             ))}
             {causeTake && <Takeaway tone={causeTake.tone}>{causeTake.text}</Takeaway>}
           </>

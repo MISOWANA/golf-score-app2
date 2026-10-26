@@ -21,7 +21,7 @@ const m1 = (v) => fmtPutt(v, { digits: 1, fallback: '—' });
 const TONE = { great: C.goldBright, good: C.green, bad: C.red };
 // C.dim(#8896b0)은 작은 글씨에서 대비가 부족해 라벨용 밝은 회색을 따로 쓴다.
 const LABEL = '#a8b6cc';
-const MUTED = '#4d5a78';
+const MUTED = '#8896b0';
 const OFF_GREEN = '#e6b94a';   // 그린 밖으로 나간 퍼트·칩
 const CARD = '#121a2e';
 const BORDER = '#1e2840';

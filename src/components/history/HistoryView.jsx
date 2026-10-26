@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronDown, RotateCcw } from 'lucide-react';
 import styles from '../../styles/styles';
 import HistoryCard from './HistoryCard';
+import HistoryFilterBar from './HistoryFilterBar';
+import { filterHistory, isFiltered, roundYears } from '../../engine/historyFilter.js';
+import { isNineHoleRound } from '../../engine/nines.js';
 import { myPlayer } from '../../engine/players.js';
 import { TRASH_KEEP_DAYS, trashDaysLeft } from '../../engine/trash.js';
 
 const UNDO_MS = 8000;
+const FILTER_MIN_ROUNDS = 4;   // 이만큼 쌓이기 전에는 찾기 줄을 보이지 않는다
 
 // 휴지통 한 줄 — 어느 라운드인지 알아볼 만큼만: 코스 · 날짜 · 타수 · 지운 지 며칠
 function TrashRow({ row, userName, onRestore, onPurge }) {
@@ -53,6 +57,16 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
   const [pendingDelete, setPendingDelete] = useState(null);
   const [undo, setUndo] = useState(null);                 // 방금 지운 라운드 { id, courseName } — 되돌리기 안내
   const [trashOpen, setTrashOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [year, setYear] = useState(null);
+  const [kind, setKind] = useState('all');             // 'all' | 'full'(18홀) | 'nine'(9홀)
+  const [sort, setSort] = useState('recent');          // 'recent' | 'old' | 'best'
+  const years = useMemo(() => roundYears(rounds), [rounds]);
+  const showKinds = useMemo(() => rounds.some(isNineHoleRound) && rounds.some((r) => !isNineHoleRound(r)), [rounds]);
+  const filters = { query, year, kind, sort };
+  const filtered = isFiltered(filters);
+  const shownRounds = useMemo(() => filterHistory(rounds, userName, { query, year, kind, sort }), [rounds, userName, query, year, kind, sort]);
+  const clearFilters = () => { setQuery(''); setYear(null); setKind('all'); };
 
   useEffect(() => {
     if (!undo) return undefined;
@@ -76,11 +90,11 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
   return (
     <div style={styles.container}>
       <header style={styles.pageHeader}>
-        <button style={styles.iconBack} onClick={onBack}>
+        <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
         <div style={styles.pageTitle}>History</div>
-        <div style={{ width: 40 }} />
+        <div style={{ width: 44 }} />
       </header>
 
       {rounds.length === 0 ? (
@@ -90,24 +104,38 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
           <div style={styles.emptySub}>첫 라운드를 시작해보세요</div>
         </div>
       ) : (
-        <div style={styles.historyList}>
-          {rounds.map(r => (
-            <HistoryCard
-              key={r.id}
-              round={r}
-              userName={userName}
-              onSelect={() => onSelect(r.id)}
-              onDelete={() => setPendingDelete(r)}
-            />
-          ))}
-        </div>
+        <>
+          {rounds.length >= FILTER_MIN_ROUNDS && (
+            <HistoryFilterBar query={query} onQuery={setQuery} year={year} onYear={setYear} years={years}
+              kind={kind} onKind={setKind} showKinds={showKinds} sort={sort} onSort={setSort}
+              shown={shownRounds.length} total={rounds.length} filtered={filtered} onClear={clearFilters} />
+          )}
+          {shownRounds.length === 0 ? (
+            <div data-role="history-empty-result" style={{ textAlign: 'center', padding: '36px 16px', color: '#a9b8d6', fontSize: 15, lineHeight: 1.7 }}>
+              조건에 맞는 라운드가 없어요
+              <div><button type="button" onClick={clearFilters} style={{ marginTop: 10, minHeight: 44, padding: '0 18px', borderRadius: 12, border: '1.5px solid rgba(201,162,40,0.6)', background: 'transparent', color: '#e6c35a', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>조건 지우기</button></div>
+            </div>
+          ) : (
+            <div style={styles.historyList}>
+              {shownRounds.map(r => (
+                <HistoryCard
+                  key={r.id}
+                  round={r}
+                  userName={userName}
+                  onSelect={() => onSelect(r.id)}
+                  onDelete={() => setPendingDelete(r)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {trash.length > 0 && (
         <div data-role="trash" style={{ marginTop: 18 }}>
           <button type="button" data-role="trash-toggle" aria-expanded={trashOpen} onClick={() => setTrashOpen((o) => !o)}
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 14px', borderRadius: 12, border: '1px solid #1b2238', background: 'rgba(255,255,255,0.03)', color: '#a9b8d6', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            <span>휴지통 {trash.length}개 <span style={{ fontSize: 13, color: '#6e84a8', fontWeight: 500 }}>· {TRASH_KEEP_DAYS}일 보관</span></span>
+            <span>휴지통 {trash.length}개 <span style={{ fontSize: 13, color: '#8aa0c4', fontWeight: 500 }}>· {TRASH_KEEP_DAYS}일 보관</span></span>
             <ChevronDown size={18} style={{ transform: trashOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
           </button>
           {trashOpen && (

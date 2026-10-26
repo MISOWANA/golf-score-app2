@@ -399,13 +399,13 @@ describe('9홀 라운드', () => {
       await setup({ rounds: [makeNineRound(1, 'out'), makeNineRound(2, 'in')] });
       tab('스탯');
       await screen.findByText('Stats');
-      expect(screen.getByText('통계 데이터 부족')).toBeTruthy();
+      expect(screen.getByText('아직 통계가 없어요')).toBeTruthy();
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 2개는 집계에서 제외돼요/);
       expect(screen.queryByText('화면을 표시하지 못했어요')).toBeNull();
 
       tab('인사이트');
       await screen.findByText('Insights');
-      expect(screen.getByText('분석할 데이터가 없습니다')).toBeTruthy();
+      expect(screen.getByText('아직 분석할 라운드가 없어요')).toBeTruthy();
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 2개는 집계에서 제외돼요/);
       expect(screen.queryByText('화면을 표시하지 못했어요')).toBeNull();
     });
@@ -721,6 +721,7 @@ describe('설정 화면', () => {
   });
 
   describe('백업에서 복원', () => {
+    const noticeText = () => document.querySelector('[data-role="notice-text"]')?.textContent ?? '';
     const pickFile = (file) => fireEvent.change(document.querySelector('[data-role="settings-view"] input[type="file"]'), { target: { files: [file] } });
 
     it('내보낸 파일을 복원하면 기록이 합쳐진다', async () => {
@@ -729,8 +730,9 @@ describe('설정 화면', () => {
       await openSettings();
       const extra = makeFullRound(7, ME, { id: 'restored-1' });
       pickFile(new File([serializeBackup({ version: '1.0', userId: 'other', data: { rounds: [extra], clubs: [] } })], 'backup.json', { type: 'application/json' }));
-      await waitFor(() => expect(window.alert).toHaveBeenCalled());
-      expect(window.alert.mock.calls[0][0]).toMatch(/데이터를 가져왔습니다.*1개 라운드/);
+      await waitFor(() => expect(noticeText()).toMatch(/데이터를 가져왔습니다.*1개 라운드/));
+      expect(document.querySelector('[data-role="notice"]').getAttribute('data-tone')).toBe('ok');
+      expect(window.alert).not.toHaveBeenCalled();                          // 브라우저 기본 알림창이 아니라 앱 안 알림
       await waitFor(async () => expect((await db.loadRoundsByUser([user.userId])).map((r) => r.id)).toContain('restored-1'));
       expect(await db.getBackupMeta(user.userId)).toBeNull();               // 복원은 "백업"이 아니다
     });
@@ -739,17 +741,18 @@ describe('설정 화면', () => {
       await setup({ rounds: rounds18(1) });
       await openSettings();
       pickFile(new File(['이건 JSON 이 아니에요'], 'a.json'));
-      await waitFor(() => expect(window.alert).toHaveBeenCalledTimes(1));
-      expect(window.alert.mock.calls[0][0]).toMatch(/백업 파일을 읽을 수 없어요/);
+      await waitFor(() => expect(noticeText()).toMatch(/백업 파일을 읽을 수 없어요/));
+      expect(document.querySelector('[data-role="notice"]').getAttribute('data-tone')).toBe('error');
 
       pickFile(new File([JSON.stringify({ version: '2.0', data: { rounds: [] } })], 'b.json'));
-      await waitFor(() => expect(window.alert).toHaveBeenCalledTimes(2));
-      expect(window.alert.mock.calls[1][0]).toMatch(/새로운 형식.*갱신/);
+      await waitFor(() => expect(noticeText()).toMatch(/새로운 형식.*갱신/));
 
       pickFile(new File(['{}'], 'c.txt'));
-      await waitFor(() => expect(window.alert).toHaveBeenCalledTimes(3));
-      expect(window.alert.mock.calls[2][0]).toMatch(/JSON 파일만/);
+      await waitFor(() => expect(noticeText()).toMatch(/JSON 파일만/));
+      expect(window.alert).not.toHaveBeenCalled();
       expect(await db.loadRoundsByUser([user.userId])).toHaveLength(1);
+      fireEvent.click(document.querySelector('[data-role="notice-close"]'));      // 오류 알림은 확인을 눌러야 닫힌다
+      await waitFor(() => expect(document.querySelector('[data-role="notice"]')).toBeNull());
     });
   });
 });
@@ -1916,5 +1919,238 @@ describe('스코어 입력 — 비어 있는 거리 칸', () => {
     fireEvent.mouseUp(window, { clientX: 120, clientY: 100 });
     await waitFor(async () => expect((await db.loadActiveRound([user.userId])).holes[0].scores[ME].remainingDistance).toBe(start + 5));   // 4px 마다 1m
     await waitFor(() => expect(document.querySelector('[data-role="empty-value"]')).toBeNull());
+  });
+});
+
+// ─── 사용성 개선 (야외 가독성 · 버튼 크기 · 홈 · 히스토리 · 처음 쓰는 사람 · 설정) ─────────────────────
+describe('홈 — 진행 중인 라운드가 있으면 "이어서"가 주인공', () => {
+  it('이어서가 맨 위 큰 카드이고, 새 라운드는 그 아래 한 줄짜리 보조 카드다', async () => {
+    await setup({ rounds: rounds18(2), active: makeActiveRound(ME) });
+    const active = document.querySelector('[data-role="home-active-round"]');
+    const fresh = document.querySelector('[data-role="home-new-round"]');
+    expect(active.getAttribute('data-prominent')).toBe('1');
+    expect(fresh.getAttribute('data-compact')).toBe('1');
+    expect(active.compareDocumentPosition(fresh) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();   // 새 라운드가 뒤에 온다
+    expect(screen.getByText('이어서')).toBeTruthy();
+  });
+
+  it('진행 중인 라운드가 없으면 새 라운드가 큰 카드 그대로다', async () => {
+    await setup({ rounds: rounds18(2) });
+    expect(document.querySelector('[data-role="home-active-round"]')).toBeNull();
+    expect(document.querySelector('[data-role="home-new-round"]').getAttribute('data-compact')).toBeNull();
+  });
+
+  it('이어서를 누르면 스코어 입력으로, 보조 카드의 시작하기를 눌러도 진행 중인 라운드를 먼저 묻는다', async () => {
+    await setup({ rounds: rounds18(2), active: makeActiveRound(ME) });
+    fireEvent.click(screen.getByText('시작하기'));
+    expect(await screen.findByText('진행 중인 라운드가 있어요')).toBeTruthy();
+    fireEvent.click(screen.getByText('이어서 기록하기'));
+    expect(await screen.findByText('HOLE 4')).toBeTruthy();
+  });
+});
+
+describe('스코어 입력 — 아래 막대의 메모', () => {
+  const resume = async (active) => {
+    await setup({ active });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 4');
+  };
+  const memoBtn = () => document.querySelector('[data-role="memo-button"]');
+
+  it('메모가 없어도 흐려 보이지 않는 일반 글자색이고, 이름이 있다', async () => {
+    await resume(makeActiveRound(ME));
+    expect(memoBtn().getAttribute('data-has-memo')).toBe('0');
+    expect(memoBtn().style.color).toBe('rgb(232, 237, 248)');          // #e8edf8 — 이전 · 다음과 같은 색
+    expect(memoBtn().getAttribute('aria-label')).toBe('메모 쓰기');
+    expect(memoBtn().textContent).toBe('메모');
+    expect(document.querySelector('[data-role="memo-dot"]')).toBeNull();
+  });
+
+  it('메모를 저장하면 금색 점과 "메모 ●" 로 있다는 걸 알려 준다', async () => {
+    await resume(makeActiveRound(ME));
+    fireEvent.click(memoBtn());
+    fireEvent.change(await screen.findByPlaceholderText(/티샷이 좌측 러프로/), { target: { value: '왼쪽 OB 조심' } });
+    fireEvent.click(screen.getAllByText('저장').pop());
+    await waitFor(() => expect(memoBtn().getAttribute('data-has-memo')).toBe('1'));
+    expect(document.querySelector('[data-role="memo-dot"]')).toBeTruthy();
+    expect(memoBtn().textContent).toBe('메모');
+    expect(memoBtn().getAttribute('aria-label')).toBe('메모 있음 — 열기');
+    expect(memoBtn().style.color).toBe('rgb(240, 201, 58)');            // 금색
+  });
+});
+
+describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => {
+  it('거리 −/+ 버튼은 44px', async () => {
+    const round = makeActiveRound(ME, { currentHole: 0 });
+    round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
+    await setup({ active: round });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 1');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
+    const plus = await waitFor(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === '+' && x.style.width === '44px'); expect(b).toBeTruthy(); return b; });
+    expect([plus.style.width, plus.style.height]).toEqual(['44px', '44px']);
+  });
+
+  it('화면 위의 뒤로가기와 스코어 입력 아래의 홈 아이콘에는 이름이 있다', async () => {
+    await setup({ rounds: rounds18(1), active: makeActiveRound(ME) });
+    tab('스탯');
+    await screen.findByText('Stats');
+    expect(screen.getByRole('button', { name: '뒤로' })).toBeTruthy();
+    tab('홈');
+    fireEvent.click(await screen.findByText('이어서'));
+    await screen.findByText('HOLE 4');
+    expect(screen.getByRole('button', { name: '뒤로' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '홈' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '이전 홀' })).toBeTruthy();
+  });
+
+  it('하단 탭은 이름과 현재 위치(aria-current)를 알려 준다', async () => {
+    await setup({ rounds: rounds18(1) });
+    const home = screen.getByRole('button', { name: '홈' });
+    expect(home.getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: '스탯' }).getAttribute('aria-current')).toBeNull();
+  });
+});
+
+describe('히스토리 찾기 · 걸러 보기 · 정렬', () => {
+  const R = (i, course, over = {}) => makeFullRound(i, ME, { courseName: course, ...over });
+  const mixed = () => [
+    R(1, '남서울CC'), R(2, '버치힐'), R(3, '남서울CC'), R(4, '핀크스'),
+    R(5, '버치힐', { date: new Date(2025, 4, 10, 12).toISOString() }),
+    makeNineRound(6, 'out', ME, { courseName: '아홉홀CC' }),
+  ];
+  const openHistory = async (rounds) => { await setup({ rounds }); tab('히스토리'); await screen.findByText('History'); };
+  const cardCourses = () => [...document.querySelectorAll('button[class~="bb-press"]')].map((b) => b.textContent).filter((t) => /CC|힐|크스/.test(t));
+  const count = () => document.querySelector('[data-role="history-count"]').textContent;
+
+  it('라운드가 4개 미만이면 찾기 줄이 없다', async () => {
+    await openHistory(rounds18(3));
+    expect(document.querySelector('[data-role="history-filter"]')).toBeNull();
+  });
+
+  it('코스 이름으로 찾으면 목록이 줄고, 개수와 "조건 지우기"가 보인다', async () => {
+    await openHistory(mixed());
+    expect(count()).toContain('6개');
+    fireEvent.change(document.querySelector('[data-role="history-search"]'), { target: { value: '버치' } });
+    await waitFor(() => expect(count()).toMatch(/전체 6개 중 2개/));
+    expect(cardCourses().every((t) => t.includes('버치힐'))).toBe(true);
+    fireEvent.click(document.querySelector('[data-role="history-clear"]'));
+    await waitFor(() => expect(count()).toContain('6개'));
+    expect(document.querySelector('[data-role="history-search"]').value).toBe('');
+  });
+
+  it('맞는 라운드가 없으면 안내와 조건 지우기가 나온다', async () => {
+    await openHistory(mixed());
+    fireEvent.change(document.querySelector('[data-role="history-search"]'), { target: { value: '없는코스' } });
+    const empty = await waitFor(() => { const e = document.querySelector('[data-role="history-empty-result"]'); expect(e).toBeTruthy(); return e; });
+    expect(empty.textContent).toContain('조건에 맞는 라운드가 없어요');
+    fireEvent.click(empty.querySelector('button'));
+    await waitFor(() => expect(document.querySelector('[data-role="history-empty-result"]')).toBeNull());
+  });
+
+  it('연도 · 9홀/18홀 칩은 해당하는 기록이 있을 때만 있고, 누르면 걸러진다', async () => {
+    await openHistory(mixed());
+    fireEvent.click(document.querySelector('[data-role="history-year-2025"]'));
+    await waitFor(() => expect(count()).toMatch(/전체 6개 중 1개/));
+    fireEvent.click(document.querySelector('[data-role="history-year-2025"]'));      // 다시 누르면 해제
+    await waitFor(() => expect(count()).toContain('6개'));
+    fireEvent.click(document.querySelector('[data-role="history-kind-nine"]'));
+    await waitFor(() => expect(count()).toMatch(/전체 6개 중 1개/));
+    expect(document.querySelector('[data-role="history-kind-nine"]').getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('연도가 하나뿐이고 9홀 기록이 없으면 그 칩은 없다', async () => {
+    await openHistory(rounds18(5));
+    expect(document.querySelector('[data-role="history-filter"]')).toBeTruthy();
+    expect(document.querySelector('[data-role^="history-year-"]')).toBeNull();
+    expect(document.querySelector('[data-role^="history-kind-"]')).toBeNull();
+  });
+
+  it('정렬: 오래된순은 거꾸로, 선택한 정렬이 표시된다', async () => {
+    await openHistory(rounds18(5));
+    const first = () => document.querySelector('button[class~="bb-press"]').textContent;
+    expect(first()).toContain('테스트CC5');
+    fireEvent.click(document.querySelector('[data-role="history-sort-old"]'));
+    await waitFor(() => expect(first()).toContain('테스트CC1'));
+    expect(document.querySelector('[data-role="history-sort-old"]').getAttribute('aria-checked')).toBe('true');
+  });
+});
+
+describe('홈 — 백업 안내 "나중에"', () => {
+  afterEach(() => localStorage.clear());
+
+  it('차분한 금색이고, 나중에를 누르면 며칠 숨겨서 다시 열어도 안 보인다', async () => {
+    await setup({ rounds: rounds18(2) });
+    const nudge = () => document.querySelector('[data-role="home-backup-nudge"]');
+    expect(nudge()).toBeTruthy();
+    expect(nudge().getAttribute('data-level')).toBe('none');
+    expect(nudge().textContent).toContain('3일 동안 숨겨요');
+    fireEvent.click(document.querySelector('[data-role="nudge-snooze"]'));
+    await waitFor(() => expect(nudge()).toBeNull());
+    expect(localStorage.getItem('bb.backupNudgeSnooze.' + user.userId)).toBeTruthy();
+    cleanup();
+    render(<App />);                                                           // 같은 사용자로 앱을 다시 열어도
+    await screen.findByText('새 라운드');
+    expect(nudge()).toBeNull();
+  });
+});
+
+describe('처음 쓰는 사람 — 빈 화면 대신 안내', () => {
+  it('홈: 기록이 없으면 3단계 안내가 있고, 버튼으로 바로 간다', async () => {
+    await setup({});
+    expect(document.querySelector('[data-role="home-first-run"]')).toBeTruthy();
+    expect(document.querySelector('[data-role="milestone-3"]').textContent).toContain('핸디캡');
+    fireEvent.click(document.querySelector('[data-role="first-bag"] button'));
+    expect(await screen.findByText('내 클럽 등록')).toBeTruthy();                 // 마이백 등록 화면
+  });
+
+  it('홈: 첫 라운드 기록 · 백업 단계 버튼도 각자 화면으로', async () => {
+    await setup({});
+    fireEvent.click(document.querySelector('[data-role="first-round"] button'));
+    expect(await screen.findByText('New Round')).toBeTruthy();
+    cleanup();
+    await setup({});
+    fireEvent.click(document.querySelector('[data-role="first-backup"] button'));
+    expect(await screen.findByText('Settings')).toBeTruthy();
+  });
+
+  it('홈: 라운드가 있거나 진행 중인 라운드가 있으면 안내는 없다', async () => {
+    await setup({ rounds: rounds18(1) });
+    expect(document.querySelector('[data-role="home-first-run"]')).toBeNull();
+    cleanup();
+    await setup({ active: makeActiveRound(ME) });
+    expect(document.querySelector('[data-role="home-first-run"]')).toBeNull();
+  });
+
+  it('스탯 · 인사이트: 언제부터 무엇이 보이는지와 시작 버튼', async () => {
+    await setup({});
+    tab('스탯');
+    await screen.findByText('Stats');
+    const guide = document.querySelector('[data-role="stats-empty"]');
+    expect(guide.textContent).toContain('아직 통계가 없어요');
+    expect([...guide.querySelectorAll('[data-role^="milestone-"]')].map((e) => e.getAttribute('data-role'))).toEqual(['milestone-1', 'milestone-3', 'milestone-5', 'milestone-10']);
+    expect(guide.querySelector('[data-role="milestone-1"]').getAttribute('data-state')).toBe('next');
+    tab('인사이트');
+    await screen.findByText('Insights');
+    expect(document.querySelector('[data-role="insights-empty"]').textContent).toContain('아직 분석할 라운드가 없어요');
+    fireEvent.click(document.querySelector('[data-role="insights-empty"] [data-role="empty-start"]'));
+    expect(await screen.findByText('New Round')).toBeTruthy();
+  });
+});
+
+describe('새 라운드 설정 — 아래에 고정된 시작 버튼', () => {
+  const openSetup = async () => {
+    await setup({});
+    fireEvent.click(document.querySelector('[data-role="first-round"] button'));
+    await screen.findByText('New Round');
+  };
+
+  it('시작 버튼이 고정 막대 안에 있고, 못 누르는 이유가 그 위에 같이 보인다', async () => {
+    await openSetup();
+    const bar = document.querySelector('[data-role="start-bar"]');
+    expect(bar.style.position).toBe('fixed');
+    expect(bar.querySelector('[data-role="start-round"]').disabled).toBe(true);
+    expect(bar.querySelector('[data-role="start-blockers"]').textContent).toMatch(/골프장 이름/);
+    expect(bar.querySelector('[data-role="start-blockers"]').textContent).toMatch(/TEE BOX/);
   });
 });

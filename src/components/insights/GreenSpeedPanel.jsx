@@ -8,7 +8,7 @@ import { fmtPutt } from '../../engine/units.js';
 //   누적: 느림·보통·빠름·매우 빠름 구간별 평균 (속도를 기록한 라운드만)
 
 const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
-const dim = { fontSize: 13, color: '#6e84a8', lineHeight: 1.6 };
+const dim = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6 };
 
 // 라운드 수가 쌓인 만큼의 신뢰도 (stats.js 의 low/mid/high 와 같은 이름)
 const roundsTier = (n) => (n >= 5 ? 'high' : n >= 3 ? 'mid' : 'low');
@@ -40,7 +40,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', fontSize: 12, color: '#6e84a8', padding: '0 0 6px', borderBottom: '1px solid #1b2238' }}>
+            <div style={{ display: 'flex', fontSize: 12, color: '#8aa0c4', padding: '0 0 6px', borderBottom: '1px solid #1b2238' }}>
               <div style={{ flex: '1 1 78px' }}>
                 구간
                 <InfoNote title="구간별 평균 보는 법">
@@ -65,7 +65,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
                 <div style={{ width: 42, textAlign: 'right' }}>{b.three.toFixed(1)}</div>
                 <div style={{ width: 42, textAlign: 'right' }}>{b.one.toFixed(1)}</div>
                 <div style={{ width: 48, textAlign: 'right' }}>{b.firstDist != null ? fmtPutt(b.firstDist, { digits: 1 }) : '–'}</div>
-                <div style={{ width: 48, textAlign: 'right', color: b.sgPutting == null ? '#6e84a8' : b.sgPutting >= 0 ? '#3db87a' : '#ef5350' }}>{sgText(b.sgPutting)}</div>
+                <div style={{ width: 48, textAlign: 'right', color: b.sgPutting == null ? '#8aa0c4' : b.sgPutting >= 0 ? '#3db87a' : '#ef5350' }}>{sgText(b.sgPutting)}</div>
               </div>
             ))}
             {report.unsetRounds > 0 && (
@@ -92,7 +92,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
             </InfoNote>
           )}
         </div>
-        <div data-role="gs-latest" style={{ fontSize: 14, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#6e84a8' }}>
+        <div data-role="gs-latest" style={{ fontSize: 14, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#8aa0c4' }}>
           {r.speed != null ? speedLabel(r.speed) : '설정 안 함'}
         </div>
       </div>

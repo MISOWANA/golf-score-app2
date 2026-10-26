@@ -63,7 +63,7 @@ export default function LandingRadar({ counts }) {
                 </>
               )}
               {!KEY_NAME[h] && (
-                <text x={fix(num[0])} y={fix(num[1])} textAnchor="middle" dominantBaseline="central" fontSize="11" fill="#6e84a8">{h}</text>
+                <text x={fix(num[0])} y={fix(num[1])} textAnchor="middle" dominantBaseline="central" fontSize="11" fill="#8aa0c4">{h}</text>
               )}
             </g>
           );

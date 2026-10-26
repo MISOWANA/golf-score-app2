@@ -190,14 +190,14 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
   return (
     <div style={styles.container}>
       <header style={styles.pageHeader}>
-        <button style={styles.iconBack} onClick={onBack}>
+        <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
         <div style={styles.pageTitle}>Round Report</div>
         <button
           style={{ ...styles.iconBack, color: '#c9a228' }}
           onClick={openEditModal}
-          title="라운드 정보 수정"
+          title="라운드 정보 수정" aria-label="라운드 정보 수정"
         >
           <Edit3 size={18} />
         </button>
@@ -277,7 +277,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
           <BreakdownBar label="Eagle+" count={stats.eagles} total={Math.max(1, stats.playedCount)} color="#c9a228" />
           <BreakdownBar label="Birdie" count={stats.birdies} total={Math.max(1, stats.playedCount)} color="#3db87a" />
           <BreakdownBar label="Par" count={stats.pars} total={Math.max(1, stats.playedCount)} color="#8896b0" />
-          <BreakdownBar label="Bogey" count={stats.bogeys} total={Math.max(1, stats.playedCount)} color="#6b7c9a" />
+          <BreakdownBar label="Bogey" count={stats.bogeys} total={Math.max(1, stats.playedCount)} color="#9aa8c2" />
           <BreakdownBar label="Double+" count={stats.doubles} total={Math.max(1, stats.playedCount)} color="#ef5350" />
         </div>
       </div>
@@ -303,7 +303,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
                 const ps = h.scores[activePlayer];
                 const diff = ps.strokes - h.par;
                 const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
-                const diffColor = diff <= -1 ? '#3db87a' : diff === 0 ? '#8896b0' : diff === 1 ? '#6b7c9a' : '#ef5350';
+                const diffColor = diff <= -1 ? '#3db87a' : diff === 0 ? '#8896b0' : diff === 1 ? '#9aa8c2' : '#ef5350';
                 return (
                   <div key={h.holeNumber} style={styles.noteCard}>
                     <div style={styles.noteCardHeader}>
@@ -487,7 +487,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
                 </>)}
               </div>
 
-              <div style={{ fontSize: '13px', color: '#4d5a78', marginBottom: '8px', fontStyle: 'italic' }}>
+              <div style={{ fontSize: '13px', color: '#8896b0', marginBottom: '8px', fontStyle: 'italic' }}>
                 ← 왼쪽 탭: -1 · 오른쪽 탭: +1 →
               </div>
 

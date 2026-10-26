@@ -33,7 +33,7 @@ const C = {
 
   textPrimary:  '#e8edf8',
   textSec:      '#8896b0',
-  textMuted:    '#4d5a78',
+  textMuted:    '#8896b0',
   textInverse:  '#0b0e18',
 
   border:       '#1b2238',
@@ -44,7 +44,7 @@ const C = {
   eagle:        '#c9a228',
   eagleLight:   '#e8c84e',
   par:          '#8896b0',
-  bogey:        '#6b7c9a',
+  bogey:        '#9aa8c2',
   double_:      '#ef5350',
   triple:       '#c62828',
 
@@ -551,8 +551,8 @@ const styles = {
     letterSpacing: '-0.02em',
   },
   iconBack: {
-    width: '38px',
-    height: '38px',
+    width: '44px',
+    height: '44px',
     background: 'rgba(255,255,255,0.04)',
     borderRadius: '50%',
     display: 'flex',
@@ -962,7 +962,7 @@ const styles = {
     minWidth: '100px',
   },
   runningScoreLabel: {
-    fontSize: '11px',
+    fontSize: '12px',
     letterSpacing: '0.22em',
     color: C.gold,
     fontWeight: '700',
@@ -1013,7 +1013,7 @@ const styles = {
     minWidth: 0,
   },
   runningScoreStatLabel: {
-    fontSize: '11px',
+    fontSize: '12px',
     letterSpacing: '0.2em',
     color: C.gold,
     fontWeight: '700',
@@ -1084,6 +1084,7 @@ const styles = {
     border: 'none',
     borderRight: `1px solid ${C.border}`,
     padding: '6px 0',
+    minHeight: '40px',
     fontSize: '14px',
     fontWeight: '700',
     color: C.textPrimary,
@@ -1108,7 +1109,8 @@ const styles = {
     background: 'transparent',
     border: 'none',
     borderRight: `1px solid ${C.border}`,
-    padding: '4px 2px',
+    padding: '6px 2px',
+    minHeight: '38px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1367,7 +1369,7 @@ const styles = {
     minWidth: '60px',
   },
   autoBadge: {
-    fontSize: '11px',
+    fontSize: '12px',
     letterSpacing: '0.15em',
     color: C.greenAccent,
     background: C.greenBg,
@@ -1756,7 +1758,7 @@ const styles = {
   },
   shotShapeMatrixHeader: {
     display: 'flex',
-    fontSize: '11px',
+    fontSize: '12px',
     color: C.textMuted,
     fontWeight: '700',
     letterSpacing: '0.05em',
@@ -2196,7 +2198,7 @@ const styles = {
     gap: '4px',
   },
   scorecardGrandItemLabel: {
-    fontSize: '11px',
+    fontSize: '12px',
     letterSpacing: '0.15em',
     color: C.gold,
     fontWeight: '700',
@@ -2363,7 +2365,7 @@ const styles = {
     minHeight: '8px',
   },
   trendDate: {
-    fontSize: '11px',
+    fontSize: '12px',
     color: C.textMuted,
     marginTop: '6px',
     textAlign: 'center',
@@ -2408,7 +2410,7 @@ const styles = {
     padding: '6px 2px 12px',
   },
   tabBarLabel: {
-    fontSize: '11px',
+    fontSize: '12px',
     letterSpacing: '0.06em',
     lineHeight: 1,
     overflow: 'hidden',
@@ -2542,7 +2544,7 @@ const styles = {
     minWidth: 0,
   },
   styleMetricLabel: {
-    fontSize: '11px',
+    fontSize: '12px',
     letterSpacing: '0.1em',
     color: C.textMuted,
     fontWeight: '700',
@@ -3107,7 +3109,7 @@ const styles = {
     textAlign: 'center',
   },
   riTimelineHole: {
-    fontSize: '11px',
+    fontSize: '12px',
     color: C.textMuted,
     fontWeight: '700',
     marginBottom: '2px',

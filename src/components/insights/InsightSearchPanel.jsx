@@ -50,7 +50,7 @@ export default function InsightSearchPanel({ rounds }) {
     <div data-panel="search">
       {/* 검색창 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#111827', border: '1px solid #252f4a', borderRadius: 14, padding: '0 12px', marginBottom: 10 }}>
-        <Search size={16} color="#6e84a8" />
+        <Search size={16} color="#8aa0c4" />
         <input
           type="search"
           aria-label="인사이트 검색"
@@ -61,7 +61,7 @@ export default function InsightSearchPanel({ rounds }) {
         />
         {query && (
           <button aria-label="검색어 지우기" onClick={() => { setQuery(''); setLimit(PAGE); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6e84a8', padding: 4, display: 'flex' }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8aa0c4', padding: 4, display: 'flex' }}>
             <X size={16} />
           </button>
         )}
@@ -91,17 +91,17 @@ export default function InsightSearchPanel({ rounds }) {
             </span>
           )}
         </span>
-        <span style={{ color: '#6e84a8' }}>{filtersOpen ? '▴' : '▾'}</span>
+        <span style={{ color: '#8aa0c4' }}>{filtersOpen ? '▴' : '▾'}</span>
       </button>
       {filtersOpen && (
       <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 14, padding: '10px 12px', marginBottom: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>심각도</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>심각도</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {['critical', 'warning', 'neutral', 'positive'].map(s => (
             <button key={s} style={pill(severities.includes(s), SEVERITY_COLOR[s])} onClick={() => toggle(severities, setSeverities, s)}>{SEVERITY_LABEL[s]}</button>
           ))}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>분류</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>분류</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {INSIGHT_CATEGORY_ORDER.filter(c => catCounts[c] || categories.includes(c)).map(c => (
             <button key={c} style={pill(categories.includes(c))} onClick={() => toggle(categories, setCategories, c)}>
@@ -109,7 +109,7 @@ export default function InsightSearchPanel({ rounds }) {
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>범위</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>범위</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {[['all', '전체'], ['hole', '홀별'], ['round', '라운드 요약'], ['career', '누적 추세']].map(([v, l]) => (
             <button key={v} style={pill(scope === v)} onClick={() => { setScope(v); setLimit(PAGE); }}>{l}</button>

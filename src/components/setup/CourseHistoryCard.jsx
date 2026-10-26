@@ -54,7 +54,7 @@ export default function CourseHistoryCard({ history }) {
           <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
             {memos.map((m, i) => (
               <li key={i} style={{ fontSize: 14, color: '#c4cfe0', lineHeight: 1.5, wordBreak: 'keep-all' }}>
-                <b style={{ color: '#c9a228' }}>{m.holeNumber}번 홀</b> {m.text} <span style={{ fontSize: 12, color: '#6e84a8' }}>({md(m.date)})</span>
+                <b style={{ color: '#c9a228' }}>{m.holeNumber}번 홀</b> {m.text} <span style={{ fontSize: 12, color: '#8aa0c4' }}>({md(m.date)})</span>
               </li>
             ))}
           </ul>

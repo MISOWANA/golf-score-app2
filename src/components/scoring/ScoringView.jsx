@@ -160,14 +160,14 @@ function WindCompass({ direction, onChange }) {
               <line key={i}
                 x1={50 + r1 * Math.cos(rad)} y1={50 + r1 * Math.sin(rad)}
                 x2={50 + 44 * Math.cos(rad)} y2={50 + 44 * Math.sin(rad)}
-                stroke={isMajor ? '#6b7c9a' : isMinor ? '#3d4d65' : '#1b2238'}
+                stroke={isMajor ? '#9aa8c2' : isMinor ? '#8896b0' : '#1b2238'}
                 strokeWidth={isMajor ? 1.5 : isMinor ? 1 : 0.6}
               />
             );
           })}
 
           {/* Cardinal labels */}
-          {[['N', 0, '#ef5350'], ['E', 90, '#4d5a78'], ['S', 180, '#4d5a78'], ['W', 270, '#4d5a78']].map(([l, a, col]) => {
+          {[['N', 0, '#ef5350'], ['E', 90, '#8896b0'], ['S', 180, '#8896b0'], ['W', 270, '#8896b0']].map(([l, a, col]) => {
             const rad = (a - 90) * Math.PI / 180;
             const r = 31;
             return (
@@ -195,7 +195,7 @@ function WindCompass({ direction, onChange }) {
         </svg>
 
         {direction == null && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#6e84a8', letterSpacing: '0.1em', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#8aa0c4', letterSpacing: '0.1em', pointerEvents: 'none' }}>
             탭해서 방향 설정
           </div>
         )}
@@ -204,9 +204,9 @@ function WindCompass({ direction, onChange }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, minHeight: 26 }}>
         {direction != null ? (<>
           <span style={{ fontSize: 18, fontWeight: 800, color: '#c9a228' }}>{toCompassLabel(direction)}</span>
-          <span style={{ fontSize: 13, color: '#4d5a78' }}>{direction}°</span>
+          <span style={{ fontSize: 13, color: '#8896b0' }}>{direction}°</span>
         </>) : (
-          <span style={{ fontSize: 12, color: '#3d4d65' }}>방향 미설정</span>
+          <span style={{ fontSize: 12, color: '#8896b0' }}>방향 미설정</span>
         )}
       </div>
     </div>
@@ -220,10 +220,10 @@ function WindInput({ direction, strength, onDir, onStrength }) {
       <div style={{ marginTop: 16 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8 }}>
           <div style={{ flex:1 }} />
-          <div style={{ fontSize: 11, color: '#8896b0', letterSpacing: '0.18em', textTransform: 'uppercase' }}>바람 세기</div>
+          <div style={{ fontSize: 12, color: '#8896b0', letterSpacing: '0.18em', textTransform: 'uppercase' }}>바람 세기</div>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {strength > 0 && (
-              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
+              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
                 onClick={() => onStrength(0)}>초기화</button>
             )}
           </div>
@@ -245,7 +245,7 @@ function WindInput({ direction, strength, onDir, onStrength }) {
 function OptionalSection({ icon, label, enabled, summary, required = false, defaultOpen, hint = '선택 입력', children }) {
   const [open, setOpen] = useState(defaultOpen ?? (required && !summary));
   const hasValue = !!summary;
-  const accent = hasValue ? '#c9a228' : enabled ? '#8896b0' : '#4d5a78';
+  const accent = hasValue ? '#c9a228' : enabled ? '#8896b0' : '#8896b0';
   return (
     <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
       <button
@@ -258,10 +258,10 @@ function OptionalSection({ icon, label, enabled, summary, required = false, defa
         }}
       >
         <span style={{ ...fIcon, color: accent }}>{icon}</span>
-        <span style={{ ...fLbl, color: hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#4d5a78' }}>{label}</span>
+        <span style={{ ...fLbl, color: hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#8896b0' }}>{label}</span>
         <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {hasValue ? summary
-            : !open && hint != null && <span style={{ color: enabled ? '#8896b0' : '#4d5a78', fontWeight:600 }}>
+            : !open && hint != null && <span style={{ color: enabled ? '#8896b0' : '#8896b0', fontWeight:600 }}>
                 {enabled ? hint : '클럽 선택 후 입력'}
               </span>}
         </span>
@@ -286,7 +286,7 @@ function WindSection({ enabled, direction, strength, onDir, onStrength, onReset 
       {() => (<>
         {direction != null && (
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
-            <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
+            <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
               onClick={onReset}>방향 초기화</button>
           </div>
         )}
@@ -548,7 +548,7 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
           {hasSelection ? (selLabel || centerLabel) : (placeholder || centerLabel)}
         </span>
         {!open && selIcon && <span style={{ color:'#c9a228' }}>{selIcon}</span>}
-        <span style={{ fontSize:11, color: open || hasSelection ? '#c9a228' : '#4d5a78', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ fontSize: 12, color: open || hasSelection ? '#c9a228' : '#8896b0', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
       </button>}
 
       {open && (() => {
@@ -1072,15 +1072,15 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     if (diff === 0)  return { name: 'Par',        color: '#8896b0' };
     if (diff === 1)  return { name: 'Bogey',      color: '#e57373', bg: 'rgba(239,83,80,0.06)',  shadow: '0 2px 5px rgba(239,83,80,0.2)',   anim: 'bogeyRed 3.5s ease-in-out infinite',  fw: '600' };
     if (diff === 2)  return { name: 'Double',     color: '#ef5350', bg: 'rgba(239,83,80,0.09)',  shadow: '0 2px 8px rgba(239,83,80,0.3)',   anim: 'doubleRed 3s ease-in-out infinite',   fw: '700' };
-    if (diff === 3)  return { name: 'Triple',     color: '#e53935', bg: 'rgba(229,57,53,0.12)',  shadow: '0 2px 10px rgba(229,57,53,0.4)',  anim: 'tripleRed 2.5s ease-in-out infinite', fw: '700' };
-    if (diff === 4)  return { name: 'Quadruple',  color: '#c62828', bg: 'rgba(198,40,40,0.15)',  shadow: '0 2px 12px rgba(198,40,40,0.5)',  anim: 'quadRed 2s ease-in-out infinite',     fw: '800' };
-    if (diff === 5)  return { name: 'Quintuple',  color: '#b71c1c', bg: 'rgba(183,28,28,0.17)',  shadow: '0 2px 14px rgba(183,28,28,0.55)', anim: 'quadRed 1.9s ease-in-out infinite',   fw: '800' };
-    if (diff === 6)  return { name: 'Sextuple',   color: '#b71c1c', bg: 'rgba(183,28,28,0.18)',  shadow: '0 2px 15px rgba(183,28,28,0.58)', anim: 'quadRed 1.8s ease-in-out infinite',   fw: '800' };
-    if (diff === 7)  return { name: 'Septuple',   color: '#b71c1c', bg: 'rgba(183,28,28,0.19)',  shadow: '0 2px 16px rgba(183,28,28,0.62)', anim: 'quadRed 1.7s ease-in-out infinite',   fw: '800' };
-    if (diff === 8)  return { name: 'Octuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.20)',  shadow: '0 2px 17px rgba(183,28,28,0.65)', anim: 'quadRed 1.6s ease-in-out infinite',   fw: '800' };
-    if (diff === 9)  return { name: 'Nonuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.21)',  shadow: '0 2px 18px rgba(183,28,28,0.68)', anim: 'quadRed 1.5s ease-in-out infinite',   fw: '800' };
-    if (diff === 10) return { name: 'Decuple',    color: '#b71c1c', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
-    return                   { name: `+${diff}`,  color: '#b71c1c', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
+    if (diff === 3)  return { name: 'Triple',     color: '#ff6b68', bg: 'rgba(229,57,53,0.12)',  shadow: '0 2px 10px rgba(229,57,53,0.4)',  anim: 'tripleRed 2.5s ease-in-out infinite', fw: '700' };
+    if (diff === 4)  return { name: 'Quadruple',  color: '#ff6b68', bg: 'rgba(198,40,40,0.15)',  shadow: '0 2px 12px rgba(198,40,40,0.5)',  anim: 'quadRed 2s ease-in-out infinite',     fw: '800' };
+    if (diff === 5)  return { name: 'Quintuple',  color: '#ff6b68', bg: 'rgba(183,28,28,0.17)',  shadow: '0 2px 14px rgba(183,28,28,0.55)', anim: 'quadRed 1.9s ease-in-out infinite',   fw: '800' };
+    if (diff === 6)  return { name: 'Sextuple',   color: '#ff6b68', bg: 'rgba(183,28,28,0.18)',  shadow: '0 2px 15px rgba(183,28,28,0.58)', anim: 'quadRed 1.8s ease-in-out infinite',   fw: '800' };
+    if (diff === 7)  return { name: 'Septuple',   color: '#ff6b68', bg: 'rgba(183,28,28,0.19)',  shadow: '0 2px 16px rgba(183,28,28,0.62)', anim: 'quadRed 1.7s ease-in-out infinite',   fw: '800' };
+    if (diff === 8)  return { name: 'Octuple',    color: '#ff6b68', bg: 'rgba(183,28,28,0.20)',  shadow: '0 2px 17px rgba(183,28,28,0.65)', anim: 'quadRed 1.6s ease-in-out infinite',   fw: '800' };
+    if (diff === 9)  return { name: 'Nonuple',    color: '#ff6b68', bg: 'rgba(183,28,28,0.21)',  shadow: '0 2px 18px rgba(183,28,28,0.68)', anim: 'quadRed 1.5s ease-in-out infinite',   fw: '800' };
+    if (diff === 10) return { name: 'Decuple',    color: '#ff6b68', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
+    return                   { name: `+${diff}`,  color: '#ff6b68', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
@@ -1125,7 +1125,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 함께 남아 화면은 1온인데 타수는 벌타 기준으로 계산되는 모순이 된다. 벌타를 먼저 지워야 한다.
   const penaltyBlocksTeeOnGreen = penaltyCount(playerScore) > 0;
   const teeOnGreenBlockedHint = (
-    <div style={{ fontSize:13, color:'#6e84a8', lineHeight:1.5, marginTop:6, textAlign:'center' }}>
+    <div style={{ fontSize:13, color:'#8aa0c4', lineHeight:1.5, marginTop:6, textAlign:'center' }}>
       벌타가 기록돼 있어 티샷 한 번에 올린 것으로 기록할 수 없어요 · 벌타를 먼저 지워 주세요
     </div>
   );
@@ -1174,7 +1174,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       </span>
       <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
       {onDelete && (
-        <button onClick={onDelete} style={{ fontSize: 11, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 8, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
+        <button onClick={onDelete} style={{ fontSize: 12, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 8, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
       )}
     </div>
   );
@@ -1301,14 +1301,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   // 직전 샷 위치에서 다시 친 샷의 남은 거리가 직전 샷 값을 그대로 쓴 경우
   const replayTag = (copied) => (copied
-    ? <span style={{ fontSize: 11, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8, color: '#e6b94a', border: '1px solid rgba(230,185,74,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
+    ? <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8, color: '#e6b94a', border: '1px solid rgba(230,185,74,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
     : null);
 
   // 남은 거리·티샷 거리 옆 표시 — 값이 지도 거리와 같으면 'GPS 실측', 사용자가 정한 값이 달라서
   // 지도 거리가 따로 있으면 그 거리를 보여 주고 한 번에 바꿀 수 있게 한다. 현재 위치 기준으로
   // 넣어 둔 값은 그렇게 표시한다.
   const mapDistanceTag = (measured, value, source, onApply) => {
-    const base = { fontSize: 11, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8 };
+    const base = { fontSize: 12, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8 };
     if (measured != null && value === measured) {
       return <span style={{ ...base, color: '#3db87a', border: '1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>;
     }
@@ -1973,7 +1973,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.scoringHeader}>
-        <button style={styles.iconBack} onClick={handleBackClick}><ChevronLeft size={22} /></button>
+        <button style={styles.iconBack} onClick={handleBackClick} aria-label="뒤로"><ChevronLeft size={22} /></button>
         <div style={styles.scoringCourse}>{round.courseName}</div>
         <button style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8896b0', borderRadius: 8 }} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정">
           <Edit3 size={18} strokeWidth={2} />
@@ -1996,7 +1996,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       {/* Running Score */}
       {isSimpleMode ? (() => {
         const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
-        const fmtC=(d,has)=>!has?'#4d5a78':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
+        const fmtC=(d,has)=>!has?'#8896b0':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
         return (
           <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
             {round.players.map((player, pi) => {
@@ -2019,7 +2019,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     {nineStats.map(ns => (
                       <div key={ns.key} style={{ textAlign:'center', minWidth:28 }}>
-                        <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.1em', color:'#4d5a78', marginBottom:1 }}>{ns.label}</div>
+                        <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0.1em', color:'#8896b0', marginBottom:1 }}>{ns.label}</div>
                         <div style={{ fontSize:14, fontWeight:800, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</div>
                       </div>
                     ))}
@@ -2045,7 +2045,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[activePlayer].strokes-h.par,0) };
         });
         const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
-        const fmtC=(d,has)=>!has?'#4d5a78':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
+        const fmtC=(d,has)=>!has?'#8896b0':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
         return (
           <div style={styles.runningScore}>
             <div style={styles.runningScoreMain}>
@@ -2059,7 +2059,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={styles.runningScoreStats}>
               {nineStats.map(ns => (
                 <div key={ns.key} style={styles.runningScoreStat}>
-                  <span style={{ ...styles.runningScoreStatLabel, fontSize: ns.label.length>5?'10px':'11px' }}>{ns.label}</span>
+                  <span style={{ ...styles.runningScoreStatLabel, fontSize: ns.label.length>5?'11px':'12px' }}>{ns.label}</span>
                   <span style={{ ...styles.runningScoreStatValue, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</span>
                 </div>
               ))}
@@ -2094,7 +2094,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               const shortName = player.length > 4 ? player.slice(0,4) : player;
               return (
                 <div key={player} data-role="nav-score" style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
-                  <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize:11, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
+                  <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize: 12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
                   <div style={styles.holeNavTableCells}>
                     {holes.map((h,li) => {
                       const i=offset+li; const done=doneFor(h, player); const ic=i===holeIdx;
@@ -2103,7 +2103,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
                       return (
                         <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
-                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
+                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#8896b0'), fontWeight: done?'700':'500' }}>
                             {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
                           </span>
                         </button>
@@ -2123,7 +2123,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
                   return (
                     <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
-                      <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#4d5a78'), fontWeight: done?'700':'500' }}>
+                      <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#8896b0'), fontWeight: done?'700':'500' }}>
                         {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
                       </span>
                     </button>
@@ -2140,7 +2140,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   const psc=h.scores[activePlayer]; const text=navPuttsText(psc, doneFor(h, activePlayer)); const has=text!==NAV_EMPTY;
                   return (
                     <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
-                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#c4cfe0':(ic?'#c9a228':'#4d5a78'), fontWeight: has?'700':'500' }}>{text}</span>
+                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#c4cfe0':(ic?'#c9a228':'#8896b0'), fontWeight: has?'700':'500' }}>{text}</span>
                     </button>
                   );
                 })}
@@ -2218,12 +2218,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   <span style={{ fontSize:13, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
                 </div>
                 <span style={{ flex:1, fontSize:14, fontWeight:600, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
-                <span style={{ fontSize:12, fontWeight:700, color: sn?.color||'#4d5a78', minWidth:24, textAlign:'center' }}>{diffLabel}</span>
+                <span style={{ fontSize:12, fontWeight:700, color: sn?.color||'#8896b0', minWidth:24, textAlign:'center' }}>{diffLabel}</span>
                 <div style={{ display:'flex', alignItems:'center', background:'#131c30', borderRadius:8, overflow:'hidden', height:38 }}>
-                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'rgba(61,184,122,0.55)', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'#3db87a', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
                     onClick={() => updatePlayerStrokes(player, Math.max(1, ps.strokes - 1))}>−</button>
                   <span style={{ width:34, textAlign:'center', fontSize:20, fontWeight:900, color: sn?.color||'#e8edf8', lineHeight:1 }}>{ps.strokes}</span>
-                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'rgba(239,83,80,0.55)', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'#ef5350', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
                     onClick={() => updatePlayerStrokes(player, Math.min(20, ps.strokes + 1))}>+</button>
                 </div>
               </div>
@@ -2272,7 +2272,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {playerScore.teeClub ? (
               // 상세 입력 홀에서 직접 고친 값을 버리고 샷 기록 계산으로 되돌린다
               playerScore.strokesManual && (
-                <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
+                <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
                   onClick={()=>{
                     // 점수를 퍼팅 수 밑으로 내려 잘려 나간 퍼팅 기록이 있으면 함께 되돌린다
                     const hd = playerScore.puttsHeld;
@@ -2282,17 +2282,17 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   }}>자동 계산</button>
               )
             ) : (
-              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
+              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
                 onClick={()=>updateScore('strokes', hole.par, { strokesManual: false })}>초기화</button>
             )}
           </div>
         </div>
         <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
           <button
-            style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
+            style={{ flex:1, background:'transparent', border:'none', color:'#3db87a', fontSize:22, fontWeight:700, cursor:'pointer', textAlign:'left', padding:'0 0 0 18px' }}
             onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
           <button
-            style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.4)', fontSize:22, fontWeight:700, cursor:'pointer' }}
+            style={{ flex:1, background:'transparent', border:'none', color:'#ef5350', fontSize:22, fontWeight:700, cursor:'pointer', textAlign:'right', padding:'0 18px 0 0' }}
             onClick={()=>updateScore('strokes',Math.min(20,playerScore.strokes+1))}>+</button>
           <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
             {scorePending(playerScore) ? (
@@ -2314,7 +2314,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <div style={{ flex:1 }} />
           <span style={{ fontSize:14, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>퍼팅</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
+            <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
               onClick={()=>{ updatePuttsCount(2); setShowPuttsDropdown(false); }}>초기화</button>
           </div>
         </div>
@@ -2397,7 +2397,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <span style={{ fontSize:14, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>벌타 합계</span>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {penaltyCount(playerScore) > 0 && (
-              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'3px 8px', cursor:'pointer' }}
+              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
                 onClick={()=>{
                   const cleared = { ob:0, hazard:0, unplayable:0, penalties: [] };
                   // 직접 고친 스코어는 벌타 초기화로 바꾸지 않는다
@@ -2415,12 +2415,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             { label:'언플레이어블', val:playerScore.unplayable||0, onDec:()=>{ const c=playerScore.unplayable||0; if(c>0) updatePenalty('unplayable',c-1); }, onInc:()=>updatePenalty('unplayable',Math.min(5,(playerScore.unplayable||0)+1)) },
           ].map(item => (
             <div key={item.label} style={{ flex:1 }}>
-              <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.15em', color:'#4d5a78', textAlign:'center', marginBottom:4 }}>{item.label}</div>
+              <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0.15em', color:'#8896b0', textAlign:'center', marginBottom:4 }}>{item.label}</div>
               <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'#131c30', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
-                <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(61,184,122,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
-                <button style={{ flex:1, background:'transparent', border:'none', color:'rgba(239,83,80,0.45)', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
+                <button style={{ flex:1, background:'transparent', border:'none', color:'#3db87a', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
+                <button style={{ flex:1, background:'transparent', border:'none', color:'#ef5350', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
                 <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                  <span style={{ fontSize:22, fontWeight:900, color: item.val > 0 ? '#ef5350' : '#4d5a78', lineHeight:1 }}>{item.val}</span>
+                  <span style={{ fontSize:22, fontWeight:900, color: item.val > 0 ? '#ef5350' : '#8896b0', lineHeight:1 }}>{item.val}</span>
                 </div>
               </div>
             </div>
@@ -2428,7 +2428,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
         {/* 샷별로 넣으면 구제 방식까지 기록된다는 안내 (합계로만 넣은 벌타가 없을 때) */}
         {penaltyCount(playerScore) <= (playerScore.penalties || []).length && (
-          <div style={{ fontSize:12, color:'#6e84a8', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
+          <div style={{ fontSize:12, color:'#8aa0c4', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
             샷 아래 [벌타]에서 넣으면 구제 방식까지 기록돼요
           </div>
         )}
@@ -2489,7 +2489,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 () => updateFields({ teeDistance: measuredTee, teeDistanceAppliedM: measuredTee }))}
             </div>
             <SwipeDistance kind="shot" value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
-            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
+            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
           </div>
         )}
 
@@ -2512,7 +2512,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {(
           (!playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-            <span style={{ fontSize:13, color:'#6e84a8', letterSpacing:'0.08em' }}>클럽을 선택하면 구질 입력이 나타납니다</span>
+            <span style={{ fontSize:13, color:'#8aa0c4', letterSpacing:'0.08em' }}>클럽을 선택하면 구질 입력이 나타납니다</span>
           </div>
           ) : (playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
@@ -2651,14 +2651,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {stage === 'tee' && !teeReady && playerScore.teeClub && (
           <div style={{ padding:'8px 16px', textAlign:'center' }}>
-            <span style={{ fontSize:13, color:'#6e84a8', letterSpacing:'0.06em' }}>
+            <span style={{ fontSize:13, color:'#8aa0c4', letterSpacing:'0.06em' }}>
               {`티샷을 마치면 필드샷·퍼팅을 입력할 수 있어요 · 남은 항목: ${teeRequired.join(' · ')}`}
             </span>
           </div>
         )}
         {stage === 'tee' && teeReady && !teeComplete && hole.par > 3 && !playerScore.teeGIR && (
           <div data-role="tee-optional-note" style={{ padding:'10px 16px 14px', textAlign:'center' }}>
-            <div style={{ fontSize:13, color:'#6e84a8', lineHeight:1.6, marginBottom:8, wordBreak:'keep-all' }}>
+            <div style={{ fontSize:13, color:'#8aa0c4', lineHeight:1.6, marginBottom:8, wordBreak:'keep-all' }}>
               {`선택 항목: ${teeOptionalLeft.join(' · ')} — 비워 두고 필드샷으로 넘어가도 돼요`}
             </div>
             <button type="button" data-role="go-field" onClick={() => { setStage('field'); scrollToTabs(); }}
@@ -2711,7 +2711,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {replayTag(playerScore.replayCopied)}
           </div>
           <SwipeDistance kind="shot" value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
-          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
+          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
         </div>
 
         {/* 세컨샷 클럽 */}
@@ -2853,7 +2853,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                     {replayTag(shot.replayCopied)}
                   </div>
                   <SwipeDistance kind="shot" value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
-                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#6e84a8', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
+                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
                 </div>
 
                 {/* 클럽 */}
@@ -3098,7 +3098,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 >
                   {(() => { const done = !isOpen && !!putt.holein; return (<>
                     <div style={{ height:1, flex:1, background: done ? 'rgba(201,162,40,0.55)' : '#151e32' }} />
-                    <span style={{ fontSize:13, fontWeight:700, color: isOpen || done ? '#c9a228' : '#4d5a78', letterSpacing:'0.18em' }}>
+                    <span style={{ fontSize:13, fontWeight:700, color: isOpen || done ? '#c9a228' : '#8896b0', letterSpacing:'0.18em' }}>
                       PUTT {puttIdx + 1}
                     </span>
                     <div style={{ height:1, flex:1, background: done ? 'rgba(201,162,40,0.55)' : '#151e32' }} />
@@ -3231,9 +3231,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
           {/* 이전 홀 */}
           <button
-            style={{ ...styles.tabBarBtn, color: holeIdx === 0 ? '#252f4a' : '#e8edf8' }}
+            style={{ ...styles.tabBarBtn, color: holeIdx === 0 ? '#5b6988' : '#e8edf8' }}
             onClick={() => goToHole(holeIdx - 1)}
             disabled={holeIdx === 0}
+            aria-label="이전 홀"
           >
             <ChevronLeft size={20} strokeWidth={holeIdx === 0 ? 1.5 : 2} />
             <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>이전</span>
@@ -3267,19 +3268,22 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <button
             style={{ ...styles.tabBarBtn, ...styles.tabBarBtnHome, color: '#e8edf8' }}
             onClick={onGoHome}
+            aria-label="홈" title="홈"
           >
             <Home size={24} strokeWidth={1.8} />
           </button>
 
           {/* 메모 */}
           <button
-            style={{ ...styles.tabBarBtn, color: playerScore.memo ? '#c9a228' : '#4d5a78', position: 'relative' }}
+            data-role="memo-button" data-has-memo={playerScore.memo ? '1' : '0'}
+            style={{ ...styles.tabBarBtn, color: playerScore.memo ? '#f0c93a' : '#e8edf8', position: 'relative' }}
             onClick={() => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); }}
+            aria-label={playerScore.memo ? '메모 있음 — 열기' : '메모 쓰기'}
           >
-            <Edit3 size={20} strokeWidth={1.8} />
-            <span style={{ ...styles.tabBarLabel, fontWeight: playerScore.memo ? '700' : '500' }}>메모</span>
+            <Edit3 size={20} strokeWidth={playerScore.memo ? 2.4 : 1.8} />
+            <span style={{ ...styles.tabBarLabel, fontWeight: playerScore.memo ? '800' : '500' }}>메모</span>
             {playerScore.memo && (
-              <div style={{ position: 'absolute', top: 8, right: 'calc(50% - 12px)', width: 5, height: 5, borderRadius: '50%', background: '#c9a228' }} />
+              <div data-role="memo-dot" style={{ position: 'absolute', top: 7, right: 'calc(50% - 15px)', width: 10, height: 10, borderRadius: '50%', background: '#f0c93a', border: '2px solid #0f1520' }} />
             )}
           </button>
 
@@ -3444,7 +3448,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       onClick={() => goOnFromCheck(n)}>{n}</button>
                   ))}
                 </div>
-                {checkInfo && <div style={{ fontSize: 13, color: '#6e84a8', textAlign: 'center', marginTop: 6 }}>숫자를 누르면 샷 정보는 비운 채 {holeCheck.finish ? '완료' : '다음 홀로 이동'}해요</div>}
+                {checkInfo && <div style={{ fontSize: 13, color: '#8aa0c4', textAlign: 'center', marginTop: 6 }}>숫자를 누르면 샷 정보는 비운 채 {holeCheck.finish ? '완료' : '다음 홀로 이동'}해요</div>}
               </div>
             )}
             <div style={styles.modalActions}>
@@ -3487,7 +3491,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ fontSize:15, fontWeight:600, color:'#c4cfe0', letterSpacing:'0.08em' }}>
               {holeInModalData.onCount} 온 &nbsp;/&nbsp; {holeInModalData.putts} 펏
             </div>
-            <div style={{ fontSize:13, color:'#4d5a78', letterSpacing:'0.12em', marginTop:4 }}>
+            <div style={{ fontSize:13, color:'#8896b0', letterSpacing:'0.12em', marginTop:4 }}>
               {holeInModalData.isLastHole ? '라운드 완료!' : '다음 홀로 이동합니다.'}
             </div>
             <button
@@ -3544,7 +3548,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 </div>
               </div>
             ))}
-            <div style={{ fontSize:13, color:'#4d5a78', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지됩니다.<br/>* 미입력 홀은 변경된 파 기준으로 초기화됩니다.</div>
+            <div style={{ fontSize:13, color:'#8896b0', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지됩니다.<br/>* 미입력 홀은 변경된 파 기준으로 초기화됩니다.</div>
             {round.players.length === 1 && (
               <div data-role="edit-green-speed" style={{ borderTop:'1px solid #1b2744', paddingTop:14, marginBottom:16 }}>
                 <div style={{ fontSize:15, fontWeight:800, color:'#e8edf8', marginBottom:4, textAlign:'left' }}>그린 스피드</div>
@@ -3627,13 +3631,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 const HDR = {
   active: { line: 'rgba(201,162,40,0.6)', label: '#e8c45a', arrow: '#c9a228' },
   done:   { line: 'rgba(61,184,122,0.3)', label: '#3db87a', arrow: '#3db87a' },
-  idle:   { line: '#252f4a',              label: '#6e84a8', arrow: '#5a6a88' },
+  idle:   { line: '#252f4a',              label: '#8aa0c4', arrow: '#5a6a88' },
 };
 
 // flexWrap: 좁은 폰(320px)에서 라벨(130px) 옆에 칩이 다 들어가지 않으면 칩이 아랫줄로 내려간다
 const fRow = { display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54, gap:'8px 12px' };
 const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0, minWidth:130 };
-const fIcon = { fontSize:15, width:18, textAlign:'center', color:'#7888a8', flexShrink:0 };
+const fIcon = { fontSize:15, width:18, textAlign:'center', color:'#8896b0', flexShrink:0 };
 const fLbl  = { fontSize:13, fontWeight:700, color:'#8ca4bc', letterSpacing:'0.15em', textTransform:'uppercase' };
 
 const fChip = { padding:'5px 9px', borderRadius: 10, border:'1.5px solid #252f4a', background:'#1a2235', color:'#e8edf8', fontSize:13, fontWeight:600, cursor:'pointer' };
@@ -3665,6 +3669,6 @@ const reliefNext = {
 const reliefNextLabel = { fontSize: 13, fontWeight: 700, color: '#d8b640', letterSpacing: '0.02em' };
 const reliefNextNum = { fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: '#f3d36b', fontVariantNumeric: 'tabular-nums' };
 const reliefNextUnit = { fontSize: 13, fontWeight: 700, color: '#d8b640' };
-const reliefNote = { fontSize: 13, color: '#6e84a8', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
+const reliefNote = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
 
-const fMiniBtn = { width:32, height:32, borderRadius: 10, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };
+const fMiniBtn = { width:44, height:44, borderRadius: 12, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };

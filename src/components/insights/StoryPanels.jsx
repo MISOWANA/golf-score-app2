@@ -8,7 +8,7 @@ import { AWFUL_CONSISTENCY_LIMIT } from '../../engine/bookBenchmarks.js';
 
 const SKILL_COLOR = { tee: '#6b8cae', approach: '#8a6fb0', shortGame: '#d98e3e', putting: '#c9a228' };
 const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
-const dim = { fontSize: 13, color: '#6e84a8', lineHeight: 1.6 };
+const dim = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6 };
 const signed = (v, d = 2) => (v > 0 ? '+' : '') + Number(v).toFixed(d);
 
 // ── 2장: 투어 대비 잃은 타수의 구성 ──────────────────────────────────────────────
@@ -60,7 +60,7 @@ function Tile({ label, value, sub, warn, role }) {
     <div style={{ flex: '1 1 45%', background: '#0e1424', border: '1px solid #1b2238', borderRadius: 12, padding: '10px 12px' }}>
       <div style={{ fontSize: 12, color: '#8896b0', marginBottom: 4 }}>{label}</div>
       <div data-role={role} style={{ fontSize: 20, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: warn ? '#ef5350' : '#e8edf8' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#6e84a8', marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 12, color: '#8aa0c4', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -133,7 +133,7 @@ export function SkillHeader({ cat, sg, career }) {
           <ConfidenceBadge tier={sgTier(b.strokes)} n={b.strokes} />
         </div>
       ) : (
-        <div data-role={`skill-pending-${cat}`} style={{ fontSize: 13, color: '#6e84a8', textAlign: 'right' }}>
+        <div data-role={`skill-pending-${cat}`} style={{ fontSize: 13, color: '#8aa0c4', textAlign: 'right' }}>
           측정 전
           <InfoNote title={`${SG_LABEL[cat]} 계산 조건`}>{SKILL_HINT[cat]}</InfoNote>
         </div>

@@ -6,7 +6,7 @@ import { splitKoEn } from './koEn.js';
 //   info   한글 줄 끝에 붙는 (!) 설명 버튼 (InfoNote) — 길면 info 대신 children 으로 넘겨도 된다
 // 글자 모양은 여기서 정한다 — 바깥 제목 칸의 대문자·글자 간격 설정에 영향받지 않게 한글 줄은 따로 지정.
 const KO = { display: 'block', fontSize: 15, fontWeight: 800, color: '#b4c0d8', letterSpacing: '0.01em', textTransform: 'none', lineHeight: 1.35 };
-const EN = { display: 'block', fontSize: 11, fontWeight: 700, color: '#6e84a8', letterSpacing: '0.2em', textTransform: 'uppercase', lineHeight: 1.3, marginTop: 3 };
+const EN = { display: 'block', fontSize: 12, fontWeight: 700, color: '#8aa0c4', letterSpacing: '0.2em', textTransform: 'uppercase', lineHeight: 1.3, marginTop: 3 };
 
 export default function KoEnTitle({ text, en, ko, info = null, children = null }) {
   const parts = text != null ? splitKoEn(text) : { en, ko };

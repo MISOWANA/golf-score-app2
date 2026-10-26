@@ -77,7 +77,7 @@ export default function OverviewTab({ report, onGo }) {
                 <div key={t.id ?? i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: last ? COLOR.goldHi : COLOR.muted, marginBottom: 3 }}>{t.total}</div>
                   <div style={{ width: '70%', maxWidth: 22, height: `${h}%`, borderRadius: '4px 4px 0 0', background: last ? COLOR.gold : 'rgba(201,162,40,0.4)' }} />
-                  <div style={{ fontSize: 11, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap' }}>{shortDate(t.date)}</div>
+                  <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap' }}>{shortDate(t.date)}</div>
                 </div>
               );
             })}

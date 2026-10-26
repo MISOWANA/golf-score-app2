@@ -47,7 +47,7 @@ export default function Insights({ round, player }) {
   return (
     <div style={styles.insightCards}>
       {allInsights.map((ins, i) => {
-        const color = SEVERITY_COLOR[ins.severity] ?? '#6b6558';
+        const color = SEVERITY_COLOR[ins.severity] ?? '#8896b0';
         const bg    = SEVERITY_BG[ins.severity]    ?? '#f5f0e6';
         const badge = SEVERITY_BADGE[ins.severity] ?? '·';
         return (
@@ -63,7 +63,7 @@ export default function Insights({ round, player }) {
               )}
               <div style={styles.insightCardTitle}>{ins.title}</div>
               <div style={styles.insightCardDetail}>{ins.summary}</div>
-              <div style={{ ...styles.insightCardDetail, color: '#4d5a78', marginTop: 3 }}>
+              <div style={{ ...styles.insightCardDetail, color: '#8896b0', marginTop: 3 }}>
                 {ins.recommendation}
               </div>
             </div>

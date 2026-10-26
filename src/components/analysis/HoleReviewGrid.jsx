@@ -6,7 +6,7 @@ import { ninesOf } from '../../engine/nines.js';
 // "어느 홀을 되짚을지" 고르는 것이 이 화면의 첫 동작이 되게 한다.
 
 const TONE = (diff) => {
-  if (diff == null) return { color: '#4d5a78', bg: '#131d35', border: '#1b2238' };
+  if (diff == null) return { color: '#8896b0', bg: '#131d35', border: '#1b2238' };
   if (diff <= -2) return { color: '#f0c93a', bg: 'rgba(201,162,40,0.18)', border: 'rgba(201,162,40,0.55)' };
   if (diff === -1) return { color: '#3db87a', bg: 'rgba(61,184,122,0.16)', border: 'rgba(61,184,122,0.5)' };
   if (diff === 0) return { color: '#e8edf8', bg: '#1a2235', border: '#2a3650' };
@@ -42,7 +42,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
       {rows.map(({ label, items }) => (
         <div key={label} style={{ marginBottom: 12 }}>
           <div style={{
-            fontSize: 14, fontWeight: 800, color: '#6e84a8',
+            fontSize: 14, fontWeight: 800, color: '#8aa0c4',
             letterSpacing: '0.18em', marginBottom: 6,
           }}>{label}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 5 }}>
@@ -85,7 +85,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
       ))}
 
       {defaultCount > 0 && (
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#6e84a8', lineHeight: 1.5, textAlign: 'right' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#8aa0c4', lineHeight: 1.5, textAlign: 'right' }}>
           점선 칸 {defaultCount}개: 입력 없이 파(2퍼트)로 저장된 홀
         </div>
       )}

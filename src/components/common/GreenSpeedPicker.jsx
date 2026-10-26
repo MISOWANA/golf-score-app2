@@ -102,7 +102,7 @@ export default function GreenSpeedPicker({ value, onChange }) {
               ? <><span style={{ whiteSpace: 'nowrap' }}>탭하면</span> <span style={{ whiteSpace: 'nowrap' }}>보통({unit === 'ft' ? `스팀프 ${STIMP_DEFAULT.toFixed(1)}` : speedText(STIMP_DEFAULT, unit)})부터</span></>
               : `${subText}${band ? ` · ${band.label}` : ''}`}
           </div>
-          <div data-role="gs-swipe-hint" style={{ fontSize: 12, color: '#6e84a8', marginTop: 3, letterSpacing: '0.06em' }}>
+          <div data-role="gs-swipe-hint" style={{ fontSize: 12, color: '#8aa0c4', marginTop: 3, letterSpacing: '0.06em' }}>
             ← 밀어서 {speed == null ? '' : `${unit === 'ft' ? '0.5ft' : '0.1m'} 단위 `}조정 →
           </div>
         </button>

@@ -22,10 +22,13 @@ export default function BottomTabBar({ current, onChange }) {
               style={{
                 ...styles.tabBarBtn,
                 ...(isHome ? styles.tabBarBtnHome : {}),
-                color: isActive ? '#c9a228' : '#4d5a78',
+                // 흐린 회색은 햇빛 아래에서 안 보인다 — 선택 안 된 탭도 또렷한 밝은 회색으로
+                color: isActive ? '#c9a228' : '#a9b8d6',
               }}
               onClick={() => onChange(id)}
               title={label}
+              aria-label={label}
+              aria-current={isActive ? 'page' : undefined}
             >
               <Icon size={isHome ? 24 : 20} strokeWidth={isActive ? 2.5 : 1.8} />
               {!isHome && (

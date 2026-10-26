@@ -31,7 +31,7 @@ export default function DistanceField({ label, sub, value, onChange, id, color }
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <div style={{ width: 'clamp(42px, 12.5vw, 46px)', flexShrink: 0, textAlign: 'left' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color }}>{label}</div>
-        <div style={{ fontSize: 11, color: COLOR.faint, letterSpacing: '0.02em' }}>{sub}</div>
+        <div style={{ fontSize: 12, color: COLOR.faint, letterSpacing: '0.02em' }}>{sub}</div>
       </div>
       {btn(-5, '−5')}{btn(-1, '−1')}
       <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2, height: 44, borderRadius: 10, background: '#0b0e18', border: `1px solid ${COLOR.line}` }}>

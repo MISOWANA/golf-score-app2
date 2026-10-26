@@ -26,7 +26,7 @@ const pill = (active) => ({
 
 // note: 라벨 옆 (!) 버튼 (InfoNote). 없으면 글자만.
 const label = (t, note = null) => (
-  <div style={{ fontSize: 12, fontWeight: 800, color: '#6e84a8', letterSpacing: '0.18em', margin: '18px 0 8px', textAlign: 'left' }}><KoEnTitle text={t} info={note} /></div>
+  <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', margin: '18px 0 8px', textAlign: 'left' }}><KoEnTitle text={t} info={note} /></div>
 );
 
 // 라운드 복기 — 한 라운드를 홀 순서대로 되짚는다. 어디서 잃었고(분기점), 무엇이 원인이었는지.
@@ -187,7 +187,7 @@ export default function RoundReplayPanel({ rounds, initialRoundId = null }) {
                   background: h.touched ? diffBg(h.diff) : '#101a30',
                   border: `1.5px ${h.touched ? 'solid' : 'dashed'} ${h.touched ? diffColor(h.diff) + '66' : '#33415f'}`,
                 }}>
-                  <div style={{ fontSize: 11, color: '#8ca4bc', fontWeight: 700 }}>HOLE {h.holeNumber}</div>
+                  <div style={{ fontSize: 12, color: '#8ca4bc', fontWeight: 700 }}>HOLE {h.holeNumber}</div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: h.touched ? diffColor(h.diff) : '#8ca4bc', lineHeight: 1.1 }}>{h.strokes}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>

@@ -6,6 +6,8 @@ import InfoNote from '../ui/InfoNote';
 import { TrendChip } from '../stats/widgets.jsx';
 import { formatHandicap } from '../../engine/handicap.js';
 import { backupMessage } from '../../engine/backupStatus.js';
+import { MilestoneList } from '../common/EmptyGuide';
+import { NUDGE_SNOOZE_DAYS } from '../../platform/nudgeSnooze.js';
 
 // 홈 화면의 카드들 — 새 라운드(항상 맨 위) · 진행 중인 라운드(바로 아래) · 요약.
 
@@ -24,7 +26,23 @@ function GreenMark() {
   );
 }
 
-export function NewRoundCard({ onNewRound }) {
+// compact: 진행 중인 라운드가 있을 때 — 이어서가 주인공이라 새 라운드는 한 줄짜리 보조 카드로 내린다
+export function NewRoundCard({ onNewRound, compact = false }) {
+  if (compact) {
+    return (
+      <div style={{ ...styles.liveCard, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }} data-role="home-new-round" data-compact="1">
+        <div style={{ minWidth: 0, textAlign: 'left' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8' }}>새 라운드</div>
+          <div style={{ fontSize: 13, color: '#8896b0', marginTop: 2 }}>다른 라운드를 새로 기록해요</div>
+        </div>
+        <button className="bb-press" type="button" onClick={onNewRound}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, minHeight: 44, padding: '0 16px', borderRadius: 12, border: '1.5px solid rgba(201,162,40,0.6)', background: 'transparent', color: '#e6c35a', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+          <Plus size={16} strokeWidth={2.5} />
+          <span>시작하기</span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div style={styles.heroCard} data-role="home-new-round">
       <GreenMark />
@@ -38,11 +56,35 @@ export function NewRoundCard({ onNewRound }) {
   );
 }
 
-export function ActiveRoundCard({ round, onResume }) {
+// prominent: 진행 중인 라운드가 있을 때 홈의 맨 위 주인공 — 큰 "이어서" 버튼. (새 라운드 카드는 그 아래 보조로 내려간다)
+export function ActiveRoundCard({ round, onResume, prominent = false }) {
   const total = round.holes?.length || 18;
   const current = Math.min(total, (round.currentHole ?? 0) + 1);
   const pct = Math.round((current / total) * 100);
   const holeNo = holeNoOf(round, Math.min(total - 1, round.currentHole ?? 0));
+  if (prominent) {
+    return (
+      <div style={{ ...styles.heroCard, border: '1px solid rgba(61,184,122,0.5)' }} data-role="home-active-round" data-prominent="1">
+        <GreenMark />
+        <div style={{ ...styles.liveLabel, position: 'relative' }}>
+          <span className="bb-live-dot" style={styles.liveDot} />
+          진행 중인 라운드
+        </div>
+        <div style={{ position: 'relative', fontSize: 22, lineHeight: 1.35, fontWeight: 800, color: '#e8edf8', letterSpacing: '-0.02em', margin: '2px 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.courseName}</div>
+        <div style={{ ...styles.liveMeta, position: 'relative', marginBottom: 12 }}>
+          {isNineHoleRound(round) ? `${roundKindLabel(round)} · ` : ''}{holeNo}번 홀 진행 중 · {round.players.join(', ')}
+        </div>
+        <div style={{ ...styles.liveTrack, marginBottom: 14 }} role="progressbar" aria-label="라운드 진행률"
+          aria-valuemin={0} aria-valuemax={total} aria-valuenow={current}>
+          <div style={{ ...styles.liveFill, width: `${pct}%` }} />
+        </div>
+        <button className="bb-press" type="button" data-role="home-resume" style={styles.heroButton} onClick={onResume}>
+          <PlayCircle size={20} strokeWidth={2.2} />
+          <span>이어서</span>
+        </button>
+      </div>
+    );
+  }
   return (
     <div style={{ ...styles.liveCard, ...tintWash('#3db87a', { strength: 0.17, border: 0.38 }) }} data-role="home-active-round">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -77,7 +119,7 @@ export function StatsPanel({ loading, totalRounds, avgScore, handicap }) {
   const hcSub = hc.index == null
     ? `${Math.max(1, 3 - hc.count)}라운드 더 쌓이면`
     : hc.delta == null ? '최근 20R 중 낮은 8R' : hc.delta === 0 ? '직전과 같아요' : `직전 대비 ${hc.delta > 0 ? '▲' : '▼'}${Math.abs(hc.delta).toFixed(1)}`;
-  const hcColor = hc.index == null || hc.delta == null || hc.delta === 0 ? '#6e84a8' : hc.delta < 0 ? '#3db87a' : '#ef5350';
+  const hcColor = hc.index == null || hc.delta == null || hc.delta === 0 ? '#8aa0c4' : hc.delta < 0 ? '#3db87a' : '#ef5350';
   return (
     <div style={{ ...styles.statsGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }} data-role="home-stats">
       <div style={cell}>
@@ -110,10 +152,42 @@ export function StatsPanel({ loading, totalRounds, avgScore, handicap }) {
   );
 }
 
-// 마지막 백업이 없거나 오래됐을 때만 보이는 안내 (engine/backupStatus.js 의 기준)
-export function BackupNudge({ status, onBackup, onSettings }) {
+// 처음 쓰는 사람(아직 끝낸 라운드가 없고 진행 중인 라운드도 없을 때)을 위한 3단계 안내 — 홈이 텅 비어 보이지 않게, 다음에 할 일을 바로 누를 수 있게.
+export function FirstRunGuide({ onGoBag, onNewRound, onSettings }) {
+  const steps = [
+    { n: 1, role: 'first-bag', title: '내 클럽 등록', sub: '클럽과 거리를 넣어 두면 코스에서 남은 거리에 맞는 클럽을 추천해 줘요', action: '등록하기', onClick: onGoBag },
+    { n: 2, role: 'first-round', title: '첫 라운드 기록', sub: '스코어만 적어도 돼요. 샷 정보를 더하면 분석이 깊어져요', action: '기록하기', onClick: onNewRound },
+    { n: 3, role: 'first-backup', title: '백업해 두기', sub: '기록은 이 기기에만 저장돼요. 파일로 백업해 두면 안전해요', action: '설정 열기', onClick: onSettings },
+  ];
+  return (
+    <div data-role="home-first-run" style={{ ...styles.liveCard, padding: '16px 14px 16px', textAlign: 'left' }}>
+      <div style={{ fontSize: 17, fontWeight: 800, color: '#e8edf8', marginBottom: 4 }}>처음이세요? 세 단계로 시작해요</div>
+      <div style={{ fontSize: 14, color: '#a9b8d6', marginBottom: 12 }}>순서대로 하지 않아도 괜찮아요</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {steps.map((s) => (
+          <div key={s.n} data-role={s.role} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span aria-hidden="true" style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(201,162,40,0.16)', color: '#e6c35a', fontWeight: 800, fontSize: 15 }}>{s.n}</span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8' }}>{s.title}</div>
+              <div style={{ fontSize: 13, lineHeight: 1.5, color: '#a9b8d6', wordBreak: 'keep-all' }}>{s.sub}</div>
+            </div>
+            <button type="button" className="bb-press" onClick={s.onClick}
+              style={{ flexShrink: 0, minHeight: 44, padding: '0 12px', borderRadius: 12, border: '1.5px solid rgba(201,162,40,0.6)', background: 'transparent', color: '#e6c35a', fontSize: 14, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>{s.action}</button>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #1b2238' }}>
+        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.14em', color: '#8aa0c4', marginBottom: 10 }}>기록이 쌓이면</div>
+        <MilestoneList rounds={0} />
+      </div>
+    </div>
+  );
+}
+
+// 마지막 백업이 없거나 오래됐을 때만 보이는 안내 (engine/backupStatus.js 의 기준). 경고 빨강 대신 차분한 금색이고, "나중에"로 며칠 숨길 수 있다.
+export function BackupNudge({ status, onBackup, onSettings, onSnooze }) {
   if (status.level !== 'none' && status.level !== 'stale') return null;
-  const tone = status.level === 'none' ? '#ef5350' : '#c9a228';
+  const tone = '#c9a228';
   return (
     <div data-role="home-backup-nudge" data-level={status.level} style={{ ...styles.liveCard, ...tintWash(tone, { strength: 0.1, border: 0.4 }) }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -121,13 +195,18 @@ export function BackupNudge({ status, onBackup, onSettings }) {
         <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8' }}>{status.level === 'none' ? '백업해 두세요' : '백업할 때가 됐어요'}</div>
           <div style={{ fontSize: 14, color: '#a9b8d6', lineHeight: 1.55, marginTop: 2, wordBreak: 'keep-all' }}>{backupMessage(status)}</div>
+          {onSnooze && <div style={{ fontSize: 13, color: '#8896b0', marginTop: 4 }}>"나중에"를 누르면 {NUDGE_SNOOZE_DAYS}일 동안 숨겨요</div>}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
         <button className="bb-press" type="button" data-role="nudge-backup" onClick={onBackup}
-          style={{ flex: 1, padding: '11px 8px', borderRadius: 10, border: '1.5px solid transparent', background: tone, color: '#0b0e18', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>지금 백업</button>
+          style={{ flex: 1.5, minHeight: 44, padding: '0 8px', borderRadius: 10, border: '1.5px solid transparent', background: tone, color: '#0b0e18', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>지금 백업</button>
         <button className="bb-press" type="button" data-role="nudge-settings" onClick={onSettings}
-          style={{ flex: 1, padding: '11px 8px', borderRadius: 10, border: '1.5px solid #2c3a5c', background: 'transparent', color: '#e8edf8', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>자세히</button>
+          style={{ flex: 1, minHeight: 44, padding: '0 8px', borderRadius: 10, border: '1.5px solid #2c3a5c', background: 'transparent', color: '#e8edf8', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>자세히</button>
+        {onSnooze && (
+          <button className="bb-press" type="button" data-role="nudge-snooze" onClick={onSnooze}
+            style={{ flex: 1, minHeight: 44, padding: '0 8px', borderRadius: 10, border: '1.5px solid transparent', background: 'transparent', color: '#a9b8d6', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>나중에</button>
+        )}
       </div>
     </div>
   );
@@ -152,7 +231,7 @@ export function FormCard({ summary, onGoStats }) {
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 10, paddingTop: 9, borderTop: '1px solid #1b2238', fontSize: 14 }}>
           {weakest && <span data-role="form-weakest" style={{ color: '#a9b8d6' }}>약점 <b style={{ color: '#ef5350' }}>{weakest.label}</b></span>}
           {strongest && <span data-role="form-strongest" style={{ color: '#a9b8d6' }}>강점 <b style={{ color: '#3db87a' }}>{strongest.label}</b></span>}
-          <span style={{ color: '#6e84a8', marginLeft: 'auto' }}>스탯 보기 ›</span>
+          <span style={{ color: '#8aa0c4', marginLeft: 'auto' }}>스탯 보기 ›</span>
         </div>
       )}
     </button>

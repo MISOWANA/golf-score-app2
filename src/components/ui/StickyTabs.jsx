@@ -71,7 +71,7 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
               : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', ...(on ? styles.riToggleBtnActive : {}) };
             return (
               <button key={id} role="tab" type="button" aria-selected={on} disabled={disabled} data-role={`${rolePrefix}-${id}`}
-                style={{ ...look, ...(disabled ? { color: '#3d4d65', cursor: 'default' } : {}) }}
+                style={{ ...look, ...(disabled ? { color: '#8896b0', cursor: 'default' } : {}) }}
                 onClick={() => onChange(id)}>
                 {opt?.done && <span aria-hidden="true" style={{ color: '#3db87a', marginRight: 3 }}>✓</span>}{text}
               </button>

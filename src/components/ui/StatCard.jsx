@@ -73,7 +73,7 @@ export default function StatCard({
 
       {sub && (
         <div style={{
-          fontSize: '11px',
+          fontSize: '12px',
           color: palette.textMuted,
           marginTop: '8px',
           fontWeight: '500',

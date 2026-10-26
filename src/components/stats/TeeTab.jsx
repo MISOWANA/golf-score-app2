@@ -59,7 +59,7 @@ export default function TeeTab({ report }) {
           { key: 'hit', label: '적중', pct: tee.hitPct ?? 0, count: `${tee.hit}번`, color: COLOR.green },
           { key: 'right', label: '오른쪽', pct: tee.rightPct ?? 0, count: `${tee.right}번`, color: COLOR.orange },
           ...(tee.green > 0 ? [{ key: 'green', label: '1온', pct: tee.greenPct ?? 0, count: `${tee.green}번`, color: COLOR.gold }] : []),
-          ...(tee.unknown > 0 ? [{ key: 'unknown', label: '방향 없음', pct: (tee.unknown / tee.total) * 100, count: `${tee.unknown}번`, color: '#4d5a78' }] : []),
+          ...(tee.unknown > 0 ? [{ key: 'unknown', label: '방향 없음', pct: (tee.unknown / tee.total) * 100, count: `${tee.unknown}번`, color: '#8896b0' }] : []),
         ]} />
         <Takeaway tone={fwTake.tone}>{fwTake.text}</Takeaway>
       </Card>

@@ -527,12 +527,12 @@ export default function HoleMapModal({
               style={{
                 flex: 1, padding: '13px 8px', borderRadius: 12, cursor: 'pointer',
                 border: '1px solid transparent', background: keyDraft.trim() ? COLOR.gold : '#252f4a', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                color: keyDraft.trim() ? COLOR.ink : '#4d5a78', fontSize: 15, fontWeight: 800,
+                color: keyDraft.trim() ? COLOR.ink : '#8896b0', fontSize: 15, fontWeight: 800,
               }}
             >저장하고 지도 열기</button>
           </div>
 
-          <div style={{ marginTop: 14, fontSize: 12, lineHeight: 1.7, color: '#4d5a78' }}>
+          <div style={{ marginTop: 14, fontSize: 12, lineHeight: 1.7, color: '#8896b0' }}>
             여기서 넣은 키는 이 기기에만 저장되고 서버로 전송되지 않습니다.
             배포본에 키를 넣어두면 이 화면 없이 바로 지도가 열립니다
             (저장소 시크릿 VITE_VWORLD_KEY).
@@ -650,7 +650,7 @@ export default function HoleMapModal({
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px 8px' }}>
           <span style={{
             width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
-            background: posError ? COLOR.red : (quality?.color ?? '#4d5a78'),
+            background: posError ? COLOR.red : (quality?.color ?? '#8896b0'),
           }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: posError ? COLOR.red : (quality?.color ?? COLOR.dim) }}>
             {posError ? '측위 불가' : pos ? `내 위치 ${fmtAcc(pos.acc)} ${quality?.label ?? ''}` : '측위 중…'}
@@ -905,7 +905,7 @@ function TableNumber({ value, width, color }) {
           <span style={{ fontSize: 14, fontWeight: 700, color: '#9aa8c2', marginLeft: 1 }}>{unitLabel('shot')}</span>
         </>
       ) : (
-        <span style={{ fontSize: 16, fontWeight: 700, color: '#56637f' }}>—</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: '#8896b0' }}>—</span>
       )}
     </span>
   );

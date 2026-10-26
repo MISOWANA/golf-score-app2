@@ -141,13 +141,13 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
   );
   const header = (
     <header style={styles.pageHeader}>
-      {step === 3 ? <div style={{ width: 40 }} /> : (
+      {step === 3 ? <div style={{ width: 44 }} /> : (
         <button style={styles.iconBack} onClick={step === 2 ? () => setStep(1) : onBack} aria-label={step === 2 ? '클럽 다시 고르기' : '뒤로'} data-role="wizard-back">
           <ChevronLeft size={22} />
         </button>
       )}
       <div style={styles.pageTitle}>내 클럽 등록</div>
-      <div style={{ width: 40 }} />
+      <div style={{ width: 44 }} />
     </header>
   );
   const stepper = (

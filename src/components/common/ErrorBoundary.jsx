@@ -52,7 +52,7 @@ export default class ErrorBoundary extends React.Component {
               onClick={() => window.location.reload()}
             >새로고침</button>
           </div>
-          <div style={{ marginTop: 16, fontSize: 13, color: '#4d5a78', wordBreak: 'break-all' }}>
+          <div style={{ marginTop: 16, fontSize: 13, color: '#8896b0', wordBreak: 'break-all' }}>
             {String(error?.message || error)}
           </div>
         </div>

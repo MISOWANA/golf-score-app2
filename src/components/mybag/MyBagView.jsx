@@ -420,9 +420,9 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
     return (
       <div style={styles.container}>
         <header style={styles.pageHeader}>
-          <button style={styles.iconBack} onClick={goBack}><ChevronLeft size={22} /></button>
+          <button style={styles.iconBack} onClick={goBack} aria-label="뒤로"><ChevronLeft size={22} /></button>
           <div style={styles.pageTitle}>My Bag</div>
-          <div style={{ width: 40 }} />
+          <div style={{ width: 44 }} />
         </header>
       </div>
     );
@@ -438,11 +438,11 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
   return (
     <div style={styles.container}>
       <header style={styles.pageHeader}>
-        <button style={styles.iconBack} onClick={goBack}>
+        <button style={styles.iconBack} onClick={goBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
         <div style={styles.pageTitle}>My Bag</div>
-        <div style={{ width: 40 }} />
+        <div style={{ width: 44 }} />
       </header>
 
       {/* 구성 요약 — 클럽 수 · 종류별 개수 · 저장 상태 */}
@@ -569,8 +569,8 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                     <div data-role="bag-chart-head" style={{ display: 'flex', alignItems: 'flex-end', gap: CHART_COL.gap, paddingBottom: 4 }}>
                       <span style={{ width: CHART_COL.name, flexShrink: 0 }} />
                       <span style={{ flex: 1, minWidth: 0 }} />
-                      <span style={{ width: CHART_COL.carry + CHART_COL.total + CHART_COL.gap, flexShrink: 0, textAlign: 'center', fontSize: 11, fontWeight: 700, color: COLOR.muted, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>마이백 등록</span>
-                      {hasMeasured && <span style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'center', fontSize: 11, fontWeight: 700, color: BAG_COLOR.measured, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>라운드</span>}
+                      <span style={{ width: CHART_COL.carry + CHART_COL.total + CHART_COL.gap, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 700, color: COLOR.muted, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>마이백 등록</span>
+                      {hasMeasured && <span style={{ width: CHART_COL.meas, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 700, color: BAG_COLOR.measured, letterSpacing: '0.04em', borderBottom: `1px solid ${COLOR.line}`, paddingBottom: 2 }}>라운드</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: CHART_COL.gap, paddingBottom: 4, borderBottom: `1px solid ${COLOR.line}` }}>
                       <span style={{ width: CHART_COL.name, flexShrink: 0 }} />
@@ -606,7 +606,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                           {m ? (
                             <>
                               <span style={{ display: 'block', fontSize: 15, fontWeight: 900, color: BAG_COLOR.measured }}>{fmtShot(m.median, { unit: false })}</span>
-                              <span style={{ display: 'block', fontSize: 11, color: COLOR.faint }}>{m.n}샷</span>
+                              <span style={{ display: 'block', fontSize: 12, color: COLOR.faint }}>{m.n}샷</span>
                             </>
                           ) : <span style={{ fontSize: 14, color: COLOR.faint }}>–</span>}
                         </span>

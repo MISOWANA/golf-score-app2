@@ -88,7 +88,7 @@ export default function SettingsView({ currentUser, rounds, backupMeta, unit = '
       <header style={styles.pageHeader}>
         <button style={styles.iconBack} onClick={onBack} aria-label="뒤로"><ChevronLeft size={22} /></button>
         <div style={styles.pageTitle}>Settings</div>
-        <div style={{ width: 40 }} />
+        <div style={{ width: 44 }} />
       </header>
 
       <Card id="unit" title={(
@@ -118,7 +118,7 @@ export default function SettingsView({ currentUser, rounds, backupMeta, unit = '
             ? '샷 거리는 야드, 퍼트 거리는 피트로 보이고 입력해요. 예: 150m = 164야드, 3m = 10피트.'
             : '샷 거리와 퍼트 거리를 모두 미터로 보이고 입력해요. 야드로 쓰고 싶다면 위에서 바꿔 주세요.'}
         </div>
-        <div style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.6, marginTop: 4, wordBreak: 'keep-all' }}>기록은 미터로 저장되니 바꿔도 지난 기록과 통계는 그대로예요.</div>
+        <div style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 4, wordBreak: 'keep-all' }}>기록은 미터로 저장되니 바꿔도 지난 기록과 통계는 그대로예요.</div>
       </Card>
 
       <Card id="backup" title={(
@@ -209,7 +209,7 @@ export default function SettingsView({ currentUser, rounds, backupMeta, unit = '
         <button type="button" data-role="hard-refresh" style={{ ...btn('secondary'), marginTop: 10, width: '100%', flex: 'none' }} onClick={() => hardRefresh()}>
           <RefreshCw size={16} />최신 버전 다시 받기
         </button>
-        <div style={{ fontSize: 13, color: '#6e84a8', lineHeight: 1.6, marginTop: 6 }}>앱이 예전 모습 그대로일 때 눌러 보세요. 기록은 지워지지 않아요.</div>
+        <div style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 6 }}>앱이 예전 모습 그대로일 때 눌러 보세요. 기록은 지워지지 않아요.</div>
       </Card>
     </div>
   );

@@ -129,7 +129,7 @@ export default function GpsShotPoint({
   return (
     <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid #0e1320' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 15, width: 18, textAlign: 'center', color: '#7888a8', flexShrink: 0 }}>📍</span>
+        <span style={{ fontSize: 15, width: 18, textAlign: 'center', color: '#8896b0', flexShrink: 0 }}>📍</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', letterSpacing: '0.15em' }}>{label}</span>
         {point && quality && (
           <span style={{ fontSize: 12, fontWeight: 700, color: quality.color, marginLeft: 2 }}>
@@ -209,7 +209,7 @@ export default function GpsShotPoint({
           <div style={{
             padding: '12px 16px', borderRadius: 12, textAlign: 'center',
             border: '1px dashed #252f4a', background: 'transparent',
-            color: '#4d5a78', fontSize: 13, fontWeight: 600, lineHeight: 1.5,
+            color: '#8896b0', fontSize: 13, fontWeight: 600, lineHeight: 1.5,
           }}>
             {lockedHint}
           </div>

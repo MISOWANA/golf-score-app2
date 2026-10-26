@@ -112,5 +112,5 @@ describe('엔진 견고성 (퍼징)', () => {
 
     const report = [...problems.entries()].map(([k, n]) => `${n}x ${k}`);
     expect(report).toEqual([]);
-  });
+  }, 60_000);   // 혼자 돌리면 2~3초지만, 배포 서버(2코어)에서 다른 테스트와 함께 돌면 기본 5초를 넘긴다
 });

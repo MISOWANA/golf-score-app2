@@ -19,6 +19,22 @@ export const CATEGORY_TITLE = {
 
 export const NAME_MAX = 12;           // 클럽 이름 최대 글자 수 (마이백 이름 칸과 같다)
 
+// 가져온 파일의 클럽 목록 검사 — 모양이 깨진 항목과 id 가 겹치는 항목은 버린다.
+// 마이백·클럽 추천은 항목이 { id, name, type } 을 갖췄다고 믿고 읽는다. 깨진 항목이 DB 에 남으면 켤 때마다 화면이 죽는다.
+// 예전 형식(carry · total 없이 avg 만 있는 것)과 퍼터(거리 없음)는 그대로 받는다.
+export function sanitizeClubs(list) {
+  if (!Array.isArray(list)) return [];
+  const seen = new Set();
+  return list.filter((c) => {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return false;
+    if (typeof c.id !== 'string' || !c.id || typeof c.name !== 'string' || !c.name || !ALL_TYPES.includes(c.type)) return false;
+    if (['carry', 'total', 'avg'].some((k) => c[k] != null && !Number.isFinite(c[k]))) return false;
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
+}
+
 // ── 고를 수 있는 클럽 (마이백에 쓰는 이름 그대로: Driver · 3W · 4H · 5i · 52° · PW)
 const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 const WEDGE_LOFTS = [46, 48, 50, 52, 54, 56, 58, 60, 62, 64];

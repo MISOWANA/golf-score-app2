@@ -133,6 +133,16 @@ describe('백업 가져오기', () => {
     expect(Array.isArray(ex.data.clubs)).toBe(true);
   });
 
+  it('깨진 클럽 항목은 걸러서 저장하고, 전부 깨졌으면 기존 클럽을 그대로 둔다', async () => {
+    const u = await db.loginByName('홍길동');
+    const good = { id: 'iron7', name: '7i', type: 'Iron', carry: 135, total: 140 };
+    await db.importUserData(u.userId, { data: { rounds: [], clubs: [good, null, 'x', { id: 'a' }, { ...good, id: 'b', carry: 'abc' }, { ...good, id: 'c', type: '<img>' }] } });
+    expect(await db.loadClubsByUser([u.userId])).toEqual([good]);
+
+    await db.importUserData(u.userId, { data: { rounds: [], clubs: [null, { id: 'a' }] } });
+    expect(await db.loadClubsByUser([u.userId])).toEqual([good]);
+  });
+
   it('같은 사용자의 같은 id 라운드는 파일 내용으로 바뀌고, 파일에 없는 기존 라운드는 남는다', async () => {
     const u = await db.loginByName('홍길동');
     await db.saveRound(roundFor('r1', '홍길동', { courseName: 'OLD' }), u.userId);

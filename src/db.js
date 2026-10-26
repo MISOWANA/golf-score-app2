@@ -1,6 +1,7 @@
 // IndexedDB 초기화 및 관리 유틸리티
 import { isTrashExpired } from './engine/trash.js';
 import { sanitizeGoals } from './engine/goals.js';
+import { sanitizeClubs } from './engine/clubCatalog.js';
 import { sanitizePrefs } from './engine/units.js';
 
 const DB_NAME = 'GolfScoreDB';
@@ -563,8 +564,10 @@ export const exportUserData = async (user) => {
 export const importUserData = async (userId, importedData, ownIds = [userId]) => {
   const { data } = importedData;
   const result = await saveImportedRounds(userId, data.rounds || [], ownIds);
-  if (Array.isArray(data.clubs) && data.clubs.length > 0) {
-    await saveClubsForUser(userId, data.clubs);
+  // 깨진 항목은 걸러서 저장한다 (거르고 남은 게 없으면 기존 클럽을 그대로 둔다)
+  const clubs = sanitizeClubs(data.clubs);
+  if (clubs.length > 0) {
+    await saveClubsForUser(userId, clubs);
   }
   // 목표도 파일에 들어 있을 때만 바꾼다 — 빈 목록으로 지금 목표를 지우지 않게 (클럽과 같다)
   if (Array.isArray(data.goals) && data.goals.length > 0) {

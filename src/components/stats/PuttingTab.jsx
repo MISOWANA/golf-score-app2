@@ -1,8 +1,7 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, SplitBar, RateRow, Takeaway, TrendChip, Hint } from './widgets.jsx';
-import { COLOR, fmtPuttMeters, fmtNum, fmtPct, fmtSigned } from './format.js';
+import { COLOR, fmtNum, fmtPct } from './format.js';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
-import localizeNode from '../ui/localizeNode.js';
 
 const CAUSE_ADVICE = {
   lag: '롱 퍼트는 홀보다 1m 원 안에 세우는 거리 연습이 먼저예요.',
@@ -12,10 +11,9 @@ const CAUSE_ADVICE = {
   close: '가까운 거리는 홀 뒤 30cm를 넘기지 않는 속도로 쳐 보세요.',
 };
 
-// 퍼팅(+ 그린을 놓친 뒤의 숏게임) — 라운드당 퍼트 · 거리별 성공률 · 3퍼트 원인 · 스크램블링
+// 퍼팅 — 라운드당 퍼트 · 거리별 성공률 · 3퍼트 원인 (숏게임은 '숏게임' 탭)
 export default function PuttingTab({ report }) {
-  const { putting, shortGame } = report;
-  const near = shortGame.near;
+  const { putting } = report;
   if (putting.holes === 0) {
     return <div data-role="tab-putting"><Hint id="putting-empty">퍼트 수를 기록한 홀이 쌓이면 거리별 성공률과 3퍼트 원인을 보여드려요.</Hint></div>;
   }
@@ -40,10 +38,6 @@ export default function PuttingTab({ report }) {
     : causes.known === 0
       ? { tone: 'info', text: '퍼트 거리를 기록하면 3퍼트가 거리감 때문인지, 짧은 퍼트 미스인지 알려드려요.' }
       : { tone: 'warn', text: `가장 큰 원인은 ${PUTT_CAUSE_LABEL[causes.dominant]}예요. ${CAUSE_ADVICE[causes.dominant]}` };
-
-  const scrTake = shortGame.attempts === 0 ? null
-    : shortGame.ratePct >= 40 ? { tone: 'good', text: `그린을 놓친 홀 10개 중 ${Math.round(shortGame.ratePct / 10)}개를 파 이상으로 막아요.` }
-      : { tone: 'info', text: `그린을 놓친 홀 10개 중 ${Math.round(shortGame.ratePct / 10)}개를 파 이상으로 막아요. 그린 주변에서 첫 퍼트를 2m 안에 남기는 샷이 열쇠예요.` };
 
   return (
     <div data-role="tab-putting">
@@ -85,30 +79,6 @@ export default function PuttingTab({ report }) {
             {causeTake && <Takeaway tone={causeTake.tone}>{causeTake.text}</Takeaway>}
           </>
         ) : <Hint>3퍼트가 없었어요. 잘하고 있어요.</Hint>}
-      </Card>
-
-      <Card id="short-game" title="SHORT GAME · 그린 놓친 뒤" info={<>
-        <p>스크램블링은 그린을 놓친 홀을 파 이상으로 막은 비율이에요.</p>
-        <p>80m 안에서 친 샷은 칩·피치처럼 그린 주변 샷이에요. 최근 20라운드, 남은 거리를 입력했거나 지도로 잰 샷만 셌어요.</p>
-      </>} right={<TrendChip delta={shortGame.trend?.delta} id="trend-scramble" label="최근 5R" />}>
-        {shortGame.attempts > 0 ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-              <Metric id="m-scramble" value={fmtPct(shortGame.ratePct)} label="스크램블링" sub={`놓친 ${shortGame.attempts}홀 중 ${shortGame.saves}홀 세이브`} />
-              <Metric id="m-missed-diff" value={fmtSigned(shortGame.avgDiff, 2)} label="그린 놓친 홀 평균" sub="파 대비 타수" align="right" />
-            </div>
-            <Takeaway tone={scrTake.tone}>{scrTake.text}</Takeaway>
-          </>
-        ) : <Hint>그린을 놓친 홀이 쌓이면 스크램블링을 보여드려요.</Hint>}
-        {near.n >= 5 && (
-          <div data-role="near-green" style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${COLOR.line}` }}>
-            <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', color: COLOR.slate, marginBottom: 8 }}>{localizeNode('80m 안에서 친 샷')}</div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-              <Metric id="m-near-hit" value={fmtPct(near.hitPct)} label="그린에 올린 비율" sub={`${near.n}샷 중 ${near.hit}샷`} />
-              {near.puttMedian != null && <Metric id="m-near-putt" value={fmtPuttMeters(near.puttMedian, 1)} label="올린 뒤 첫 퍼트" sub={`중앙값 · ${near.puttN}샷`} align="right" />}
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );

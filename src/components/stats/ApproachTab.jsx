@@ -29,9 +29,9 @@ export default function ApproachTab({ report }) {
   const bestPar = parRows.length > 1 ? parRows.reduce((a, b) => (b.pct > a.pct ? b : a)) : null;
   const girTake = worstPar && bestPar && bestPar.pct - worstPar.pct >= 15
     ? { tone: 'info', text: `파 ${worstPar.par} 홀의 그린 적중이 가장 낮아요 (${fmtPct(worstPar.pct)}). 가장 높은 파 ${bestPar.par} 홀은 ${fmtPct(bestPar.pct)}예요.` }
-    : { tone: 'info', text: `그린을 놓친 홀이 ${gir.holes - gir.hit}개 (${fmtPct(100 - gir.pct)}) — 놓친 뒤의 결과는 퍼팅 탭의 숏게임에서 볼 수 있어요.` };
+    : { tone: 'info', text: `그린을 놓친 홀이 ${gir.holes - gir.hit}개 (${fmtPct(100 - gir.pct)}) — 놓친 뒤의 결과는 숏게임 탭에서 볼 수 있어요.` };
 
-  const distRows = byDistance.filter((b) => b.id !== 'lt80' && b.n > 0);     // 80m 안 샷은 숏게임(퍼팅 탭)에서 본다
+  const distRows = byDistance.filter((b) => b.id !== 'lt80' && b.n > 0);     // 80m 안 샷은 숏게임 탭에서 본다
   const dist = bestWorst(distRows);
   const distTake = dist
     ? { tone: 'info', text: `${dist.best.label}에서 가장 잘 올리고 (${fmtPct(dist.best.hitPct)}), ${dist.worst.label}에서 가장 약해요 (${fmtPct(dist.worst.hitPct)}).` }
@@ -95,7 +95,7 @@ export default function ApproachTab({ report }) {
 
       <Card id="approach-distance" title="BY DISTANCE · 거리 구간별 적중" info={<>
         <p>그 거리에서 친 샷이 그린에 올라갔는지예요. 최근 20라운드, 남은 거리를 입력했거나 지도로 잰 샷만 셌어요.</p>
-        <p>80m 안 샷(칩·피치)은 퍼팅 탭의 숏게임에서 따로 봐요. 막대 옆 "첫 퍼트"는 그린에 올린 샷의 첫 퍼트 거리 중앙값이에요.</p>
+        <p>80m 안 샷(칩·피치)은 숏게임 탭에서 따로 봐요. 막대 옆 "첫 퍼트"는 그린에 올린 샷의 첫 퍼트 거리 중앙값이에요.</p>
       </>}>
         {distRows.length > 0 ? (
           <>

@@ -165,6 +165,93 @@ describe('리포트 정보 수정', () => {
   });
 });
 
+describe('스탯 숏게임 탭', () => {
+  // 인사이트는 마지막으로 본 장을 sessionStorage 에 기억한다 — 여기서 '부문별' 장을 열고 남기면 뒤따르는 테스트가 종합이 아닌 그 장에서 시작한다
+  afterEach(() => { try { window.sessionStorage.clear(); } catch { /* 저장소를 못 써도 테스트는 이어 간다 */ } });
+
+  // 18홀 중 파4 여섯 홀을 80m 안 샷(랜딩 방향 + 첫 퍼트 거리 기록)으로 바꾼다 — 숏 쪽 4 · 롱 1 · 라이트 1
+  const withChips = (hours = [6, 6, 6, 6, 12, 3]) => {
+    const r = makeFullRound(1, ME, { courseName: '숏게임CC' });
+    let k = 0;
+    r.holes.forEach((h, i) => {
+      if (h.par !== 4 || k >= hours.length) { r.holes[i].scores[ME] = defaultScore(h.par); return; }
+      r.holes[i].scores[ME] = {
+        ...defaultScore(h.par), touched: true, confirmed: true, teeClub: 'driver', gir: true, girAuto: false, onGreen: true, putts: 2,
+        secondClub: 'wedge', secondClubSub: '52', remainingDistance: 20 + k * 5,
+        puttDetails: [{ distance: 1.5 + k * 0.5, holein: 'fail' }, { distance: 0.5, holein: 'success' }], onGreenLanding: hours[k++],
+      };
+    });
+    return r;
+  };
+  const openStats = async () => { tab('스탯'); await screen.findByText('Stats'); };
+
+  it('스탯 탭이 여섯 개이고, 숏게임은 어프로치와 퍼팅 사이에 있다', async () => {
+    await setup({ rounds: [withChips()] });
+    await openStats();
+    expect([...document.querySelectorAll('[role="tab"]')].map((b) => b.textContent)).toEqual(['종합', '티샷', '어프로치', '숏게임', '퍼팅', '클럽']);
+  });
+
+  it('종합의 숏게임 칸을 누르면 숏게임 탭이 열리고, 핀 기준 탄착이 보인다', async () => {
+    await setup({ rounds: [withChips()] });
+    await openStats();
+    fireEvent.click(document.querySelector('[data-role="skill-shortGame"]'));
+    await waitFor(() => expect(document.querySelector('[data-role="stats-tab-short"]').getAttribute('aria-selected')).toBe('true'));
+    expect(document.querySelector('[data-role="tab-short"]')).toBeTruthy();
+    const target = await waitFor(() => { const t = document.querySelector('[data-role="short-target"]'); expect(t).toBeTruthy(); return t; });
+    expect(target.querySelectorAll('[data-role="short-dot"]')).toHaveLength(6);
+    expect(document.querySelector('[data-role="pattern-take"]').textContent).toMatch(/가장 많이 멈춘 쪽은 숏\(4\/6샷\)/);
+    expect(document.querySelector('[data-role="card-short-game"]')).toBeTruthy();          // 스크램블링 카드도 이 탭에 있다
+  });
+
+  const openInsightsSkills = async () => {
+    tab('인사이트');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="insights-tab-skills"]'); expect(t).toBeTruthy(); return t; }));
+  };
+
+  it('인사이트의 숏게임 섹션에도 같은 핀 기준 탄착이 있고, 스탯과 같은 숫자다', async () => {
+    await setup({ rounds: [withChips()] });
+    await openInsightsSkills();
+    const section = await waitFor(() => { const e = document.querySelector('[data-role="shortgame-section"]'); expect(e).toBeTruthy(); return e; });
+    await waitFor(() => expect(section.querySelector('[data-role="short-target"]')).toBeTruthy());
+    expect(section.querySelectorAll('[data-role="short-dot"]')).toHaveLength(6);
+    const read = (root) => ['pattern-take', 'axis-along', 'axis-across', 'pattern-basis'].map((r) => root.querySelector(`[data-role="${r}"]`).textContent);
+    const inInsights = read(section);
+    expect(inInsights[0]).toMatch(/가장 많이 멈춘 쪽은 숏\(4\/6샷\)/);
+
+    tab('스탯');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-short"]'); expect(t).toBeTruthy(); return t; }));
+    const tabShort = await waitFor(() => { const e = document.querySelector('[data-role="tab-short"]'); expect(e).toBeTruthy(); return e; });
+    expect(read(tabShort)).toEqual(inInsights);                                              // 두 화면의 숫자와 문장이 같다
+  });
+
+  it('인사이트: 샷이 모자라면 과녁 대신 한 줄로 몇 샷이 쌓였는지만 알려 준다', async () => {
+    await setup({ rounds: [withChips([6, 6, 12])] });
+    await openInsightsSkills();
+    const hint = await waitFor(() => { const e = document.querySelector('[data-role="insights-pin-pattern-hint"]'); expect(e).toBeTruthy(); return e; });
+    expect(hint.textContent).toMatch(/5개 이상 쌓이면 보여요 \(지금 3샷\)/);
+    expect(document.querySelector('[data-role="short-target"]')).toBeNull();
+  });
+
+  it('인사이트: 80m 안 샷 기록이 없으면 핀 기준 탄착을 말하지 않는다 (아무것도 기록하지 않았는데 재촉하지 않는다)', async () => {
+    const plain = makeFullRound(1, ME, { courseName: '일반CC' });
+    plain.holes.forEach((h) => { h.scores[ME] = defaultScore(h.par); });   // 샷 기록이 없는 라운드
+    await setup({ rounds: [plain] });
+    await openInsightsSkills();
+    await waitFor(() => expect(document.querySelector('[data-role="shortgame-section"]')).toBeTruthy());
+    expect(document.querySelector('[data-role="insights-pin-pattern"]')).toBeNull();
+    expect(document.querySelector('[data-role="insights-pin-pattern-hint"]')).toBeNull();
+  });
+
+  it('퍼팅 탭에는 숏게임 카드가 더는 없다 (한 곳에서만 보인다)', async () => {
+    await setup({ rounds: [withChips()] });
+    await openStats();
+    fireEvent.click(document.querySelector('[data-role="stats-tab-putting"]'));
+    await waitFor(() => expect(document.querySelector('[data-role="tab-putting"]')).toBeTruthy());
+    expect(document.querySelector('[data-role="card-short-game"]')).toBeNull();
+    expect(document.querySelector('[data-role="near-green"]')).toBeNull();
+  });
+});
+
 describe('그린 놓친 방향 입력', () => {
   // 1번 홀(파4): 티샷 페어웨이 → 세컨샷 아이언 → 그린 놓침(GIR 실패) → 칩 입력 중
   const missingHoleRound = (gir) => {
@@ -2035,7 +2122,7 @@ describe('거리 단위 — 화면 전체 훑어보기', () => {
     const open = (role) => waitFor(() => { const e = document.querySelector(`[data-role="${role}"]`); expect(e).toBeTruthy(); return e; });
     scan('홈');
     tab('스탯');
-    for (const t of ['overview', 'tee', 'approach', 'putting', 'club']) {
+    for (const t of ['overview', 'tee', 'approach', 'short', 'putting', 'club']) {
       fireEvent.click(await open(`stats-tab-${t}`));
       scan(`스탯 ${t}`); openNotes(`스탯 ${t}`);
     }

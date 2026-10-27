@@ -6,13 +6,14 @@ import StickyTabs from '../ui/StickyTabs';
 import OverviewTab from './OverviewTab';
 import TeeTab from './TeeTab';
 import ApproachTab from './ApproachTab';
+import ShortGameTab from './ShortGameTab';
 import PuttingTab from './PuttingTab';
 import ClubTab from './ClubTab';
 import ExcludedNote from './ExcludedNote';
 import EmptyGuide from '../common/EmptyGuide';
 
-// 스탯 — 쌓인 라운드로 보는 '내 평소 모습'. 종합 · 티샷 · 어프로치 · 퍼팅 · 클럽
-const TABS = [['overview', '종합'], ['tee', '티샷'], ['approach', '어프로치'], ['putting', '퍼팅'], ['club', '클럽']];
+// 스탯 — 쌓인 라운드로 보는 '내 평소 모습'. 종합 · 티샷 · 어프로치 · 숏게임 · 퍼팅 · 클럽
+const TABS = [['overview', '종합'], ['tee', '티샷'], ['approach', '어프로치'], ['short', '숏게임'], ['putting', '퍼팅'], ['club', '클럽']];
 
 export default function StatsView({ rounds, onBack, excludedCount = 0, nineExcludedCount = 0, onStartRound }) {
   const [tab, setTab] = useState('overview');
@@ -43,10 +44,11 @@ export default function StatsView({ rounds, onBack, excludedCount = 0, nineExclu
     <div style={styles.container} data-role="stats-view">
       {header}
       <ExcludedNote multiCount={excludedCount} nineCount={nineExcludedCount} />
-      <StickyTabs tabs={TABS} current={tab} onChange={setTab} label="스탯 영역" rolePrefix="stats-tab" />
+      <StickyTabs variant="underline" dense tabs={TABS} current={tab} onChange={setTab} label="스탯 영역" rolePrefix="stats-tab" />
       {tab === 'overview' && <OverviewTab report={report} onGo={setTab} />}
       {tab === 'tee' && <TeeTab report={report} />}
       {tab === 'approach' && <ApproachTab report={report} />}
+      {tab === 'short' && <ShortGameTab report={report} />}
       {tab === 'putting' && <PuttingTab report={report} />}
       {tab === 'club' && <ClubTab report={report} />}
       {tab !== 'overview' && (

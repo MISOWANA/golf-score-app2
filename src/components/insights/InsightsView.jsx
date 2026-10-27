@@ -23,6 +23,8 @@ import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
 import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
 import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
+import { buildShortGamePattern, MIN_PATTERN_SHOTS } from '../../engine/shortGamePattern.js';
+import ShortGamePatternPanel from '../stats/ShortGamePatternPanel.jsx';
 import { totalPar as sumPar } from '../../engine/players.js';
 import { isFullRound } from '../../engine/nines.js';
 import { buildInsightReport } from '../../engine/insightIndex.js';
@@ -356,6 +358,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const approachProximity = buildApproachProximity(rounds);
   const puttingStats = buildPuttingStats(rounds);
   const scrambling = buildScrambling(rounds);
+  const shortPattern = buildShortGamePattern(rounds);   // 스탯 '숏게임' 탭과 같은 계산 (같은 라운드면 같은 숫자)
   const clubStats = buildClubDistanceStats(rounds);
 
   // ── 책(Broadie) 기준 지표 — 이번 라운드/누적 토글을 따른다 ────────────────────────
@@ -835,6 +838,24 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                 <ConfidenceBadge tier={r.tier} n={r.n} />
               </div>
             ))}
+          </div>
+        )}
+
+        {/* 핀 기준 탄착 — 80m 안 샷이 핀 기준 어디에 멈췄나 (랜딩 방향 + 첫 퍼트 거리). 스탯 '숏게임' 탭과 같은 컴포넌트다 */}
+        {shortPattern.enough ? (
+          <div data-role="insights-pin-pattern" style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+              {tx('핀 기준 탄착 · 80m 안 샷')}
+              <InfoNote title="핀 기준 탄착 읽는 법">
+                <p>퍼팅 탭에서 기록한 "온그린 랜딩 방향"(몇 시)과 "첫 퍼트 거리"를 합쳐서, 80m 안 샷이 그린에 올라 핀 기준 어디에 멈췄는지 찍어요. 위가 롱(핀 너머), 아래가 숏, 오른쪽이 라이트예요.</p>
+                <p>흰 점은 평균 위치(쏠림), 점선 타원은 흩어짐이에요. 거리별·클럽별로 나눈 표는 스탯의 숏게임 탭에 있어요.</p>
+              </InfoNote>
+            </div>
+            <ShortGamePatternPanel pattern={shortPattern} />
+          </div>
+        ) : shortPattern.coverage.onGreen > 0 && (
+          <div data-role="insights-pin-pattern-hint" style={{ fontSize: 14, color: '#8896b0', marginTop: 12, lineHeight: 1.6 }}>
+            {tx(`핀 기준 탄착은 랜딩 방향과 첫 퍼트 거리를 둘 다 기록한 80m 안 샷이 ${MIN_PATTERN_SHOTS}개 이상 쌓이면 보여요 (지금 ${shortPattern.n}샷).`)}
           </div>
         )}
       </div>

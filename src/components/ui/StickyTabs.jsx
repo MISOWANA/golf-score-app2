@@ -8,12 +8,13 @@ import styles from '../../styles/styles';
 //   label           접근성 이름 (aria-label)
 //   rolePrefix      탭 버튼의 data-role 앞부분 → `${rolePrefix}-${id}`, 바깥 띠는 `${rolePrefix}bar`
 //   variant         'pill'(기본) 알약 상자 · 'underline' 칸을 똑같이 나누고 밑줄로 표시 (탭이 6개쯤 돼도 한 줄)
+//   dense           underline 에서 글자를 13px 로 줄인다 — 4글자 탭이 있는 6개 탭이 320px 폭에도 한 줄에 들어가게
 //   scrollOnChange  'stuck'(기본) 붙은 채 바꿀 때만 · 'always' 언제나 (탭 행이 화면 아래쪽에 있는 화면용)
 //   anchorRef       탭 행 자리를 바깥에서도 쓰고 싶을 때 (표지 요소를 받는다)
 //   stuckSlot       붙은 동안에만 탭 행 바로 아래에 겹쳐 보이는 줄 (화면 밖으로 나간 위쪽 도구를 대신한다).
 //                   겹쳐 그려서 나타나고 사라질 때 아래 내용이 밀리지 않는다
 // 바깥 띠는 화면 좌우 여백(16px)까지 펴서 붙었을 때 내용이 비쳐 보이지 않게 한다.
-export default function StickyTabs({ tabs, current, onChange, label, rolePrefix, variant = 'pill', scrollOnChange = 'stuck', anchorRef, stuckSlot = null }) {
+export default function StickyTabs({ tabs, current, onChange, label, rolePrefix, variant = 'pill', dense = false, scrollOnChange = 'stuck', anchorRef, stuckSlot = null }) {
   const ownRef = useRef(null);
   const sentinel = anchorRef ?? ownRef;
   const stuckRef = useRef(false);
@@ -66,7 +67,7 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
               ? {
                 flex: '1 1 0', minWidth: 0, height: 46, padding: '0 2px', background: 'none', border: 'none',
                 borderBottom: `2px solid ${on ? '#c9a228' : 'transparent'}`, borderRadius: 0,
-                color: on ? '#f3d36b' : '#8896b0', fontSize: 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer',
+                color: on ? '#f3d36b' : '#8896b0', fontSize: dense ? 13 : 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer', ...(dense ? { letterSpacing: '-0.02em' } : {}),
               }
               : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', ...(on ? styles.riToggleBtnActive : {}) };
             return (

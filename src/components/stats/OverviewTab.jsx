@@ -97,7 +97,7 @@ export default function OverviewTab({ report, onGo }) {
             const tag = tagOf(t.id);
             const c = tag === 'weak' ? COLOR.red : tag === 'strong' ? COLOR.green : COLOR.gold;
             return (
-              <button key={t.id} type="button" data-role={`skill-${t.id}`} data-tag={tag ?? ''} onClick={() => onGo(t.id === 'shortGame' ? 'putting' : t.id)}
+              <button key={t.id} type="button" data-role={`skill-${t.id}`} data-tag={tag ?? ''} onClick={() => onGo(t.id === 'shortGame' ? 'short' : t.id)}
                 style={{ ...tintWash(c, { strength: tag ? 0.14 : 0.08, border: tag ? 0.5 : 0.2, base: '#111827' }), borderRadius: 14, padding: '11px 12px 10px', textAlign: 'left', cursor: 'pointer', color: COLOR.text, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: '#c4cfe0' }}>{SKILL_LABEL[t.id]}</span>

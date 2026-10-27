@@ -23,6 +23,7 @@ import { clubLabelOf } from './clubRecommend.js';
 import { totalPar } from './players.js';
 import { buildGreenMissStats } from './greenMiss.js';
 import { isFullRound, FULL_ROUND_HOLES } from './nines.js';
+import { buildShortGamePattern } from './shortGamePattern.js';
 
 export const RECENT_ROUNDS = 5;                 // 추세의 '최근' 라운드 수
 const MIN_TREND_SAMPLE = 10;                    // 추세를 내려면 양쪽 모두 이만큼의 홀(샷)이 필요
@@ -320,6 +321,8 @@ export function buildShortGameStats(rounds) {
     avgDiff: mean(diffs),
     // 80m 안에서 친 샷(칩·피치): 그린에 올린 비율과 올린 뒤 첫 퍼트 거리
     near: { n: near.n, hit: near.hit, hitPct: near.hitPct, tier: near.tier, puttMedian: near.puttMedian, puttN: near.puttN },
+    // 80m 안 샷이 핀 기준 어디에 멈췄나 (랜딩 방향 + 첫 퍼트 거리) — 스탯 '숏게임' 탭
+    pattern: buildShortGamePattern(rounds),
     trend: trendOf(rounds, (r) => {
       const m = playedScores(r).filter((x) => x.s.gir === false);
       return { n: m.filter(({ hole, s }) => (s.strokes ?? hole.par) - hole.par <= 0).length, d: m.length };

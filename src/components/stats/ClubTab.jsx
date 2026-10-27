@@ -1,10 +1,11 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Takeaway, Hint } from './widgets.jsx';
 import { COLOR, fmtMeters, fmtPct } from './format.js';
+import { MIN_CONSISTENCY_N, MIN_CONSISTENCY_CLUBS } from '../../engine/statsReport.js';
 
 const MIN_DISTANCE_SAMPLES = 3;      // 거리 막대를 그리려면 필요한 샷 수
 
-// 클럽 — 클럽별 거리(중앙값 · 범위)와 적중, 클럽 사이의 거리 간격
+// 클럽 — 클럽별 거리(중앙값 · 범위)와 적중, 클럽별 거리 일관성
 export default function ClubTab({ report }) {
   const { clubs } = report;
   const rows = clubs.rows.filter((r) => r.n >= MIN_DISTANCE_SAMPLES && r.median != null);
@@ -19,14 +20,8 @@ export default function ClubTab({ report }) {
   const scaleMax = Math.ceil((maxEnd * 1.08) / 25) * 25;
   const at = (v) => `${Math.max(0, Math.min(100, (v / scaleMax) * 100))}%`;
 
-  const gapTake = (() => {
-    if (clubs.rows.filter((r) => r.n >= 4 && r.median != null).length < 3) return { tone: 'info', text: '거리가 4번 이상 쌓인 클럽이 3개 이상이면 클럽 사이의 간격을 알려드려요.' };
-    const parts = [];
-    if (clubs.wideGap) parts.push({ tone: 'warn', text: `${clubs.wideGap.longer}와 ${clubs.wideGap.shorter} 사이가 ${fmtMeters(clubs.wideGap.gap)}나 벌어져 있어요. 그 사이 거리를 칠 클럽이 없어요.` });
-    if (clubs.overlap) parts.push({ tone: 'info', text: `${clubs.overlap.longer}와 ${clubs.overlap.shorter}는 거리 차이가 ${fmtMeters(clubs.overlap.gap)}뿐이에요. 한 클럽을 줄여도 괜찮을 수 있어요.` });
-    return parts.length ? parts : [{ tone: 'good', text: '클럽 사이 거리 간격이 고르게 벌어져 있어요.' }];
-  })();
-  const gapList = Array.isArray(gapTake) ? gapTake : [gapTake];
+  const cons = clubs.consistency;
+  const maxSpread = cons.list.length ? Math.max(...cons.list.map((c) => c.spread)) : 1;
 
   return (
     <div data-role="tab-club">
@@ -57,8 +52,30 @@ export default function ClubTab({ report }) {
         </div>
       </Card>
 
-      <Card id="club-gap" title="GAPPING · 클럽 간격">
-        {gapList.map((g, i) => <Takeaway key={i} bare tone={g.tone} id="gap-take">{g.text}</Takeaway>)}
+      {/* 클럽 사이가 비었는지·겹치는지는 판정하지 않는다 — 어떤 간격이 맞는지는 사람마다 다르다. 내 클럽끼리 거리가 얼마나 일정한지만 견준다. */}
+      <Card id="club-consistency" title="CONSISTENCY · 거리 일관성" info={<>
+        <p>같은 클럽으로 쳤을 때 거리가 얼마나 일정한지예요. 중간 절반의 샷(25~75%)이 떨어진 폭이 좁을수록 일정해요.</p>
+        <p>긴 클럽일수록 폭이 절대값으로도 커서, 폭을 거리 중앙값에 견준 비율로 순서를 매겼어요. {MIN_CONSISTENCY_N}번 이상 친 풀스윙 클럽만 보여요.</p>
+      </>}>
+        {!cons.enough ? (
+          <Hint id="consistency-empty">거리가 {MIN_CONSISTENCY_N}번 이상 쌓인 클럽이 {MIN_CONSISTENCY_CLUBS}개 이상이면 클럽끼리 거리가 얼마나 일정한지 비교해 드려요.</Hint>
+        ) : (
+          <>
+            <Takeaway bare tone="info" id="consistency-take">
+              거리가 가장 일정한 클럽은 {cons.steadiest.label}(폭 {fmtMeters(cons.steadiest.width)}), 가장 들쭉날쭉한 클럽은 {cons.widest.label}(폭 {fmtMeters(cons.widest.width)})이에요.
+            </Takeaway>
+            {cons.list.map((c) => (
+              <div key={c.key} data-role={`consistency-${c.key}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: `1px solid ${COLOR.line}` }}>
+                <span style={{ width: 70, fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                <div style={{ flex: 1, minWidth: 0, height: 6, borderRadius: 3, background: COLOR.track }}>
+                  <div style={{ height: '100%', width: `${Math.max(6, (c.spread / maxSpread) * 100)}%`, borderRadius: 3, background: 'rgba(201,162,40,0.65)' }} />
+                </div>
+                <span style={{ width: 62, textAlign: 'right', fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>폭 {fmtMeters(c.width)}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 6 }}>막대가 짧을수록 거리가 일정해요 · 중앙값 대비 비율 기준</div>
+          </>
+        )}
       </Card>
     </div>
   );

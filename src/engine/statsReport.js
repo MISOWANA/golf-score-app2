@@ -29,7 +29,9 @@ const MIN_TREND_SAMPLE = 10;                    // 추세를 내려면 양쪽 �
 export const SHORT_GAME_MAX = SHORT_SHOT_MAX_M;   // 이 거리 안에서 친 샷은 어프로치가 아니라 숏게임(칩·피치)으로 본다
 export const CLUB_WINDOW = 20;                  // 클럽·거리 구간 표본: 최근 20라운드 (인사이트와 같다)
 const MIN_ROW = 3;                              // 표(클럽·구질 …)에 한 줄로 올리는 최소 횟수
-const FULL_SWING_MIN_M = 60;                    // 클럽 간격은 풀스윙 클럽(중앙값 60m 이상)끼리만 본다
+const FULL_SWING_MIN_M = 60;                    // 거리 일관성은 풀스윙 클럽(중앙값 60m 이상)끼리만 본다
+export const MIN_CONSISTENCY_N = 5;             // 거리 일관성을 비교하려면 클럽마다 필요한 샷 수
+export const MIN_CONSISTENCY_CLUBS = 3;         // 클럽끼리 견주려면 필요한 클럽 수
 
 const me = (r) => r.players[0];
 const sum = (a) => a.reduce((x, y) => x + y, 0);
@@ -407,15 +409,19 @@ export function buildClubReport(rounds, windowSize = CLUB_WINDOW) {
     };
   }).sort((a, b) => (b.median ?? -1) - (a.median ?? -1) || b.uses - a.uses);
 
-  // 거리가 충분히 쌓인 클럽끼리 거리순으로 이웃 간격을 본다
-  const ranked = rows.filter((x) => x.n >= 4 && x.median != null && x.median >= FULL_SWING_MIN_M).sort((a, b) => b.median - a.median);
-  const gaps = [];
-  for (let i = 0; i + 1 < ranked.length; i++) {
-    gaps.push({ longer: ranked[i].label, shorter: ranked[i + 1].label, gap: ranked[i].median - ranked[i + 1].median });
-  }
-  const wide = gaps.filter((g) => g.gap >= 18).sort((a, b) => b.gap - a.gap)[0] ?? null;
-  const overlap = gaps.filter((g) => g.gap <= 3).sort((a, b) => a.gap - b.gap)[0] ?? null;
-  return { rows, gaps, wideGap: wide, overlap, rounds: recent.length };
+  return { rows, consistency: clubConsistency(rows), rounds: recent.length };
+}
+
+// 클럽별 거리 일관성 — 중간 절반(25~75%) 샷의 폭을 중앙값으로 나눈 값(상대 퍼짐)이 작을수록 거리가 일정하다.
+// 클럽 사이가 비었는지·겹치는지는 말하지 않는다 — 어떤 간격이 맞는지는 사람마다 다르다. 여기서는 내 클럽끼리만 견준다.
+// 폭(width)은 m 로, 순서는 상대 퍼짐으로 정한다 (긴 클럽일수록 폭이 절대값으로도 커지기 때문).
+export function clubConsistency(rows) {
+  const list = (rows ?? [])
+    .filter((r) => r.n >= MIN_CONSISTENCY_N && r.median != null && r.median >= FULL_SWING_MIN_M && r.q1 != null && r.q3 != null)
+    .map((r) => ({ key: r.key, label: r.label, n: r.n, median: r.median, width: r.q3 - r.q1, spread: (r.q3 - r.q1) / r.median }))
+    .sort((a, b) => a.spread - b.spread);
+  const enough = list.length >= MIN_CONSISTENCY_CLUBS;
+  return { list, enough, steadiest: enough ? list[0] : null, widest: enough ? list[list.length - 1] : null };
 }
 
 // 어프로치 탭의 클럽별: 클럽 → 그린 적중. 클럽 리포트의 approach 사용분만 쓴다.

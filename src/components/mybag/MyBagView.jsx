@@ -11,8 +11,8 @@ import BagSetupWizard from './BagSetupWizard';
 import { nowMs } from '../../engine/clock.js';
 import { bagCoverage } from '../../engine/clubRecommend.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
-import { BAG_LIMIT, MIN_MEASURED_SHOTS, TYPE_ORDER, bagComposition, gapReport, measuredByClub } from '../../engine/bagStats.js';
-import { fmtShot, unitInfo, unitLabel } from '../../engine/units.js';
+import { BAG_LIMIT, MIN_MEASURED_SHOTS, MISMATCH_M, TYPE_ORDER, bagComposition, measuredByClub, registeredVsMeasured } from '../../engine/bagStats.js';
+import { fmtShot, displayShot, unitInfo, unitLabel } from '../../engine/units.js';
 
 const DEFAULT_CLUBS = [
   { id: 'driver', name: 'Driver', type: 'Wood', carry: 200, total: 215 },
@@ -333,7 +333,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
       type,
       carry: defaults.carry,
       total: defaults.total,
-      unset: true,   // 들어간 거리는 임시값 — 사용자가 거리를 고쳐 저장하기 전까지 클럽 간격 계산에서 뺀다
+      unset: true,   // 들어간 거리는 임시값 — 사용자가 거리를 고쳐 저장하기 전까지 추천과 실측 비교에서 뺀다
     };
 
     const lastOfTypeIdx = clubs.map(c => c.type).lastIndexOf(type);
@@ -385,9 +385,9 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
   const grouped = Object.fromEntries(TYPE_ORDER.map(t => [t, shown.filter(c => c.type === t)]));
   const comp = bagComposition(clubs);
   const coverage = bagCoverage(clubs);
-  const gapInfo = gapReport(shown, isSaved);
   const distanceStats = useMemo(() => buildClubDistanceStats(rounds), [rounds]);
   const measured = measuredByClub(shown, distanceStats);
+  const actual = registeredVsMeasured(shown, measured);
 
   const statusTake = (() => {
     if (dirty) return { tone: 'warn', text: `거리를 ${dirtyCount}개 고쳤어요. 아래 저장을 눌러야 클럽 추천에 반영돼요.` };
@@ -626,24 +626,37 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
             )}
           </Card>
 
-          {/* 클럽 간격은 내 백의 거리가 충분히 쌓였을 때만 말한다 — 데이터가 모자라면 카드째로 숨긴다 */}
-          {gapInfo.speak && (
-            <Card id="bag-gap" title="GAPPING · 클럽 간격">
-              {gapInfo.wide.map((g) => (
-                <Takeaway key={`w-${g.longer}-${g.shorter}`} bare tone="warn" id="gap-take">
-                  {g.longer}와 {g.shorter} 사이가 {fmtShot(g.gap)}나 벌어져 있어요 ({fmtShot(g.from)} → {fmtShot(g.to)}). 그 사이 거리를 칠 클럽이 없어요.
-                </Takeaway>
-              ))}
-              {gapInfo.overlap.map((g) => (
-                <Takeaway key={`o-${g.longer}-${g.shorter}`} bare tone="info" id="gap-take">
-                  {g.longer}와 {g.shorter}는 토탈 거리 차이가 {fmtShot(g.gap)}뿐이에요. 한 클럽을 줄여도 괜찮을 수 있어요.
-                </Takeaway>
-              ))}
-              {gapInfo.wide.length === 0 && gapInfo.overlap.length === 0 && (
-                <Takeaway bare tone="good" id="gap-take">클럽 사이 거리 간격이 고르게 벌어져 있어요.</Takeaway>
-              )}
-              {gapInfo.skippedUnset > 0 && (
-                <Takeaway bare tone="info" id="gap-skipped">거리를 확인하지 않은 클럽 {gapInfo.skippedUnset}개는 간격 계산에서 뺐어요.</Takeaway>
+          {/* 내가 적은 거리와 라운드 실측이 다른 클럽 — 클럽 사이가 비었는지·겹치는지는 판정하지 않는다(어떤 간격이 맞는지는 사람마다 다르다).
+              기본값을 보고 있을 때는 비교할 '내 거리'가 없어 숨긴다. */}
+          {isSaved && (
+            <Card id="bag-actual" title="ACTUAL · 등록 거리 vs 실제 거리" info={<>
+              <p>라운드에서 같은 클럽을 {MIN_MEASURED_SHOTS}번 이상 치고 거리를 기록하면, 공이 멈춘 거리의 중앙값(실측)을 내가 적은 토탈과 견줘요.</p>
+              <p>{fmtShot(MISMATCH_M)} 이상 다른 클럽만 보여요. 어느 쪽이 맞는지는 날씨와 라이에 따라 달라서 앱이 정하지 않아요. 클럽 추천은 내가 적은 거리로 계산해요.</p>
+            </>}>
+              {!hasMeasured ? (
+                <Hint id="actual-empty">같은 클럽으로 {MIN_MEASURED_SHOTS}번 이상 친 거리가 쌓이면, 내가 적은 거리와 실제로 나간 거리를 비교해 드려요.</Hint>
+              ) : actual.rows.length === 0 ? (
+                <Takeaway bare tone="info" id="actual-same">실측이 있는 클럽 {actual.compared}개가 모두 등록한 거리와 비슷해요.</Takeaway>
+              ) : (
+                <>
+                  <Takeaway bare tone="info" id="actual-take">등록한 거리와 실제로 나간 거리가 다른 클럽이에요. 누르면 그 클럽에서 실측에 맞출 수 있어요.</Takeaway>
+                  {actual.rows.map((r) => {
+                    const diff = displayShot(r.median) - displayShot(r.club.total);
+                    return (
+                      <button key={r.club.id} type="button" data-role={`bag-actual-${r.club.id}`} onClick={() => jumpToClub(r.club.id)}
+                        style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', borderBottom: `1px solid ${COLOR.line}`, padding: '6px 0', color: COLOR.text, cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ width: 52, flexShrink: 0, fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.club.name}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: COLOR.muted, lineHeight: 1.4 }}>
+                          등록 <b style={{ color: BAG_COLOR.total }}>{fmtShot(r.club.total, { unit: false })}</b> → 실제 <b style={{ color: BAG_COLOR.measured }}>{fmtShot(r.median, { unit: false })}</b>
+                          <span style={{ color: COLOR.faint }}> · {r.n}샷</span>
+                        </span>
+                        <span data-role={`bag-actual-diff-${r.club.id}`} style={{ flexShrink: 0, fontSize: 15, fontWeight: 900, color: BAG_COLOR.measured, fontVariantNumeric: 'tabular-nums' }}>
+                          {diff > 0 ? '+' : '−'}{Math.abs(diff)}{unitLabel('shot')}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>
               )}
             </Card>
           )}

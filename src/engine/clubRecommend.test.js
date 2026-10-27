@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { shotClubOf, recommendClubs, bagCoverage, fitText } from './clubRecommend.js';
 import { CATALOG, readableInScoring, guessCategory, checkNewClub, toBagClubs } from './clubCatalog.js';
-import { bagGaps, gapReport } from './bagStats.js';
+import { registeredVsMeasured, measuredByClub, MISMATCH_M } from './bagStats.js';
 import { createRng } from '../test/fixtures.js';
 
 describe('shotClubOf — 마이백 클럽 → 스코어 입력의 클럽', () => {
@@ -134,12 +134,33 @@ describe('마이백 등록', () => {
     expect(bag.find((c) => c.name === 'Putter')).toEqual({ id: 'putter', name: 'Putter', type: 'Putter' });
   });
 
-  it('클럽 간격: 벌어진 곳을 찾되 드라이버와 다음 클럽 사이는 뺀다', () => {
-    const g = bagGaps([
-      { name: 'Driver', type: 'Wood', total: 215 }, { name: '3W', type: 'Wood', total: 195 },
-      { name: '5i', type: 'Iron', total: 160 }, { name: '9i', type: 'Iron', total: 120 },
-    ]);
-    expect(g.wide.map((w) => `${w.longer}-${w.shorter}`)).toEqual(['5i-9i', '3W-5i']);
-    expect(gapReport([{ name: '7i', type: 'Iron', total: 140 }], true).speak).toBe(false);
+  describe('등록 거리 vs 실제 거리 (클럽 사이 간격은 판정하지 않는다)', () => {
+    const bag = [
+      { id: 'driver', name: 'Driver', type: 'Wood', carry: 200, total: 215 },
+      { id: 'iron7', name: '7i', type: 'Iron', carry: 135, total: 140 },
+      { id: 'iron8', name: '8i', type: 'Iron', carry: 125, total: 130 },
+      { id: 'iron9', name: '9i', type: 'Iron', carry: 115, total: 120, unset: true },
+      { id: 'putter', name: 'Putter', type: 'Putter' },
+    ];
+    const stat = (club, subClub, median, n = 6) => ({ club, subClub, median, n });
+
+    it('실측이 등록한 토탈과 5m 이상 다른 클럽만, 차이가 큰 순으로 돌려준다', () => {
+      const measured = measuredByClub(bag, [stat('driver', null, 216), stat('iron', '7I', 126), stat('iron', '8I', 124.6)]);
+      const r = registeredVsMeasured(bag, measured);
+      expect(r.compared).toBe(3);
+      expect(r.rows.map((x) => [x.club.id, x.diff])).toEqual([['iron7', -14], ['iron8', -5]]);    // 드라이버는 1m 차이라 뺀다
+      expect(r.rows[0]).toMatchObject({ median: 126, n: 6 });
+      expect(MISMATCH_M).toBe(5);
+    });
+
+    it('실제로 더 나가면 양수다', () => {
+      const r = registeredVsMeasured(bag, measuredByClub(bag, [stat('iron', '7I', 150)]));
+      expect(r.rows.map((x) => x.diff)).toEqual([10]);
+    });
+
+    it('샷이 3개 미만인 클럽, 거리를 확인하지 않은 클럽(unset), 퍼터는 비교하지 않는다', () => {
+      const measured = measuredByClub(bag, [stat('iron', '7I', 100, 2), stat('iron', '9I', 90, 8)]);
+      expect(registeredVsMeasured(bag, measured)).toEqual({ compared: 0, rows: [] });
+    });
   });
 });

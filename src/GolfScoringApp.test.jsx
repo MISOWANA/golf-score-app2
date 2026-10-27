@@ -1918,6 +1918,51 @@ describe('거리 단위 (미터 · 야드)', () => {
     await waitFor(() => expect(document.querySelector('[data-role="club-total-iron7"]').textContent).toBe('145'));
   });
 
+  // 7i 로 130m(150m 남은 곳에서 쳐서 20m 남김)를 세 번 — 등록한 토탈(140m)과 10m 다르다
+  const withMeasured7i = () => {
+    const r = makeFullRound(1, ME, { courseName: '실측CC' });
+    r.holes.forEach((h, i) => {   // 다른 홀의 클럽 기록이 실측에 섞이지 않게 비우고, 파4 세 홀에만 7번 아이언을 둔다
+      r.holes[i].scores[ME] = [0, 1, 4].includes(i)
+        ? { ...defaultScore(h.par), touched: true, secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, gir: false, girAuto: false, onGreen: false,
+            extraShots: [{ club: 'wedge', subClub: '52', lie: [], surface: null, remainingDistance: 20, onGreen: true }] }
+        : defaultScore(h.par);
+    });
+    return r;
+  };
+  const openBagChart = async () => {
+    tab('MY BAG');
+    fireEvent.click(await screen.findByText('거리표'));
+  };
+
+  it('마이백 거리표: 등록한 거리와 실측이 다른 클럽을 보여 주고, 클럽 사이를 판정하지 않는다', async () => {
+    await setup({ clubs: IRON, rounds: [withMeasured7i()] });
+    await openBagChart();
+    const row = await waitFor(() => { const b = document.querySelector('[data-role="bag-actual-iron7"]'); expect(b).toBeTruthy(); return b; });
+    expect(row.textContent).toMatch(/등록 140.*실제 130.*3샷/);
+    expect(document.querySelector('[data-role="bag-actual-diff-iron7"]').textContent).toBe('−10m');
+    expect(document.querySelector('[data-role="card-bag-gap"]')).toBeNull();
+    expect(document.body.textContent).not.toMatch(/GAPPING|칠 클럽이 없어요|클럽을 줄여도|고르게 벌어져/);
+    fireEvent.click(row);   // 그 클럽의 편집 칸이 열리고 실측에 맞추는 버튼이 있다
+    expect(await screen.findByText(/토탈 130m로/)).toBeTruthy();
+  });
+
+  it('마이백 거리표: 야드 모드에서는 차이도 야드로 보인다', async () => {
+    await setup({ clubs: IRON, rounds: [withMeasured7i()], prefs: { unit: 'yd' } });
+    await openBagChart();
+    await waitFor(() => expect(document.querySelector('[data-role="bag-actual-diff-iron7"]')?.textContent).toBe('−11yd'));   // 153 → 142
+  });
+
+  it('마이백 거리표: 실측이 없으면 언제 보이는지 안내하고, 실측이 등록 거리와 같으면 비슷하다고 알린다', async () => {
+    await setup({ clubs: IRON });
+    await openBagChart();
+    expect((await waitFor(() => { const h = document.querySelector('[data-role="actual-empty"]'); expect(h).toBeTruthy(); return h; })).textContent).toMatch(/3번 이상/);
+    cleanup();
+
+    await setup({ clubs: [{ ...IRON[0], carry: 120, total: 131 }], rounds: [withMeasured7i()] });
+    await openBagChart();
+    expect((await waitFor(() => { const t = document.querySelector('[data-role="actual-same"]'); expect(t).toBeTruthy(); return t; })).textContent).toMatch(/1개가 모두 등록한 거리와 비슷/);
+  });
+
   it('보이는 값 그대로 다시 입력하면 저장된 미터 값을 건드리지 않는다 (변경으로 치지 않는다)', async () => {
     await setup({ clubs: IRON, prefs: { unit: 'yd' } });
     tab('MY BAG');

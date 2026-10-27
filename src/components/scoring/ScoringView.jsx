@@ -306,13 +306,16 @@ const lieText = (lie) => {
 };
 
 // 지형 — 그 샷을 치는 자리의 표면 (페어웨이 · 러프 · 벙커). 샷마다 꼭 받는다.
-// suggest: 티샷 결과로 짐작한 표면 — 아직 고르지 않았을 때만 ★ 로 알려 주고, 눌러야 기록된다 (자동으로 채우지 않는다).
-function SurfaceRow({ role, value, missing, suggest = null, onChange }) {
+// suggest: 티샷 결과로 짐작한 표면 — 아직 고르지 않았을 때만 ★ 로 알려 주고, 눌러야 기록된다.
+//   (티샷에서 페어웨이를 지켰을 때만 예외 — 세컨샷 지형을 페어웨이로 미리 채우고 auto 로 알려 준다. setTeeFairway)
+// auto: 사용자가 고른 게 아니라 티샷 결과로 채운 값이다 — 다른 칩을 누르면 바뀐다.
+function SurfaceRow({ role, value, missing, suggest = null, auto = false, onChange }) {
   return (
     <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>⛳</span><span style={fLbl}>지형</span>
         {value == null && suggest && <span style={{ fontSize:12, color:'#8896b0' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
+        {value != null && auto && <span data-role={`${role}-auto`} style={{ fontSize:12, color:'#8896b0' }}>티샷 페어웨이라 자동 선택 · 다르면 눌러서 바꾸세요</span>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
         {SURFACES.map((x) => {
@@ -1152,10 +1155,21 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 세컨샷 지형 추천 — 티샷에서 페어웨이를 지켰으면 페어웨이, 놓쳤으면 러프 (고르기 전에만 ★ 로 알려 준다)
   const secondSurfaceSuggest = penaltyAt(playerScore, 0) ? null : playerScore.fairway === true ? 'fairway' : playerScore.fairway === false ? 'rough' : null;
 
+  // 티샷 페어웨이 O/X. 페어웨이에 올렸으면 세컨샷은 페어웨이에서 치는 것이니 지형을 미리 채운다 (secondSurfaceAuto 로 직접 고른 값과 구분).
+  // 놓쳤을 때는 러프인지 벙커인지 알 수 없어 채우지 않는다 — 러프 ★ 추천만 한다. 이미 고른 지형은 덮어쓰지 않는다.
+  const autoSurfaceClear = playerScore.secondSurfaceAuto ? { secondSurface: null, secondSurfaceAuto: false } : {};   // 채워 둔 지형만 비운다 (직접 고른 값은 그대로)
+  const setTeeFairway = (hit) => {
+    const patch = { fairway: hit };
+    if (hit === true && playerScore.secondSurface == null && !penaltyAt(playerScore, 0)) Object.assign(patch, { secondSurface: 'fairway', secondSurfaceAuto: true });
+    else if (hit !== true) Object.assign(patch, autoSurfaceClear);
+    updateFields(patch);
+  };
+
   // 세컨샷 지형을 고르면 티샷의 페어웨이 적중도 알 수 있다 — 따로 입력하지 않았다면 채워 둔다.
   // (직접 O/X 를 누른 값은 지형 입력이 바꾸지 않는다. 채워 둔 값(fairwayDerived)만 지형을 바꾸면 따라 바뀐다.)
   const setSecondSurface = (v) => {
     const patch = { secondSurface: v };
+    if (playerScore.secondSurfaceAuto) patch.secondSurfaceAuto = false;   // 이제 사용자가 고른(또는 지운) 값이다
     const fw = v ? fairwayFromSurface({ ...playerScore, secondSurface: v }, hole.par) : null;
     if (fw != null && (playerScore.fairway == null || playerScore.fairwayDerived)) Object.assign(patch, { fairway: fw, fairwayDerived: true });
     else if (v == null && playerScore.fairwayDerived) Object.assign(patch, { fairway: null, fairwayDerived: false });
@@ -1673,7 +1687,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     const fields = { penalties: [...rest, { slot, type, mode }], ...counts };
     if (slot === 0) {
       // 티샷 벌타 — 페어웨이 미적중, 1온·온그린 아님. 다음 샷(세컨샷 자리)은 늘 있다.
-      if (hole.par > 3) Object.assign(fields, { fairway: false, teeGIR: false });
+      if (hole.par > 3) Object.assign(fields, { fairway: false, teeGIR: false, ...autoSurfaceClear });
       else Object.assign(fields, { teeOnGreen: false, gir: false, girAuto: false });
     } else if (slot === 1) {
       // 세컨샷에서 벌타가 났다면 티샷은 그린에 못 올라간 것이다
@@ -2592,8 +2606,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             </div>
             <div style={{ display:'flex', gap:8 }}>
               {/* 1온(G)이면 볼이 그린 위라 페어웨이 O는 성립하지 않는다 — G를 먼저 해제해야 고를 수 있다 */}
-              <button disabled={!!playerScore.teeGIR} style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:17, fontWeight:800, cursor: playerScore.teeGIR ? 'not-allowed' : 'pointer', opacity: playerScore.teeGIR ? 0.3 : 1 }} onClick={()=>{ if (playerScore.teeGIR) return; updateFields({ fairway: true }); scrollDown(); }}>O</button>
-              <button style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:17, fontWeight:800, cursor:'pointer' }} onClick={()=>{ updateFields({ fairway: false }); scrollDown(); }}>X</button>
+              <button data-role="tee-fairway-hit" disabled={!!playerScore.teeGIR} style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:17, fontWeight:800, cursor: playerScore.teeGIR ? 'not-allowed' : 'pointer', opacity: playerScore.teeGIR ? 0.3 : 1 }} onClick={()=>{ if (playerScore.teeGIR) return; setTeeFairway(true); scrollDown(); }}>O</button>
+              <button data-role="tee-fairway-miss" style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:17, fontWeight:800, cursor:'pointer' }} onClick={()=>{ setTeeFairway(false); scrollDown(); }}>X</button>
             </div>
           </div>
         )}
@@ -2635,7 +2649,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 else {
                   // 1온은 페어웨이 미적중으로 센다 — PGA 투어 Driving Accuracy 기준
                   // ('티샷이 페어웨이에 멈춘 비율'). 그린은 페어웨이가 아니다.
-                  updateFields({ teeGIR: true, fairwayHit: null, fairway: false });
+                  updateFields({ teeGIR: true, fairwayHit: null, fairway: false, ...autoSurfaceClear });
                   setStage('putt');   // 볼이 그린 위 — 필드샷 없이 퍼팅으로
                 }
               }}>
@@ -2733,6 +2747,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           value={surfaceIdOf(playerScore.secondSurface)}
           missing={infoRequired && !playerScore.secondSurface}
           suggest={secondSurfaceSuggest}
+          auto={!!playerScore.secondSurfaceAuto}
           onChange={setSecondSurface}
         />
         <LieRow
@@ -3065,10 +3080,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         )}
 
         {/* 온그린 랜딩 방향 (12-clock) — 선택 입력. 그린 어프로치 분석에 쓰이고, 비워 두어도 퍼팅 입력은 열려 있다.
-            접어 두고, 펼쳐서 고르면 화면만 아래 퍼팅 입력으로 옮긴다. */}
+            늘 펼쳐서 보여 준다 (값이 있어도) — 펼치려고 한 번 더 누르는 게 불편하다고 해서. 고르면 화면만 아래 퍼팅 입력으로 옮긴다. */}
         <OptionalSection
           key={`landing-${holeIdx}-${activePlayer}`}
           icon="⊙" label="온그린 랜딩 방향" enabled hint={null}
+          defaultOpen
           summary={playerScore.onGreenLanding ? `${playerScore.onGreenLanding}시 방향` : ''}
         >
           {() => (

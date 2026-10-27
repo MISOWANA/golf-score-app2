@@ -1005,6 +1005,81 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       await waitFor(async () => expect(await saved()).toMatchObject({ fairway: null, fairwayDerived: false }));
     });
 
+    describe('티샷 페어웨이 O → 세컨샷 지형 자동 선택', () => {
+      const openTee = async () => {
+        await openTab('tee');
+        await waitFor(() => expect(document.querySelector('[data-role="tee-fairway-hit"]')).toBeTruthy());
+      };
+      const surfaceOn = (id) => document.querySelector(`[data-role="second-surface-${id}"]`)?.getAttribute('aria-pressed') === 'true';
+
+      it('O 를 누르면 세컨샷 지형이 페어웨이로 채워지고 자동 선택이라고 알려 준다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: true, secondSurface: 'fairway', secondSurfaceAuto: true }));
+        await openTab('field');
+        await waitFor(() => expect(surfaceOn('fairway')).toBe(true));
+        expect(document.querySelector('[data-role="second-surface"]').getAttribute('data-missing')).toBe('0');
+        expect(document.querySelector('[data-role="second-surface-auto"]').textContent).toContain('자동 선택');
+      });
+
+      it('X 는 지형을 채우지 않고 러프 ★ 추천만 한다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect((await saved()).fairway).toBe(false));
+        expect((await saved()).secondSurface ?? null).toBeNull();
+        await openTab('field');
+        const rough = await waitFor(() => { const b = document.querySelector('[data-role="second-surface-rough"]'); expect(b).toBeTruthy(); return b; });
+        expect(rough.textContent).toContain('★');
+        expect(surfaceOn('rough')).toBe(false);
+        expect(document.querySelector('[data-role="second-surface-auto"]')).toBeNull();
+      });
+
+      it('O 를 눌렀다가 X 로 바꾸면 자동으로 채운 지형은 다시 비운다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect((await saved()).secondSurface).toBe('fairway'));
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, secondSurface: null, secondSurfaceAuto: false }));
+      });
+
+      it('사용자가 직접 고른 지형은 O 로도 X 로도 바뀌지 않는다', async () => {
+        await resume(shotRound({ ...second, secondSurface: 'bunker' }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect((await saved()).fairway).toBe(true));
+        expect((await saved()).secondSurface).toBe('bunker');
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect((await saved()).fairway).toBe(false));
+        expect((await saved()).secondSurface).toBe('bunker');
+      });
+
+      it('자동으로 채운 지형을 직접 바꾸면 그때부터는 직접 고른 값이다 (이후 X 를 눌러도 그대로)', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect((await saved()).secondSurface).toBe('fairway'));
+        await openTab('field');
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-surface-bunker"]'); expect(b).toBeTruthy(); return b; }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'bunker', secondSurfaceAuto: false }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect((await saved()).fairway).toBe(false));
+        expect((await saved()).secondSurface).toBe('bunker');
+      });
+
+      it('1온(G)으로 바꾸면 자동으로 채운 세컨샷 지형은 지워진다 — 필드샷이 없다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect((await saved()).secondSurface).toBe('fairway'));
+        fireEvent.click(screen.getByText(/그린\s+\(1온\)/).closest('button'));
+        await waitFor(async () => expect(await saved()).toMatchObject({ teeGIR: true, secondSurface: null, secondSurfaceAuto: false }));
+      });
+    });
+
     it('직접 누른 페어웨이 O/X 는 지형이 바꾸지 않는다', async () => {
       await resume(shotRound({ ...second, fairway: true }));
       await openTab('field');
@@ -1080,6 +1155,34 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       await waitFor(() => expect(document.querySelector('[data-role="putting-top"]')).toBeTruthy());
       expect(screen.queryByText(/랜딩 방향을 선택하면 퍼팅/)).toBeNull();
       expect(await screen.findByText('PUTT 1')).toBeTruthy();
+    });
+
+    it('퍼팅 탭에 들어오면 랜딩 휠이 펼쳐져 있고, 고르면 저장된다', async () => {
+      await resume(shotRound({ putts: 2, puttsManual: true }));
+      await openTab('putt');
+      const wheel = await waitFor(() => { const w = document.querySelector('[data-role="landing-wheel"]'); expect(w).toBeTruthy(); return w; });
+      expect(wheel).toBeTruthy();                                                         // 펼치기를 누르지 않았다
+      fireEvent.click(document.querySelector('[data-role="landing-zone"][data-hour="3"]'));
+      await waitFor(async () => expect((await saved()).onGreenLanding).toBe(3));
+      expect(document.querySelector('[data-role="landing-wheel"]')).toBeTruthy();         // 고른 뒤에도 그대로 보인다
+    });
+
+    it('이미 고른 홀도 펼쳐져 있고, 고른 방향이 휠에 표시된다. 접기를 누르면 접힌다', async () => {
+      await resume(shotRound({ putts: 2, puttsManual: true, onGreenLanding: 6 }));
+      await openTab('putt');
+      await screen.findByText('PUTT 1');
+      const wheel = await waitFor(() => { const w = document.querySelector('[data-role="landing-wheel"]'); expect(w).toBeTruthy(); return w; });
+      expect(wheel.querySelector('[data-role="landing-wheel-hour"]').textContent).toBe('6시');
+      fireEvent.click(screen.getByText('온그린 랜딩 방향').closest('button'));
+      await waitFor(() => expect(document.querySelector('[data-role="landing-wheel"]')).toBeNull());
+    });
+
+    it('퍼팅을 이미 입력하고 돌아온 홀도 펼쳐져 있다', async () => {
+      const puttDetails = [{ distance: 3, aimDistance: 3, lie: [], holein: 'success' }];
+      await resume(shotRound({ putts: 1, puttsManual: true, puttDetails }));
+      await openTab('putt');
+      await screen.findByText('PUTT 1');
+      expect(document.querySelector('[data-role="landing-wheel"]')).toBeTruthy();
     });
   });
 });

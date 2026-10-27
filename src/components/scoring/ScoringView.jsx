@@ -891,8 +891,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     onUpdate(updated);
   };
 
-  const updateOnGreen = (val) => updateFields({ onGreen: val });
-
   const extraShotTopRef = useRef(null);
   const puttTopRef = useRef(null);   // 퍼팅 영역의 맨 위 — 랜딩을 고르면 화면을 여기로 옮긴다
   const offGreenTopRef = useRef(null);
@@ -1039,10 +1037,29 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     });
   };
 
+  // slot번째 샷이 그린에 올라갔다(또는 홀에 들어갔다)면 그 뒤 샷은 있을 수 없다 — 뒤 샷과 그 GPS 지점·벌타를 지운다.
+  // 벌타를 남기면 지운 샷의 벌타가 타수에 그대로 더해진다. 지울 게 없으면 빈 객체 (저장값에 빈 배열을 새로 만들지 않는다).
+  const fieldsWithoutShotsAfter = (slot) => {
+    const fields = {};
+    const extras = playerScore.extraShots || [];
+    const pts = playerScore.gpsPoints || [];
+    const keep = Math.max(0, slot - 1);   // extraShots[i] 는 slot i+2 — slot 이하만 남긴다
+    if (extras.length > keep) fields.extraShots = extras.slice(0, keep);
+    if (pts.length > slot + 1) fields.gpsPoints = pts.slice(0, slot + 1);
+    const all = playerScore.penalties || [];
+    const dropped = all.filter((p) => p.slot > slot);
+    if (dropped.length > 0) {
+      fields.penalties = all.filter((p) => p.slot <= slot);
+      dropped.forEach((p) => { fields[p.type] = Math.max(0, (fields[p.type] ?? playerScore[p.type] ?? 0) - 1); });
+    }
+    return fields;
+  };
+
   // 세컨샷이 바로 홀에 들어간 경우 (파3 그린 놓친 뒤 칩인, 파4 세컨샷 이글 등).
   // 세컨샷 결과는 onGreen에 'chip-in'으로 남긴다 — 써드샷 이후의 칩인과 같은 표기.
+  // 세컨샷을 '실패'로 눌러 써드샷이 만들어져 있었어도 칩인이면 그 뒤 샷은 없다.
   const secondShotChipIn = () => {
-    const base = { ...playerScore, onGreen: 'chip-in', putts: 0, puttDetails: [], offGreen: [] };
+    const base = { ...playerScore, ...fieldsWithoutShotsAfter(1), onGreen: 'chip-in', putts: 0, puttDetails: [], offGreen: [] };
     // 직접 고친 스코어가 있으면 그 값을 유지한다 (base가 strokes·strokesManual을 그대로 들고 있다)
     triggerChipIn(playerScore.strokesManual
       ? { ...base, touched: true }
@@ -2773,32 +2790,40 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {(playerScore.secondClub || lieValue(playerScore.terrainCondition) || extraShots.length > 0 || playerScore.gir != null) && (<>
         <div ref={extraShotTopRef} />
 
-        {/* 세컨샷 GIR (추가 샷 없을 때, Par 4+). 파5 이상은 세컨샷 뒤 온그린이 GIR이
+        {/* 세컨샷 GIR (Par 4+). 파5 이상은 세컨샷 뒤 온그린이 GIR이
             아니라 2온이다 — 레이업을 'GIR 실패'로 누르게 하지 않도록 이름을 바꾼다.
-            (GIR 값은 홀 확정 때 타수로 다시 계산된다) */}
-        {extraShots.length === 0 && hole.par > 3 && (
-          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+            (GIR 값은 홀 확정 때 타수로 다시 계산된다)
+            '실패'로 써드샷이 생긴 뒤에도 이 줄은 남겨 둔다 — 그린에 가 보니 온이었을 때 '성공'으로 고치면
+            써드샷 이후가 지워진다. 세컨샷 벌타로 생긴 써드샷은 그린에 못 간 것이 맞으므로 줄을 숨긴다. */}
+        {hole.par > 3 && (extraShots.length === 0 || !penaltyAt(playerScore, 1)) && (
+          <div data-role="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>{penaltyAt(playerScore, 0) ? '온그린' : hole.par >= 5 ? '2온' : 'GIR'}</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
-                onClick={()=>{ updateFields({ gir: true, girAuto: false, onGreen: true }); setStage('putt'); }}>성공</button>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
-                onClick={()=>{ setSecondShotExpanded(false); addExtraShot(hole.par >= 5 ? { onGreen: null } : { gir: false, girAuto: false, onGreen: null }); }}>실패</button>
+              <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                onClick={()=>{ updateFields({ ...fieldsWithoutShotsAfter(1), gir: true, girAuto: false, onGreen: true }); setStage('putt'); }}>성공</button>
+              <button data-role="second-result-miss" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false || (extraShots.length > 0 && playerScore.onGreen !== true) ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                onClick={()=>{
+                  if (extraShots.length > 0) { setExpandedExtraShot(0); return; }   // 이미 실패 — 써드샷을 또 만들지 않고 그 샷을 연다
+                  setSecondShotExpanded(false); addExtraShot(hole.par >= 5 ? { onGreen: null } : { gir: false, girAuto: false, onGreen: null });
+                }}>실패</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
                 onClick={secondShotChipIn}>칩인</button>
             </div>
           </div>
         )}
 
-        {/* 세컨샷 온그린 (추가 샷 없을 때, Par 3) */}
-        {extraShots.length === 0 && hole.par === 3 && (
-          <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+        {/* 세컨샷 온그린 (Par 3) — 파4·5와 같다: '실패' 뒤에도 남겨 두고, '성공'으로 고치면 써드샷 이후를 지운다 */}
+        {hole.par === 3 && (extraShots.length === 0 || !penaltyAt(playerScore, 1)) && (
+          <div data-role="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
-                onClick={()=>{ updateOnGreen(true); setStage('putt'); }}>성공</button>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
-                onClick={()=>{ setSecondShotExpanded(false); addExtraShot({ onGreen: false }); }}>실패</button>
+              <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                onClick={()=>{ updateFields({ ...fieldsWithoutShotsAfter(1), onGreen: true }); setStage('putt'); }}>성공</button>
+              <button data-role="second-result-miss" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===false || (extraShots.length > 0 && playerScore.onGreen !== true) ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                onClick={()=>{
+                  if (extraShots.length > 0) { setExpandedExtraShot(0); return; }
+                  setSecondShotExpanded(false); addExtraShot({ onGreen: false });
+                }}>실패</button>
               <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
                 onClick={secondShotChipIn}>칩인</button>
             </div>

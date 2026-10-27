@@ -1080,6 +1080,100 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       });
     });
 
+    describe('세컨샷 실패 → 성공으로 고치면 써드샷 이후가 사라진다', () => {
+      const open = async () => {
+        await openTab('field');
+        await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());
+      };
+      const click = (role) => fireEvent.click(document.querySelector(`[data-role="${role}"]`));
+      const thirdShots = () => screen.queryAllByText(/써드샷 \( 3rd \)/);
+      const missColor = () => document.querySelector('[data-role="second-result-miss"]').style.color;
+
+      it('파4: 실패로 써드샷이 생긴 뒤에도 결과 줄이 남아 있고, 성공을 누르면 써드샷이 지워지고 퍼팅으로 넘어간다', async () => {
+        await resume(shotRound({ ...second, onGreen: null, gir: null }));
+        await open();
+        click('second-result-miss');
+        await waitFor(async () => expect((await saved()).extraShots).toHaveLength(1));
+        expect((await screen.findAllByText(/써드샷 \( 3rd \)/)).length).toBeGreaterThan(0);
+        expect(document.querySelector('[data-role="second-result"]')).toBeTruthy();                 // 줄이 사라지지 않는다
+        expect(missColor()).toBe('rgb(239, 83, 80)');                                               // 실패 쪽이 눌려 있다
+
+        click('second-result-on');
+        await waitFor(async () => expect(await saved()).toMatchObject({ onGreen: true, gir: true, girAuto: false, extraShots: [] }));
+        await waitFor(() => expect(document.querySelector('[data-role="shot-tab-putt"]').getAttribute('aria-selected') ?? 'true').toBe('true'));
+        await openTab('field');
+        await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());
+        expect(thirdShots()).toHaveLength(0);                                                       // 써드샷 입력창이 없다
+      });
+
+      it('이미 실패인 세컨샷에서 실패를 또 눌러도 써드샷이 늘어나지 않는다', async () => {
+        await resume(shotRound({ ...second, onGreen: null, gir: null }));
+        await open();
+        click('second-result-miss');
+        await waitFor(async () => expect((await saved()).extraShots).toHaveLength(1));
+        click('second-result-miss');
+        click('second-result-miss');
+        await new Promise((r) => setTimeout(r, 50));
+        expect((await saved()).extraShots).toHaveLength(1);
+      });
+
+      it('써드샷에 입력한 클럽 · GPS 지점 · 벌타도 함께 지워지고, 벌타가 타수에 남지 않는다', async () => {
+        const extra = (over = {}) => ({ club: 'wedge', subClub: '52', lie: [], surface: null, remainingDistance: 20, onGreen: null, ...over });
+        await resume(shotRound({
+          ...second, gir: false, girAuto: false, onGreen: null, strokes: 6,
+          extraShots: [extra({ onGreen: false }), extra()],
+          penalties: [{ slot: 2, type: 'ob', mode: 'replay' }], ob: 1,
+          gpsPoints: [{ lat: 37.1, lng: 127.1 }, { lat: 37.2, lng: 127.2 }, { lat: 37.3, lng: 127.3 }, { lat: 37.4, lng: 127.4 }],
+        }));
+        await open();
+        click('second-result-on');
+        await waitFor(async () => expect(await saved()).toMatchObject({ onGreen: true, extraShots: [], ob: 0, penalties: [] }));
+        expect((await saved()).gpsPoints).toHaveLength(2);                                          // 티샷 · 세컨샷 지점만 남는다
+        expect((await saved()).gpsPoints[1]).toEqual({ lat: 37.2, lng: 127.2 });
+      });
+
+      it('세컨샷에서 벌타가 나서 생긴 써드샷에는 성공 줄을 보이지 않는다 (그린에 못 간 것이 맞다)', async () => {
+        await resume(shotRound({
+          ...second, gir: false, girAuto: false, onGreen: null, strokes: 5,
+          extraShots: [{ club: null, subClub: null, lie: [], surface: null, remainingDistance: null, onGreen: null }],
+          penalties: [{ slot: 1, type: 'hazard', mode: 'back' }], hazard: 1,
+        }));
+        await openTab('field');
+        expect((await screen.findAllByText(/써드샷|3번째 샷|4번째 샷/)).length).toBeGreaterThan(0);
+        expect(document.querySelector('[data-role="second-result"]')).toBeNull();
+      });
+
+      it('파5: 2온도 같다 — 레이업(실패)으로 써드샷이 생겨도 2온 성공으로 고치면 지워진다', async () => {
+        await resume(shotRound({ ...second, onGreen: null, gir: null }, 3), 'HOLE 4');
+        await open();
+        click('second-result-miss');
+        await waitFor(async () => expect((await saved(3)).extraShots).toHaveLength(1));
+        expect(document.querySelector('[data-role="second-result"]').textContent).toContain('2온');
+        click('second-result-on');
+        await waitFor(async () => expect(await saved(3)).toMatchObject({ onGreen: true, extraShots: [] }));
+      });
+
+      it('파3: 티샷을 놓친 뒤 세컨샷 실패 → 온그린 성공으로 고치면 써드샷이 지워진다', async () => {
+        await resume(shotRound({ teeClub: 'iron', teeOnGreen: false, secondClub: 'wedge', secondClubSub: '52', remainingDistance: 20, onGreen: null, gir: false, girAuto: false }, 2), 'HOLE 3');
+        await open();
+        click('second-result-miss');
+        await waitFor(async () => expect((await saved(2)).extraShots).toHaveLength(1));
+        click('second-result-on');
+        await waitFor(async () => expect(await saved(2)).toMatchObject({ onGreen: true, extraShots: [] }));
+      });
+
+      it('세컨샷 칩인으로 고쳐도 써드샷 이후는 지워진다', async () => {
+        await resume(shotRound({ ...second, onGreen: null, gir: null }));
+        await open();
+        click('second-result-miss');
+        await waitFor(async () => expect((await saved()).extraShots).toHaveLength(1));
+        const chipIn = [...document.querySelectorAll('[data-role="second-result"] button')].find((b) => b.textContent === '칩인');
+        fireEvent.click(chipIn);
+        // 홀인 연출(2.5초)이 끝나야 저장되고 다음 홀로 넘어간다
+        await waitFor(async () => expect(await saved()).toMatchObject({ onGreen: 'chip-in', extraShots: [] }), { timeout: 5000 });
+      });
+    });
+
     it('직접 누른 페어웨이 O/X 는 지형이 바꾸지 않는다', async () => {
       await resume(shotRound({ ...second, fairway: true }));
       await openTab('field');

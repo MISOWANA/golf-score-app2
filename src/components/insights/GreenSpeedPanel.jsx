@@ -1,6 +1,7 @@
 import ConfidenceBadge from './ConfidenceBadge';
 import InfoNote from '../ui/InfoNote';
 import { speedLabel } from '../../engine/greenSpeed.js';
+import { readSpeedUnit } from '../../engine/greenSpeedUnit.js';
 import { fmtPutt } from '../../engine/units.js';
 
 // 그린 스피드별 퍼팅. 인사이트(PUTTING)와 리포트가 같은 계산(buildGreenSpeedReport)을 받아 같은 숫자를 보여준다.
@@ -93,7 +94,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
           )}
         </div>
         <div data-role="gs-latest" style={{ fontSize: 14, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#8aa0c4' }}>
-          {r.speed != null ? speedLabel(r.speed) : '설정 안 함'}
+          {r.speed != null ? speedLabel(r.speed, readSpeedUnit()) : '설정 안 함'}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 4, paddingBottom: 10, borderBottom: '1px solid #1b2238' }}>

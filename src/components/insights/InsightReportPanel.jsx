@@ -4,6 +4,7 @@ import KoEnTitle from '../ui/KoEnTitle';
 import { FOCUS_METRIC, MAX_GOALS } from '../../engine/goals.js';
 import { PUTT_CAUSE_LABEL, PUTT_CAUSE_ORDER } from '../../engine/puttAnalysis.js';
 import { speedLabel } from '../../engine/greenSpeed.js';
+import { readSpeedUnit } from '../../engine/greenSpeedUnit.js';
 
 // 인사이트 리포트의 조각들. 리포트 자체(buildInsightReport)는 InsightsView 가 한 번 계산해서
 // 아래 조각들에 나눠 준다 — 장(章)마다 알맞은 자리에 놓기 위해서다:
@@ -39,7 +40,7 @@ export function ReportHeader({ rep, past = false }) {
           : `평균 ${rep.stats.avgScore.toFixed(1)}타 · 3퍼트 ${rep.stats.threePutts}회 · 페널티 ${rep.stats.penalties}회 (${rep.stats.rounds}라운드)`}
       </div>
       {speed != null && (
-        <div data-role="report-green-speed" style={{ fontSize: 13, color: '#8ca4bc', marginTop: 8 }}>{past ? '그날' : '오늘'} 그린 · {speedLabel(speed)}</div>
+        <div data-role="report-green-speed" style={{ fontSize: 13, color: '#8ca4bc', marginTop: 8 }}>{past ? '그날' : '오늘'} 그린 · {speedLabel(speed, readSpeedUnit())}</div>
       )}
     </div>
   );

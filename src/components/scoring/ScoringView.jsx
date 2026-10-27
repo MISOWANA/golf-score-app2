@@ -11,6 +11,7 @@ import ClubSuggestions from './ClubSuggestions';
 import { useBagClubs } from './useBagClubs';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import { validSpeed, speedLabel } from '../../engine/greenSpeed.js';
+import { readSpeedUnit } from '../../engine/greenSpeedUnit.js';
 import { applyParEdit } from '../../engine/parEdit.js';
 import { greenMissed, GREEN_MISS_DIRS } from '../../engine/greenMiss.js';
 import { ninesOf, holeNoOf } from '../../engine/nines.js';
@@ -2500,11 +2501,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* PAR3 전용: 핀 위치 — 선택 입력. 고르지 않아도 다음 입력이 열린다 */}
         {hole.par === 3 && (
-          <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+          <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
               <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
             </div>
-            <RadialPicker centerId="center" centerLabel="센터" placeholder="선택 입력" dirs={PIN_DIRS} openWhenEmpty={false}
+            <RadialPicker centerId="center" centerLabel="센터" placeholder="선택 입력" dirs={PIN_DIRS}
               value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
               onChange={v => updateField('pinPosition', v)}
             />
@@ -3071,7 +3072,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           >
             <div style={fLeft}><span style={fIcon}>≋</span><span style={fLbl}>그린 스피드</span></div>
             <span style={{ fontSize:14, fontWeight:700, color: roundSpeed != null ? '#e8edf8' : '#c9a228' }}>
-              {roundSpeed != null ? speedLabel(roundSpeed) : '설정하기'} ›
+              {roundSpeed != null ? speedLabel(roundSpeed, readSpeedUnit()) : '설정하기'} ›
             </span>
           </button>
         )}
@@ -3093,11 +3094,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* 핀 위치 - PAR4+ 전용 (PAR3는 티샷에서 입력). 선택 입력 */}
         {hole.par > 3 && (
-        <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+        <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
             <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
           </div>
-          <RadialPicker centerId="center" centerLabel="센터" placeholder="선택 입력" dirs={PIN_DIRS} openWhenEmpty={false}
+          <RadialPicker centerId="center" centerLabel="센터" placeholder="선택 입력" dirs={PIN_DIRS}
             value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
             onChange={v => updateField('pinPosition', v)}
           />

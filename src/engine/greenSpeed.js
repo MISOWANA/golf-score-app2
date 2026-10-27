@@ -35,11 +35,14 @@ export const metersToStimp = (m) => clampSpeed(m / FT_TO_M);
 
 export const speedBand = (ft) => (validSpeed(ft) ? GREEN_SPEED_BANDS.find((b) => ft >= b.min && ft < b.max) ?? null : null);
 
-// "스팀프 10.5 · 3.2m · 빠름"
-export function speedLabel(ft) {
+// 고른 단위가 앞, 다른 단위는 괄호 — 미터: "3.2m (10.5ft) · 빠름" / 피트(스팀프): "10.5ft (3.2m) · 빠름"
+// 단위는 화면이 정한다 (greenSpeedUnit.readSpeedUnit). 값은 늘 스팀프 피트다.
+export function speedLabel(ft, unit = 'm') {
   const b = speedBand(ft);
   if (!b) return null;
-  return `스팀프 ${ft.toFixed(1)} · ${stimpToMeters(ft).toFixed(1)}m · ${b.label}`;
+  const feet = `${ft.toFixed(1)}ft`;
+  const meters = `${stimpToMeters(ft).toFixed(1)}m`;
+  return `${unit === 'ft' ? `${feet} (${meters})` : `${meters} (${feet})`} · ${b.label}`;
 }
 
 // 구간별 퍼팅 요령. 속도가 느리면 짧게 서고, 빠르면 내리막이 크게 달라진다.

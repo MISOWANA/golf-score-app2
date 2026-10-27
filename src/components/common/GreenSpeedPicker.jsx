@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   GREEN_SPEED_BANDS, STIMP_DEFAULT, STIMP_MIN, STIMP_MAX, STIMP_STEP, clampSpeed, metersToStimp, speedBand, stimpToMeters, validSpeed,
 } from '../../engine/greenSpeed.js';
-import { isYards } from '../../engine/units.js';
+import { readSpeedUnit, saveSpeedUnit } from '../../engine/greenSpeedUnit.js';
 import EmptyValue from '../ui/EmptyValue.jsx';
 import { useSwipeAdjust, SWIPE_STYLE } from '../ui/useSwipeAdjust.js';
 
@@ -10,19 +10,6 @@ import { useSwipeAdjust, SWIPE_STYLE } from '../ui/useSwipeAdjust.js';
 //   · 느낌으로 고르는 네 칸(느림·보통·빠름·매우 빠름) — 스팀프 수치를 몰라도 고를 수 있다
 //   · 가운데 숫자를 옆으로 밀거나 −/+ 로 0.5ft / 0.1m씩 맞춘다 — 코스가 알려 주는 숫자를 그대로 넣는다
 // 값은 항상 스팀프 피트로 저장한다(null = 설정 안 함). 단위 선택은 화면 표시만 바꾼다.
-
-// 처음에는 미터로 보여 준다 (거리 단위 설정이 야드이면 피트). 한 번 고른 단위는 기억한다.
-const UNIT_KEY = 'bb.greenSpeedUnit';
-const readUnit = () => {
-  const fallback = isYards() ? 'ft' : 'm';
-  try {
-    const saved = localStorage.getItem(UNIT_KEY);
-    return saved === 'm' || saved === 'ft' ? saved : fallback;
-  } catch { return fallback; }
-};
-const saveUnit = (u) => {
-  try { localStorage.setItem(UNIT_KEY, u); } catch { /* 기억만 못 할 뿐 */ }
-};
 
 const GOLD = '#c9a228';
 const round1 = (v) => Math.round(v * 10) / 10;
@@ -42,11 +29,11 @@ const stepBtn = {
 };
 
 export default function GreenSpeedPicker({ value, onChange }) {
-  const [unit, setUnit] = useState(readUnit);
+  const [unit, setUnit] = useState(readSpeedUnit);
   const speed = validSpeed(value) ? value : null;
   const band = speedBand(speed);
 
-  const pickUnit = (u) => { setUnit(u); saveUnit(u); };
+  const pickUnit = (u) => { setUnit(u); saveSpeedUnit(u); };
   const step = (dir) => {
     const base = speed ?? STIMP_DEFAULT;
     if (unit === 'ft') onChange(clampSpeed(base + dir * STIMP_STEP));

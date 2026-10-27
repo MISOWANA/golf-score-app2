@@ -1329,6 +1329,57 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     });
   });
 
+  describe('퍼팅 탭 — 핀 위치는 펼쳐서 · 그린 스피드는 고른 단위 먼저', () => {
+    afterEach(() => { try { localStorage.removeItem('bb.greenSpeedUnit'); } catch { /* 지울 수 없어도 테스트는 이어 간다 */ } });
+    const pinOptions = () => [...document.querySelectorAll('[data-role="pin-position"] button')].map((b) => b.textContent.replace(/\s+/g, ''));
+    const speedBar = async () => (await waitFor(() => { const b = document.querySelector('[data-role="green-speed-bar"]'); expect(b).toBeTruthy(); return b; })).textContent;
+    const withSpeed = (over = {}, hole = 0) => { const r = shotRound(over, hole); r.greenSpeed = 9.8; return r; };
+
+    it('파4: 핀 위치를 아직 안 골랐으면 눌러서 펼치지 않아도 선택지가 보이고, 고르면 접혀서 결과만 남는다', async () => {
+      await resume(shotRound({ putts: 2, puttsManual: true }));
+      await openTab('putt');
+      await waitFor(() => expect(document.querySelector('[data-role="pin-position"]')).toBeTruthy());
+      expect(pinOptions()).toEqual(expect.arrayContaining(['선택입력▲', '백레프트', '백', '백라이트', '레프트', '센터', '라이트', '프론트레프트', '프론트', '프론트라이트']));
+      fireEvent.click(screen.getAllByRole('button', { name: '센터' }).find((b) => b.closest('[data-role="pin-position"]')));
+      await waitFor(async () => expect((await saved()).pinPosition).toBe('center'));
+      await waitFor(() => expect(pinOptions()).toEqual(['센터▼']));
+    });
+
+    it('이미 고른 핀 위치는 접혀서 값만 보이고, 눌러서 다시 펼 수 있다', async () => {
+      await resume(shotRound({ putts: 2, puttsManual: true, pinPosition: 'back' }));
+      await openTab('putt');
+      await waitFor(() => expect(pinOptions()).toEqual(['백▼']));
+      fireEvent.click(document.querySelector('[data-role="pin-position"] button'));
+      await waitFor(() => expect(pinOptions()).toContain('프론트레프트'));
+    });
+
+    it('파3: 티샷 탭의 핀 위치도 펼쳐져 있다', async () => {
+      await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), 'HOLE 3');
+      await openTab('tee');
+      await waitFor(() => expect(document.querySelector('[data-role="pin-position"]')).toBeTruthy());
+      expect(pinOptions()).toEqual(expect.arrayContaining(['선택입력▲', '센터', '프론트']));
+    });
+
+    it('그린 스피드는 미터가 앞, 피트는 괄호 — "3.0m (9.8ft) · 보통"', async () => {
+      await resume(withSpeed({ putts: 2, puttsManual: true }));
+      await openTab('putt');
+      expect(await speedBar()).toContain('3.0m (9.8ft) · 보통');
+    });
+
+    it('피트(스팀프)로 고른 사람에게는 반대 — "9.8ft (3.0m) · 보통"', async () => {
+      localStorage.setItem('bb.greenSpeedUnit', 'ft');
+      await resume(withSpeed({ putts: 2, puttsManual: true }));
+      await openTab('putt');
+      expect(await speedBar()).toContain('9.8ft (3.0m) · 보통');
+    });
+
+    it('그린 스피드를 아직 안 정했으면 "설정하기"', async () => {
+      await resume(shotRound({ putts: 2, puttsManual: true }));
+      await openTab('putt');
+      expect(await speedBar()).toContain('설정하기');
+    });
+  });
+
   describe('온그린 랜딩 방향은 선택', () => {
     it('방향을 고르지 않아도 퍼팅 입력이 열려 있다', async () => {
       await resume(shotRound({ putts: 2, puttsManual: true }));

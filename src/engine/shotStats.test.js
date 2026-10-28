@@ -31,6 +31,18 @@ describe('퍼팅 통계: 라이', () => {
     expect(t.brk.slice).toBe(2);
   });
 
+  it.each(['s-lr', 's-rl', 'uphill-s-lr', 'downhill-s-rl'])('S자(복합) 라이 %s 는 훅·슬라이스·직선에 섞지 않고 S자 줄로 센다', (lie) => {
+    const stats = buildPuttingStats([round(lie)]);
+    const t = totals(stats);
+    expect(t.brk).toMatchObject({ scurve: 2, straight: 0, slice: 0, hook: 0 });
+    expect(t.slope[lie.startsWith('uphill') ? 'uphill' : lie.startsWith('downhill') ? 'downhill' : 'flat']).toBe(2);   // 경사 통계에는 그대로 센다
+    expect(stats.byBreak.find((x) => x.id === 'scurve').label).toBe('S자');
+  });
+
+  it('S자 라이를 쓴 적이 없으면 예전과 같은 세 줄만 나온다', () => {
+    expect(buildPuttingStats([round('flat')]).byBreak.map((x) => x.id)).toEqual(['slice', 'straight', 'hook']);
+  });
+
   it('예전 기록의 배열 값(첫 원소)도 같게 읽는다', () => {
     const t = totals(buildPuttingStats([round(['downhill-break-right'])]));
     expect(t.slope.downhill).toBe(2);

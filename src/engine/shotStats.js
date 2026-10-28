@@ -176,25 +176,27 @@ const PUTT_DISTANCE_BUCKETS = [
 
 // 퍼트 라이 id('flat' · 'uphill-break-left' …). 스코어 입력은 문자열로 저장하고, 고르지 않았을 때의 기본값은
 // 빈 배열 []이다 — 예전 기록은 [id] 배열도 있다. 고르지 않은 것은 null(= 평지로 세지 않는다).
-const puttLieId = (lie) => {
+export const puttLieId = (lie) => {
   const id = Array.isArray(lie) ? lie[0] : lie;
   return typeof id === 'string' && id !== '' ? id : null;
 };
 
-function decomposePuttLie(lieId) {
+// 복합(S자) 라이는 's-lr' · 's-rl' 로 끝난다('uphill-s-lr' …) — 훅도 슬라이스도 아니라서 따로 센다.
+export function decomposePuttLie(lieId) {
   if (lieId === 'flat') return { slope: 'flat', brk: 'straight' };
   const slope = lieId.includes('uphill') ? 'uphill' : lieId.includes('downhill') ? 'downhill' : 'flat';
-  const brk = lieId.includes('break-left') ? 'slice' : lieId.includes('break-right') ? 'hook' : 'straight';
+  const brk = /(^|-)s-(lr|rl)$/.test(lieId) ? 'scurve'
+    : lieId.includes('break-left') ? 'slice' : lieId.includes('break-right') ? 'hook' : 'straight';
   return { slope, brk };
 }
 
 const SLOPE_LABEL = { uphill: '오르막', flat: '평지', downhill: '내리막' };
-const BREAK_LABEL = { slice: '슬라이스', straight: '직선', hook: '훅' };
+const BREAK_LABEL = { slice: '슬라이스', straight: '직선', hook: '훅', scurve: 'S자' };
 
 export function buildPuttingStats(rounds) {
   const byDistance = PUTT_DISTANCE_BUCKETS.map(b => ({ ...b, made: 0, total: 0 }));
   const bySlope = { uphill: { made: 0, total: 0 }, flat: { made: 0, total: 0 }, downhill: { made: 0, total: 0 } };
-  const byBreak = { slice: { made: 0, total: 0 }, straight: { made: 0, total: 0 }, hook: { made: 0, total: 0 } };
+  const byBreak = { slice: { made: 0, total: 0 }, straight: { made: 0, total: 0 }, hook: { made: 0, total: 0 }, scurve: { made: 0, total: 0 } };
   const ratioSamples = []; // §3-4 롱퍼트 잔여거리 비율 (PUTT1 5m+)
 
   rounds.forEach(r => {
@@ -227,7 +229,8 @@ export function buildPuttingStats(rounds) {
   return {
     byDistance: byDistance.map(b => ({ id: b.id, label: b.label, made: b.made, total: b.total, ratePct: rate(b), tier: rateTier(b.made, b.total) })),
     bySlope: Object.entries(bySlope).map(([k, v]) => ({ id: k, label: SLOPE_LABEL[k], made: v.made, total: v.total, ratePct: rate(v), tier: rateTier(v.made, v.total) })),
-    byBreak: Object.entries(byBreak).map(([k, v]) => ({ id: k, label: BREAK_LABEL[k], made: v.made, total: v.total, ratePct: rate(v), tier: rateTier(v.made, v.total) })),
+    // S자(복합) 라이는 쓴 사람이 있을 때만 줄을 더한다 — 없으면 예전과 같은 세 줄
+    byBreak: Object.entries(byBreak).filter(([k, v]) => k !== 'scurve' || v.total > 0).map(([k, v]) => ({ id: k, label: BREAK_LABEL[k], made: v.made, total: v.total, ratePct: rate(v), tier: rateTier(v.made, v.total) })),
     longPuttRatio: ratioSamples.length > 0 ? median(ratioSamples) : null,
     longPuttN: ratioSamples.length,
   };

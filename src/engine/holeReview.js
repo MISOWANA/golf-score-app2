@@ -9,6 +9,7 @@ import { haversine, shotDistances, pinDistances, fieldShotCount, isHoledOut, san
 import { penaltyAt, penaltyCount, penaltyResultText, shotTitle } from './penalties.js';
 import { analyzePutts } from './puttAnalysis.js';
 import { offGreenShots } from './offGreen.js';
+import { puttLieText } from './puttMiss.js';
 
 const CLUB_LABEL = { driver: 'DRIVER', wood: 'WOOD', hybrid: 'HYBRID', iron: 'IRON', wedge: 'WEDGE' };
 
@@ -153,7 +154,7 @@ export function buildHoleReview(hole, player, holeIdx) {
     no: i + 1,
     distance: p?.distance ?? null,
     aimDistance: p?.aimDistance ?? null,
-    lie: lieLabel(p?.lie),
+    lie: puttLieText(p?.lie) || null,        // 퍼트 라이는 'break-left' 같은 id 라서 샷 라이와 이름표가 다르다
     holein: p?.holein ?? null,
     chips: offGreen.filter((o) => o.after === i),
   }));

@@ -1587,6 +1587,276 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       expect((await saved()).offGreen[0].remainingDistance).toBe(12);                      // 지형을 풀어도 거리는 그대로
     });
   });
+
+  describe('퍼팅 카드 — 라이 · 미스 위치 판 · 다음 퍼트', () => {
+    const one = (over = {}) => shotRound({ putts: 1, puttsManual: true, puttDetails: [{ distance: 4, aimDistance: 4, lie: [], holein: null, ...over }] });
+    const board = () => document.querySelector('[data-role="putt-board"]');
+    const key = (k, n = 1) => { for (let i = 0; i < n; i++) fireEvent.keyDown(board(), { key: k }); };
+    const click = (sel) => fireEvent.click(document.querySelector(sel));
+    const openPutt = async (round) => {
+      await resume(round);
+      await openTab('putt');
+      return waitFor(() => { const b = board(); expect(b).toBeTruthy(); return b; });
+    };
+
+    const nineIds = ['uphill-break-left', 'uphill', 'uphill-break-right', 'break-left', 'flat', 'break-right', 'downhill-break-left', 'downhill', 'downhill-break-right'];
+    const compoundIds = ['uphill-s-lr', 'uphill-s-rl', 's-lr', 's-rl', 'downhill-s-lr', 'downhill-s-rl'];
+    const lieBtn = (id) => document.querySelector(`[data-role="putt-lie-${id}"]`);
+
+    it('라이 기본 9개는 눌러 펼치지 않아도 한눈에 보이고, 복합 라이 6개는 접혀 있다', async () => {
+      await openPutt(one());
+      for (const id of nineIds) expect(lieBtn(id)).toBeTruthy();
+      for (const id of compoundIds) expect(lieBtn(id)).toBeNull();
+      const toggle = document.querySelector('[data-role="putt-lie-compound-toggle"]');
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(toggle.textContent).toContain('복합 라이 (S자)');
+    });
+
+    it('라이는 칸 하나를 눌러 예전과 같은 id 로 저장되고, 같은 칸을 다시 누르면 비운다', async () => {
+      await openPutt(one());
+      click('[data-role="putt-lie-break-right"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].lie).toBe('break-right'));
+      click('[data-role="putt-lie-uphill-break-left"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].lie).toBe('uphill-break-left'));
+      expect(lieBtn('uphill-break-left').getAttribute('aria-pressed')).toBe('true');
+      expect(lieBtn('break-right').getAttribute('aria-pressed')).toBe('false');
+      click('[data-role="putt-lie-flat"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].lie).toBe('flat'));
+      click('[data-role="putt-lie-flat"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].lie).toEqual([]));
+    });
+
+    it('복합 라이는 펼쳐서 6개 중에 고르고, 고른 뒤에는 접어도 이름이 헤더에 남는다', async () => {
+      await openPutt(one());
+      click('[data-role="putt-lie-compound-toggle"]');
+      for (const id of compoundIds) expect(lieBtn(id)).toBeTruthy();
+      click('[data-role="putt-lie-downhill-s-rl"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].lie).toBe('downhill-s-rl'));
+      expect(lieBtn('downhill-s-rl').getAttribute('aria-pressed')).toBe('true');
+      for (const id of nineIds) expect(lieBtn(id).getAttribute('aria-pressed')).toBe('false');   // 기본 9개에는 선택이 없다
+      click('[data-role="putt-lie-compound-toggle"]');                                        // 접으면
+      expect(lieBtn('downhill-s-rl')).toBeNull();
+      expect(document.querySelector('[data-role="putt-lie-compound-toggle"]').textContent).toContain('내리막 우→좌 S');
+    });
+
+    it('복합 라이를 골라 둔 퍼트는 처음부터 펼쳐져 있다', async () => {
+      await openPutt(one({ lie: 'uphill-s-lr' }));
+      expect(lieBtn('uphill-s-lr').getAttribute('aria-pressed')).toBe('true');
+      expect(document.querySelector('[data-role="putt-lie-compound-toggle"]').getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('복합(S자)도 하이/로우사이드를 계산한다 — 홀 앞쪽 휨 기준 (좌→우 S 는 끝이 훅이라 왼쪽이 로우사이드)', async () => {
+      await openPutt(one({ lie: 's-lr' }));
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ across: 'left', along: 'short', passSide: 'low', restSide: 'low' }));
+      expect(document.querySelector('[data-role="putt-result-text"]').textContent).toBe('숏 · 로우사이드');
+      expect(document.querySelector('[data-role="putt-side-left"]').disabled).toBe(false);
+      expect(document.querySelector('[data-role="putt-side-right"]').disabled).toBe(false);
+      expect(document.querySelector('[data-role="putt-scurve-note"]').textContent).toContain('우→좌');
+    });
+
+    it('우→좌 S 는 반대 — 끝이 슬라이스라 왼쪽이 하이사이드, 사이드 버튼으로 직접 바꿀 수 있다', async () => {
+      await openPutt(one({ lie: 'downhill-s-rl' }));
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ across: 'left', passSide: 'high', restSide: 'high' }));
+      click('[data-role="putt-side-right"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ passSide: 'low', passOverride: 'low' }));
+    });
+
+    it('S자가 아닌 라이에는 S자 안내 문구가 없다', async () => {
+      await openPutt(one({ lie: 'break-right' }));
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeTruthy());
+      expect(document.querySelector('[data-role="putt-scurve-note"]')).toBeNull();
+    });
+
+    it('조준 거리 칸은 없고, 거리를 바꾸면 조준 거리도 같은 값으로 저장된다', async () => {
+      await openPutt(one());
+      expect(screen.queryByText('조준 거리')).toBeNull();
+      const slider = document.querySelector('[data-role="dist-slider"]');
+      fireEvent.change(slider, { target: { value: '7.5' } });
+      await waitFor(async () => expect((await saved()).puttDetails[0]).toMatchObject({ distance: 7.5, aimDistance: 7.5 }));
+    });
+
+    it('판에서 멈춘 곳을 찍으면 미스 방향과 남은 거리가 정해져 저장된다 (키보드: 방향키 10cm)', async () => {
+      await openPutt(one({ lie: 'break-right' }));
+      expect(document.querySelector('[data-role="putt-leave"]').textContent).toBe('—');
+      key('ArrowLeft', 4);                       // 시작 위치 (0, −0.5)에서 왼쪽으로 40cm
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ x: -0.4, y: -0.5, across: 'left', along: 'short', passSide: 'low', restSide: 'low' }));
+      const m = (await saved()).puttDetails[0].miss;
+      expect(m.leave).toBe(0.6);
+      expect(document.querySelector('[data-role="putt-result-text"]').textContent).toBe('숏 · 로우사이드');
+      expect(document.querySelector('[data-role="putt-leave"]').textContent).toBe('0.6m');
+    });
+
+    it('훅 · 슬라이스라면 반대쪽 사이드 버튼으로 "홀 옆을 지난 쪽"을 직접 바꾼다', async () => {
+      await openPutt(one({ lie: 'break-right' }));
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss?.passSide).toBe('low'));
+      click('[data-role="putt-side-right"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ passSide: 'high', passOverride: 'high', restSide: 'low' }));
+      click('[data-role="putt-side-left"]');                                              // 추천(멈춘 자리 기준)으로 되돌린다
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ passSide: 'low', passOverride: null }));
+    });
+
+    it('라이를 안 골라도 위치는 찍히고 사이드 없이 좌우만 말한다', async () => {
+      await openPutt(one());
+      key('ArrowRight', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ across: 'right', passSide: null }));
+      expect(document.querySelector('[data-role="putt-result-text"]').textContent).toContain('숏 · 우');
+    });
+
+    it('라이를 고르면 찍어 둔 위치의 사이드가 다시 계산된다', async () => {
+      await openPutt(one());
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeTruthy());
+      click('[data-role="putt-lie-break-left"]');                                         // 슬라이스는 왼쪽이 하이사이드
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toMatchObject({ passSide: 'high' }));
+    });
+
+    it('"PUTT 2 →" 는 이 퍼트를 실패로 두고, 멈춘 곳에서 이어지는 거리·방향으로 다음 퍼트를 연다', async () => {
+      await openPutt(one({ lie: 'break-right' }));
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss?.leave).toBe(0.6));
+      click('[data-role="putt-next"]');
+      await waitFor(async () => expect((await saved()).puttDetails).toHaveLength(2));
+      const [first, next] = (await saved()).puttDetails;
+      expect(first.holein).toBe('fail');
+      expect(next).toMatchObject({ distance: 0.6, aimDistance: 0.6, distanceAuto: true });
+      expect(next.holein ?? null).toBeNull();
+      expect(next.frame.ux ** 2 + next.frame.uy ** 2).toBeCloseTo(1, 5);
+      expect((await saved()).putts).toBe(2);
+      expect(await screen.findByText('직전 퍼트가 멈춘 곳에서 자동으로 넣었어요 · 다르면 고쳐 주세요')).toBeTruthy();   // PUTT 2 가 열려 있다
+      expect(document.querySelector('[data-role="putt-summary"]').textContent).toContain('4.0m · 훅 · 숏 · 로우사이드 → 0.6m');   // PUTT 1 은 한 줄 요약으로 접힌다
+    });
+
+    it('판에 찍지 않아도 "PUTT 2 →" 는 예전 "실패"처럼 동작한다 (다음 퍼트 거리는 비어 있다)', async () => {
+      await openPutt(one());
+      click('[data-role="putt-next"]');
+      await waitFor(async () => expect((await saved()).puttDetails).toHaveLength(2));
+      const [first, next] = (await saved()).puttDetails;
+      expect(first.holein).toBe('fail');
+      expect(first.miss).toBeUndefined();
+      expect(next.distance ?? null).toBeNull();
+      expect(next.distanceAuto).toBeUndefined();
+    });
+
+    it('다음 퍼트 거리를 직접 고치면 자동 표시가 사라진다', async () => {
+      await openPutt(one());
+      key('ArrowUp', 6);                                                                  // (0, +0.1) → 홀 너머 10cm
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeTruthy());
+      click('[data-role="putt-next"]');
+      await waitFor(async () => expect((await saved()).puttDetails).toHaveLength(2));
+      fireEvent.change(document.querySelector('[data-role="dist-slider"]'), { target: { value: '2' } });
+      await waitFor(async () => expect((await saved()).puttDetails[1]).toMatchObject({ distance: 2, aimDistance: 2 }));
+      expect((await saved()).puttDetails[1].distanceAuto).toBeUndefined();
+      expect(screen.queryByText(/자동으로 넣었어요/)).toBeNull();
+    });
+
+    it('앞 퍼트의 찍은 위치를 고치면, 직접 고치지 않은 다음 퍼트의 거리도 따라간다', async () => {
+      await openPutt(one());
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss?.leave).toBe(0.6));
+      click('[data-role="putt-next"]');
+      await waitFor(async () => expect((await saved()).puttDetails[1]?.distance).toBe(0.6));
+      fireEvent.click((await screen.findByText('PUTT 1')).closest('button'));              // 첫 퍼트를 다시 펼쳐 위치를 옮긴다
+      await waitFor(() => expect(board()).toBeTruthy());
+      key('ArrowLeft', 6);                                                                // 왼쪽으로 60cm 더 → 위치 (−1.0, −0.5)
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss?.leave).toBe(1.1));
+      expect((await saved()).puttDetails[1]).toMatchObject({ distance: 1.1, distanceAuto: true });
+    });
+
+    it('찍은 위치 지우기 — 자동으로 넣은 다음 퍼트 거리도 함께 걷어 낸다', async () => {
+      await openPutt(one());
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeTruthy());
+      click('[data-role="putt-next"]');
+      await waitFor(async () => expect((await saved()).puttDetails[1]?.distanceAuto).toBe(true));
+      fireEvent.click((await screen.findByText('PUTT 1')).closest('button'));
+      await waitFor(() => expect(document.querySelector('[data-role="putt-clear-stop"]')).toBeTruthy());
+      click('[data-role="putt-clear-stop"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeUndefined());
+      const next = (await saved()).puttDetails[1];
+      expect(next.distance ?? null).toBeNull();
+      expect(next.distanceAuto).toBeUndefined();
+      expect(next.frame).toBeUndefined();
+    });
+
+    it('되돌리기 — 이 퍼트를 없애고 앞 퍼트를 다시 입력 중으로 연다 (찍은 위치는 남는다)', async () => {
+      await openPutt(one({ lie: 'break-right' }));
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeTruthy());
+      click('[data-role="putt-next"]');
+      await waitFor(async () => expect((await saved()).putts).toBe(2));
+      click('[data-role="putt-undo"]');
+      await waitFor(async () => expect((await saved()).putts).toBe(1));
+      const d = (await saved()).puttDetails;
+      expect(d).toHaveLength(1);
+      expect(d[0].holein).toBeNull();
+      expect(d[0].miss).toMatchObject({ across: 'left' });
+      expect(document.querySelector('[data-role="putt-undo"]')).toBeNull();               // 첫 퍼트에는 되돌리기가 없다
+    });
+
+    it('판에서 홀 버튼을 누르면 홀인 성공으로 기록되고, 잘못 찍어 둔 위치는 지워진다', async () => {
+      await openPutt(one());
+      key('ArrowLeft', 2);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss).toBeTruthy());
+      click('[data-role="putt-board-hole"]');
+      await waitFor(async () => {
+        const d = (await saved()).puttDetails;
+        expect(d[0].holein).toBe('success');
+      }, { timeout: 6000 });
+      expect((await saved()).puttDetails[0].miss).toBeUndefined();
+      expect((await saved()).putts).toBe(1);
+    });
+
+    it('남은 거리가 1m 안이면 "탭인 성공"으로 마지막 두 퍼트를 한 번에 기록한다', async () => {
+      await openPutt(one({ lie: 'break-right' }));
+      expect(document.querySelector('[data-role="putt-primary"]').textContent).toContain('홀인 성공');
+      key('ArrowLeft', 4);
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss?.leave).toBe(0.6));
+      const primary = document.querySelector('[data-role="putt-primary"]');
+      expect(primary.textContent).toContain('PUTT 2 탭인 성공');
+      expect(primary.disabled).toBe(false);
+      fireEvent.click(primary);
+      await waitFor(async () => {
+        const s = await saved();
+        expect(s.puttDetails).toHaveLength(2);
+        expect(s.puttDetails[1].holein).toBe('success');
+      }, { timeout: 6000 });
+      const s = await saved();
+      expect(s.putts).toBe(2);
+      expect(s.puttDetails[0].holein).toBe('fail');
+      expect(s.puttDetails[1]).toMatchObject({ distance: 0.6, aimDistance: 0.6, distanceAuto: true, lie: 'flat', tapIn: true });
+    });
+
+    it('남은 거리가 1m 를 넘으면 탭인 버튼은 눌리지 않는다', async () => {
+      await openPutt(one());
+      key('ArrowLeft', 12);                                                               // (−1.2, −0.5) → 1.3m
+      await waitFor(async () => expect((await saved()).puttDetails[0].miss?.leave).toBe(1.3));
+      const primary = document.querySelector('[data-role="putt-primary"]');
+      expect(primary.disabled).toBe(true);
+      expect(primary.textContent).toContain('1m 이하일 때만');
+    });
+
+    it('그린 밖 버튼은 그대로 있어 칩 카드로 이어진다', async () => {
+      await openPutt(one());
+      click('[data-role="off-green"]');
+      await waitFor(async () => expect((await saved()).puttDetails[0].holein).toBe('offgreen'));
+      await waitFor(() => expect(document.querySelector('[data-role="off-green-card"]')).toBeTruthy());
+    });
+
+    it('접힌 퍼트에는 거리 · 라이 · 미스 방향 · 남은 거리가 한 줄로 보인다', async () => {
+      const miss = { x: -0.4, y: 0.6, gx: -0.4, gy: 0.6, leave: 0.7, tol: 0.15, across: 'left', along: 'long', passSide: 'low', restSide: 'low', passOverride: null };
+      await resume(shotRound({
+        putts: 2, puttsManual: true,
+        puttDetails: [{ distance: 6, aimDistance: 6, lie: 'downhill-break-right', holein: 'fail', miss }, { distance: 0.7, aimDistance: 0.7, distanceAuto: true, lie: [], holein: null }],
+      }));
+      await openTab('putt');
+      const row = await waitFor(() => { const r = document.querySelector('[data-role="putt-summary"]'); expect(r).toBeTruthy(); return r; });
+      expect(row.textContent).toBe('6.0m · 내리막 훅 · 롱 · 로우사이드 → 0.7m');
+    });
+  });
 });
 
 describe('삭제 되돌리기 (휴지통)', () => {

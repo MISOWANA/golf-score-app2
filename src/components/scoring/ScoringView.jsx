@@ -7,6 +7,7 @@ import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGree
 import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
 import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, emptyOffGreenShot, OFF_GREEN_CLUBS, OFF_GREEN_START_M, OFF_GREEN_MAX_M } from '../../engine/offGreen.js';
 import { PUTT_MIN_M, PUTT_MAX_M, PUTT_STEP_M, PUTT_START_M, newPuttDetail, sanitizeFirstPutt } from '../../engine/firstPutt.js';
+import { PUTT_LIES, COMPOUND_LIES, DEFAULT_FRAME, TAP_IN_MAX_M, lieIdOf, lieShape, isCompoundLie, puttLieText, refreshMiss, nextFrame, puttRowText } from '../../engine/puttMiss.js';
 import { CLUB_SUBS, recommendClubs, clubLabelOf, fitText, reachText } from '../../engine/clubRecommend.js';
 import ClubSuggestions from './ClubSuggestions';
 import { useBagClubs } from './useBagClubs';
@@ -17,12 +18,13 @@ import { applyParEdit } from '../../engine/parEdit.js';
 import { greenMissed, GREEN_MISS_DIRS } from '../../engine/greenMiss.js';
 import { ninesOf, holeNoOf } from '../../engine/nines.js';
 import { SURFACES, shotInfoGaps, fairwayFromSurface, surfaceLabel, surfaceIdOf } from '../../engine/shotInfo.js';
-import { unitLabel, fmtShot } from '../../engine/units.js';
+import { unitLabel, fmtShot, fmtPutt } from '../../engine/units.js';
 import { playedNineOf } from '../../engine/nineConversion.js';
 import LandingWheel from './LandingWheel';
 import StickyTabs from '../ui/StickyTabs';
 import GoalLine from '../goals/GoalLine';
 import SwipeDistance from '../ui/SwipeDistance.jsx';
+import PuttBoard from './PuttBoard.jsx';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -467,6 +469,43 @@ const HookIcon = () => (
   </svg>
 );
 
+// 퍼팅 라이 — 기본 9개(경사 × 슬라이스·훅)를 늘 펼쳐 두고, 자주 쓰지 않는 복합(S자) 6개는 접어 둔다. 한 번 눌러 고르고, 같은 칸을 다시 누르면 비운다.
+// 복합 라이를 골라 둔 퍼트는 접힌 헤더에 그 이름이 보이고 처음부터 펼쳐진다.
+function PuttLieGrid({ value, onPick }) {
+  const id = lieIdOf(value);
+  const compound = isCompoundLie(value);
+  const [openState, setOpenState] = useState(null);   // null = 복합 라이를 골라 뒀을 때만 펼침
+  const open = openState ?? compound;
+  const chip = (x, extra) => {
+    const on = id === x.id;
+    return (
+      <button key={x.id} type="button" data-role={`putt-lie-${x.id}`} aria-pressed={on}
+        style={{ ...fChip, textAlign:'center', padding:'9px 4px', minHeight:52, fontSize:14, lineHeight:1.25, borderRadius:8, minWidth:0, whiteSpace:'pre-line', display:'flex', alignItems:'center', justifyContent:'center', gap:5, ...(on ? fChipOn : {}) }}
+        onClick={() => onPick(on ? null : x.id)}>
+        {extra}{x.label}
+      </button>
+    );
+  };
+  return (
+    <div data-role="putt-lie">
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6 }}>
+        {PUTT_LIES.map((x) => chip(x, x.id === 'break-left' ? <SliceIcon /> : x.id === 'break-right' ? <HookIcon /> : null))}
+      </div>
+      <button type="button" data-role="putt-lie-compound-toggle" aria-expanded={open}
+        style={{ ...fChip, display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, width:'100%', marginTop:8, padding:'11px 12px', minHeight:44, fontSize:14, borderRadius:8, ...(compound ? fChipOn : {}) }}
+        onClick={() => setOpenState(!open)}>
+        <span>복합 라이 (S자){compound && !open ? ` · ${puttLieText(value)}` : ''}</span>
+        <span aria-hidden="true">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div data-role="putt-lie-compound" style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:6, marginTop:6 }}>
+          {COMPOUND_LIES.map((x) => chip(x, null))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // alwaysOpen: 접기 버튼 없이 선택지만 보인다 (바깥 섹션이 접기를 맡을 때).
 // openWhenEmpty: false면 선택이 없어도 접힌 채 시작한다 (건너뛸 수 있는 선택 입력).
 function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, placeholder, alwaysOpen, openWhenEmpty = true }) {
@@ -572,17 +611,6 @@ const PIN_DIRS = [
   { id:'front-left',   label:'프론트\n레프트', pos:'dl'  },
   { id:'front-right',  label:'프론트\n라이트', pos:'dr'  },
 ];
-const PUTT_LIE_DIRS = [
-  { id:'uphill',             label:'오르막',          pos:'up'    },
-  { id:'break-left',         label:'슬라이스',        pos:'left',  icon: <SliceIcon /> },
-  { id:'downhill',           label:'내리막',          pos:'down'  },
-  { id:'break-right',        label:'훅',              pos:'right', icon: <HookIcon /> },
-  { id:'uphill-break-left',  label:'오르막\n슬라이스', pos:'ul'   },
-  { id:'uphill-break-right', label:'오르막\n훅',      pos:'ur'    },
-  { id:'downhill-break-left',label:'내리막\n슬라이스', pos:'dl'   },
-  { id:'downhill-break-right',label:'내리막\n훅',     pos:'dr'    },
-];
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup, goals = [], firstPutt = null }) {
@@ -1787,8 +1815,114 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     );
   };
 
-  const updatePutt = (idx, key, val) =>
-    updateField('puttDetails', puttDetails.map((p, i) => i === idx ? { ...p, [key]: val } : p));
+  // ─── 퍼트 입력: 라이 · 거리 · 미스 위치 판 · 다음 퍼트 ───────────────────────────────────
+  // 퍼트 한 번은 puttDetails[i] 에 쌓인다 (모양은 engine/puttMiss.js 머리말). 판에서 멈춘 곳을 찍으면 다음 퍼트의
+  // 거리와 판 방향이 거기서 이어지고, 판에 찍지 않아도 예전처럼 거리 · 라이 · 결과만으로 기록할 수 있다.
+  const omitKeys = (obj, keys) => Object.fromEntries(Object.entries(obj).filter(([k]) => !keys.includes(k)));
+  const mapPutt = (idx, fn) => puttDetails.map((p, i) => (i === idx ? fn(p) : p));
+  const puttFrame = (idx) => puttDetails[idx]?.frame ?? DEFAULT_FRAME;
+  const prevStopsOf = (idx) => puttDetails.slice(0, idx).map((p, k) => (p.miss ? { n: k + 1, gx: p.miss.gx, gy: p.miss.gy } : null)).filter(Boolean);
+
+  // 직전 퍼트가 멈춘 곳으로 다음 퍼트의 거리와 판 방향을 맞춘다. 다음 퍼트에 이미 판을 찍었으면(방향이 달라지면 기록이 어긋난다)
+  // 손대지 않고, 사용자가 직접 입력한 거리는 방향만 맞춘다.
+  const chainNextPutt = (details, idx) => {
+    const nxt = details[idx + 1];
+    const m = details[idx]?.miss;
+    if (!nxt || nxt.miss) return details;
+    const auto = nxt.distance == null || nxt.distanceAuto === true;
+    const patched = m
+      ? { ...nxt, frame: nextFrame({ x: m.gx, y: m.gy }), ...(auto ? { distance: m.leave, aimDistance: m.leave, distanceAuto: true } : {}) }
+      : (nxt.distanceAuto === true ? { ...omitKeys(nxt, ['frame', 'distanceAuto']), distance: null, aimDistance: null } : omitKeys(nxt, ['frame']));
+    return details.map((p, i) => (i === idx + 1 ? patched : p));
+  };
+
+  const placeMiss = (idx, miss) => {
+    const details = mapPutt(idx, (p) => (miss ? { ...p, miss } : omitKeys(p, ['miss'])));
+    updateField('puttDetails', chainNextPutt(details, idx));
+  };
+
+  const setPuttDistance = (idx, v) =>
+    updateField('puttDetails', mapPutt(idx, (p) => ({ ...omitKeys(p, ['distanceAuto']), distance: v, aimDistance: v })));
+
+  // 라이는 칸 하나를 눌러 고른다 (기본 9개 + 복합 6개). 찍어 둔 위치가 있으면 새 라이로 사이드를 다시 계산한다. null 이면 비운다.
+  const pickPuttLie = (idx, lieId) =>
+    updateField('puttDetails', mapPutt(idx, (p) => ({
+      ...p, lie: lieId ?? [],
+      ...(p.miss ? { miss: refreshMiss(p.miss, { brk: lieShape(lieId), frame: puttFrame(idx) }) } : {}),
+    })));
+
+  // 퍼트가 들어가 홀이 끝난다 — 퍼팅 수 = puttsUsed. 점수 이름 안내 창을 거쳐 다음 홀(마지막 홀이면 라운드 끝)로 간다.
+  const finishHoleIn = (puttsUsed, newDetails) => {
+    if (holeInModalPendingRef.current) return;
+    holeInModalPendingRef.current = true;
+    // 직접 고친 스코어가 있으면 그 값이 우선 (퍼팅 수만 기록하고 타수는 유지)
+    const manual = !!playerScore.strokesManual;
+    // 홀인한 퍼트 뒤에는 칩이 있을 수 없다
+    const keptOffGreen = offGreenShots({ putts: puttsUsed, puttDetails: newDetails, offGreen: playerScore.offGreen });
+    const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes({ ...playerScore, putts: puttsUsed, puttDetails: newDetails, offGreen: keptOffGreen }, hole.par);
+    const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, offGreen: keptOffGreen, touched: true, strokesManual: manual };
+    holeInCbRef.current = () => {
+      if (isLastHole) {
+        const u = { ...round }; u.holes = [...round.holes];
+        const lh = u.holes[holeIdx]; const us = {};
+        round.players.forEach(p => {
+          const s = p === activePlayer ? freshScore : lh.scores[p];
+          us[p] = finalizeScore(s, lh.par);
+        });
+        u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
+      } else {
+        confirmAndGoToHole(holeIdx + 1, freshScore);
+      }
+    };
+    openHoleInModal({
+      isLastHole,
+      scoreName: getScoreName(freshStrokes, hole.par),
+      strokes: freshStrokes,
+      putts: puttsUsed,
+      onCount: freshStrokes - puttsUsed - keptOffGreen.length,
+    });
+  };
+
+  // 이 퍼트가 들어갔다 (홀인 성공). 판에 찍어 둔 위치가 있었다면 잘못 찍은 것이므로 지운다.
+  const holeOutAt = (puttIdx) => {
+    const details = Array.from({ length: puttIdx + 1 }, (_, i) =>
+      i === puttIdx ? { ...omitKeys(puttDetails[i], ['miss']), holein: 'success' } : (puttDetails[i] || newPuttDetail(i, firstPutt)));
+    finishHoleIn(puttIdx + 1, details);
+  };
+
+  // 탭인 — 판에 찍은 자리가 1m 안이면 이 퍼트는 실패, 다음 퍼트는 거기서 평지 직선으로 넣은 것으로 한 번에 기록한다
+  const tapInAt = (puttIdx) => {
+    const miss = puttDetails[puttIdx]?.miss;
+    if (!miss || miss.leave > TAP_IN_MAX_M) return;
+    const tap = { distance: miss.leave, aimDistance: miss.leave, distanceAuto: true, lie: 'flat', frame: nextFrame({ x: miss.gx, y: miss.gy }), holein: 'success', tapIn: true };
+    const details = Array.from({ length: puttIdx + 2 }, (_, i) =>
+      i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : i === puttIdx + 1 ? tap : (puttDetails[i] || newPuttDetail(i, firstPutt)));
+    finishHoleIn(puttIdx + 2, details);
+  };
+
+  // 이 퍼트는 들어가지 않았다 → 다음 퍼트로. 멈춘 곳을 찍어 뒀다면 다음 퍼트 거리와 판 방향이 거기서 이어진다.
+  const goNextPutt = (puttIdx) => {
+    if (puttDetails[puttIdx]?.holein === 'offgreen') {            // 그린 밖으로 나간 퍼트는 칩 카드에서 이어 간다
+      setExpandedPutt(Math.min(puttIdx + 1, puttDetails.length - 1));
+      scrollDown();
+      return;
+    }
+    const newPutts = Math.max(playerScore.putts || 0, puttIdx + 2);
+    const base = Array.from({ length: newPutts }, (_, i) =>
+      i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : (puttDetails[i] || newPuttDetail(i, firstPutt)));
+    const details = chainNextPutt(base, puttIdx);
+    updateFields({ putts: newPutts, puttDetails: details, offGreen: offGreenShots({ putts: newPutts, puttDetails: details, offGreen: playerScore.offGreen }) });
+    setExpandedPutt(puttIdx + 1);
+    scrollDown();
+  };
+
+  // 되돌리기 — 이 퍼트를 없애고 앞 퍼트를 다시 입력 중으로 연다 (찍어 둔 위치는 그대로 남아 끌어서 고칠 수 있다)
+  const undoPutt = (puttIdx) => {
+    if (puttIdx < 1 || puttDetails[puttIdx - 1]?.holein === 'offgreen') return;
+    const details = puttDetails.slice(0, puttIdx).map((p, i) => (i === puttIdx - 1 ? { ...p, holein: null } : p));
+    updateFields({ putts: puttIdx, puttDetails: details, offGreen: offGreenShots({ putts: puttIdx, puttDetails: details, offGreen: playerScore.offGreen }) });
+    setExpandedPutt(puttIdx - 1);
+  };
 
   // ─── 그린 밖으로 나간 퍼트 뒤의 칩 ───────────────────────────────────────────
   // 퍼트가 그린 밖으로 나가면 그 퍼트는 퍼팅 1타, 다시 올리는 칩은 퍼팅이 아닌 필드샷 1타다.
@@ -1897,8 +2031,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 새로 늘어난 퍼팅이 "미입력"으로 잡히지 않아 자동으로 펼쳐지지 않는다.
   // 홀인 성공/실패를 누른 퍼트도 입력된 것이다 — 거리 없이 '실패'만 눌러 다음 퍼트가 생겼을 때
   // 첫 퍼트를 '빈 퍼트'로 보면 열린 카드가 PUTT 1로 되돌아가 잘못된 퍼트에 홀인을 누르게 된다.
+  // 직전 퍼트가 멈춘 곳에서 자동으로 넣은 거리(distanceAuto)는 사용자가 입력한 게 아니라서 빈 퍼트로 본다.
   const isPuttEmpty = (p) =>
-    p.holein == null && p.distance == null && p.aimDistance == null &&
+    p.holein == null && (p.distance == null || p.distanceAuto === true) && (p.aimDistance == null || p.distanceAuto === true) && p.miss == null &&
     (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
 
   // 아래 세 덩어리는 이펙트에서 setState 하지 않고, 값이 바뀐 그 렌더에서 바로 상태를 맞춘다
@@ -3108,7 +3243,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   style={{
                     width:'100%', display:'flex', alignItems:'center', gap:8,
                     padding:'10px 16px', background:'none', border:'none', cursor:'pointer',
-                    borderBottom: isOpen ? 'none' : '1px solid #0e1320',
+                    borderBottom: isOpen || puttRowText(putt) ? 'none' : '1px solid #0e1320',
                   }}
                 >
                   {(() => { const done = !isOpen && !!putt.holein; return (<>
@@ -3121,89 +3256,79 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   </>); })()}
                 </button>
 
+                {/* 접힌 퍼트의 한 줄 요약 — 거리 · 라이 · 미스 방향 · 남은 거리 · 결과 */}
+                {!isOpen && puttRowText(putt) && (
+                  <div data-role="putt-summary" style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, lineHeight:1.5, color:'#a9b8d6', borderBottom:'1px solid #0e1320' }}>
+                    {puttRowText(putt)}
+                    {putt.holein === 'success' && <span style={{ color:'#3db87a', fontWeight:700 }}> · 홀인</span>}
+                    {putt.holein === 'offgreen' && <span style={{ color:'#e6b94a', fontWeight:700 }}> · 그린 밖</span>}
+                  </div>
+                )}
+
                 {/* 펼쳐진 내용 */}
                 {isOpen && (<>
-                  <div style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                      <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
+                  {puttIdx > 0 && puttDetails[puttIdx - 1]?.holein !== 'offgreen' && (
+                    <div style={{ display:'flex', justifyContent:'flex-end', padding:'0 16px 2px' }}>
+                      <button data-role="putt-undo" onClick={() => undoPutt(puttIdx)}
+                        style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:8, padding:'0 12px', minHeight:36, cursor:'pointer' }}>↩ 되돌리기</button>
                     </div>
-                    {/* 라이는 선택 입력 — 고르지 않아도 거리·홀인을 바로 누를 수 있다 */}
-                    <RadialPicker centerId="flat" centerLabel="평지" placeholder="선택 입력" dirs={PUTT_LIE_DIRS} openWhenEmpty={false}
-                      value={Array.isArray(putt.lie) ? putt.lie[0] : putt.lie}
-                      onChange={v => updatePutt(puttIdx, 'lie', v)}
-                    />
+                  )}
+
+                  {/* 라이 — 선택 입력. 9개를 한눈에, 복합(S자)은 접어 둔다. 고르지 않아도 거리·결과를 바로 누를 수 있다 */}
+                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+                      <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
+                      {lieIdOf(putt.lie) == null && <span style={{ fontSize:12, color:'#8896b0' }}>선택 입력</span>}
+                    </div>
+                    <PuttLieGrid key={`lie-${holeIdx}-${activePlayer}-${puttIdx}`} value={putt.lie} onPick={(id) => pickPuttLie(puttIdx, id)} />
                   </div>
+
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
+                    <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v => setPuttDistance(puttIdx, v)} />
+                    {putt.distanceAuto === true && (
+                      <div data-role="putt-distance-auto" style={{ textAlign:'center', fontSize:12, color:'#c9a228', marginTop:6, lineHeight:1.5 }}>직전 퍼트가 멈춘 곳에서 자동으로 넣었어요 · 다르면 고쳐 주세요</div>
+                    )}
                   </div>
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
-                    <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance kind="putt" value={putt.aimDistance ?? null} start={putt.distance ?? puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+
+                  {/* 미스 위치 — 공이 멈춘 곳을 탭하면 롱·숏, 좌·우, 하이·로우사이드와 남은 거리가 정해진다 (선택 입력) */}
+                  <div data-role="putt-miss" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                    <PuttBoard
+                      key={`board-${holeIdx}-${activePlayer}-${puttIdx}`}
+                      distance={putt.distance ?? null} order={puttIdx + 1} brk={lieShape(putt.lie)} frame={puttFrame(puttIdx)}
+                      miss={putt.miss ?? null} prevStops={prevStopsOf(puttIdx)}
+                      onChange={(m) => placeMiss(puttIdx, m)} onHoleIn={() => holeOutAt(puttIdx)}
+                    />
                   </div>
-                  {/* 홀인 */}
-                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
-                    <div style={{ ...fLeft, marginBottom:8 }}>
-                      <span style={fIcon}>⛳</span><span style={fLbl}>홀인</span>
-                    </div>
-                    <div style={{ display:'flex', gap:8 }}>
-                      <button
-                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='success'?{ border:'2px solid #3db87a', color:'#3db87a' }:{}) }}
-                        onClick={() => {
-                          if (holeInModalPendingRef.current) return;
-                          holeInModalPendingRef.current = true;
-                          const puttsUsed = puttIdx + 1;
-                          // 직접 고친 스코어가 있으면 그 값이 우선 (퍼팅 수만 기록하고 타수는 유지)
-                          const manual = !!playerScore.strokesManual;
-                          const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
-                            i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || newPuttDetail(i, firstPutt))
-                          );
-                          // 홀인한 퍼트 뒤에는 칩이 있을 수 없다
-                          const keptOffGreen = offGreenShots({ putts: puttsUsed, puttDetails: newDetails, offGreen: playerScore.offGreen });
-                          const freshStrokes = manual ? playerScore.strokes : calcAutoStrokes({ ...playerScore, putts: puttsUsed, puttDetails: newDetails, offGreen: keptOffGreen }, hole.par);
-                          const freshScore = { ...playerScore, putts: puttsUsed, strokes: freshStrokes, puttDetails: newDetails, offGreen: keptOffGreen, touched: true, strokesManual: manual };
-                          holeInCbRef.current = () => {
-                            if (isLastHole) {
-                              const u = { ...round }; u.holes = [...round.holes];
-                              const lh = u.holes[holeIdx]; const us = {};
-                              round.players.forEach(p => {
-                                const s = p === activePlayer ? freshScore : lh.scores[p];
-                                us[p] = finalizeScore(s, lh.par);
-                              });
-                              u.holes[holeIdx] = { ...lh, scores: us }; onUpdate(u); requestFinish(u);
-                            } else {
-                              confirmAndGoToHole(holeIdx + 1, freshScore);
-                            }
-                          };
-                          const onCount = freshStrokes - puttsUsed - keptOffGreen.length;
-                          openHoleInModal({
-                            isLastHole,
-                            scoreName: getScoreName(freshStrokes, hole.par),
-                            strokes: freshStrokes,
-                            putts: puttsUsed,
-                            onCount,
-                          });
-                        }}
-                      >성공</button>
-                      <button
-                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='fail'?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
-                        onClick={() => {
-                          const newPutts = Math.max(playerScore.putts || 0, puttIdx + 2);
-                          const newDetails = Array.from({ length: newPutts }, (_, i) =>
-                            i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : (puttDetails[i] || newPuttDetail(i, firstPutt))
-                          );
-                          updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: offGreenShots({ putts: newPutts, puttDetails: newDetails, offGreen: playerScore.offGreen }) });
-                          setExpandedPutt(puttIdx + 1);
-                          scrollDown();
-                        }}
-                      >실패</button>
-                      <button
-                        data-role="off-green"
-                        style={{ ...fChipWide, flex:1, padding:'10px 0', ...(putt.holein==='offgreen'?{ border:'2px solid #e6b94a', color:'#e6b94a' }:{}) }}
-                        onClick={() => markOffGreen(puttIdx)}
-                      >그린 밖</button>
-                    </div>
-                  </div>
+
+                  {/* 결과 — 들어갔나, 다음 퍼트로 가나, 그린 밖으로 나갔나 */}
+                  {(() => {
+                    const miss = putt.miss ?? null;
+                    const tapOk = miss != null && miss.leave <= TAP_IN_MAX_M;
+                    const primaryLabel = miss == null ? '홀인 성공' : `PUTT ${puttIdx + 2} 탭인 성공`;
+                    const primarySub = miss == null ? '' : tapOk ? `${fmtPutt(miss.leave, { digits: 1 })} · 평지 직선으로 기록` : `${fmtPutt(TAP_IN_MAX_M)} 이하일 때만`;
+                    const primaryEnabled = miss == null || tapOk;
+                    const holed = putt.holein === 'success';
+                    return (
+                      <div data-role="putt-actions" style={{ padding:'10px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:10 }}>
+                          <button type="button" data-role="putt-primary" disabled={!primaryEnabled} onClick={() => (miss == null ? holeOutAt(puttIdx) : tapInAt(puttIdx))}
+                            style={{ minHeight:56, padding:'0 6px', borderRadius:14, border:`1.5px solid ${primaryEnabled ? '#3db87a' : '#252f4a'}`, background: primaryEnabled ? (holed ? 'rgba(61,184,122,0.22)' : 'rgba(61,184,122,0.12)') : '#0e1424', color: primaryEnabled ? '#3db87a' : '#8896b0', fontFamily:'inherit', cursor: primaryEnabled ? 'pointer' : 'not-allowed', opacity: primaryEnabled ? 1 : 0.55, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, wordBreak:'keep-all' }}>
+                            <span style={{ fontSize:16, fontWeight:900, lineHeight:1.25 }}>{holed && miss == null ? '✓ ' : ''}{primaryLabel}</span>
+                            {primarySub && <span style={{ fontSize:12, fontWeight:700, lineHeight:1.25 }}>{primarySub}</span>}
+                          </button>
+                          <button type="button" data-role="putt-next" onClick={() => goNextPutt(puttIdx)}
+                            style={{ minHeight:56, borderRadius:14, border:'1.5px solid #c9a228', background:'#c9a228', color:'#0b0e18', fontFamily:'inherit', fontSize:17, fontWeight:900, cursor:'pointer' }}>
+                            PUTT {puttIdx + 2} →
+                          </button>
+                        </div>
+                        <button type="button" data-role="off-green" onClick={() => markOffGreen(puttIdx)}
+                          style={{ ...fChipWide, width:'100%', marginTop:8, padding:'12px 0', ...(putt.holein === 'offgreen' ? { border:'2px solid #e6b94a', color:'#e6b94a' } : {}) }}>
+                          {putt.holein === 'offgreen' ? '✓ 그린 밖으로 나갔어요 (다시 누르면 취소)' : '그린 밖으로 나갔어요'}
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </>)}
 
                 {/* 그린 밖으로 나간 퍼트 뒤의 칩 — 요약만. 입력·수정은 필드샷 탭의 칩 카드에서 한다 */}

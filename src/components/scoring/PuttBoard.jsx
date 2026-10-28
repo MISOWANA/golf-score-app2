@@ -17,7 +17,8 @@ import { fmtPutt } from '../../engine/units.js';
 //   onHoleIn   홀 버튼을 눌렀을 때 (없으면 홀 버튼을 그리지 않는다)
 //
 // 판은 350×320 좌표로 설계했고 화면에서는 비율로 줄여 그린다 — 폭이 좁은 폰(320px)에서도 넘치지 않는다. 글자는 줄지 않는다.
-// 판 위에서는 스크롤이 막힌다(touch-action: none) — 끌어서 위치를 미세 조정하려면 필요하다. 스크롤은 판 바깥에서 한다.
+// 손가락 동작: 판 배경은 탭만 위치로 받는다(touch-action: pan-y) — 판이 화면 한가운데를 차지해도 그 위에서 위아래로 밀면
+// 화면이 스크롤되고, 그때 공 위치가 잘못 찍히지 않는다. 미세 조정은 찍힌 위치의 흰 점(손잡이)을 끌어서 한다(그 점에만 touch-action: none).
 // 색은 theme 로만 바꾼다 (앱 색과 맞추려면 여기에 넘긴다).
 
 const BASE_THEME = {
@@ -29,6 +30,9 @@ const BASE_THEME = {
 };
 
 // 위치 · 크기를 판 좌표(0~BOARD_W · 0~BOARD_H)에서 비율로 바꾼다
+const TAP_SLOP = 10;   // 판 배경에서 이만큼(px) 안에서 떼면 탭 — 넘게 움직였으면 스크롤이나 끌기다
+const HANDLE = 48;     // 손잡이 누르는 범위(px) — 손가락 끝이 점보다 크다
+
 const pctX = (x) => `${(x / BOARD_W) * 100}%`;
 const pctY = (y) => `${(y / BOARD_H) * 100}%`;
 const at = (x, y) => ({ position: 'absolute', left: pctX(x), top: pctY(y) });
@@ -42,10 +46,10 @@ const labelStyle = { fontSize: 13, fontWeight: 700, color: '#8ca4bc', letterSpac
 export default function PuttBoard({ distance = null, order = 1, brk = null, frame = DEFAULT_FRAME, miss = null, prevStops = [], onChange, onHoleIn, theme }) {
   const C = { ...BASE_THEME, ...theme };
   const [scale, setScale] = useState(null);          // 직접 고른 축척 (null = 자동)
-  const [live, setLive] = useState(null);            // 끄는 동안의 위치
+  const [live, setLive] = useState(null);            // 손잡이를 끄는 동안의 위치
   const [dragging, setDragging] = useState(false);
-  const [fine, setFine] = useState(false);
-  const drag = useRef(null);
+  const drag = useRef(null);                         // 손잡이 끌기
+  const tap = useRef(null);                          // 판 배경을 누른 동작 (탭인지 가려낸다)
   const liveRef = useRef(null);
   const [lockedR, setLockedR] = useState(null);     // 끄는 동안 고정해 두는 축척
 
@@ -68,46 +72,52 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
     onChange?.(buildMiss({ stop: m, brk, frame, tol, passOverride: miss?.passOverride ?? null }));
   };
 
+  // 판 배경 — 손가락을 거의 움직이지 않고 떼면 탭: 뗀 자리가 새 위치. 끌었거나(스크롤 포함) 취소되면 위치를 바꾸지 않는다.
   const onDown = (ev) => {
+    tap.current = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, rect: ev.currentTarget.getBoundingClientRect() };
+  };
+  const onMove = (ev) => {
+    const t = tap.current;
+    if (t && t.id === ev.pointerId && Math.hypot(ev.clientX - t.x, ev.clientY - t.y) > TAP_SLOP) tap.current = null;
+  };
+  const onUp = (ev) => {
+    const t = tap.current;
+    tap.current = null;
+    if (!t || t.id !== ev.pointerId) return;
+    setScale(null);
+    commit(toMeters(ev.clientX, ev.clientY, t.rect));
+  };
+  const onCancel = () => { tap.current = null; };
+
+  // 손잡이(찍힌 위치의 흰 점) 끌기 — 손가락이 점을 가리지 않게 0.5배로 움직인다. 움직이지 않고 떼면 위치는 그대로.
+  const onGrab = (ev) => {
     const el = ev.currentTarget;
-    const rect = el.getBoundingClientRect();
     try { el.setPointerCapture(ev.pointerId); } catch { /* 캡처를 못 해도 판 안에서는 계속 움직인다 */ }
     setLockedR(R);
-    const d = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, rect, start: stop, moved: false, placed: false };
-    if (!stop) {
-      const p = toMeters(ev.clientX, ev.clientY, rect);   // 처음에는 누른 자리가 곧 위치
-      d.start = p; d.placed = true; drag.current = d;
-      liveRef.current = p; setLive(p); setDragging(true); setFine(false);
-    } else {
-      drag.current = d; setDragging(true); setFine(true);   // 이미 있는 위치는 끌어서 미세 조정 (0.5배)
-    }
+    drag.current = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, rect: el.parentElement.getBoundingClientRect(), start: stop, moved: false };
+    setDragging(true);
   };
-
-  const onMove = (ev) => {
+  const onGrabMove = (ev) => {
     const d = drag.current;
     if (!d || d.id !== ev.pointerId) return;
     const dx = ((ev.clientX - d.sx) / d.rect.width) * BOARD_W;
     const dy = ((ev.clientY - d.sy) / d.rect.height) * BOARD_H;
     if (!d.moved && Math.hypot(dx, dy) < 6) return;
     d.moved = true;
-    const k = d.placed ? 1 : 0.5;
     const lim = HOLE_X / ppm;
-    const m = { x: clampStop(d.start.x + (dx * k) / ppm, lim), y: clampStop(d.start.y - (dy * k) / ppm, lim) };
+    const m = { x: clampStop(d.start.x + (dx * 0.5) / ppm, lim), y: clampStop(d.start.y - (dy * 0.5) / ppm, lim) };
     liveRef.current = m; setLive(m);
   };
-
-  const onUp = (ev) => {
+  const onGrabUp = (ev) => {
     const d = drag.current;
     if (!d || d.id !== ev.pointerId) return;
     drag.current = null;
-    // 움직이지 않고 뗐다면 탭 — 누른 자리가 새 위치
-    const m = (!d.moved && !d.placed) ? toMeters(ev.clientX, ev.clientY, d.rect) : (liveRef.current ?? d.start);
+    const m = d.moved ? liveRef.current : null;
     liveRef.current = null;
     setLive(null); setDragging(false); setLockedR(null); setScale(null);
-    commit(m);
+    if (m) commit(m);
   };
-
-  const onCancel = () => { drag.current = null; liveRef.current = null; setLive(null); setDragging(false); setLockedR(null); };
+  const onGrabCancel = () => { drag.current = null; liveRef.current = null; setLive(null); setDragging(false); setLockedR(null); };
 
   const onKey = (ev) => {
     const step = ev.shiftKey ? 0.5 : 0.1;
@@ -208,7 +218,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
         <div role="group" aria-label="판 축척" style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 12, background: C.card, border: `1px solid ${C.line}` }}>
           {BOARD_SCALES.map((v) => (
             <button key={v} type="button" data-role={`putt-scale-${v}`} aria-pressed={R === v} onClick={() => setScale(v)}
-              style={{ minHeight: 40, minWidth: 46, padding: '0 6px', border: 0, borderRadius: 9, background: R === v ? C.sel : 'transparent', color: R === v ? C.gold : C.muted, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ minHeight: 44, minWidth: 46, padding: '0 6px', border: 0, borderRadius: 9, background: R === v ? C.sel : 'transparent', color: R === v ? C.gold : C.muted, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               ±{ptLabel(v)}
             </button>
           ))}
@@ -218,12 +228,12 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
       <div style={{ position: 'relative', width: '100%', maxWidth: BOARD_W, aspectRatio: `${BOARD_W} / ${BOARD_H}`, margin: '0 auto' }}>
         <button
           type="button" data-role="putt-board"
-          aria-label="공이 멈춘 곳: 탭해서 지정, 드래그해서 미세 조정, 방향키로 10cm씩 이동"
+          aria-label="공이 멈춘 곳: 탭해서 지정, 방향키로 10cm씩 이동"
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onKeyDown={onKey}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%', padding: 0, boxSizing: 'border-box',
             border: `1px solid ${dragging ? C.gold : C.boardBorder}`, borderRadius: 18, background: C.board, overflow: 'hidden',
-            cursor: dragging ? 'grabbing' : (stop ? 'grab' : 'crosshair'), fontFamily: 'inherit', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none',
+            cursor: 'crosshair', fontFamily: 'inherit', touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none',
             // 눌렀을 때 버튼 공통의 눌림 효과(전체가 줄어드는 것)는 판에서는 끈다 — 위치가 어긋난다
             transform: 'none', filter: 'none',
           }}
@@ -253,7 +263,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           )}
           <span aria-hidden="true" style={{ ...at(189, Math.min(286, ballY - 9)), fontSize: 12, fontWeight: 700, color: '#ffffff', whiteSpace: 'nowrap' }}>{ballLabel}</span>
           {dragging && (
-            <span aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, padding: '3px 8px', borderRadius: 8, background: C.sel, color: C.gold, fontSize: 12, fontWeight: 700 }}>{fine ? '미세 조정 0.5배' : '이동 중'}</span>
+            <span aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, padding: '3px 8px', borderRadius: 8, background: C.sel, color: C.gold, fontSize: 12, fontWeight: 700 }}>미세 조정 0.5배</span>
           )}
         </button>
 
@@ -261,10 +271,21 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           <span key={`d${d.n}`} aria-hidden="true" style={{ ...centered(d.x, d.y), width: 22, height: 22, borderRadius: '50%', background: C.line, color: C.text2, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', border: `1px solid ${C.muted}`, boxSizing: 'border-box' }}>{d.n}</span>
         ))}
 
+        {/* 찍힌 위치의 손잡이 — 이 점을 잡고 끌면 미세 조정. 판 배경과 달리 여기서는 화면이 스크롤되지 않는다 (touch-action: none).
+            홀 버튼과 사이드 버튼보다 아래에 그려서 겹치는 곳은 그 버튼이 눌린다 */}
+        {mk && (
+          <div data-role="putt-marker-handle" aria-hidden="true"
+            onPointerDown={onGrab} onPointerMove={onGrabMove} onPointerUp={onGrabUp} onPointerCancel={onGrabCancel}
+            style={{ ...centered(mk.x, mk.y), width: HANDLE, height: HANDLE, borderRadius: '50%', touchAction: 'none', cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none', WebkitUserSelect: 'none' }} />
+        )}
+
+        {/* 홀 버튼 — 누르는 범위는 44px, 눈에 보이는 원은 36px */}
         {onHoleIn && (
           <button type="button" data-role="putt-board-hole" aria-label="홀인 성공" onClick={onHoleIn}
-            style={{ ...centered(HOLE_X, HOLE_Y), width: 36, height: 36, padding: 0, borderRadius: '50%', border: '2px solid #ffffff', background: '#000000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21V4" /><path d="M7 4l11 4-11 4" /></svg>
+            style={{ ...centered(HOLE_X, HOLE_Y), width: 44, height: 44, padding: 0, border: 0, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span aria-hidden="true" style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid #ffffff', background: '#000000', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21V4" /><path d="M7 4l11 4-11 4" /></svg>
+            </span>
           </button>
         )}
 
@@ -283,7 +304,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           </>
         )}
       </div>
-      <div style={{ fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>탭 = 멈춘 위치 · 끌기 = 미세 이동 · 좌우 사이드 버튼 = 홀 옆을 지난 쪽</div>
+      <div style={{ fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>탭 = 멈춘 위치 · 흰 점 끌기 = 미세 이동 · 좌우 사이드 버튼 = 홀 옆을 지난 쪽</div>
 
       {/* 결과 카드 */}
       <div data-role="putt-result" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 64, boxSizing: 'border-box', marginTop: 10, padding: '10px 14px', borderRadius: 12, border: `1px solid ${C.line}`, background: C.card }}>

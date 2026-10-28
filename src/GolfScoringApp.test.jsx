@@ -1167,6 +1167,103 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       });
     });
 
+    describe('티샷 랜딩 C → 페어웨이 O 자동 선택', () => {
+      const openTee = async () => {
+        await openTab('tee');
+        await waitFor(() => expect(document.querySelector('[data-role="tee-fairway-hit"]')).toBeTruthy());
+      };
+      const landing = (id) => fireEvent.click([...document.querySelectorAll('button')].find((b) => b.textContent.startsWith(id) && b.textContent.length <= 4));
+      const click = (role) => fireEvent.click(document.querySelector(`[data-role="${role}"]`));
+
+      it('C 를 누르면 비어 있던 페어웨이가 O 로 채워지고, 자동이라고 알려 주며, 세컨샷 지형도 페어웨이로 채워진다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        expect(document.querySelector('[data-role="tee-fairway-auto"]')).toBeNull();
+        landing('C');
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairwayHit: 'C', fairway: true, fairwayFromLanding: true, secondSurface: 'fairway', secondSurfaceAuto: true }));
+        expect(document.querySelector('[data-role="tee-fairway-auto"]').textContent).toContain('자동 선택');
+      });
+
+      it('L · R 은 페어웨이를 채우지 않는다 (페어웨이 가장자리인지 알 수 없다)', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        landing('L');
+        await waitFor(async () => expect((await saved()).fairwayHit).toBe('L'));
+        expect((await saved()).fairway ?? null).toBeNull();
+        landing('R');
+        await waitFor(async () => expect((await saved()).fairwayHit).toBe('R'));
+        expect((await saved()).fairway ?? null).toBeNull();
+        expect(document.querySelector('[data-role="tee-fairway-auto"]')).toBeNull();
+      });
+
+      it('이미 O/X 를 눌러 둔 홀은 C 를 눌러도 바뀌지 않는다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        click('tee-fairway-miss');
+        await waitFor(async () => expect((await saved()).fairway).toBe(false));
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairwayHit).toBe('C'));
+        expect(await saved()).toMatchObject({ fairway: false });
+        expect((await saved()).fairwayFromLanding ?? false).toBe(false);
+      });
+
+      it('자동으로 채운 O 를 O 나 X 로 직접 누르면 그때부터는 직접 고른 값이다 (랜딩을 바꿔도 그대로)', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairwayFromLanding).toBe(true));
+        click('tee-fairway-hit');
+        await waitFor(async () => expect((await saved()).fairwayFromLanding).toBe(false));
+        expect(document.querySelector('[data-role="tee-fairway-auto"]')).toBeNull();
+        landing('L');
+        await waitFor(async () => expect((await saved()).fairwayHit).toBe('L'));
+        expect(await saved()).toMatchObject({ fairway: true });                                // 직접 누른 O 는 지켜진다
+      });
+
+      it('X 를 누르면 자동으로 채운 지형도 비운다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        landing('C');
+        await waitFor(async () => expect((await saved()).secondSurface).toBe('fairway'));
+        click('tee-fairway-miss');
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, fairwayFromLanding: false, secondSurface: null, secondSurfaceAuto: false }));
+      });
+
+      it('C 를 다시 눌러 지우거나 L · R 로 바꾸면 자동으로 채운 O 와 지형도 함께 걷어 낸다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairway).toBe(true));
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairwayHit ?? null).toBeNull());
+        expect(await saved()).toMatchObject({ fairway: null, fairwayFromLanding: false, secondSurface: null, secondSurfaceAuto: false });
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairway).toBe(true));
+        landing('R');
+        await waitFor(async () => expect((await saved()).fairwayHit).toBe('R'));
+        expect(await saved()).toMatchObject({ fairway: null, fairwayFromLanding: false, secondSurface: null });
+      });
+
+      it('세컨샷 지형을 직접 고르면 자동으로 채운 O 가 그 지형을 따른다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairwayFromLanding).toBe(true));
+        await openTab('field');
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-surface-rough"]'); expect(b).toBeTruthy(); return b; }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'rough', fairway: false, fairwayDerived: true, fairwayFromLanding: false }));
+      });
+
+      it('C 로 채운 O 도 티샷을 모두 채운 것으로 쳐서 비워 두는 선택 항목 안내에서 빠진다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        expect(document.querySelector('[data-role="tee-optional-note"]').textContent).toMatch(/페어웨이 O\/X.*랜딩 L\/C\/R/);
+        landing('C');
+        await waitFor(async () => expect((await saved()).fairway).toBe(true));
+        expect(document.querySelector('[data-role="tee-optional-note"]').textContent).not.toMatch(/페어웨이 O\/X|랜딩 L\/C\/R/);
+      });
+    });
+
     describe('세컨샷 실패 → 성공으로 고치면 써드샷 이후가 사라진다', () => {
       const open = async () => {
         await openTab('field');
@@ -1844,6 +1941,48 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       click('[data-role="off-green"]');
       await waitFor(async () => expect((await saved()).puttDetails[0].holein).toBe('offgreen'));
       await waitFor(() => expect(document.querySelector('[data-role="off-green-card"]')).toBeTruthy());
+    });
+
+    it('결과 버튼(홀인 성공 · PUTT n →)은 화면 아래에 붙는 줄에 있고, 그린 밖 버튼은 카드 안에 따로 있다', async () => {
+      await openPutt(one());
+      const bar = document.querySelector('[data-role="putt-actions"]');
+      expect(bar.closest('[data-role="putt-cards"]')).toBeTruthy();                      // 퍼팅 카드들을 담은 상자 안에서 붙는다
+      expect(bar.style.position).toBe('sticky');
+      expect(bar.style.bottom).toContain('76px');                                        // 아래 탭바 바로 위
+      expect(bar.contains(document.querySelector('[data-role="putt-primary"]'))).toBe(true);
+      expect(bar.contains(document.querySelector('[data-role="putt-next"]'))).toBe(true);
+      expect(bar.contains(document.querySelector('[data-role="off-green"]'))).toBe(false);
+      expect(document.querySelector('[data-role="off-green"]').closest('[data-role="putt-cards"]')).toBeTruthy();
+    });
+
+    it('퍼팅 단계가 열리면 PUTT 카드 자리로 화면을 옮긴다 — 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      const targets = () => spy.mock.contexts.map((el) => el?.dataset?.role ?? '');
+      await resume(one());                                                               // 볼이 그린 위 → 퍼팅 단계로 열린다
+      await waitFor(() => expect(targets()).toContain('putting-top'));
+      spy.mockClear();
+      await openTab('field');
+      await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());
+      spy.mockClear();
+      await openTab('putt');
+      await waitFor(() => expect(targets()).toContain('putting-top'));
+    });
+
+    it('처음 열었을 때 퍼팅이 아닌 단계라면 탭 행이 맨 위에 오게 내린다 (맨 위는 스코어보드)', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      await resume(shotRound({ onGreen: null, gir: null }));                            // 티샷만 고른 홀 → 필드샷 단계
+      await waitFor(() => {
+        const sentinel = spy.mock.contexts.find((el) => el?.getAttribute?.('aria-hidden') === 'true' && el.nextElementSibling?.dataset?.role === 'shot-tabbar');
+        expect(sentinel).toBeTruthy();
+      });
+      expect(spy.mock.contexts.map((el) => el?.dataset?.role)).not.toContain('putting-top');
+    });
+
+    it('홀 버튼은 누르는 범위가 44px 이다 (눈에 보이는 원은 36px)', async () => {
+      await openPutt(one());
+      const hole = document.querySelector('[data-role="putt-board-hole"]');
+      expect([hole.style.width, hole.style.height]).toEqual(['44px', '44px']);
+      expect(hole.querySelector('span').style.width).toBe('36px');
     });
 
     it('접힌 퍼트에는 거리 · 라이 · 미스 방향 · 남은 거리가 한 줄로 보인다', async () => {
@@ -2822,6 +2961,30 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     const plus = await waitFor(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === '+' && x.style.width === '44px'); expect(b).toBeTruthy(); return b; });
     expect([plus.style.width, plus.style.height]).toEqual(['44px', '44px']);
+  });
+
+  it('샷 입력에서 매 홀 누르는 칸은 높이가 44px 이상이다 (탭 · 지형 · 라이 · 결과 · 벌타 · 핀 위치 · 접기 줄)', async () => {
+    const round = makeActiveRound(ME, { currentHole: 0 });
+    round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true, onGreen: null, gir: null });
+    await setup({ active: round });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 1');
+    const h = (el) => el.style.minHeight;
+    const tabs = ['tee', 'field', 'putt'].map((t) => document.querySelector(`[data-role="shot-tab-${t}"]`));
+    tabs.forEach((t) => expect(h(t)).toBe('44px'));
+    fireEvent.click(tabs[1]);
+    const ids = ['second-surface-fairway', 'second-lie-flat', 'second-result-on', 'second-result-miss'];
+    await waitFor(() => ids.forEach((id) => expect(document.querySelector(`[data-role="${id}"]`)).toBeTruthy()));
+    ids.forEach((id) => expect(h(document.querySelector(`[data-role="${id}"]`))).toBe('44px'));
+    const ob = [...document.querySelectorAll('button')].find((b) => b.textContent === 'OB');
+    expect(h(ob)).toBe('44px');
+    const header = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('세컨샷 ( 2nd )'));
+    expect(h(header)).toBe('44px');
+    fireEvent.click(tabs[2]);
+    await waitFor(() => expect(document.querySelector('[data-role="pin-position"]')).toBeTruthy());
+    const pin = [...document.querySelectorAll('[data-role="pin-position"] button')];
+    expect(pin.length).toBeGreaterThan(0);
+    pin.forEach((b) => expect(h(b)).toBe('44px'));
   });
 
   it('화면 위의 뒤로가기와 스코어 입력 아래의 홈 아이콘에는 이름이 있다', async () => {

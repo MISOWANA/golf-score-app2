@@ -187,7 +187,7 @@ const globalCSS = `
   .dist-slider {
     --fill: #c9a228; --rest: #252f4a; --thumb: #c9a228;
     -webkit-appearance: none; appearance: none;
-    display: block; width: 100%; height: 40px; margin: 0; padding: 0;
+    display: block; width: 100%; height: 44px; margin: 0; padding: 0;
     background: transparent; cursor: pointer; touch-action: pan-y;
   }
   .dist-slider[data-empty="1"] { --fill: #3a4a6b; --thumb: #6e84a8; }

@@ -69,7 +69,7 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
                 borderBottom: `2px solid ${on ? '#c9a228' : 'transparent'}`, borderRadius: 0,
                 color: on ? '#f3d36b' : '#8896b0', fontSize: dense ? 13 : 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer', ...(dense ? { letterSpacing: '-0.02em' } : {}),
               }
-              : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', ...(on ? styles.riToggleBtnActive : {}) };
+              : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', minHeight: 44, ...(on ? styles.riToggleBtnActive : {}) };
             return (
               <button key={id} role="tab" type="button" aria-selected={on} disabled={disabled} data-role={`${rolePrefix}-${id}`}
                 style={{ ...look, ...(disabled ? { color: '#8896b0', cursor: 'default' } : {}) }}

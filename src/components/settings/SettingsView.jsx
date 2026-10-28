@@ -4,6 +4,9 @@ import styles from '../../styles/styles';
 import KoEnTitle from '../ui/KoEnTitle';
 import InfoNote from '../ui/InfoNote';
 import { Card } from '../stats/widgets.jsx';
+import SwipeDistance from '../ui/SwipeDistance.jsx';
+import { PUTT_MIN_M, PUTT_MAX_M, PUTT_STEP_M, PUTT_START_M } from '../../engine/firstPutt.js';
+import { fmtPutt } from '../../engine/units.js';
 import { backupStatus, backupMessage } from '../../engine/backupStatus.js';
 import { canShareFile } from '../../platform/shareFile.js';
 import { hardRefresh } from '../../platform/hardRefresh.js';
@@ -47,7 +50,7 @@ const UNIT_CHOICES = [
   { id: 'yd', label: '야드', sub: 'yd · 퍼트는 ft' },
 ];
 
-export default function SettingsView({ currentUser, rounds, backupMeta, unit = 'm', onChangeUnit, onBackup, onImport, onBack }) {
+export default function SettingsView({ currentUser, rounds, backupMeta, unit = 'm', onChangeUnit, firstPutt = null, onChangeFirstPutt, onBackup, onImport, onBack }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);                  // { tone: 'ok' | 'error', text }
@@ -119,6 +122,31 @@ export default function SettingsView({ currentUser, rounds, backupMeta, unit = '
             : '샷 거리와 퍼트 거리를 모두 미터로 보이고 입력해요. 야드로 쓰고 싶다면 위에서 바꿔 주세요.'}
         </div>
         <div style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 4, wordBreak: 'keep-all' }}>기록은 미터로 저장되니 바꿔도 지난 기록과 통계는 그대로예요.</div>
+      </Card>
+
+      <Card id="first-putt" title={(
+        <KoEnTitle text="FIRST PUTT · 첫 퍼팅 기본 거리">
+          <InfoNote title="무엇을 정하는 건가요?">
+            <p>퍼팅을 기록할 때 첫 퍼팅 거리가 여기서 정한 값으로 미리 들어가 있어요. 실제 거리가 다르면 퍼팅 탭에서 고치면 돼요.</p>
+            <p>고치지 않은 거리도 그대로 기록돼서 퍼팅 통계에 쓰여요. 이미 기록한 라운드는 바뀌지 않아요. 정하지 않으면 예전처럼 비어 있어요.</p>
+          </InfoNote>
+        </KoEnTitle>
+      )}>
+        <div data-role="first-putt-input">
+          <SwipeDistance kind="putt" value={firstPutt} start={PUTT_START_M} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1}
+            onChange={(v) => onChangeFirstPutt?.(v)} />
+        </div>
+        <div data-role="first-putt-note" style={{ fontSize: 14, color: '#a9b8d6', lineHeight: 1.6, marginTop: 10, wordBreak: 'keep-all' }}>
+          {firstPutt == null
+            ? '정하지 않았어요. 첫 퍼팅 거리는 비어 있고 직접 입력해요.'
+            : `첫 퍼팅 거리가 ${fmtPutt(firstPutt, { digits: Number.isInteger(firstPutt) ? 0 : 1 })}로 미리 들어가요. 실제와 다르면 퍼팅 탭에서 고쳐 주세요.`}
+        </div>
+        {firstPutt != null && (
+          <button type="button" data-role="first-putt-clear" onClick={() => onChangeFirstPutt?.(null)}
+            style={{ marginTop: 6, padding: '10px 0', background: 'none', border: 'none', color: '#8896b0', fontSize: 14, textDecoration: 'underline', cursor: 'pointer' }}>
+            정하지 않음 (비워 두기)
+          </button>
+        )}
       </Card>
 
       <Card id="backup" title={(

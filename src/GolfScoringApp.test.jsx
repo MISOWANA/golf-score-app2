@@ -1417,6 +1417,176 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       expect(document.querySelector('[data-role="landing-wheel"]')).toBeTruthy();
     });
   });
+
+  describe('거리 칸 — 숫자 아래 슬라이더', () => {
+    const sliders = () => [...document.querySelectorAll('[data-role="dist-slider"]')];
+
+    it('퍼팅 거리: 비어 있으면 흐린 손잡이가 출발값 자리에 있고, 밀면 값이 들어간다 (aim 거리도 같이)', async () => {
+      await resume(shotRound({ putts: 1, puttsManual: true, puttDetails: [{ distance: null, aimDistance: null, lie: [], holein: 'success' }] }));
+      await openTab('putt');
+      const s = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
+      expect([s.min, s.max, s.step]).toEqual(['0.5', '30', '0.5']);
+      expect(s.getAttribute('data-empty')).toBe('1');
+      expect(s.value).toBe('5');                                                          // 출발값(5m)이지만 아직 저장된 값은 없다
+      expect((await saved()).puttDetails[0].distance ?? null).toBeNull();
+      fireEvent.change(s, { target: { value: '7.5' } });
+      await waitFor(async () => expect((await saved()).puttDetails[0].distance).toBe(7.5));
+      expect(s.getAttribute('data-empty')).toBe('0');
+      expect(document.querySelector('[data-role="dist-hint"]')).toBeNull();               // 값이 들어가면 안내 글은 사라진다
+    });
+
+    it('파3 티샷 거리: 50~250m 슬라이더로 맞춘다', async () => {
+      await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), 'HOLE 3');
+      await openTab('tee');
+      const s = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
+      expect([s.min, s.max]).toEqual(['50', '250']);
+      fireEvent.change(s, { target: { value: '143' } });
+      await waitFor(async () => expect((await saved(2)).teeDistance).toBe(143));
+    });
+
+    it('남은 거리: 슬라이더는 300m 까지만 덮고, 그보다 먼 값은 오른쪽 끝에 붙어 보이되 숫자는 그대로다', async () => {
+      await resume(shotRound({ onGreen: null, gir: null, secondClub: 'wood', remainingDistance: 450 }));
+      await openTab('field');
+      const s = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
+      expect(s.max).toBe('300');
+      expect(s.value).toBe('300');
+      expect(document.body.textContent).toContain('450');
+      expect((await saved()).remainingDistance).toBe(450);                                // 슬라이더가 값을 덮어쓰지 않는다
+    });
+
+    it('바람 세기는 거리가 아니라서 슬라이더가 없다', async () => {
+      await resume(shotRound({ onGreen: null, gir: null, secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150 }));
+      await openTab('field');
+      fireEvent.click(await waitFor(() => { const b = screen.getAllByText('바람')[0].closest('button'); expect(b).toBeTruthy(); return b; }));
+      await waitFor(() => expect(screen.getByText('바람 세기')).toBeTruthy());
+      expect(sliders()).toHaveLength(1);                                                  // 남은 거리 칸의 것뿐
+      expect(screen.getByText('바람 세기').parentElement.parentElement.querySelector('[data-role="dist-slider"]')).toBeNull();
+    });
+  });
+
+  describe('첫 퍼팅 기본 거리 — 정해 두면 첫 퍼팅에 늘 들어 있다', () => {
+    const sliders = () => [...document.querySelectorAll('[data-role="dist-slider"]')];
+    const resumeWith = async (active, prefs) => {
+      await setup({ active, prefs });
+      fireEvent.click(screen.getByText('이어서'));
+      await screen.findByText('HOLE 1');
+    };
+    const pickPutts = (n) => fireEvent.click([...document.querySelectorAll('button')].find((b) => b.textContent === String(n) && b.parentElement.children.length === 5));
+    const savedPutts = async () => (await saved()).puttDetails;
+
+    it('퍼팅 수를 고르면 첫 퍼팅 거리·조준 거리가 정한 값으로 저장되고, 두 번째 퍼팅은 비어 있다', async () => {
+      await resumeWith(shotRound({ putts: 0, puttsManual: true, puttDetails: [] }), { unit: 'm', firstPutt: 6 });
+      await openTab('putt');
+      pickPutts(2);
+      await waitFor(async () => expect((await savedPutts())).toHaveLength(2));
+      const d = await savedPutts();
+      expect([d[0].distance, d[0].aimDistance, d[1].distance, d[1].aimDistance]).toEqual([6, 6, null, null]);
+      fireEvent.click((await screen.findByText('PUTT 1')).closest('button'));              // 열려 있는 건 다음 퍼팅 — 첫 퍼팅을 펼친다
+      const first = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
+      expect(first.value).toBe('6');
+      expect(first.getAttribute('data-empty')).toBe('0');                                 // 값이 들어가 있다 (흐린 손잡이가 아니다)
+    });
+
+    it('퍼팅 수만 있고 상세가 없는 홀도 첫 퍼팅 칸에는 정한 값이 보인다', async () => {
+      await resumeWith(shotRound({ putts: 2, puttsManual: true }), { unit: 'm', firstPutt: 4.5 });
+      await openTab('putt');
+      fireEvent.click((await screen.findByText('PUTT 1')).closest('button'));
+      const first = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
+      expect(first.value).toBe('4.5');
+      expect(first.getAttribute('data-empty')).toBe('0');
+    });
+
+    it('정하지 않았으면 예전처럼 비어 있다', async () => {
+      await resumeWith(shotRound({ putts: 0, puttsManual: true, puttDetails: [] }), null);
+      await openTab('putt');
+      pickPutts(2);
+      await waitFor(async () => expect((await savedPutts())).toHaveLength(2));
+      expect((await savedPutts()).map((p) => p.distance)).toEqual([null, null]);
+    });
+
+    it('직접 고친 거리가 우선이다 — 이미 입력한 첫 퍼팅은 정한 값으로 덮지 않는다', async () => {
+      const puttDetails = [{ distance: 2, aimDistance: 2, lie: [], holein: 'success' }];
+      await resumeWith(shotRound({ putts: 1, puttsManual: true, puttDetails }), { unit: 'm', firstPutt: 6 });
+      await openTab('putt');
+      await screen.findByText('PUTT 1');
+      expect((await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; })).value).toBe('2');
+    });
+  });
+
+  describe('설정 — 첫 퍼팅 기본 거리 고르기', () => {
+    const openSettings = async () => {
+      fireEvent.click(document.querySelector('[data-role="open-settings"]'));
+      await screen.findByText('Settings');
+    };
+    const slider = () => document.querySelector('[data-role="first-putt-input"] [data-role="dist-slider"]');
+    const note = () => document.querySelector('[data-role="first-putt-note"]').textContent;
+
+    it('정하지 않은 상태로 시작하고, 슬라이더로 정하면 저장돼 안내 글이 바뀐다', async () => {
+      await setup({});
+      await openSettings();
+      expect(note()).toContain('정하지 않았어요');
+      expect([slider().min, slider().max]).toEqual(['0.5', '30']);
+      fireEvent.change(slider(), { target: { value: '8' } });
+      await waitFor(async () => expect(await db.getPrefs(user.userId)).toEqual({ unit: 'm', firstPutt: 8 }));
+      expect(note()).toContain('8m로 미리 들어가요');
+      expect(document.querySelector('[data-role="first-putt-clear"]')).toBeTruthy();
+    });
+
+    it('"정하지 않음"을 누르면 기본 거리가 지워지고 거리 단위 설정은 그대로다', async () => {
+      await setup({ prefs: { unit: 'yd', firstPutt: 6 } });
+      await openSettings();
+      expect(note()).toContain('20ft');                                                   // 6m = 20피트로 보인다
+      fireEvent.click(document.querySelector('[data-role="first-putt-clear"]'));
+      await waitFor(async () => expect(await db.getPrefs(user.userId)).toEqual({ unit: 'yd' }));
+      expect(note()).toContain('정하지 않았어요');
+    });
+
+    it('거리 단위를 바꿔도 정해 둔 첫 퍼팅 기본 거리는 지워지지 않는다', async () => {
+      await setup({ prefs: { unit: 'm', firstPutt: 6 } });
+      await openSettings();
+      fireEvent.click(document.querySelector('[data-role="unit-yd"]'));
+      await waitFor(async () => expect(await db.getPrefs(user.userId)).toEqual({ unit: 'yd', firstPutt: 6 }));
+    });
+
+    it('야드 모드에서는 피트로 맞추고, 저장은 미터로 한다', async () => {
+      await setup({ prefs: { unit: 'yd' } });
+      await openSettings();
+      expect([slider().min, slider().max]).toEqual(['2', '98']);                         // 0.5~30m = 2~98ft
+      fireEvent.change(slider(), { target: { value: '20' } });
+      await waitFor(async () => expect(await db.getPrefs(user.userId)).toEqual({ unit: 'yd', firstPutt: 6.1 }));
+    });
+  });
+
+  describe('퍼트 뒤 칩 — 남은 거리와 지형', () => {
+    const chipRound = (over = {}) => shotRound({
+      onGreen: null, gir: null, putts: 1, puttsManual: true,
+      puttDetails: [{ distance: 4, aimDistance: 4, lie: [], holein: 'offgreen' }],
+      offGreen: [{ after: 0, club: null, subClub: null, onGreen: null }], ...over,
+    });
+
+    it('칩 카드에 남은 거리 슬라이더와 지형 선택이 있다 (선택 입력 — 비어 있어도 된다)', async () => {
+      await resume(chipRound());
+      await openTab('field');
+      const card = await waitFor(() => { const c = document.querySelector('[data-role="off-green-card"]'); expect(c).toBeTruthy(); return c; });
+      const s = card.querySelector('[data-role="off-green-distance"] [data-role="dist-slider"]');
+      expect([s.min, s.max, s.getAttribute('data-empty')]).toEqual(['1', '60', '1']);
+      expect(card.querySelectorAll('[data-role^="off-green-surface-0-"]')).toHaveLength(3);   // 페어웨이 · 러프 · 벙커
+      expect((await saved()).offGreen[0].remainingDistance ?? null).toBeNull();
+    });
+
+    it('거리를 맞추고 지형을 고르면 그 칩에 저장된다 — 같은 지형을 다시 누르면 해제', async () => {
+      await resume(chipRound());
+      await openTab('field');
+      const card = await waitFor(() => { const c = document.querySelector('[data-role="off-green-card"]'); expect(c).toBeTruthy(); return c; });
+      fireEvent.change(card.querySelector('[data-role="off-green-distance"] [data-role="dist-slider"]'), { target: { value: '12' } });
+      await waitFor(async () => expect((await saved()).offGreen[0].remainingDistance).toBe(12));
+      fireEvent.click(card.querySelector('[data-role="off-green-surface-0-rough"]'));
+      await waitFor(async () => expect((await saved()).offGreen[0].surface).toBe('rough'));
+      fireEvent.click(card.querySelector('[data-role="off-green-surface-0-rough"]'));
+      await waitFor(async () => expect((await saved()).offGreen[0].surface ?? null).toBeNull());
+      expect((await saved()).offGreen[0].remainingDistance).toBe(12);                      // 지형을 풀어도 거리는 그대로
+    });
+  });
 });
 
 describe('삭제 되돌리기 (휴지통)', () => {
@@ -2134,10 +2304,23 @@ describe('거리 단위 (미터 · 야드)', () => {
     await screen.findByText('HOLE 1');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     const shown = await waitFor(() => { const s = [...document.querySelectorAll('span')].find((x) => x.textContent === '164'); expect(s).toBeTruthy(); return s; });
-    const plus = [...shown.parentElement.parentElement.querySelectorAll('button')].find((b) => b.textContent === '+');
+    const plus = [...shown.closest('[data-role="dist-value"]').parentElement.parentElement.querySelectorAll('button')].find((b) => b.textContent === '+');
     fireEvent.click(plus);
     await waitFor(() => expect([...document.querySelectorAll('span')].some((x) => x.textContent === '165')).toBe(true));
     await waitFor(async () => expect((await db.loadActiveRound([user.userId])).holes[0].scores[ME].remainingDistance).toBe(150.9));   // 165야드
+  });
+  it('스코어 입력: 야드 모드의 거리 슬라이더는 야드 눈금이고, 밀면 미터(소수 한 자리)로 저장된다', async () => {
+    const round = makeActiveRound(ME, { currentHole: 0 });
+    round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
+    await setup({ active: round, prefs: { unit: 'yd' } });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('HOLE 1');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
+    const slider = await waitFor(() => { const s = document.querySelector('[data-role="dist-slider"]'); expect(s).toBeTruthy(); return s; });
+    expect(slider.value).toBe('164');                   // 150m = 164야드
+    expect(slider.max).toBe('328');                     // 슬라이더 300m = 328야드
+    fireEvent.change(slider, { target: { value: '200' } });
+    await waitFor(async () => expect((await db.loadActiveRound([user.userId])).holes[0].scores[ME].remainingDistance).toBe(182.9));   // 200야드
   });
 
   it('백업 파일에 거리 단위가 들어 있으면 복원하면서 화면도 그 단위가 된다', async () => {
@@ -2293,7 +2476,7 @@ describe('스코어 입력 — 비어 있는 거리 칸', () => {
     const empty = await waitFor(() => { const e = document.querySelector('[data-role="empty-value"]'); expect(e).toBeTruthy(); return e; });
     const box = empty.parentElement;
     expect(box.textContent).not.toContain('—');
-    const start = Number(box.textContent.match(/탭하면 (\d+)m부터 · 밀어서 조정/)[1]);
+    const start = Number(document.querySelector('[data-role="dist-hint"]').textContent.match(/탭하면 (\d+)m부터 · 밀어서 조정/)[1]);
     fireEvent.mouseDown(box, { clientX: 100, clientY: 100 });
     fireEvent.mouseMove(window, { clientX: 120, clientY: 100 });
     fireEvent.mouseUp(window, { clientX: 120, clientY: 100 });

@@ -144,6 +144,8 @@ export function buildHoleReview(hole, player, holeIdx) {
   const offGreen = offGreenShots(s).map((r) => ({
     after: r.after,
     club: clubLabel(r.club, r.subClub),
+    surface: surfaceLabel(r.surface),        // 친 자리의 지형 (선택 입력)
+    from: r.remainingDistance ?? null,       // 칩을 치기 전 핀까지 남은 거리(m) — 입력한 값 (선택 입력)
     // 'chip-in' | 'on'(온그린) | 'miss'(그린 놓침) | null(결과 미입력)
     result: r.onGreen === 'chip-in' ? 'chip-in' : r.onGreen === true ? 'on' : r.onGreen === false ? 'miss' : null,
   }));

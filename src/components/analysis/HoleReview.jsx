@@ -450,7 +450,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                       badgeColor={OFF_GREEN}
                       title={p.chips.length > 1 ? `그린 밖 칩 ${k + 1}` : '그린 밖에서 칩'}
                       sub={chip.club}
-                      meta="스코어 +1타 · 퍼팅 수 제외"
+                      meta={[chip.from != null && `남은거리 ${m(chip.from)} (입력)`, chip.surface, '스코어 +1타 · 퍼팅 수 제외'].filter(Boolean).join(' · ')}
                       value={null}
                       result={chip.result === 'chip-in' ? '칩인' : chip.result === 'on' ? '온그린' : chip.result === 'miss' ? '그린 놓침' : null}
                       resultColor={chip.result === 'chip-in' ? C.goldBright : chip.result === 'miss' ? C.red : C.green}

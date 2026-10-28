@@ -5,10 +5,11 @@
 // + 벌타'로 하고 GIR은 (스코어 − 퍼팅) ≤ 파 − 2 로 판정하므로, 이 칩을 퍼팅으로 세면
 // 3퍼트가 되고, 필드샷으로 세면 GIR이 사라진다. 그래서 따로 기록한다.
 //
-//   score.offGreen = [{ after, club, subClub, onGreen }, ...]
+//   score.offGreen = [{ after, club, subClub, onGreen, surface, remainingDistance }, ...]
 //     after    몇 번째 퍼트(0부터) 뒤에 친 샷인지. 같은 퍼트 뒤에 칩이 여러 번이면
 //              같은 값이 이어진다 (칩 → 그린 놓침 → 다시 칩)
 //     club     쓴 클럽 (선택 입력) · subClub 웨지 각도·아이언 번호 등
+//     surface  친 자리의 지형 (fairway·rough·bunker — 프린지는 페어웨이) · remainingDistance 핀까지 남은 거리(m). 둘 다 선택 입력
 //     onGreen  null(아직 결과 없음) | true(온그린) | false(그린 놓침) | 'chip-in'
 //   score.puttDetails[after].holein === 'offgreen'   — 그 퍼트가 그린 밖으로 나갔다는 표시
 //
@@ -26,7 +27,11 @@ export const OFF_GREEN_CLUBS = [
   { id: 'putter', label: 'PUTTER' },
 ];
 
-export const emptyOffGreenShot = (after) => ({ after, club: null, subClub: null, onGreen: null });
+export const emptyOffGreenShot = (after) => ({ after, club: null, subClub: null, onGreen: null, surface: null, remainingDistance: null });
+
+// 칩 거리 칸 — 퍼트가 그린 밖으로 나가 봤자 멀리 가지 않으므로 필드샷보다 좁은 범위(m)를 쓴다
+export const OFF_GREEN_START_M = 10;   // 칩 거리 칸을 처음 탭할 때의 출발값
+export const OFF_GREEN_MAX_M = 60;
 
 // 유효한 기록만 — 그 퍼트가 실제로 있고, 그린 밖으로 나갔다고 표시돼 있어야 한다.
 // 퍼트 순서(after)대로, 같은 퍼트 뒤에서는 기록한 순서대로 돌려준다.

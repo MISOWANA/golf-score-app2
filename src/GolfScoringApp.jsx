@@ -47,6 +47,7 @@ export default function GolfScoringApp() {
   const [notice, setNotice] = useState(null);           // 앱 안 알림 { tone: 'ok' | 'error', text } — 예전의 브라우저 alert() 자리
   const closeNotice = useCallback(() => setNotice(null), []);
   const [unit, setUnitState] = useState('m');             // 거리 단위 'm' | 'yd' — 기록은 늘 미터, 보이고 입력하는 단위만 바뀐다
+  const [firstPutt, setFirstPutt] = useState(null);       // 첫 퍼팅 기본 거리(m) — 정해 두면 첫 퍼팅 거리가 늘 이 값으로 들어간다. null = 쓰지 않음
   const [trash, setTrash] = useState([]);                // 휴지통에 있는 라운드들 (지운 지 7일 안)
   const [backupMeta, setBackupMeta] = useState(null);   // 마지막 백업 시각 · 그때의 라운드 수 (홈의 백업 안내)
   const [selectedRoundId, setSelectedRoundId] = useState(null);
@@ -73,6 +74,8 @@ export default function GolfScoringApp() {
 
   // 단위를 바꾼다 — 화면과 엔진의 문구 함수가 읽는 모듈 값(engine/units.js)과 화면 상태를 같이 맞춘다
   const applyUnit = useCallback((next) => { setUnit(next); setUnitState(next); }, []);
+  // 저장된 설정(단위 · 첫 퍼팅 기본 거리)을 한꺼번에 화면에 맞춘다
+  const applyPrefs = useCallback((prefs) => { applyUnit(prefs?.unit ?? 'm'); setFirstPutt(prefs?.firstPutt ?? null); }, [applyUnit]);
 
   useEffect(() => {
     const initApp = async () => {
@@ -100,7 +103,7 @@ export default function GolfScoringApp() {
           setBackupMeta(meta);
           setTrash(bin);
           setGoals(savedGoals);
-          applyUnit(prefs.unit);
+          applyPrefs(prefs);
           if (active) {
             setCurrentRound(active);
           }
@@ -116,7 +119,7 @@ export default function GolfScoringApp() {
       setLoading(false);
     };
     initApp();
-  }, [loadUserRounds, applyUnit]);
+  }, [loadUserRounds, applyPrefs]);
 
   // 같은 이름이면 기존 프로필로 들어간다 — 로그아웃했다 다시 들어와도 기록이 그대로다.
   const handleUserLogin = async (userName) => {
@@ -127,7 +130,7 @@ export default function GolfScoringApp() {
       setBackupMeta(meta);
       setTrash(bin);
       setGoals(savedGoals);
-      applyUnit(prefs.unit);
+      applyPrefs(prefs);
       setCurrentRound(active || null);
       setView('home');
     } catch (e) {
@@ -177,7 +180,7 @@ export default function GolfScoringApp() {
     setGoalSheet(null);
     setTrash([]);
     setBackupMeta(null);
-    applyUnit('m');
+    applyPrefs(null);
     setCurrentRound(null);
     setSelectedRoundId(null);
     setView('login');
@@ -186,7 +189,13 @@ export default function GolfScoringApp() {
   // 거리 단위 바꾸기 (설정) — 바로 화면에 반영하고, 저장은 뒤에서 한다 (사용자별로 기억)
   const handleChangeUnit = async (next) => {
     applyUnit(next);
-    try { await savePrefs(currentUser.userId, { unit: next }); } catch (e) { console.error('Save prefs failed', e); }
+    try { await savePrefs(currentUser.userId, { unit: next, firstPutt }); } catch (e) { console.error('Save prefs failed', e); }
+  };
+
+  // 첫 퍼팅 기본 거리 바꾸기 (설정) — null 이면 쓰지 않음. 다른 설정(단위)을 지우지 않게 함께 저장한다
+  const handleChangeFirstPutt = async (next) => {
+    setFirstPutt(next);
+    try { await savePrefs(currentUser.userId, { unit, firstPutt: next }); } catch (e) { console.error('Save prefs failed', e); }
   };
 
   // nine: null = 18홀 · 'out' = 전반 9홀 · 'in' = 후반 9홀 (engine/newRound.js)
@@ -314,8 +323,8 @@ export default function GolfScoringApp() {
 
       const { remapped } = await importUserData(currentUser.userId, sanitized, userIdsOf(currentUser));
       await loadUserRounds(currentUser);
-      // 백업 파일에 거리 단위 설정이 들어 있으면 가져오므로 화면도 맞춘다
-      try { applyUnit((await getPrefs(currentUser.userId)).unit); } catch { /* 설정을 못 읽어도 기록 복원은 끝났다 */ }
+      // 백업 파일에 설정(거리 단위 · 첫 퍼팅 기본 거리)이 들어 있으면 가져오므로 화면도 맞춘다
+      try { applyPrefs(await getPrefs(currentUser.userId)); } catch { /* 설정을 못 읽어도 기록 복원은 끝났다 */ }
       setNotice({ tone: 'ok', text: `데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
         + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : '')
         + (nineConverted > 0 ? `\n9홀만 입력된 ${nineConverted}개는 9홀 라운드로 저장했습니다 (통계에서는 제외돼요).` : '')
@@ -385,6 +394,8 @@ export default function GolfScoringApp() {
           backupMeta={backupMeta}
           unit={unit}
           onChangeUnit={handleChangeUnit}
+          firstPutt={firstPutt}
+          onChangeFirstPutt={handleChangeFirstPutt}
           onBackup={handleExportData}
           onImport={handleImportData}
           onBack={() => setView('home')}
@@ -405,6 +416,7 @@ export default function GolfScoringApp() {
         <ScoringView
           round={currentRound}
           currentUser={currentUser}
+          firstPutt={firstPutt}
           onUpdate={updateRound}
           onFinish={finishRound}
           goals={goals}

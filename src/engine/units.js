@@ -7,6 +7,8 @@
 // 현재 단위는 이 모듈이 들고 있다 (앱이 로그인한 사용자의 설정으로 setUnit 을 부른다). 화면과 엔진의 문구 만드는 함수가
 // 같은 값을 읽어서 숫자와 문장이 어긋나지 않는다. 입력 칸은 표시 단위로 받아 미터로 바꿔 저장한다.
 
+import { sanitizeFirstPutt } from './firstPutt.js';
+
 export const UNIT_IDS = ['m', 'yd'];
 export const M_TO_YD = 1.0936133;
 export const M_TO_FT = 3.280839895;
@@ -22,8 +24,11 @@ export const setUnit = (id) => { if (UNITS[id]) current = id; };
 export const isYards = (id = current) => id === 'yd';
 export const unitInfo = (id = current) => UNITS[id] ?? UNITS.m;
 
-// 저장된 설정 { unit } 을 검사해 돌려준다 — 모르는 값은 미터
-export const sanitizePrefs = (p) => ({ unit: UNIT_IDS.includes(p?.unit) ? p.unit : 'm' });
+// 저장된 설정 { unit, firstPutt? } 을 검사해 돌려준다 — 모르는 단위는 미터, 첫 퍼팅 기본 거리는 정한 사람만 키가 있다
+export const sanitizePrefs = (p) => {
+  const firstPutt = sanitizeFirstPutt(p?.firstPutt);
+  return { unit: UNIT_IDS.includes(p?.unit) ? p.unit : 'm', ...(firstPutt != null ? { firstPutt } : {}) };
+};
 
 const r1 = (n) => Math.round(n * 10) / 10;
 const r2 = (n) => Math.round(n * 100) / 100;

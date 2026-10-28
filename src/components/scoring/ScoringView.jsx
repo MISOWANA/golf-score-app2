@@ -5,7 +5,8 @@ import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
 import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
-import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, emptyOffGreenShot, OFF_GREEN_CLUBS } from '../../engine/offGreen.js';
+import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, emptyOffGreenShot, OFF_GREEN_CLUBS, OFF_GREEN_START_M, OFF_GREEN_MAX_M } from '../../engine/offGreen.js';
+import { PUTT_MIN_M, PUTT_MAX_M, PUTT_STEP_M, PUTT_START_M, newPuttDetail, sanitizeFirstPutt } from '../../engine/firstPutt.js';
 import { CLUB_SUBS, recommendClubs, clubLabelOf, fitText, reachText } from '../../engine/clubRecommend.js';
 import ClubSuggestions from './ClubSuggestions';
 import { useBagClubs } from './useBagClubs';
@@ -16,13 +17,12 @@ import { applyParEdit } from '../../engine/parEdit.js';
 import { greenMissed, GREEN_MISS_DIRS } from '../../engine/greenMiss.js';
 import { ninesOf, holeNoOf } from '../../engine/nines.js';
 import { SURFACES, shotInfoGaps, fairwayFromSurface, surfaceLabel, surfaceIdOf } from '../../engine/shotInfo.js';
-import { isYards, unitInfo, unitLabel, fromDisplay, fmtShot } from '../../engine/units.js';
+import { unitLabel, fmtShot } from '../../engine/units.js';
 import { playedNineOf } from '../../engine/nineConversion.js';
 import LandingWheel from './LandingWheel';
 import StickyTabs from '../ui/StickyTabs';
 import GoalLine from '../goals/GoalLine';
-import EmptyValue from '../ui/EmptyValue.jsx';
-import { useSwipeAdjust, SWIPE_STYLE } from '../ui/useSwipeAdjust.js';
+import SwipeDistance from '../ui/SwipeDistance.jsx';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -39,6 +39,10 @@ const AFTER_TEE_PENALTY_CLUBS = [{ id: 'driver', label: 'DRIVER' }, ...SECOND_CL
 // 클럽별 세부 선택지(CLUB_SUBS)는 클럽 추천이 마이백 클럽과 맞춰 보는 기준이기도 해서
 // engine/clubRecommend.js 에 둔다.
 
+// 거리 슬라이더가 덮는 범위(m) — 남은 거리는 흔한 거리를 손가락 끝으로 맞추기 좋게 입력 허용 범위(700m)보다 좁게 잡는다
+// (퍼팅 거리는 입력 범위 30m 를 그대로 덮는다 — engine/firstPutt.js)
+const SLIDER_REMAIN_M = 300;
+
 const ids = (list) => list.map((c) => c.id);
 
 const COMPASS_LABELS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
@@ -50,52 +54,6 @@ const getNavLabelFontSize = (text) => {
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-// value가 null이면 '미입력'으로 보여주고 아무것도 저장하지 않는다. 눈대중 기본값을
-// 그대로 저장하면 실제와 다른 거리가 통계에 섞이기 때문 — 입력하지 않은 거리는
-// 비워 두는 편이 낫다. start는 처음 조작할 때의 출발값(가운데를 탭하면 이 값으로 입력).
-//
-// 손가락 동작(가로로 끌기 · 세로 스크롤 · 탭)은 ui/useSwipeAdjust.js — 그린 스피드 선택기와 같이 쓴다.
-
-// kind('shot'|'putt')를 주면 거리 단위 설정을 따른다 — 야드 모드에서는 야드(퍼트는 피트)로 보이고 조절하며, onChange 에는
-// 늘 미터를 돌려준다. 받는 value·start·min·max 도 미터다 (engine/units.js).
-function SwipeDistance({ value: valueM, start: startM, min: minM = 1, max: maxM = 300, onChange: onChangeM, step: stepM = 1, decimals: decimalsM = 0, unit: unitM = 'm', kind = null }) {
-  const conv = kind != null && isYards();
-  const f = conv ? unitInfo()[`${kind}F`] : 1;
-  const inView = (v) => (v == null || !conv ? v : Math.round(v * f));
-  const value = inView(valueM);
-  const start = inView(startM);
-  const min = conv ? Math.max(1, Math.round(minM * f)) : minM;
-  const max = conv ? Math.round(maxM * f) : maxM;
-  const step = conv ? 1 : stepM;
-  const decimals = conv ? 0 : decimalsM;
-  const unit = conv ? unitLabel(kind) : unitM;
-  const onChange = (v) => onChangeM(conv ? fromDisplay(v, kind, 'yd') : v);
-  const clamp = v => parseFloat(Math.max(min, Math.min(max, Math.round(v / step) * step)).toFixed(decimals));
-  const empty = value == null;
-  const base = empty ? (start ?? min) : value;
-  const { active, bind } = useSwipeAdjust({ base, step, clamp, onChange, onTap: () => { if (empty) onChange(clamp(base)); } });   // 미입력 칸을 탭 → 출발값으로 입력
-
-  const display = empty ? null : (decimals > 0 ? Number(value).toFixed(decimals) : Math.round(value));
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button style={fMiniBtn} onClick={() => onChange(clamp(base - step))}>−</button>
-      <div
-        style={{ flex: 1, textAlign: 'center', padding: '8px 0', ...SWIPE_STYLE, background: active ? 'rgba(201,162,40,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
-        {...bind}
-      >
-        {empty
-          ? <EmptyValue />
-          : <><span style={{ fontSize: 34, fontWeight: 900, color: '#e8edf8', lineHeight: 1 }}>{display}</span><span style={{ fontSize: 14, color: '#8896b0', marginLeft: 4 }}>{unit}</span></>}
-        {empty && (
-          <div style={{ fontSize: 13, color: '#8896b0', marginTop: 4 }}>탭하면 {clamp(base)}{unit}부터 · 밀어서 조정</div>
-        )}
-      </div>
-      <button style={fMiniBtn} onClick={() => onChange(clamp(base + step))}>+</button>
-    </div>
-  );
-}
 
 function WindCompass({ direction, onChange }) {
   const ref = useRef(null);
@@ -627,7 +585,7 @@ const PUTT_LIE_DIRS = [
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup, goals = [] }) {
+export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup, goals = [], firstPutt = null }) {
   // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한 설정. 값이 없는 예전 라운드는 켜짐.
   const recommendOn = round.clubRecommend !== false;
   // 클럽 추천의 재료 — 마이백에 저장한 클럽별 거리. 마이백을 고친 뒤 이 화면으로 돌아오면
@@ -990,7 +948,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     if (!ask) return;
     let fresh = null;
     if (putts != null) {
-      const details = Array.from({ length: putts }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
+      const details = Array.from({ length: putts }, (_, i) => puttDetails[i] || newPuttDetail(i, firstPutt));
       const keptOffGreen = offGreenShots({ putts, puttDetails: details, offGreen: playerScore.offGreen });
       fresh = withAutoStrokes({ ...playerScore, putts, puttDetails: details, offGreen: keptOffGreen, puttsManual: true, puttsHeld: null, touched: true });
     }
@@ -1612,7 +1570,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     const raw = playerScore.puttDetails;
     return Array.from({ length: playerScore.putts || 0 }, (_, i) =>
       (raw && raw[i]) || (i === 0
-        ? { distance: playerScore.puttDistance || null, aimDistance: playerScore.puttAimedDistance || null }
+        ? { distance: playerScore.puttDistance || sanitizeFirstPutt(firstPutt), aimDistance: playerScore.puttAimedDistance || playerScore.puttDistance || sanitizeFirstPutt(firstPutt) }
         : { distance: null, aimDistance: null })
     );
   })();
@@ -1635,7 +1593,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // (0.5m 단위, 최소 0.5m) — 5m를 놓치면 보통 그보다 훨씬 짧게 남는다.
   // 직전 퍼팅도 입력 전이면 그 시작값을 기준으로 이어서 줄인다.
   const puttDefaultDistance = (idx) => {
-    if (idx <= 0) return 5;
+    if (idx <= 0) return sanitizeFirstPutt(firstPutt) ?? PUTT_START_M;
     const prev = puttDetails[idx - 1]?.distance ?? puttDefaultDistance(idx - 1);
     return Math.max(0.5, Math.round(prev / 2 / 0.5) * 0.5);
   };
@@ -1648,7 +1606,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   const updatePuttsCount = (n) => {
     const clamped = Math.min(n, maxPuttsAllowed);
-    const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || { distance: null, aimDistance: null, lie: [] });
+    const newDetails = Array.from({ length: clamped }, (_, i) => puttDetails[i] || newPuttDetail(i, firstPutt));
     // GIR을 사용자가 직접 선택한 뒤에는(girAuto:false) 퍼팅 수 변경이 그 선택을 덮어쓰지 않는다.
     // 스코어 자동 계산 중이면 GIR은 홀을 확정할 때 샷 기록으로 다시 계산한다.
     const keptOffGreen = offGreenShots({ putts: clamped, puttDetails: newDetails, offGreen: playerScore.offGreen });
@@ -1848,7 +1806,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     // 칩이 올라간 뒤 칠 퍼트가 하나 더 있어야 하므로 퍼팅 칸을 하나 늘려 둔다
     const newPutts = Math.max(current, puttIdx + 2);
     const newDetails = Array.from({ length: newPutts }, (_, i) =>
-      i === puttIdx ? { ...puttDetails[i], holein: 'offgreen' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
+      i === puttIdx ? { ...puttDetails[i], holein: 'offgreen' } : (puttDetails[i] || newPuttDetail(i, firstPutt))
     );
     const list = offGreenShots({ putts: newPutts, puttDetails: newDetails, offGreen: [...others, emptyOffGreenShot(puttIdx)] });
     updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: list });
@@ -2520,7 +2478,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               {mapDistanceTag(measuredTee, playerScore.teeDistance, null,
                 () => updateFields({ teeDistance: measuredTee, teeDistanceAppliedM: measuredTee }))}
             </div>
-            <SwipeDistance kind="shot" value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} onChange={v=>updateField('teeDistance',v)} />
+            <SwipeDistance kind="shot" value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} sliderMax={250} onChange={v=>updateField('teeDistance',v)} />
             {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
           </div>
         )}
@@ -2742,7 +2700,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               () => updateFields({ remainingDistance: measuredSecond, remainingAppliedM: measuredSecond, remainingSource: null, replayCopied: false }))}
             {replayTag(playerScore.replayCopied)}
           </div>
-          <SwipeDistance kind="shot" value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
+          <SwipeDistance kind="shot" value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} sliderMax={SLIDER_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
           {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
         </div>
 
@@ -2893,7 +2851,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       () => updateExtraShot(idx, { remainingDistance: measuredExtra(idx), remainingAppliedM: measuredExtra(idx), remainingSource: null, replayCopied: false }))}
                     {replayTag(shot.replayCopied)}
                   </div>
-                  <SwipeDistance kind="shot" value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
+                  <SwipeDistance kind="shot" value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} sliderMax={SLIDER_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
                   {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
                 </div>
 
@@ -3022,12 +2980,27 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       퍼트가 그린 밖으로 나간 뒤 친 칩 — 스코어에는 +1타, 퍼팅 수에는 들어가지 않아요
                     </div>
 
+                    {/* 남은 거리 — 칩을 치는 자리에서 핀까지. 선택 입력(비워 둬도 된다) */}
+                    <div data-role="off-green-distance" style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+                      <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
+                      <SwipeDistance kind="shot" value={chip.remainingDistance ?? null} start={OFF_GREEN_START_M} min={1} max={OFF_GREEN_MAX_M} sliderMax={OFF_GREEN_MAX_M}
+                        onChange={v => updateOffGreenShot(idx, { remainingDistance: v })} />
+                    </div>
+
                     <ClubSelector
                       icon="〽" label="클럽" categories={OFF_GREEN_CLUBS}
                       value={chip.club} subValue={chip.subClub}
                       onCategory={v => updateOffGreenShot(idx, { club: v, subClub: null })}
                       onSub={v => updateOffGreenShot(idx, { subClub: v })}
                       stacked
+                    />
+
+                    {/* 지형 — 프린지는 페어웨이에 들어간다. 선택 입력 */}
+                    <SurfaceRow
+                      role={`off-green-surface-${idx}`}
+                      value={surfaceIdOf(chip.surface)}
+                      missing={false}
+                      onChange={v => updateOffGreenShot(idx, { surface: v })}
                     />
 
                     {/* 온그린 성공 / 실패 / 칩인 — 클럽 없이도 고를 수 있다 */}
@@ -3162,11 +3135,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   </div>
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
-                    <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
+                    <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v => updateField('puttDetails', puttDetails.map((p, i) => i === puttIdx ? { ...p, distance: v, aimDistance: v } : p))} />
                   </div>
                   <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>🎯</span><span style={fLbl}>조준 거리</span></div>
-                    <SwipeDistance kind="putt" value={putt.aimDistance ?? null} start={putt.distance ?? puttDefaultDistance(puttIdx)} min={0.5} max={30} step={0.5} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
+                    <SwipeDistance kind="putt" value={putt.aimDistance ?? null} start={putt.distance ?? puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v=>updatePutt(puttIdx,'aimDistance',v)} />
                   </div>
                   {/* 홀인 */}
                   <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
@@ -3183,7 +3156,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                           // 직접 고친 스코어가 있으면 그 값이 우선 (퍼팅 수만 기록하고 타수는 유지)
                           const manual = !!playerScore.strokesManual;
                           const newDetails = Array.from({ length: puttsUsed }, (_, i) =>
-                            i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
+                            i === puttIdx ? { ...puttDetails[i], holein: 'success' } : (puttDetails[i] || newPuttDetail(i, firstPutt))
                           );
                           // 홀인한 퍼트 뒤에는 칩이 있을 수 없다
                           const keptOffGreen = offGreenShots({ putts: puttsUsed, puttDetails: newDetails, offGreen: playerScore.offGreen });
@@ -3217,7 +3190,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                         onClick={() => {
                           const newPutts = Math.max(playerScore.putts || 0, puttIdx + 2);
                           const newDetails = Array.from({ length: newPutts }, (_, i) =>
-                            i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : (puttDetails[i] || { distance: null, aimDistance: null, lie: [] })
+                            i === puttIdx ? { ...puttDetails[i], holein: 'fail' } : (puttDetails[i] || newPuttDetail(i, firstPutt))
                           );
                           updateFields({ putts: newPutts, puttDetails: newDetails, offGreen: offGreenShots({ putts: newPutts, puttDetails: newDetails, offGreen: playerScore.offGreen }) });
                           setExpandedPutt(puttIdx + 1);
@@ -3713,4 +3686,3 @@ const reliefNextNum = { fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: 
 const reliefNextUnit = { fontSize: 13, fontWeight: 700, color: '#d8b640' };
 const reliefNote = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
 
-const fMiniBtn = { width:44, height:44, borderRadius: 12, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' };

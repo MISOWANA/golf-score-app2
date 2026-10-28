@@ -181,6 +181,33 @@ const globalCSS = `
     50%       { box-shadow: 0 2px 24px rgba(198,40,40,0.82), 0 0 0 5px rgba(198,40,40,0.12); }
   }
 
+  /* ── 거리 슬라이더 (스코어 입력의 거리 칸) ───────────────────────────── */
+  /* 손잡이 26px · 입력 높이 40px — 장갑 낀 엄지로도 잡히도록 눌리는 영역은 줄 두께보다 훨씬 크다.
+     채워진 부분은 --frac(0~1) 로 그린다 (손잡이 반지름만큼 양쪽을 안으로 들였다). 비어 있으면(data-empty=1) 흐리게. */
+  .dist-slider {
+    --fill: #c9a228; --rest: #252f4a; --thumb: #c9a228;
+    -webkit-appearance: none; appearance: none;
+    display: block; width: 100%; height: 40px; margin: 0; padding: 0;
+    background: transparent; cursor: pointer; touch-action: pan-y;
+  }
+  .dist-slider[data-empty="1"] { --fill: #3a4a6b; --thumb: #6e84a8; }
+  .dist-slider::-webkit-slider-runnable-track {
+    height: 8px; border-radius: 4px;
+    background: linear-gradient(to right, var(--fill) calc(13px + (100% - 26px) * var(--frac)), var(--rest) calc(13px + (100% - 26px) * var(--frac)));
+  }
+  .dist-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px; margin-top: -9px; border-radius: 50%;
+    background: var(--thumb); border: 3px solid #0b0e18; box-shadow: 0 0 0 1.5px var(--thumb);
+  }
+  .dist-slider::-moz-range-track { height: 8px; border-radius: 4px; background: var(--rest); }
+  .dist-slider::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--fill); }
+  .dist-slider::-moz-range-thumb {
+    box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--thumb); border: 3px solid #0b0e18; box-shadow: 0 0 0 1.5px var(--thumb);
+  }
+  .dist-slider:focus-visible { outline: 2px solid #f3d36b; outline-offset: 2px; border-radius: 6px; }
+
   /* ── Mobile optimisations ───────────────────────────────────────────── */
   @media (max-width: 430px) {
     * { -webkit-text-size-adjust: none !important; }

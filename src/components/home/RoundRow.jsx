@@ -5,6 +5,7 @@ import { tintWash, TINT_ROW } from '../ui/tint.js';
 import { myPlayer, totalPar as sumPar } from '../../engine/players.js';
 import { isNineHoleRound } from '../../engine/nines.js';
 import { nineBadgeStyle } from '../ui/nineBadge.js';
+import { roundDateLong } from '../../engine/dateLabel.js';
 
 export default function RoundRow({ round, onClick, userName }) {
   const firstPlayer = myPlayer(round, userName);
@@ -21,7 +22,7 @@ export default function RoundRow({ round, onClick, userName }) {
           {isNineHoleRound(round) && <span data-role="nine-badge" style={nineBadgeStyle}>9홀</span>}
         </div>
         <div style={styles.roundDate}>
-          {new Date(round.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+          {roundDateLong(round.date)}
           <span style={styles.dot}> · </span>
           {round.players.length}인
         </div>

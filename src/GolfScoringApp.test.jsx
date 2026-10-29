@@ -645,6 +645,130 @@ describe('인사이트 — 제목 · 상태 표시', () => {
   });
 });
 
+describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
+  // makeFullRound(i) 의 날짜는 2026-09-(1 + 3i) → 1번 9.4 · 2번 9.7 · 3번 9.10 (모두 2026년)
+  const YMD = /^\d{4}\.\d{1,2}\.\d{1,2}$/;
+  const openInsights = async () => { tab('인사이트'); await screen.findByText('Insights'); };
+  // 장(탭)을 차례로 열어 가며 찾는 요소가 나올 때까지
+  const findInChapters = async (selector) => {
+    for (const t of [...document.querySelectorAll('[data-role^="insights-tab-"]')]) {
+      if (document.querySelector(selector)) break;
+      fireEvent.click(t);
+    }
+    return waitFor(() => { const els = document.querySelectorAll(selector); expect(els.length).toBeGreaterThan(0); return [...els]; });
+  };
+
+  it('인사이트 — 리포트로 볼 라운드 고르기 목록에 연도가 붙는다', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    await openInsights();
+    fireEvent.click(document.querySelector('[data-role="scope-pick"]'));
+    const dates = await waitFor(() => { const d = [...document.querySelectorAll('[data-role="pick-date"]')]; expect(d.length).toBe(3); return d.map((x) => x.textContent); });
+    expect(dates).toEqual(['2026.9.10', '2026.9.7', '2026.9.4']);                // 최신이 맨 위
+    dates.forEach((t) => expect(t).toMatch(YMD));
+  });
+
+  it('인사이트 — 범위 카드의 날짜에도 연도가 붙는다 (지난 라운드를 누적으로 볼 때 "…까지" 도)', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    await openInsights();
+    await waitFor(() => expect(document.body.textContent).toContain('2026.9.10'));
+    fireEvent.click(document.querySelector('[data-role="scope-pick"]'));
+    fireEvent.click(await waitFor(() => { const o = document.querySelector('[data-role="pick-1"]'); expect(o).toBeTruthy(); return o; }));       // 두 번째로 최근(2026.9.7) 라운드
+    await waitFor(() => expect(document.body.textContent).toMatch(/· 2026\.9\.7/));
+    fireEvent.click(document.querySelector('[data-role="scope-career"]'));
+    await waitFor(() => expect(document.body.textContent).toContain('2라운드 평균 · 2026.9.7까지'));
+  });
+
+  it('인사이트 — 누적의 라운드별 스코어 추이 날짜에 연도가 붙는다', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    await openInsights();
+    fireEvent.click(document.querySelector('[data-role="scope-career"]'));
+    const rows = await findInChapters('[data-role="trend-date"]');
+    expect(rows.map((r) => r.textContent)).toEqual(['2026.9.4', '2026.9.7', '2026.9.10']);   // 오래된 라운드부터
+  });
+
+  // 파4 한 홀 — 세컨샷을 from(m) 에서 쳐서 그린에 올리고, 랜딩 hour 시 · 첫 퍼트 dist(m)
+  const chipRound = (spec) => {
+    const r = makeFullRound(1, ME, { courseName: '분포CC' });
+    let k = 0;
+    r.holes.forEach((h, i) => {
+      if (h.par !== 4 || k >= spec.length) { r.holes[i].scores[ME] = defaultScore(h.par); return; }
+      const [from, hour, dist] = spec[k++];
+      r.holes[i].scores[ME] = {
+        ...defaultScore(h.par), touched: true, confirmed: true, teeClub: 'driver', gir: true, girAuto: false, onGreen: true, putts: 2,
+        secondClub: from < 80 ? 'wedge' : 'iron', secondClubSub: from < 80 ? '52' : '7I', remainingDistance: from,
+        puttDetails: [{ distance: dist, holein: 'fail' }, { distance: 0.5, holein: 'success' }], onGreenLanding: hour,
+      };
+    });
+    return r;
+  };
+  // 80m 밖 5홀(숏 3 · 롱 1 · 라이트 1) + 80m 안 5홀(모두 라이트 3시)
+  const SPEC = [[150, 6, 6], [140, 6, 5], [130, 6, 7], [120, 12, 8], [110, 3, 6], [30, 3, 2], [25, 3, 1.5], [40, 3, 3], [20, 3, 1], [50, 3, 2.5]];
+
+  it('인사이트 — 그린 랜딩 분포는 12조각 휠이고 총 횟수와 범위(80m 밖)를 알려 준다', async () => {
+    const rs = [chipRound([[150, 6, 6], [140, 6, 5], [130, 7, 7], [120, 5, 4], [110, 12, 8]]), chipRound([[150, 3, 6], [140, 9, 5], [130, 6, 7]])];
+    rs[1].id = 'second'; rs[1].date = new Date(2026, 8, 7, 12).toISOString();
+    await setup({ rounds: rs });
+    await openInsights();
+    await findInChapters('[data-role="landing-section"]');
+    expect(document.querySelectorAll('[data-role="landing-section"] [data-role="landing-point"]')).toHaveLength(12);
+    expect(document.querySelector('[data-role="landing-hub-total"]').textContent).toBe('8회');
+    expect(document.querySelector('[data-role="landing-total"]').textContent).toBe('80m 밖 샷으로 그린에 올라간 8홀');      // 80m 안 샷이 없으면 그 안내는 붙지 않는다
+    expect(document.querySelector('[data-role="landing-section"] [data-role="info-note"]')).toBeTruthy();   // 읽는 법
+  });
+
+  it('인사이트 — 분포는 80m 밖 샷만 세고, 80m 안 샷은 아래 핀 기준 탄착에서만 센다 (한 샷이 두 번 세어지지 않는다)', async () => {
+    await setup({ rounds: [chipRound(SPEC)] });
+    await openInsights();
+    await findInChapters('[data-role="landing-section"]');
+    const hours = (root) => Object.fromEntries([...root.querySelectorAll('[data-role="landing-point"]')].filter((g) => g.getAttribute('data-count') !== '0').map((g) => [g.getAttribute('data-hour'), Number(g.getAttribute('data-count'))]));
+    const section = document.querySelector('[data-role="landing-section"]');
+    expect(hours(section)).toEqual({ 6: 3, 12: 1, 3: 1 });                                    // 80m 안 3시 5홀은 빠져 있다
+    expect(section.querySelector('[data-role="landing-hub-total"]').textContent).toBe('5회');
+    expect(document.querySelector('[data-role="landing-total"]').textContent).toBe('80m 밖 샷으로 그린에 올라간 5홀 · 80m 안 5홀은 숏게임에서');
+    // 같은 화면의 핀 기준 탄착은 80m 안 5홀만 점으로 찍는다
+    const target = await waitFor(() => { const t = document.querySelector('[data-role="shortgame-section"] [data-role="short-target"]'); expect(t).toBeTruthy(); return t; });
+    expect(target.querySelectorAll('[data-role="short-dot"]')).toHaveLength(5);
+    expect([...target.querySelectorAll('[data-role="short-dot"]')].every((d) => d.getAttribute('data-hour') === '3')).toBe(true);
+  });
+
+  it('스탯 어프로치의 LANDING 카드도 인사이트 분포와 같은 80m 밖 샷만 센다', async () => {
+    await setup({ rounds: [chipRound(SPEC)] });
+    tab('스탯');
+    await screen.findByText('Stats');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-approach"]'); expect(t).toBeTruthy(); return t; }));
+    const card = await waitFor(() => { const c = document.querySelector('[data-role="card-landing"]'); expect(c).toBeTruthy(); return c; });
+    expect(card.textContent).toContain('3번');                                                  // 숏 3 (6시 3홀)
+    expect(card.textContent).not.toContain('6번');                                              // 80m 안 5홀까지 세면 라이트가 6번이 된다
+    expect(document.querySelector('[data-role="landing-take"]').textContent).toContain('80m 밖 샷으로 그린에 올린 공이');
+    expect(document.querySelector('[data-role="landing-short-note"]').textContent).toBe('80m 안 샷으로 올린 5홀은 숏게임 탭의 핀 기준 탄착에서 봐요.');
+  });
+
+  it('홈 — 최근 라운드 줄에 연도가 붙는다', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2)] });
+    expect(document.body.textContent).toContain('2026년 9월 7일 · 1인');      // 홈은 가장 최근 라운드 한 줄
+  });
+
+  it('스탯 종합 — 스코어 추이 막대 밑에 월/일과 연도가 두 줄로 보인다', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    tab('스탯');
+    await screen.findByText('Stats');
+    const ticks = await waitFor(() => { const t = [...document.querySelectorAll('[data-role="trend-date"]')]; expect(t.length).toBeGreaterThan(1); return t; });
+    expect(ticks.map((t) => t.textContent)).toContain('9/42026');       // <br/> 로 나뉜 두 줄 — 월/일 다음에 연도
+    ticks.forEach((t) => expect(t.querySelector('br')).toBeTruthy());
+  });
+
+  it('라운드 설정 — 이 코스 기록의 날짜에 연도가 붙는다', async () => {
+    const at = (i) => makeFullRound(i, ME, { courseName: '남서울CC', id: `ns${i}` });
+    await setup({ rounds: [at(1), at(2)] });
+    fireEvent.click(screen.getByText('시작하기'));
+    await screen.findByText('New Round');
+    fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '남서울CC' } });
+    const card = await waitFor(() => { const c = document.querySelector('[data-role="course-history"]'); expect(c).toBeTruthy(); return c; });
+    expect(card.querySelector('[data-role="course-recent"]').textContent).toMatch(/2026\.9\.7.*2026\.9\.4/);
+    expect(card.querySelector('[data-role="course-best"]').textContent).toMatch(/\(2026\.9\.\d+\)/);
+  });
+});
+
 // ── 백업 · 설정 · 핸디캡 · 라운드 요약 카드 (개편 1차) ────────────────────────────
 
 // 다운로드는 링크 클릭으로 일어난다 — jsdom 에는 없는 URL.createObjectURL 과 링크 클릭을 가로채고, 만들어진 파일(Blob)을 모은다

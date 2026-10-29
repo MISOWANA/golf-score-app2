@@ -1,9 +1,10 @@
 import KoEnTitle from '../ui/KoEnTitle';
 import { signedDiff } from '../../share/reportImageModel.js';
+import { roundDateLabel } from '../../engine/dateLabel.js';
 
 // 라운드 설정의 "이 코스 기록" — 같은 코스를 전에 쳤을 때의 스코어 · 어려웠던 홀 · 홀 메모 (engine/courseHistory.js).
 //   history  buildCourseHistory 결과 (기록이 없으면 null → 아무것도 그리지 않는다)
-const md = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`; };
+const md = (iso) => roundDateLabel(iso);   // 연도까지 — 2026.9.20 (해가 바뀐 뒤에도 어느 해 기록인지 보이게)
 const diffColor = (d) => (d < 0 ? '#3db87a' : d === 0 ? '#8896b0' : '#ef5350');
 const sign = (n) => (n > 0 ? `+${n}` : `${n}`);
 
@@ -20,7 +21,7 @@ export default function CourseHistoryCard({ history }) {
       <div data-role="course-recent" style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         {recent.map((r) => (
           <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#c4cfe0' }}>
-            <span style={{ width: 44, color: '#8896b0' }}>{md(r.date)}</span>
+            <span style={{ minWidth: 76, color: '#8896b0', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{md(r.date)}</span>
             <b style={{ color: '#e8edf8', fontVariantNumeric: 'tabular-nums' }}>{r.total}타</b>
             <span style={{ color: diffColor(r.diff), fontWeight: 700 }}>({signedDiff(r.diff)})</span>
             {r.nine && <span style={{ fontSize: 12, color: '#8896b0', border: '1px solid #2c3a5c', borderRadius: 6, padding: '0 5px' }}>9홀</span>}

@@ -4,6 +4,7 @@ import InsightCard from './InsightCard.jsx';
 import { SEVERITY_COLOR } from './insightTheme.js';
 import { buildInsightIndex, searchInsights, countByCategory, SEVERITY_LABEL } from '../../engine/insightIndex.js';
 import { INSIGHT_CATEGORY_LABEL, INSIGHT_CATEGORY_ORDER } from '../../engine/rules/category.js';
+import { roundDateLabel as dateLabel } from '../../engine/dateLabel.js';   // 연도까지 — 2026.9.20
 
 const QUICK = ['3퍼트', '숏퍼트', '그린스피드', '거리감', 'OB', '해저드', '드라이버', '업앤다운', '버디', '후반', '연속'];
 const PAGE = 30;
@@ -14,11 +15,6 @@ const pill = (active, color = '#c9a228') => ({
   background: active ? `${color}22` : '#111827',
   color: active ? color : '#8896b0', whiteSpace: 'nowrap',
 });
-
-const dateLabel = (d) => {
-  const t = new Date(d);
-  return Number.isNaN(t.getTime()) ? String(d).slice(0, 10) : `${t.getMonth() + 1}/${t.getDate()}`;
-};
 
 // 인사이트 검색 — 모든 라운드·홀·누적 인사이트를 한 목록에서 찾는다.
 export default function InsightSearchPanel({ rounds }) {

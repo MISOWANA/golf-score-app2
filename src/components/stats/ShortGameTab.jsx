@@ -61,6 +61,7 @@ export default function ShortGameTab({ report }) {
         <p>{limit} 안에서 친 샷(칩·피치)을 모아 봐요. 최근 20라운드, 남은 거리를 입력했거나 지도로 잰 샷만 셌어요.</p>
         <p>핀 기준 위치는 퍼팅 탭에서 기록한 "온그린 랜딩 방향"(몇 시)과 "첫 퍼트 거리"를 합쳐서 계산해요. 위가 롱(핀 너머), 아래가 숏, 오른쪽이 라이트예요. 둘 다 기록한 샷만 세요.</p>
         <p>흰 점은 평균 위치(쏠림), 점선 타원은 흩어짐이에요. 쏠림은 한쪽으로 늘 치우치는 정도, 흩어짐은 샷마다 달라지는 정도예요. 어느 쪽이 맞는 모습인지는 앱이 정하지 않아요.</p>
+        <p>{limit} 밖 풀샷이 어느 쪽으로 멈추는지는 어프로치 탭의 "LANDING"에서 봐요. 같은 샷을 두 번 세지 않아요.</p>
       </>}>
         {near.n >= 5 && (
           <div data-role="near-green" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, marginBottom: 14 }}>

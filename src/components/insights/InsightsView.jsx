@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronDown, History, Search } from 'lucide-react';
 import styles from '../../styles/styles';
-import LandingRadar from './LandingRadar';
+import LandingDistribution from './LandingDistribution';
 import { landingCounts } from '../../engine/landing.js';
+import { roundDateLabel } from '../../engine/dateLabel.js';
 import ConfidenceBadge from './ConfidenceBadge';
 import GreenSpeedPanel from './GreenSpeedPanel';
 import InfoNote from '../ui/InfoNote';
@@ -108,12 +109,11 @@ function RoundPicker({ allRounds, pick, onPick }) {
         const p = r.players[0];
         const total = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
         const diff = total - sumPar(r);
-        const d = new Date(r.date);
         const on = i === pick;
         return (
           <button key={r.id} type="button" role="option" aria-selected={on} data-role={`pick-${i}`} onClick={() => onPick(i)}
             style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? 'rgba(201,162,40,0.14)' : 'transparent', color: '#e8edf8', textAlign: 'left' }}>
-            <span style={{ width: 38, fontSize: 14, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0', fontVariantNumeric: 'tabular-nums' }}>{d.getMonth() + 1}/{d.getDate()}</span>
+            <span data-role="pick-date" style={{ minWidth: 80, flexShrink: 0, whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0', fontVariantNumeric: 'tabular-nums' }}>{roundDateLabel(r.date)}</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.courseName || '코스 이름 없음'}</span>
             {i === 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#3db87a', border: '1px solid rgba(61,184,122,0.5)', borderRadius: 999, padding: '1px 7px' }}>최신</span>}
             <span style={{ fontSize: 16, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{total}</span>
@@ -256,7 +256,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     const score = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
     return {
       id: r.id, roundNo: idx + 1, date: r.date,
-      dateLabel: new Date(r.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }),
+      dateLabel: roundDateLabel(r.date),
       score, par, diff: score - par,
     };
   });
@@ -406,7 +406,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const roundScore = latestRound.holes.reduce((s, h) => s + (h.scores[player]?.strokes || 0), 0);
 
   // 범위 카드: 이번 라운드면 그 라운드의 스코어, 누적이면 평균 스코어와 파 대비 평균
-  const scopeDate = `${new Date(latestRound.date).getMonth() + 1}/${new Date(latestRound.date).getDate()}`;
+  const scopeDate = roundDateLabel(latestRound.date);
   const scopeDiff = isCareerMode
     ? roundTrend.reduce((s, r) => s + r.diff, 0) / roundTrend.length
     : roundScore - roundPar;
@@ -794,13 +794,21 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── 온그린 랜딩 분포 ─────────────────────────────────────────────── */}
       {(() => {
-        const { counts, total } = landingCounts(rounds);
+        const { counts, total, shortGame } = landingCounts(rounds);   // 80m 밖 샷만 — 80m 안은 아래 숏게임의 핀 기준 탄착이 센다
         if (total === 0) return null;
         return (
           <div style={styles.section} data-role="landing-section">
-            <div style={styles.sectionTitle}><KoEnTitle text="GREEN APPROACH · 그린 랜딩 분포" /></div>
-            <LandingRadar counts={counts} />
-            <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 14, marginTop: 8 }}>총 {total}회 기록</div>
+            <div style={styles.sectionTitle}>
+              <KoEnTitle en="GREEN APPROACH" ko="그린 랜딩 분포">
+                <InfoNote title="그린 랜딩 분포 읽는 법">
+                  <p>풀샷(80m 밖 어프로치 · 파3 티샷 · 1온)이 그린에 올라 핀 기준 어느 쪽에 멈췄는지 센 거예요. 퍼팅 탭에서 기록한 "온그린 랜딩 방향"을 그대로 모았고, 입력할 때 쓰는 휠과 같은 모양이에요. 12시가 롱(핀 너머) · 3시가 라이트 · 6시가 숏 · 9시가 레프트예요.</p>
+                  <p>조각의 숫자는 그 시각에 멈춘 횟수예요. 많을수록 진하고, 가장 많은 조각은 금색으로 켜져요. 흰 점은 평균 방향이에요(한쪽으로 쏠렸을 때만 보여요).</p>
+                  <p>{tx('80m 안에서 친 칩·피치는 여기서 세지 않아요. 첫 퍼트 거리와 합쳐 핀에서 얼마나 떨어졌는지를 아래 숏게임의 "핀 기준 탄착"에서 따로 봐요. 같은 샷을 두 번 세지 않아요.')}</p>
+                </InfoNote>
+              </KoEnTitle>
+            </div>
+            <LandingDistribution counts={counts} />
+            <div data-role="landing-total" style={{ textAlign: 'center', color: '#8896b0', fontSize: 13, marginTop: 6 }}>{tx(`80m 밖 샷으로 그린에 올라간 ${total}홀`)}{shortGame > 0 ? ` · ${tx('80m 안')} ${shortGame}홀은 숏게임에서` : ''}</div>
           </div>
         );
       })()}
@@ -849,6 +857,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
               <InfoNote title="핀 기준 탄착 읽는 법">
                 <p>퍼팅 탭에서 기록한 "온그린 랜딩 방향"(몇 시)과 "첫 퍼트 거리"를 합쳐서, 80m 안 샷이 그린에 올라 핀 기준 어디에 멈췄는지 찍어요. 위가 롱(핀 너머), 아래가 숏, 오른쪽이 라이트예요.</p>
                 <p>흰 점은 평균 위치(쏠림), 점선 타원은 흩어짐이에요. 거리별·클럽별로 나눈 표는 스탯의 숏게임 탭에 있어요.</p>
+                <p>{tx('80m 밖 풀샷이 어느 쪽으로 멈추는지는 위의 "그린 랜딩 분포"에서 봐요. 같은 샷을 두 번 세지 않아요.')}</p>
               </InfoNote>
             </div>
             <ShortGamePatternPanel pattern={shortPattern} />
@@ -958,7 +967,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={styles.sectionTitle}><KoEnTitle text="ROUND TREND · 라운드별 스코어 추이" /></div>
           {roundTrend.map(r => (
             <div key={r.id} style={styles.riStatRow}>
-              <div style={styles.riStatRowLabel}>{r.dateLabel}</div>
+              <div data-role="trend-date" style={{ ...styles.riStatRowLabel, width: 88, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.dateLabel}</div>
               <div style={styles.riStatRowBarTrack}>
                 <div
                   style={{

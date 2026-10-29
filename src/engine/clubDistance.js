@@ -32,14 +32,16 @@ const gpsDistancesFor = (hole, s) =>
 const pinDistancesFor = (hole, s) =>
   pinDistances(s.gpsPoints, s.gpsPin, fieldShotCount(s, hole.par));
 
-export function extractClubShots(hole, player) {
+// 세컨샷 이후의 샷을 잔여거리 · 클럽 · 그린 도달 여부로 이은 체인 — 거리는 아직 계산하지 않았다.
+// 입력이 없으면 null (티샷으로 그린에 올린 홀 포함).
+function buildShotChain(hole, player) {
   const s = hole.scores?.[player];
-  if (!s) return [];
+  if (!s) return null;
 
   // 티샷이 그린에 올라간 홀(1온·파3 티샷 온그린·홀인원)은 세컨샷 이후가 없다. 1온으로 정정하기
   // 전에 입력해 둔 세컨샷 이후 기록은 화면에서 숨겨질 뿐 데이터에는 남아 있으므로, 클럽 통계와
   // 어프로치 근접도에 섞이지 않게 여기서 거른다 (1온 표시를 풀면 그대로 되살아난다).
-  if (fieldShotCount(s, hole.par) <= 1) return [];
+  if (fieldShotCount(s, hole.par) <= 1) return null;
 
   const gpsDist = gpsDistancesFor(hole, s);
   const pinDist = pinDistancesFor(hole, s);
@@ -88,6 +90,13 @@ export function extractClubShots(hole, player) {
     });
   });
 
+  return { s, chain, gpsDist };
+}
+
+export function extractClubShots(hole, player) {
+  const built = buildShotChain(hole, player);
+  if (!built) return [];
+  const { s, chain, gpsDist } = built;
   const puttDistance = s.puttDetails?.[0]?.distance ?? null;
 
   return chain
@@ -111,6 +120,18 @@ export function extractClubShots(hole, player) {
       return { ...shot, distance, measured: false };
     })
     .filter(Boolean);
+}
+
+// 80m 안에서 친 샷(칩·피치)으로 그린에 올린 홀이면 그 마지막 샷, 아니면 null.
+// 이 홀의 '온그린 랜딩 방향'은 숏게임(핀 기준 탄착)이 세고, 그린 랜딩 분포(풀샷 방향)는 세지 않는다 —
+// 두 화면이 이 판정 하나로 홀을 나눠서 같은 샷이 두 번 세어지지 않는다.
+// 체인 그대로 본다: 첫 퍼트 거리를 몰라 샷 거리를 못 구한 칩도 80m 안이면 숏게임 쪽이다(탄착 점은 못 찍을 뿐).
+// 남은 거리를 모르는 샷 · 그린을 못 올린 샷 · 티샷으로 올린 홀(파3 티샷 · 1온)은 숏게임이 아니다.
+export function shortGameLandingShot(hole, player) {
+  const chain = buildShotChain(hole, player)?.chain;
+  const last = chain?.[chain.length - 1];
+  if (!last || last.onGreen !== true || last.fromDistance == null || last.fromDistance >= SHORT_SHOT_MAX_M) return null;
+  return last;
 }
 
 // 티샷은 잔여거리 체인으로 역산할 수 없어 GPS가 있을 때만 거리가 나온다.

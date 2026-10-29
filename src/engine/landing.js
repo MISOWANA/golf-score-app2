@@ -1,5 +1,12 @@
-// 온그린 랜딩 방향(1~12시) 집계 — 인사이트의 그린 랜딩 분포가 쓴다.
+// 온그린 랜딩 방향(1~12시) 집계 — 인사이트의 그린 랜딩 분포와 스탯 어프로치의 LANDING 카드가 쓴다.
 // 시각은 핀을 가운데 두고 12시=롱(넘침), 3시=라이트, 6시=숏(짧음), 9시=레프트 기준이다.
+//
+// 분포는 '풀샷 방향 성향' — 80m 안 칩·피치로 올린 홀은 세지 않는다. 그 샷은 첫 퍼트 거리까지 합쳐 숏게임의
+// 핀 기준 탄착(shortGamePattern)이 센다. 같은 샷이 두 화면에 두 번 세어지지 않게 두 화면이 같은 판정
+// (clubDistance.shortGameLandingShot)으로 홀을 나눈다. 풀샷 = 80m 밖에서 올린 어프로치 · 파3 티샷 · 1온 ·
+// 남은 거리를 입력하지 않아 거리를 모르는 샷.
+
+import { shortGameLandingShot } from './clubDistance.js';
 
 export const LANDING_HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 export const QUADRANTS = ['long', 'right', 'short', 'left'];
@@ -20,19 +27,23 @@ export function landingHour(value) {
 }
 
 // 라운드들의 온그린 랜딩을 시각별로 센다. playerOf 로 누구의 기록인지 정한다 (기본은 첫 번째 플레이어).
-export function landingCounts(rounds, playerOf = (r) => r.players?.[0]) {
+// 80m 안 샷으로 올린 홀은 세지 않고 shortGame 에 몇 홀인지만 돌려준다 (화면이 "숏게임에서 봐요" 라고 알려 줄 수 있게).
+// includeShortGame: true 면 거리와 상관없이 모두 센다.
+export function landingCounts(rounds, playerOf = (r) => r.players?.[0], { includeShortGame = false } = {}) {
   const counts = {};
   let total = 0;
+  let shortGame = 0;
   for (const r of rounds) {
     const p = playerOf(r);
     for (const h of r.holes ?? []) {
       const hour = landingHour(h.scores?.[p]?.onGreenLanding);
       if (hour == null) continue;
+      if (!includeShortGame && shortGameLandingShot(h, p)) { shortGame++; continue; }
       counts[hour] = (counts[hour] ?? 0) + 1;
       total++;
     }
   }
-  return { counts, total };
+  return { counts, total, shortGame };
 }
 
 // 분포를 읽기 쉬운 값으로: 방향별 횟수, 가장 많은 방향·시각, 평균 위치(x 오른쪽+, y 롱+)와 쏠림 정도(0~1)

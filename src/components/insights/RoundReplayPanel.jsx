@@ -8,14 +8,11 @@ import { PUTT_CAUSE_LABEL } from '../../engine/puttAnalysis.js';
 import { totalPar } from '../../engine/players.js';
 import { isNineHoleRound } from '../../engine/nines.js';
 import { localizeDeep } from '../../engine/units.js';
+import { roundDateLabel as dateLabel } from '../../engine/dateLabel.js';   // 연도까지 — 2026.9.20
 
 const diffColor = (d) => (d <= -2 ? '#f0c93a' : d === -1 ? '#3db87a' : d === 0 ? '#e8edf8' : d === 1 ? '#e57373' : '#ef5350');
 const diffBg = (d) => (d <= -2 ? 'rgba(201,162,40,0.18)' : d === -1 ? 'rgba(61,184,122,0.16)' : d === 0 ? '#1a2235' : d === 1 ? 'rgba(229,115,115,0.12)' : 'rgba(239,83,80,0.16)');
 const sign = (d) => (d > 0 ? `+${d}` : d === 0 ? 'E' : `${d}`);
-const dateLabel = (d) => {
-  const t = new Date(d);
-  return Number.isNaN(t.getTime()) ? String(d).slice(0, 10) : `${t.getMonth() + 1}/${t.getDate()}`;
-};
 
 const pill = (active) => ({
   padding: '7px 11px', borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0,

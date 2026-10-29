@@ -155,7 +155,10 @@ export default function ApproachTab({ report }) {
         </Card>
       )}
 
-      <Card id="landing" title="LANDING · 그린에 떨어진 방향">
+      <Card id="landing" title="LANDING · 그린에 떨어진 방향" info={<>
+        <p>80m 밖에서 친 샷(어프로치 · 파3 티샷 · 1온)이 그린에 올라 핀 기준 어느 쪽에 멈췄는지예요. 퍼팅 탭에서 기록한 "온그린 랜딩 방향"을 모아요.</p>
+        <p>80m 안에서 친 칩·피치는 첫 퍼트 거리와 합쳐서 숏게임 탭의 "핀 기준 탄착"에서 따로 봐요. 같은 샷을 두 번 세지 않아요.</p>
+      </>}>
         {landing.total >= 5 ? (
           <>
             <SplitBar id="landing-bar" segments={DIRECTION.map(([k, , ko]) => ({
@@ -163,10 +166,13 @@ export default function ApproachTab({ report }) {
               color: k === ls.top ? COLOR.gold : COLOR.blue,
             }))} />
             <Takeaway tone="info" id="landing-take">
-              {top ? `그린에 올린 공이 ${top[2]}에 가장 많이 멈춰요 (${fmtPct((ls.q[ls.top] / ls.total) * 100)}). ` : ''}{landing.caption}
+              {top ? `80m 밖 샷으로 그린에 올린 공이 ${top[2]}에 가장 많이 멈춰요 (${fmtPct((ls.q[ls.top] / ls.total) * 100)}). ` : ''}{landing.caption}
             </Takeaway>
           </>
-        ) : <Hint>온그린 랜딩 방향을 5번 이상 기록하면 어느 쪽으로 치우치는지 보여드려요.</Hint>}
+        ) : <Hint>80m 밖 샷으로 그린에 올린 홀의 온그린 랜딩 방향을 5번 이상 기록하면 어느 쪽으로 치우치는지 보여드려요.</Hint>}
+        {landing.shortGame > 0 && (
+          <div data-role="landing-short-note" style={{ fontSize: 12, color: COLOR.faint, marginTop: 8, lineHeight: 1.5 }}>80m 안 샷으로 올린 {landing.shortGame}홀은 숏게임 탭의 핀 기준 탄착에서 봐요.</div>
+        )}
       </Card>
     </div>
   );

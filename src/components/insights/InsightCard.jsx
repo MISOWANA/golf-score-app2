@@ -2,17 +2,12 @@ import { INSIGHT_CATEGORY_LABEL } from '../../engine/rules/category.js';
 import { SEVERITY_LABEL } from '../../engine/insightIndex.js';
 import { SEVERITY_COLOR, SEVERITY_BG } from './insightTheme.js';
 import { tintWash, TINT_SOFT } from '../ui/tint.js';
+import { roundDateLabel as dateLabel } from '../../engine/dateLabel.js';   // 연도까지 — 2026.9.20
 
 const chip = (color, bg) => ({
   display: 'inline-flex', alignItems: 'center', padding: '2px 7px', borderRadius: 999,
   fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', color, background: bg, whiteSpace: 'nowrap',
 });
-
-const dateLabel = (d) => {
-  if (!d) return '';
-  const t = new Date(d);
-  return Number.isNaN(t.getTime()) ? String(d).slice(0, 10) : `${t.getMonth() + 1}/${t.getDate()}`;
-};
 
 // 인사이트 한 장. 검색·복기·리포트에서 같은 모양으로 쓴다.
 //   showContext  어느 라운드·홀의 것인지 칩으로 보여준다 (검색 결과 등)
@@ -51,7 +46,7 @@ export default function InsightCard({ insight, showContext = false, compact = fa
         {insight.scope === 'round' && showContext && <span style={chip('#8ca4bc', 'rgba(140,164,188,0.10)')}>라운드 요약</span>}
         {insight.scope === 'career' && <span style={chip('#8a6fb0', 'rgba(138,111,176,0.14)')}>누적 추세</span>}
         {showContext && insight.courseName && (
-          <span style={chip('#8ca4bc', 'rgba(140,164,188,0.10)')}>{dateLabel(insight.roundDate)} {insight.courseName}</span>
+          <span data-role="insight-context" style={{ ...chip('#8ca4bc', 'rgba(140,164,188,0.10)'), maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block' }}>{dateLabel(insight.roundDate)} {insight.courseName}</span>
         )}
         {insight.count > 1 && <span style={chip('#e8edf8', 'rgba(255,255,255,0.08)')}>{insight.grouped ? `${insight.count}개 홀` : `×${insight.count}`}</span>}
       </div>

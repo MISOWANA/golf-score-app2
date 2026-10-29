@@ -304,7 +304,7 @@ export function buildApproachStats(rounds) {
     byDistance,
     byLie: buildLieStats(rounds),
     shotCount: byDistance.reduce((a, x) => a + x.n, 0),
-    landing: { total: lc.total, summary: ls, caption: landingCaption(ls) },
+    landing: { total: lc.total, shortGame: lc.shortGame, summary: ls, caption: landingCaption(ls) },   // 80m 밖 샷만 — 80m 안은 숏게임(핀 기준 탄착)이 센다
     greenMiss: buildGreenMissStats(rounds),
   };
 }

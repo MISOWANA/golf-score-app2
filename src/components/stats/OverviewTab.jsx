@@ -1,11 +1,11 @@
 import { tintWash } from '../ui/tint.js';
 import { Card, Metric, SplitBar, Takeaway, TrendChip, Hint } from './widgets.jsx';
 import { COLOR, fmtNum, fmtPct, fmtSigned } from './format.js';
+import { roundDateParts } from '../../engine/dateLabel.js';
 
 const SKILL_LABEL = { tee: '티샷', approach: '어프로치', shortGame: '숏게임', putting: '퍼팅' };
 
-// 막대 밑 날짜 — 폭이 좁아 '10/14' 로 줄여 한 줄에 둔다
-const shortDate = (iso) => { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}`; };
+// 막대 밑 날짜 — 폭이 좁아 '10/14' 아래에 연도를 한 줄 더 둔다
 
 // 종합 — 스코어 · 영역별 요약(MY GAME) · 타수가 새는 곳 · 스코어 구성
 export default function OverviewTab({ report, onGo }) {
@@ -77,7 +77,7 @@ export default function OverviewTab({ report, onGo }) {
                 <div key={t.id ?? i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: last ? COLOR.goldHi : COLOR.muted, marginBottom: 3 }}>{t.total}</div>
                   <div style={{ width: '70%', maxWidth: 22, height: `${h}%`, borderRadius: '4px 4px 0 0', background: last ? COLOR.gold : 'rgba(201,162,40,0.4)' }} />
-                  <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap' }}>{shortDate(t.date)}</div>
+                  <div data-role="trend-date" style={{ fontSize: 12, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.3 }}>{roundDateParts(t.date).md}<br />{roundDateParts(t.date).year}</div>
                 </div>
               );
             })}

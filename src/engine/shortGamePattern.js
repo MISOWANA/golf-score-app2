@@ -47,6 +47,8 @@ export function shortGameShots(rounds, windowSize = PATTERN_WINDOW) {
     r.holes.forEach((h) => {
       const s = h.scores?.[p];
       if (!s) return;
+      // 거리를 구한 체인의 마지막 샷 — 80m 안에서 그린에 올린 홀. 그린 랜딩 분포가 빼는 홀(clubDistance.shortGameLandingShot)의
+      // 부분집합이라, 여기 들어간 샷은 분포에 세어지지 않는다 (첫 퍼트 거리를 못 구한 칩은 분포에서도 빠지고 여기서도 점이 없다).
       const chain = extractClubShots(h, p);
       const last = chain[chain.length - 1];
       if (!last || last.onGreen !== true || last.fromDistance == null || last.fromDistance >= SHORT_SHOT_MAX_M) return;

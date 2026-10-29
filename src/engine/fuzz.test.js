@@ -14,6 +14,7 @@ import { buildHoleReview } from './holeReview.js';
 import { buildGreenSpeedReport, greenSpeedRoundInsights, greenSpeedCareerInsights } from './greenSpeed.js';
 import { shotTitle } from './penalties.js';
 import { landingCounts } from './landing.js';
+import { buildPuttingDetail } from './puttingDetail.js';
 import { HOLE_RULES } from './rules/holeRules.js';
 import { ROUND_RULES } from './rules/roundRules.js';
 import { createRng, makeMessyRound, makeFullRound, makeHalfRound, makeNineRound } from '../test/fixtures.js';
@@ -108,6 +109,7 @@ describe('엔진 견고성 (퍼징)', () => {
       run('greenSpeedCareer', () => greenSpeedCareerInsights(rounds));
       run('shotTitle', () => r0.holes.flatMap((h) => [0, 1, 2, 3].map((k) => shotTitle(h.scores[ME], k))));
       run('landing', () => landingCounts(rounds));
+      run('puttingDetail', () => buildPuttingDetail(rounds));
     }
 
     const report = [...problems.entries()].map(([k, n]) => `${n}x ${k}`);

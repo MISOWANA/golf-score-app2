@@ -26,6 +26,8 @@ import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildP
 import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
 import { buildShortGamePattern, MIN_PATTERN_SHOTS } from '../../engine/shortGamePattern.js';
 import ShortGamePatternPanel from '../stats/ShortGamePatternPanel.jsx';
+import { PuttMissPanel, PuttPacePanel, PuttLinePanel, PuttLiePanel, PuttLagPanel } from '../stats/PuttingDetailPanels.jsx';
+import { buildPuttingDetail } from '../../engine/puttingDetail.js';
 import { totalPar as sumPar } from '../../engine/players.js';
 import { isFullRound } from '../../engine/nines.js';
 import { buildInsightReport } from '../../engine/insightIndex.js';
@@ -357,6 +359,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const teeBiasTier = teeBias.total > 0 ? rateTier(teeBias.R, teeBias.total) : null;
   const approachProximity = buildApproachProximity(rounds);
   const puttingStats = buildPuttingStats(rounds);
+  const puttDetail = buildPuttingDetail(rounds);   // 스탯 '퍼팅' 탭과 같은 계산 · 같은 부품 (같은 라운드면 같은 숫자)
   const scrambling = buildScrambling(rounds);
   const shortPattern = buildShortGamePattern(rounds);   // 스탯 '숏게임' 탭과 같은 계산 (같은 라운드면 같은 숫자)
   const clubStats = buildClubDistanceStats(rounds);
@@ -899,6 +902,38 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             <InfoNote title={tx('1~2m 구간이 중요한 이유')}>
               <p>최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</p>
             </InfoNote>
+          </div>
+        )}
+
+        {/* 퍼트가 어떻게 빗나가나 — 미스 위치 · 거리감 · 라인 · 라이 · 첫 퍼트 붙이기. 스탯 '퍼팅' 탭과 같은 부품이다 */}
+        {(puttDetail.n.withMiss > 0 || puttDetail.byLie.n > 0 || puttDetail.lag.length > 0) ? (
+          <div data-role="putt-detail" style={{ marginTop: 18 }}>
+            {puttDetail.n.withMiss > 0 && [
+              ['MISS MAP', '미스 위치', <PuttMissPanel key="m" map={puttDetail.missMap} />],
+              ['PACE', '거리감 (롱 · 숏)', <PuttPacePanel key="p" pace={puttDetail.pace} />],
+              ['LINE', '라인 (좌우 · 하이/로우사이드)', <PuttLinePanel key="l" line={puttDetail.line} />],
+            ].map(([en, ko, panel]) => (
+              <div key={en} style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}><KoEnTitle en={en} ko={ko} /></div>
+                {panel}
+              </div>
+            ))}
+            {puttDetail.byLie.n > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}><KoEnTitle en="BY LIE" ko="라이별 성공률" /></div>
+                <PuttLiePanel byLie={puttDetail.byLie} />
+              </div>
+            )}
+            {puttDetail.lag.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}><KoEnTitle en="FIRST PUTT" ko="첫 퍼트 붙이기" /></div>
+                <PuttLagPanel lag={puttDetail.lag} comeback={puttDetail.comeback} threePutt={puttDetail.threePutt} />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div data-role="putt-detail-hint" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6, marginTop: 12 }}>
+            퍼팅 탭에서 퍼트마다 라이를 고르고 공이 멈춘 곳(미스 위치)을 찍으면, 롱 · 숏과 하이/로우사이드까지 분석해 드려요.
           </div>
         )}
 

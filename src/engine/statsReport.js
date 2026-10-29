@@ -12,7 +12,7 @@
 //   · '최근 5R vs 그 이전' 추세는 양쪽 표본이 충분할 때만 낸다.
 
 import { extractClubShots, buildClubDistanceStats, SHORT_SHOT_MAX_M } from './clubDistance.js';
-import { APPROACH_BUCKETS, buildPuttingStats, buildScrambling, buildGirp, buildGirConversion } from './shotStats.js';
+import { APPROACH_BUCKETS, buildScrambling, buildGirp, buildGirConversion } from './shotStats.js';
 import { buildTeePenalty, pickWeakestSkill } from './roundStory.js';
 import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 import { median, rateTier } from './stats.js';
@@ -24,6 +24,7 @@ import { totalPar } from './players.js';
 import { buildGreenMissStats } from './greenMiss.js';
 import { isFullRound, FULL_ROUND_HOLES } from './nines.js';
 import { buildShortGamePattern } from './shortGamePattern.js';
+import { buildPuttingDetail } from './puttingDetail.js';
 
 export const RECENT_ROUNDS = 5;                 // 추세의 '최근' 라운드 수
 const MIN_TREND_SAMPLE = 10;                    // 추세를 내려면 양쪽 모두 이만큼의 홀(샷)이 필요
@@ -339,7 +340,7 @@ export function buildPuttingSummary(rounds) {
   const two = played.filter((x) => x.s.putts === 2).length;
   const three = played.filter((x) => x.s.putts >= 3).length;
   const gir = played.filter((x) => x.s.gir === true);
-  const ps = buildPuttingStats(rounds);
+  const detail = buildPuttingDetail(rounds);   // 거리 · 라이 · 미스 위치를 합친 상세 — 인사이트 퍼팅 섹션도 같은 함수를 쓴다
   const causes = summarizePuttCauses(played.filter((x) => x.s.putts >= 3).map((x) => analyzePutts(x.s)));
   const per18 = (r) => {
     const pl = playedScores(r).filter((x) => typeof x.s.putts === 'number');
@@ -358,7 +359,8 @@ export function buildPuttingSummary(rounds) {
     one: { n: one, pct: pct(one, holes) }, two: { n: two, pct: pct(two, holes) }, three: { n: three, pct: pct(three, holes) },
     perGir: gir.length > 0 ? sum(gir.map((x) => x.s.putts)) / gir.length : null,
     girHoles: gir.length,
-    byDistance: ps.byDistance,
+    byDistance: detail.byDistance,
+    detail,
     causes,
     trend,
   };

@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { IDBFactory } from 'fake-indexeddb';
 import { makeFullRound, makeHalfRound, makeNoParsRound, makeNineRound, makeMultiRound, makeActiveRound, played, defaultScore } from './test/fixtures.js';
+import { sampleRounds } from './test/putts.js';
 import { summarizeRound } from './engine/roundSummary.js';
 import { localNoonISO } from './engine/roundDate.js';
 
@@ -766,6 +767,114 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     const card = await waitFor(() => { const c = document.querySelector('[data-role="course-history"]'); expect(c).toBeTruthy(); return c; });
     expect(card.querySelector('[data-role="course-recent"]').textContent).toMatch(/2026\.9\.7.*2026\.9\.4/);
     expect(card.querySelector('[data-role="course-best"]').textContent).toMatch(/\(2026\.9\.\d+\)/);
+  });
+});
+
+describe('퍼팅 상세 분석 — 거리 · 라이 · 미스 위치', () => {
+  // 퍼팅 기록(미스 위치 포함)이 있는 18홀 라운드 둘 — sampleRounds 의 24홀을 18홀씩 겹쳐 쓴다
+  const puttRound = (i, from) => {
+    const base = sampleRounds()[0].holes;
+    const r = makeFullRound(i, ME, { courseName: '퍼팅CC' });
+    r.holes.forEach((h, k) => { r.holes[k].scores[ME] = { ...base[(from + k) % base.length].scores[ME] }; });
+    return r;
+  };
+  const rs = () => [puttRound(2, 6), puttRound(1, 0)];
+  const openPutting = async () => {
+    tab('스탯');
+    await screen.findByText('Stats');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-putting"]'); expect(t).toBeTruthy(); return t; }));
+    await waitFor(() => expect(document.querySelector('[data-role="tab-putting"]')).toBeTruthy());
+  };
+  const text = (role) => document.querySelector(`[data-role="${role}"]`)?.textContent ?? null;
+  const insightsPutting = async () => {
+    tab('인사이트');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="insights-tab-skills"]'); expect(t).toBeTruthy(); return t; }));
+    return waitFor(() => { const e = document.querySelector('[data-role="putting-section"]'); expect(e).toBeTruthy(); return e; });
+  };
+  afterEach(() => { try { window.sessionStorage.clear(); } catch { /* 저장소를 못 써도 테스트는 이어 간다 */ } });
+
+  it('스탯 퍼팅 탭에 결과 · 거리 · 미스 위치 · 거리감 · 라인 · 라이 · 첫 퍼트 · 어떤 퍼트 · 3퍼트 카드가 차례로 있다', async () => {
+    await setup({ rounds: rs() });
+    await openPutting();
+    const ids = [...document.querySelectorAll('[data-role="tab-putting"] > [data-role^="card-"]')].map((c) => c.getAttribute('data-role').replace('card-', ''));
+    expect(ids).toEqual(['putting', 'putt-distance', 'putt-miss', 'putt-pace', 'putt-line', 'putt-lie', 'putt-lag', 'putt-for', 'three-putt']);
+  });
+
+  it('투어 평균 대비 퍼팅 SG 와 거리별 줄의 "빗나가면 남음 · 투어 대비 SG" 가 보인다', async () => {
+    await setup({ rounds: rs() });
+    await openPutting();
+    expect(text('putt-sg-value')).toMatch(/^[+−]\d\.\d\d\/R$/);
+    const notes = [...document.querySelectorAll('[data-role^="putt-bucket-note-"]')].map((n) => n.textContent);
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.some((t) => /빗나가면 .+ 남음 · 투어 대비 SG [+−]\d\.\d\d/.test(t))).toBe(true);
+  });
+
+  it('미스 위치 과녁에는 빗나간 퍼트 전부가 점으로 찍히고, 범위를 바꾸면 3m 안 · 밖으로 나뉜다', async () => {
+    await setup({ rounds: rs() });
+    await openPutting();
+    const total = document.querySelectorAll('[data-role="putt-dot"]').length;
+    expect(total).toBeGreaterThan(20);
+    expect(text('miss-scope-all')).toContain(String(total));
+    fireEvent.click(document.querySelector('[data-role="miss-scope-far"]'));
+    await waitFor(() => expect(document.querySelectorAll('[data-role="putt-dot"]').length).toBeLessThan(total));
+  });
+
+  it('인사이트의 퍼팅 섹션에도 같은 부품이 있고, 스탯과 같은 숫자 · 같은 문장이다', async () => {
+    await setup({ rounds: rs() });
+    await openPutting();
+    const read = () => ({
+      scope: text('miss-scope-all'), pace: text('pace-take'), line: text('line-take'), lie: text('lie-take'), map: text('putt-miss-take'),
+      cells: [...document.querySelectorAll('[data-role="lie-grid"] > [data-role^="lie-cell-"]')].map((c) => c.textContent),
+      pacebar: text('pace-bar'), lag: [...document.querySelectorAll('[data-role^="lag-lag"]')].map((e) => e.textContent),
+    });
+    const inStats = read();
+    expect(inStats.pace).toBeTruthy();
+    expect(inStats.cells).toHaveLength(9);
+    cleanup();                                                       // 같은 데이터로 인사이트를 새로 연다
+    await setup({ rounds: rs() });
+    const section = await insightsPutting();
+    expect(section.querySelector('[data-role="putt-detail"]')).toBeTruthy();
+    expect(read()).toEqual(inStats);
+  });
+
+  it('미스 위치를 기록하지 않은 라운드: 과녁 · 거리감 · 라인은 안내만, 라이별과 거리별은 그대로 보인다', async () => {
+    const plain = makeFullRound(1, ME, { courseName: '일반CC' });       // 거리 · 라이만 있는 기본 퍼팅 기록 (미스 위치 없음)
+    await setup({ rounds: [plain, makeFullRound(2, ME)] });
+    await openPutting();
+    expect(document.querySelector('[data-role="miss-empty"]')).toBeTruthy();                 // 같은 기록에서 나오는 세 분석은 안내 한 장으로 합친다
+    expect(document.querySelector('[data-role="card-putt-pace"]')).toBeNull();
+    expect(document.querySelector('[data-role="card-putt-line"]')).toBeNull();
+    expect(document.querySelector('[data-role="putt-dot"]')).toBeNull();
+    expect(document.querySelector('[data-role="lie-grid"]')).toBeTruthy();
+    expect(document.querySelector('[data-role="putt-bucket-lt1"]')).toBeTruthy();
+  });
+
+  it('인사이트: 미스 위치 기록이 없으면 과녁 · 거리감 · 라인 블록 없이 라이별만 나온다', async () => {
+    await setup({ rounds: [makeFullRound(1, ME), makeFullRound(2, ME)] });
+    const section = await insightsPutting();
+    expect(section.querySelector('[data-role="miss-scope"]')).toBeNull();
+    expect(section.querySelector('[data-role="pace-bar"]')).toBeNull();
+    expect(section.querySelector('[data-role="lie-grid"]')).toBeTruthy();
+  });
+
+  it('인사이트: 퍼팅 상세 기록이 하나도 없으면 안내 한 줄만', async () => {
+    const bare = makeFullRound(1, ME);
+    bare.holes.forEach((h) => { delete h.scores[ME].puttDetails; });
+    await setup({ rounds: [bare] });
+    const section = await insightsPutting();
+    expect(section.querySelector('[data-role="putt-detail"]')).toBeNull();
+    expect(section.querySelector('[data-role="putt-detail-hint"]').textContent).toContain('미스 위치');
+  });
+
+  it('야드 모드: 거리는 피트로 보이고 미터 글자가 남지 않는다', async () => {
+    await setup({ rounds: rs(), prefs: { unit: 'yd' } });
+    await openPutting();
+    const root = document.querySelector('[data-role="tab-putting"]');
+    const visible = [text('putt-miss-take'), text('pace-take'), text('m-short-median'), text('putt-axis-along'), ...[...root.querySelectorAll('[data-role^="putt-bucket-note-"]')].map((n) => n.textContent)].filter(Boolean).join(' ');
+    expect(visible).toMatch(/\d+(\.\d)?ft/);
+    expect(visible).not.toMatch(/\d m\b|\dm\b/);
+    expect(text('miss-scope-near')).toMatch(/~10ft/);
+    expect([...document.querySelectorAll('[data-role="putt-ring"] text')].every((t) => /ft$/.test(t.textContent))).toBe(true);
   });
 });
 

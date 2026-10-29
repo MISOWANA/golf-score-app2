@@ -27,7 +27,7 @@ function patternTake(p) {
 }
 
 // 좁은 화면(320px)에서는 두 칸이 세로로 쌓이도록 flex-basis 를 넉넉히 잡는다 — 글자가 단어 중간에서 끊기지 않게
-function AxisTile({ id, title, valueText, sd, clear }) {
+export function AxisTile({ id, title, valueText, sd, clear }) {
   return (
     <div data-role={id} style={{ flex: '1 1 150px', minWidth: 0, background: '#0e1424', border: `1px solid ${COLOR.line}`, borderRadius: 12, padding: '10px 12px' }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.muted, letterSpacing: '0.04em', wordBreak: 'keep-all' }}>{title}</div>

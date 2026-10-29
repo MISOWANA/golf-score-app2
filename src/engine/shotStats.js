@@ -166,7 +166,7 @@ export function buildAwfulShots(rounds) {
 }
 
 // ─── §3-3 퍼팅 성공률 (거리 / 세로경사 / 좌우브레이크 — 3개의 1축 분해) ────────
-const PUTT_DISTANCE_BUCKETS = [
+export const PUTT_DISTANCE_BUCKETS = [
   { id: 'lt1',   label: '~1m',  min: 0, max: 1 },
   { id: '1to2',  label: '1-2m', min: 1, max: 2 },
   { id: '2to3',  label: '2-3m', min: 2, max: 3 },
@@ -211,7 +211,7 @@ export function buildPuttingStats(rounds) {
           const bucket = byDistance.find(b => putt.distance >= b.min && putt.distance < b.max);
           if (bucket) { bucket.total++; if (made) bucket.made++; }
         }
-        const lieId = puttLieId(putt.lie);
+        const lieId = putt.tapIn ? null : puttLieId(putt.lie);   // 탭인은 라이를 평지 직선으로 가정한 값이라 라이별에서 뺀다
         if (lieId != null) {
           const { slope, brk } = decomposePuttLie(lieId);
           bySlope[slope].total++; if (made) bySlope[slope].made++;

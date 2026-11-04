@@ -3581,12 +3581,13 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
     await home();
   });
 
-  it('홈 버튼으로 돌아가면 쌓인 기록도 함께 되감긴다 (이어서 뒤로가기를 눌러도 같은 화면에 머문다)', async () => {
+  it('홈 버튼으로 돌아가면 쌓인 기록도 함께 되감겨 홈이 맨 아래가 된다', async () => {
     await setup({ rounds: [makeFullRound(1)] });
     tab('스탯'); await screen.findByText('Stats');
     tab('홈');
     await home();
-    expect(window.history.state).toEqual({ v: 'home', d: 0 });
+    // 화면은 바로 바뀌지만 기록을 되감는 history.go(-n) 은 jsdom 에서 비동기다 — 기다려서 확인한다 (느린 CI 에서 어긋났던 자리)
+    await waitFor(() => expect(window.history.state).toEqual({ v: 'home', d: 0 }));
   });
 
   it('열려 있던 목표 시트 같은 창은 화면과 함께 닫힌다', async () => {

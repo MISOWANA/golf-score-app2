@@ -342,7 +342,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
                 OUT: {selectedOut?.name} → IN: {selectedIn?.name}
               </span>
               <button
-                style={{ fontSize: 12, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', flexShrink: 0 }}
+                style={{ fontSize: 13, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, minHeight: 44, margin: '-8px 0', padding: '0 10px', cursor: 'pointer', flexShrink: 0 }}
                 onClick={() => selectPair(selectedPairIdx, !pairReversed)}>
                 ⇄ 순서 변경
               </button>
@@ -400,7 +400,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
           <label style={styles.formLabel}>코스 이름</label>
           {!nine && (
             <button
-              style={{ fontSize: 12, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, padding: '3px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              style={{ fontSize: 13, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, minHeight: 44, margin: '-8px 0', padding: '0 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
               onClick={swapOutIn}
               title="OUT/IN 순서 바꾸기"
             >
@@ -638,7 +638,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
               </button>
               {/* 이번 라운드만 추천을 끈다 — 스위치의 '마지막 선택 기억'은 건드리지 않아서 다음 라운드에 다시 안내한다 */}
               <button type="button" data-role="bag-register-later" onClick={() => setClubRecommend(false)}
-                style={{ width: '100%', height: 40, border: 'none', background: 'none', color: '#8896b0', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ width: '100%', height: 44, border: 'none', background: 'none', color: '#8896b0', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 나중에 할게요 (추천 없이 시작)
               </button>
             </div>

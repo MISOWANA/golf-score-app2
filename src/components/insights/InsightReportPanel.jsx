@@ -109,7 +109,7 @@ export function NextFocus({ rep, goals = [], onSetGoal }) {
                   if (!onSetGoal || !metric || goals.length >= MAX_GOALS || goals.some((g) => g.metric === metric)) return null;
                   return (
                     <div><button type="button" data-role="focus-set-goal" onClick={() => onSetGoal(metric)}
-                      style={{ marginTop: 6, padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.14)', color: '#f3d36b', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>목표로 정하기</button></div>
+                      style={{ marginTop: 0, minHeight: 44, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.14)', color: '#f3d36b', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>목표로 정하기</button></div>
                   );
                 })()}
               </div>

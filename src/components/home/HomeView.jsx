@@ -61,7 +61,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
           <div style={styles.headerActions}>
             <button className="bb-press" style={styles.actionButton} data-role="open-settings" onClick={onOpenSettings}
               title="설정 · 백업" aria-label="설정 · 백업">
-              <Settings size={16} />
+              <span style={styles.actionCircle}><Settings size={16} /></span>
             </button>
             <div style={styles.userChip}>
               <span style={styles.userName}>{currentUser.userName}</span>

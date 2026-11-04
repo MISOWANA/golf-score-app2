@@ -104,21 +104,33 @@ const styles = {
   headerActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '0px',   // 설정 버튼의 투명한 가장자리(4px씩)가 간격을 대신한다
     minWidth: 0,
   },
+  // 눌리는 칸은 44px, 눈에 보이는 동그라미는 36px(actionCircle) — 투명한 가장자리가 손가락 자리를 넓힌다
   actionButton: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.04)',
-    border: `1px solid ${C.border}`,
+    width: '44px',
+    height: '44px',
     padding: 0,
+    background: 'none',
+    border: 'none',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: C.textSec,
     cursor: 'pointer',
+    flexShrink: 0,
+  },
+  actionCircle: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    background: 'rgba(255,255,255,0.04)',
+    border: `1px solid ${C.border}`,
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     transition: 'color 0.2s ease, border-color 0.2s ease',
   },
   // 사용자 이름 + 로그아웃을 한 알약으로 묶는다
@@ -142,9 +154,12 @@ const styles = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  // 알약(36px) 안에서 눌리는 칸만 44px — 위아래·왼쪽으로 투명하게 삐져나온다 (알약 모양은 그대로)
   logoutButton: {
-    width: '30px',
-    height: '30px',
+    width: '44px',
+    height: '44px',
+    margin: '-7px -4px -7px -7px',
+    flexShrink: 0,
     borderRadius: '50%',
     background: 'none',
     border: 'none',
@@ -439,6 +454,8 @@ const styles = {
   },
   textLink: {
     background: 'none',
+    minHeight: '44px',
+    padding: '0 0 0 12px',
     fontSize: '14px',
     color: C.gold,
     textDecoration: 'none',
@@ -599,6 +616,9 @@ const styles = {
   addButton: {
     background: 'transparent',
     color: C.gold,
+    minHeight: '44px',
+    margin: '-12px -8px',   // 눌리는 칸만 44px — 줄 높이는 그대로
+    padding: '0 8px',
     fontSize: '14px',
     fontWeight: '700',
     display: 'flex',
@@ -694,7 +714,7 @@ const styles = {
   },
   parTableHoleCell: {
     padding: '6px 0',
-    fontSize: 'clamp(10px, 3.3vw, 14px)',
+    fontSize: 'clamp(12px, 3.3vw, 14px)',
     fontWeight: '700',
     color: C.textSec,
     display: 'flex',
@@ -719,7 +739,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 'clamp(11px, 3.4vw, 14px)',
+    fontSize: 'clamp(12px, 3.4vw, 14px)',
     fontWeight: '700',
     lineHeight: 1,
     transition: 'all 0.15s ease',
@@ -897,7 +917,14 @@ const styles = {
     justifyContent: 'space-between',
     padding: '8px 0 16px',
   },
+  // 코스 이름이 길어도(공백 없는 이름 · 좁은 폰) 양옆 버튼(뒤로 · 라운드 수정)을 밀어내지 않는다 — 남는 폭 안에서 줄여 쓴다
   scoringCourse: {
+    flex: 1,
+    minWidth: 0,
+    padding: '0 8px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
     fontSize: '14px',
     fontWeight: '700',
     color: C.textPrimary,

@@ -58,7 +58,7 @@ export default function LandingWheel({ value, onChange }) {
               <>
                 <text x={fix(p[0])} y={fix(p[1] - 6)} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="900"
                   letterSpacing="0.06em" fill={on ? '#1a1405' : '#e8edf8'}>{KEY_NAME[h]}</text>
-                <text x={fix(p[0])} y={fix(p[1] + 9)} textAnchor="middle" dominantBaseline="central" fontSize="11"
+                <text x={fix(p[0])} y={fix(p[1] + 9)} textAnchor="middle" dominantBaseline="central" fontSize="12"
                   fill={on ? 'rgba(26,20,5,0.7)' : '#8aa0c4'}>{h}시</text>
               </>
             ) : (
@@ -80,7 +80,7 @@ export default function LandingWheel({ value, onChange }) {
       ) : (
         <>
           <FlagMark x={163} y={166} k={1.05} />
-          <text x={CENTER} y="203" textAnchor="middle" fontSize="11" fill="#8aa0c4">탭해서 선택</text>
+          <text x={CENTER} y="203" textAnchor="middle" fontSize="12" fill="#8aa0c4">탭해서 선택</text>
         </>
       )}
 

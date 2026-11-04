@@ -40,6 +40,12 @@ export function compareValues(round) {
   };
 }
 
+// 퍼트가 입력한 홀만 세어 18홀로 환산한 값인가 — 입력하지 않은 홀이 있을 때 (화면이 '환산'이라고 알려 준다)
+export function puttsEstimated(round) {
+  const s = summarizeRound(round, round.players[0]);
+  return s.playedCount > 0 && s.playedCount < round.holes.length;
+}
+
 const roundTo = (n, digits) => { const m = 10 ** digits; return Math.round(n * m) / m; };
 
 function buildCompare(round, history) {
@@ -60,7 +66,7 @@ function buildCompare(round, history) {
     const avg = others.reduce((a, b) => a + b, 0) / others.length;
     const delta = roundTo(mine[m.id] - avg, m.digits);
     const tone = Math.abs(delta) <= m.flat ? 'flat' : (m.better === 'down' ? delta < 0 : delta > 0) ? 'good' : 'bad';
-    rows.push({ id: m.id, label: m.label, unit: m.unit, value: mine[m.id], avg: roundTo(avg, m.digits), delta, tone });
+    rows.push({ id: m.id, label: m.label, unit: m.unit, value: mine[m.id], avg: roundTo(avg, m.digits), delta, tone, ...(m.id === 'putts' && puttsEstimated(round) ? { estimated: true } : {}) });
   });
   return rows.length ? { basis: prior.length, rows } : null;
 }

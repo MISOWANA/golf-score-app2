@@ -1,6 +1,7 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, RateRow, Takeaway, TrendChip, Hint, SplitBar } from './widgets.jsx';
 import { COLOR, fmtMeters, fmtPuttMeters, fmtNum, fmtPct } from './format.js';
+import localizeNode from '../ui/localizeNode.js';
 
 const MIN_MISS_DIRECTIONS = 4;   // 놓친 방향의 쏠림을 말하려면 필요한 기록 수
 const MIN_BEST_WORST = 5;      // 가장 잘/못 맞는 구간·클럽을 말하려면 필요한 샷 수
@@ -171,7 +172,7 @@ export default function ApproachTab({ report }) {
           </>
         ) : <Hint>80m 밖 샷으로 그린에 올린 홀의 온그린 랜딩 방향을 5번 이상 기록하면 어느 쪽으로 치우치는지 보여드려요.</Hint>}
         {landing.shortGame > 0 && (
-          <div data-role="landing-short-note" style={{ fontSize: 12, color: COLOR.faint, marginTop: 8, lineHeight: 1.5 }}>80m 안 샷으로 올린 {landing.shortGame}홀은 숏게임 탭의 핀 기준 탄착에서 봐요.</div>
+          <div data-role="landing-short-note" style={{ fontSize: 12, color: COLOR.faint, marginTop: 8, lineHeight: 1.5 }}>{localizeNode(`80m 안 샷으로 올린 ${landing.shortGame}홀은 숏게임 탭의 핀 기준 탄착에서 봐요.`)}</div>
         )}
       </Card>
     </div>

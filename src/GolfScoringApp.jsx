@@ -10,6 +10,7 @@ import { setUnit } from './engine/units.js';
 import { isValidRound, normalizeRound } from './engine/roundValidation.js';
 import { fixPar3MissedGreenStrokes } from './engine/migrations.js';
 import { convertPartialToNine } from './engine/nineConversion.js';
+import { planNav, resolvePop } from './engine/viewHistory.js';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import globalCSS from './styles/globalCSS';
 import styles from './styles/styles';
@@ -34,7 +35,7 @@ import { shareOrDownload, downloadFile } from './platform/shareFile.js';
 import { holeNoOf, isNineHoleRound, isFullRound, roundKindLabel } from './engine/nines.js';
 
 export default function GolfScoringApp() {
-  const [view, setView] = useState('login');
+  const [view, setViewState] = useState('login');
   // 화면을 떠나기 전에 확인이 필요하면(마이백의 저장 안 한 거리 변경) 그 화면이 여기에 등록한다.
   // 함수(proceed) → true 면 바로 떠나도 되고, false 면 그 화면이 확인 창을 띄운 뒤 proceed 를 직접 부른다.
   const leaveGuardRef = useRef(null);
@@ -44,18 +45,71 @@ export default function GolfScoringApp() {
   const [rounds, setRounds] = useState([]);
   const [goals, setGoals] = useState([]);               // 다음 라운드 목표 (최대 2개)
   const [goalSheet, setGoalSheet] = useState(null);      // 목표 시트가 열려 있으면 { goalId?, metric? }
+  const [selectedRoundId, setSelectedRoundId] = useState(null);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  // 이어하기 창에서 '기존 기록 삭제'를 한 번 눌러 확인을 기다리는 중
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  // ── 화면 이동 + 뒤로가기 ──────────────────────────────────────────────────────
+  // 화면은 상태(view)로 바꾸므로 브라우저 기록을 같이 쌓지 않으면 뒤로가기 한 번에 앱이 꺼진다 (engine/viewHistory.js).
+  // 모든 화면 이동은 setView 를 거치고, 뒤로가기(popstate)는 아래 효과가 받아 같은 화면 상태로 바꾼다.
+  const viewRef = useRef('login');
+  const depthRef = useRef(0);                 // 지금 기록 위에 쌓인 단계 (홈 = 0)
+  const popSuppressRef = useRef(false);       // 우리가 history.go 로 되감은 popstate — 화면은 이미 바꿨으니 무시한다
+  const guardBypassRef = useRef(false);       // 확인 창에서 '나가기'를 골라 일으킨 뒤로가기 — 가드를 다시 묻지 않는다
+  const appStateRef = useRef({});             // popstate 때 최신 값을 읽는다 (효과를 다시 걸지 않으려고)
+  useEffect(() => { appStateRef.current = { loggedIn: !!currentUser, hasRound: !!currentRound, hasSelected: selectedRoundId != null }; });
+
+  const setView = useCallback((next) => {
+    const cur = viewRef.current;
+    const plan = planNav(cur, next, depthRef.current);
+    viewRef.current = next;
+    depthRef.current = plan.depth;
+    setViewState(next);
+    const state = { v: next, d: plan.depth };
+    try {
+      if (plan.op === 'push') window.history.pushState(state, '');
+      else if (plan.op === 'root') {
+        popSuppressRef.current = true;
+        setTimeout(() => { popSuppressRef.current = false; }, 600);   // 되감을 기록이 없어 popstate 가 안 오면 다음 뒤로가기를 삼키지 않게
+        window.history.go(-plan.back);
+      } else window.history.replaceState(state, '');
+    } catch { /* 기록을 다룰 수 없는 환경이어도 화면 이동은 된다 */ }
+  }, []);
+
+  useEffect(() => {
+    const onPop = (e) => {
+      if (popSuppressRef.current) { popSuppressRef.current = false; return; }
+      const st = e.state;
+      if (!st || typeof st.v !== 'string') return;
+      const leaving = { v: viewRef.current, d: depthRef.current };
+      // 마이백의 저장 안 한 변경 — 나가기 전에 한 번 묻는다. 묻는 동안은 방금 빠져나온 기록을 다시 쌓아 그 화면에 머문다.
+      if (!guardBypassRef.current && leaveGuardRef.current) {
+        const ok = leaveGuardRef.current(() => { guardBypassRef.current = true; window.history.back(); });
+        if (ok === false) { try { window.history.pushState(leaving, ''); } catch { /* 무시 */ } return; }
+      }
+      guardBypassRef.current = false;
+      const target = resolvePop(st.v, appStateRef.current);
+      const depth = target === st.v ? (st.d ?? 0) : 0;
+      if (target !== st.v) { try { window.history.replaceState({ v: target, d: 0 }, ''); } catch { /* 무시 */ } }
+      viewRef.current = target;
+      depthRef.current = depth;
+      setGoalSheet(null);            // 화면 위에 떠 있던 창들은 화면과 함께 닫는다
+      setShowResumeModal(false);
+      setConfirmDiscard(false);
+      setViewState(target);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [notice, setNotice] = useState(null);           // 앱 안 알림 { tone: 'ok' | 'error', text } — 예전의 브라우저 alert() 자리
   const closeNotice = useCallback(() => setNotice(null), []);
   const [unit, setUnitState] = useState('m');             // 거리 단위 'm' | 'yd' — 기록은 늘 미터, 보이고 입력하는 단위만 바뀐다
   const [firstPutt, setFirstPutt] = useState(null);       // 첫 퍼팅 기본 거리(m) — 정해 두면 첫 퍼팅 거리가 늘 이 값으로 들어간다. null = 쓰지 않음
   const [trash, setTrash] = useState([]);                // 휴지통에 있는 라운드들 (지운 지 7일 안)
   const [backupMeta, setBackupMeta] = useState(null);   // 마지막 백업 시각 · 그때의 라운드 수 (홈의 백업 안내)
-  const [selectedRoundId, setSelectedRoundId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showResumeModal, setShowResumeModal] = useState(false);
   const [profiles, setProfiles] = useState([]);   // 이 기기에 기록이 있는 사용자들 (로그인 화면용)
-  // 이어하기 창에서 '기존 기록 삭제'를 한 번 눌러 확인을 기다리는 중
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // 형식이 깨진 라운드는 화면에 넘기지 않는다 (DB에서는 지우지 않음).
   // pars 가 없는 예전 백업은 홀의 파로 채워서 넘긴다 — 화면들이 round.pars 를 읽는다.
@@ -119,7 +173,7 @@ export default function GolfScoringApp() {
       setLoading(false);
     };
     initApp();
-  }, [loadUserRounds, applyPrefs]);
+  }, [loadUserRounds, applyPrefs, setView]);
 
   // 같은 이름이면 기존 프로필로 들어간다 — 로그아웃했다 다시 들어와도 기록이 그대로다.
   const handleUserLogin = async (userName) => {

@@ -52,7 +52,7 @@ export default function RoundCard({ card, share, records = [], goalResults = [],
         {share && (
           <button type="button" data-role="share-image" disabled={share.state === 'working'} onClick={share.onShare}
             aria-label="리포트 이미지 저장·공유"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 11px', borderRadius: 999, border: '1px solid #2c3a5c', background: 'rgba(255,255,255,0.04)', color: '#e8edf8', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '0 14px', borderRadius: 999, border: '1px solid #2c3a5c', background: 'rgba(255,255,255,0.04)', color: '#e8edf8', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
             <Share2 size={15} />이미지
           </button>
         )}
@@ -116,11 +116,16 @@ export default function RoundCard({ card, share, records = [], goalResults = [],
                   {compare.rows.map((r) => (
                     <div key={r.id} data-role={`compare-${r.id}`} data-tone={r.tone} style={{ textAlign: 'center', padding: '6px 2px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', minWidth: 0 }}>
                       <div style={{ fontSize: 12, color: '#8896b0', fontWeight: 700, whiteSpace: 'nowrap' }}>{r.label}</div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', fontVariantNumeric: 'tabular-nums' }}>{r.value}<span style={{ fontSize: 11, color: '#8896b0' }}>{r.unit}</span></div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#e8edf8', fontVariantNumeric: 'tabular-nums' }}>{r.value}<span style={{ fontSize: 12, color: '#8896b0' }}>{r.unit}</span>{r.estimated && <span aria-hidden="true" style={{ fontSize: 12, color: '#c9a228' }}>*</span>}</div>
                       <div style={{ fontSize: 12, fontWeight: 800, color: TONE[r.tone], whiteSpace: 'nowrap' }}>{fmtDelta(r)}</div>
                     </div>
                   ))}
                 </div>
+                {compare.rows.some((r) => r.estimated) && (
+                  <div data-role="compare-estimated" style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.5, marginTop: 6 }}>
+                    * 퍼트는 입력한 홀만 세어 전체 홀 수로 환산한 값이에요. 입력하지 않은 홀이 있어서 아래 스코어카드의 합계와 다를 수 있어요.
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.55 }}>
@@ -138,7 +143,7 @@ export default function RoundCard({ card, share, records = [], goalResults = [],
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#c9a228' }}>다음 포커스</div>
                 {goalSuggest && onSetGoal && (
                   <button type="button" data-role="focus-set-goal" onClick={() => onSetGoal(goalSuggest.metric)}
-                    style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.14)', color: '#f3d36b', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>이걸 목표로</button>
+                    style={{ minHeight: 44, margin: '-9px 0', padding: '0 12px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.14)', color: '#f3d36b', fontSize: 13, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>이걸 목표로</button>
                 )}
               </div>
               <div style={{ fontSize: 14, color: '#e8edf8', lineHeight: 1.6, wordBreak: 'keep-all' }}>{card.focus}</div>

@@ -101,7 +101,7 @@ export default function GreenSpeedPicker({ value, onChange }) {
           {[['m', '미터'], ['ft', '피트(스팀프)']].map(([u, l]) => (
             <button key={u} type="button" data-role={`gs-unit-${u}`} aria-pressed={unit === u} onClick={() => pickUnit(u)}
               style={{
-                border: 'none', cursor: 'pointer', borderRadius: 999, padding: '4px 10px', fontSize: 13, fontWeight: 700,
+                border: 'none', cursor: 'pointer', borderRadius: 999, minHeight: 44, padding: '0 12px', fontSize: 13, fontWeight: 700,
                 background: unit === u ? GOLD : 'transparent', color: unit === u ? '#0b0e18' : '#8896b0',
               }}>{l}</button>
           ))}

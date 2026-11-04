@@ -1,12 +1,14 @@
-// 글자 크기 정책: 화면 글자는 10px 보다 작게 쓰지 않는다 (야외·햇빛에서 읽을 수 있게).
-// 새로 작은 글자를 넣으면 이 테스트가 어디인지 알려 준다. 정말 필요한 곳(SVG 안 축소 글자 등)은 ALLOW 에 이유와 함께 적는다.
+// 글자 크기 정책: 화면 글자는 12px 보다 작게 쓰지 않는다 (야외·햇빛에서 읽을 수 있게).
+// 새로 작은 글자를 넣으면 이 테스트가 어디인지 알려 준다. 정말 필요한 곳은 두 가지 방법으로 면제한다:
+//   · 그 줄에 `/* fontsize-ok: 이유 */` — SVG 를 크게 그려서 화면에서는 충분히 큰 글자 (한 줄만 면제한다)
+//   · ALLOW — 파일 전체를 면제한다 (되도록 쓰지 않는다)
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SRC = fileURLToPath(new URL('../', import.meta.url));   // src/
-const MIN_PX = 10;
+const MIN_PX = 12;
 
 // 정말 작아야 하는 곳 — 'src 기준 경로: 이유'
 const ALLOW = {
@@ -46,6 +48,7 @@ describe('글자 크기', () => {
       const rel = relative(SRC, file).split(sep).join('/');
       if (ALLOW[rel]) continue;
       readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, i) => {
+        if (/fontsize-ok/.test(line)) return;
         sizesIn(line).filter((n) => n < MIN_PX).forEach((n) => found.push(`${rel}:${i + 1}  ${n}px  ${line.trim().slice(0, 90)}`));
       });
     }

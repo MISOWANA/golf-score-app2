@@ -51,7 +51,8 @@ export function useSwipeAdjust({ base, step, clamp, onChange, onTap, pxPerStep =
     onTouchStart: (e) => handleStart(e.touches[0].clientX, e.touches[0].clientY),
     onTouchMove: (e) => handleMove(e.touches[0].clientX, e.touches[0].clientY),
     // 탭 뒤에 따라오는 가짜 마우스 이벤트로 두 번 입력되지 않게 막는다.
-    onTouchEnd: (e) => { e.preventDefault(); const t = e.changedTouches[0]; handleEnd(t.clientX, t.clientY); },
+    // 스크롤이 시작된 뒤의 touchend 는 취소할 수 없다(cancelable=false) — 그때 preventDefault 를 부르면 브라우저가 경고를 낸다
+    onTouchEnd: (e) => { if (e.cancelable) e.preventDefault(); const t = e.changedTouches[0]; handleEnd(t.clientX, t.clientY); },
     onTouchCancel: handleCancel,
     onMouseDown: (e) => {
       handleStart(e.clientX, e.clientY);

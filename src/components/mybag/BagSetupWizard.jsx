@@ -280,7 +280,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
               <>다음 · 거리 입력<span style={{ fontSize: 14, fontWeight: 700, opacity: 0.7 }}>({picked.length}개)</span></>)}
             {onLater && (
               <button type="button" data-role="wizard-later" onClick={onLater}
-                style={{ width: '100%', height: 40, border: 'none', background: 'none', color: COLOR.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>나중에 할게요</button>
+                style={{ width: '100%', height: 44, border: 'none', background: 'none', color: COLOR.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>나중에 할게요</button>
             )}
           </>
         )}

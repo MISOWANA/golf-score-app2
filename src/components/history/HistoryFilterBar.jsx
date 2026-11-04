@@ -6,7 +6,7 @@ import { HISTORY_SORTS, HISTORY_KINDS } from '../../engine/historyFilter.js';
 //   years  기록이 있는 연도들 (2개 이상일 때만 연도 칩을 보인다)
 //   showKinds  18홀 · 9홀 기록이 둘 다 있을 때만 종류 칩을 보인다
 const chip = (on) => ({
-  minHeight: 40, padding: '0 14px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap',
+  minHeight: 44, padding: '0 14px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap',
   border: `1.5px solid ${on ? '#c9a228' : '#2c3a5c'}`,
   background: on ? 'rgba(201,162,40,0.16)' : 'transparent',
   color: on ? '#f3d36b' : '#c4cfe0', fontSize: 14, fontWeight: 700,

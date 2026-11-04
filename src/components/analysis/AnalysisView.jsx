@@ -266,7 +266,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
         <div style={styles.keyStatsGrid}>
           <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/${stats.playedCount} holes`} />
           <StatTile label="Fairways" value={stats.fairwayPct != null ? `${stats.fairwayPct}%` : '—'} sub={stats.fairwayTotal > 0 ? `${stats.fairwaysHit}/${stats.fairwayTotal}` : '기록 없음'} />
-          <StatTile label="Avg Putts" value={stats.avgPutts} sub={`${stats.totalPutts} total`} />
+          <StatTile label="Avg Putts" value={stats.avgPutts} sub={stats.playedCount < round.holes.length ? `${stats.totalPutts} total · 입력한 ${stats.playedCount}홀` : `${stats.totalPutts} total`} />
           <StatTile label="Birdies+" value={stats.birdies + stats.eagles} sub={`${stats.eagles} eagle`} />
         </div>
       </div>

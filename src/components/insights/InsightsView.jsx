@@ -65,7 +65,7 @@ function ScopeToggle({ rounds, isCareerMode, isLatest = true, onPick, small = fa
         const on = (isCareerMode ? 'career' : 'round') === k;
         return (
           <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`${prefix}-${k}`} onClick={() => onPick(k)}
-            style={{ height: small ? 30 : 36, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
+            style={{ height: 44, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
         );
       })}
     </div>
@@ -447,13 +447,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         const canPick = allRounds.length > 1;
         const body = (
           <>
-            <div style={{ ...styles.insightsScopeLabel, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isCareerMode
-                  ? (isLatest ? `${rounds.length}라운드 누적 · 평균` : `${rounds.length}라운드 평균 · ${scopeDate}까지`)
-                  : `${latestRound.courseName || thisRound} · ${scopeDate}`}
+            {/* 이름은 길면 줄여 쓰고, 날짜는 절대 잘리지 않는다 — 한 줄에 다 안 들어가면 날짜가 아랫줄로 내려간다 (좁은 폰 · 긴 코스 이름) */}
+            <div data-role="scope-label" style={{ ...styles.insightsScopeLabel, overflow: 'visible', whiteSpace: 'normal', display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 6 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0, maxWidth: '100%' }}>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {isCareerMode ? (isLatest ? `${rounds.length}라운드 누적` : `${rounds.length}라운드 평균`) : (latestRound.courseName || thisRound)}
+                </span>
+                {canPick && <ChevronDown size={14} aria-hidden="true" style={{ flexShrink: 0, transform: pickerOpen ? 'rotate(180deg)' : 'none' }} />}
               </span>
-              {canPick && <ChevronDown size={14} aria-hidden="true" style={{ flexShrink: 0, transform: pickerOpen ? 'rotate(180deg)' : 'none' }} />}
+              {' '}
+              <span data-role="scope-date" style={{ whiteSpace: 'nowrap' }}>
+                {isCareerMode ? (isLatest ? '· 평균' : `· ${scopeDate}까지`) : `· ${scopeDate}`}
+              </span>
             </div>
             <div style={styles.insightsScopeValue}>
               <span data-role="scope-score">{isCareerMode ? avgScore.toFixed(1) : roundScore}</span>
@@ -488,12 +493,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {tab === 'report'
         ? <StickyTabs variant="underline" tabs={CHAPTER_TABS} current={chapter} onChange={setChapter} label="리포트 장" rolePrefix="insights-tab"
           stuckSlot={(
-            <div data-role="insights-stuck-row" style={{ display: 'flex', alignItems: 'center', justifyContent: rounds.length > 1 ? 'space-between' : 'flex-end', gap: 8, padding: '5px 16px', background: 'rgba(11,14,24,0.94)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid #1b2238' }}>
+            <div data-role="insights-stuck-row" style={{ display: 'flex', alignItems: 'center', justifyContent: rounds.length > 1 ? 'space-between' : 'flex-end', gap: 8, padding: '2px 16px', background: 'rgba(11,14,24,0.94)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid #1b2238' }}>
               {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} isLatest={isLatest} onPick={setMode} small prefix="stuck-scope" />}
               <div style={{ display: 'flex', gap: 2 }}>
                 {TOOLS.map(([v, aria, , Icon]) => (
                   <button key={v} type="button" aria-label={aria} data-role={`stuck-view-${v}`} onClick={() => changeView(v)}
-                    style={{ width: 40, height: 36, borderRadius: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: '#c4cfe0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    style={{ width: 44, height: 44, borderRadius: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: '#c4cfe0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                     <Icon size={19} strokeWidth={1.9} />
                   </button>
                 ))}

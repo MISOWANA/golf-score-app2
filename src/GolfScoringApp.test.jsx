@@ -679,6 +679,17 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     await waitFor(() => expect(document.body.textContent).toContain('2라운드 평균 · 2026.9.7까지'));
   });
 
+  it('인사이트 — 범위 카드의 날짜는 줄여 쓰지 않는다 (코스 이름이 길어도 날짜가 보이게 아랫줄로 내려간다)', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2, ME, { courseName: '아주아주 긴 이름의 컨트리클럽 리조트 제2코스' })] });
+    await openInsights();
+    const label = await waitFor(() => { const l = document.querySelector('[data-role="scope-label"]'); expect(l).toBeTruthy(); return l; });
+    const date = label.querySelector('[data-role="scope-date"]');
+    expect(date.textContent).toMatch(/^· \d{4}\.\d{1,2}\.\d{1,2}$/);
+    expect(date.style.whiteSpace).toBe('nowrap');                       // 날짜는 자르지 않는다
+    expect(label.style.flexWrap).toBe('wrap');                          // 모자라면 아랫줄로
+    expect(label.style.overflow).toBe('visible');                       // 라벨 전체에는 말줄임을 걸지 않는다
+  });
+
   it('인사이트 — 누적의 라운드별 스코어 추이 날짜에 연도가 붙는다', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
     await openInsights();
@@ -742,6 +753,16 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     expect(card.textContent).not.toContain('6번');                                              // 80m 안 5홀까지 세면 라이트가 6번이 된다
     expect(document.querySelector('[data-role="landing-take"]').textContent).toContain('80m 밖 샷으로 그린에 올린 공이');
     expect(document.querySelector('[data-role="landing-short-note"]').textContent).toBe('80m 안 샷으로 올린 5홀은 숏게임 탭의 핀 기준 탄착에서 봐요.');
+  });
+
+  it('야드 모드 — 그 아래 "80m 안 샷으로 올린 …" 안내도 야드로 보인다 (미터가 남지 않는다)', async () => {
+    await setup({ rounds: [chipRound(SPEC)], prefs: { unit: 'yd' } });
+    tab('스탯');
+    await screen.findByText('Stats');
+    fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-approach"]'); expect(t).toBeTruthy(); return t; }));
+    const note = await waitFor(() => { const n = document.querySelector('[data-role="landing-short-note"]'); expect(n).toBeTruthy(); return n; });
+    expect(note.textContent).toBe('87야드 안 샷으로 올린 5홀은 숏게임 탭의 핀 기준 탄착에서 봐요.');   // 80m = 87야드
+    expect(note.textContent).not.toMatch(/\d\s?m\b/);
   });
 
   it('홈 — 최근 라운드 줄에 연도가 붙는다', async () => {
@@ -1343,26 +1364,77 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
         expect(document.querySelector('[data-role="second-surface-auto"]').textContent).toContain('자동 선택');
       });
 
-      it('X 는 지형을 채우지 않고 러프 ★ 추천만 한다', async () => {
+      it('X 를 누르면 세컨샷 지형이 러프로 채워지고 자동 선택이라고 알려 준다', async () => {
         await resume(shotRound({ ...second }));
         await openTee();
         fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
-        await waitFor(async () => expect((await saved()).fairway).toBe(false));
-        expect((await saved()).secondSurface ?? null).toBeNull();
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, secondSurface: 'rough', secondSurfaceAuto: true }));
         await openTab('field');
-        const rough = await waitFor(() => { const b = document.querySelector('[data-role="second-surface-rough"]'); expect(b).toBeTruthy(); return b; });
-        expect(rough.textContent).toContain('★');
-        expect(surfaceOn('rough')).toBe(false);
-        expect(document.querySelector('[data-role="second-surface-auto"]')).toBeNull();
+        await waitFor(() => expect(surfaceOn('rough')).toBe(true));
+        expect(document.querySelector('[data-role="second-surface"]').getAttribute('data-missing')).toBe('0');
+        expect(document.querySelector('[data-role="second-surface-auto"]').textContent).toMatch(/놓쳐 자동 선택/);
+        expect(document.querySelector('[data-role="second-surface-rough"]').textContent).not.toContain('★');   // 이미 채워져서 추천 표시는 없다
       });
 
-      it('O 를 눌렀다가 X 로 바꾸면 자동으로 채운 지형은 다시 비운다', async () => {
+      it('X 로 채운 러프를 벙커로 바꾸면 그때부터는 직접 고른 값이고, 티샷 X 는 그대로다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect((await saved()).secondSurface).toBe('rough'));
+        await openTab('field');
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-surface-bunker"]'); expect(b).toBeTruthy(); return b; }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'bunker', secondSurfaceAuto: false, fairway: false }));
+      });
+
+      it('O 를 눌렀다가 X 로 바꾸면 자동으로 채운 지형도 페어웨이에서 러프로 따라 바뀐다', async () => {
         await resume(shotRound({ ...second }));
         await openTee();
         fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
         await waitFor(async () => expect((await saved()).secondSurface).toBe('fairway'));
         fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
-        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, secondSurface: null, secondSurfaceAuto: false }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, secondSurface: 'rough', secondSurfaceAuto: true }));
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));                // 다시 O 로
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: true, secondSurface: 'fairway', secondSurfaceAuto: true }));
+      });
+
+      it('티샷 벌타가 있으면 O 든 X 든 세컨샷 지형을 채우지 않는다', async () => {
+        await resume(shotRound({ ...second, penalties: [{ slot: 0, type: 'ob', mode: 'forward' }] }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect((await saved()).fairway).toBe(false));
+        expect((await saved()).secondSurface ?? null).toBeNull();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect((await saved()).fairway).toBe(true));
+        expect((await saved()).secondSurface ?? null).toBeNull();
+      });
+
+      it('O 를 직접 눌러 둔 뒤 세컨샷 지형을 러프로 바꾸면 티샷 페어웨이가 X 로 자동 변경된다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: true, secondSurface: 'fairway', secondSurfaceAuto: true }));
+        expect((await saved()).fairwayDerived ?? false).toBe(false);                             // 직접 누른 O
+        await openTab('field');
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-surface-rough"]'); expect(b).toBeTruthy(); return b; }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'rough', secondSurfaceAuto: false, fairway: false, fairwayDerived: true }));
+        await openTee();
+        expect(document.querySelector('[data-role="tee-fairway-derived"]').textContent).toMatch(/페어웨이가 아니라 X 로 자동 선택/);
+        expect(document.querySelector('[data-role="tee-fairway-miss"]').style.color).toBe('rgb(239, 83, 80)');   // X 가 눌린 모양
+      });
+
+      it('티샷 X 로 둔 뒤 세컨샷 지형을 페어웨이로 바꾸면 O 가 되고, 다시 티샷 O/X 를 누르면 직접 고른 값으로 돌아간다', async () => {
+        await resume(shotRound({ ...second }));
+        await openTee();
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-miss"]'));
+        await waitFor(async () => expect((await saved()).secondSurface).toBe('rough'));
+        await openTab('field');
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-surface-fairway"]'); expect(b).toBeTruthy(); return b; }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'fairway', fairway: true, fairwayDerived: true }));
+        await openTee();
+        expect(document.querySelector('[data-role="tee-fairway-derived"]').textContent).toMatch(/페어웨이라 O 로 자동 선택/);
+        fireEvent.click(document.querySelector('[data-role="tee-fairway-hit"]'));
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: true, fairwayDerived: false }));
+        expect(document.querySelector('[data-role="tee-fairway-derived"]')).toBeNull();
       });
 
       it('사용자가 직접 고른 지형은 O 로도 X 로도 바뀌지 않는다', async () => {
@@ -1453,13 +1525,13 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
         expect(await saved()).toMatchObject({ fairway: true });                                // 직접 누른 O 는 지켜진다
       });
 
-      it('X 를 누르면 자동으로 채운 지형도 비운다', async () => {
+      it('X 를 누르면 자동으로 채운 지형이 페어웨이에서 러프로 바뀐다', async () => {
         await resume(shotRound({ ...second }));
         await openTee();
         landing('C');
         await waitFor(async () => expect((await saved()).secondSurface).toBe('fairway'));
         click('tee-fairway-miss');
-        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, fairwayFromLanding: false, secondSurface: null, secondSurfaceAuto: false }));
+        await waitFor(async () => expect(await saved()).toMatchObject({ fairway: false, fairwayFromLanding: false, secondSurface: 'rough', secondSurfaceAuto: true }));
       });
 
       it('C 를 다시 눌러 지우거나 L · R 로 바꾸면 자동으로 채운 O 와 지형도 함께 걷어 낸다', async () => {
@@ -1591,8 +1663,16 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       });
     });
 
-    it('직접 누른 페어웨이 O/X 는 지형이 바꾸지 않는다', async () => {
+    it('직접 누른 페어웨이 O 도 세컨샷 지형을 러프로 고르면 X 로 바뀐다 (볼이 실제로 있는 자리가 더 정확하다)', async () => {
       await resume(shotRound({ ...second, fairway: true }));
+      await openTab('field');
+      await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
+      fireEvent.click(document.querySelector('[data-role="second-surface-rough"]'));
+      await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'rough', fairway: false, fairwayDerived: true }));
+    });
+
+    it('티샷 벌타가 있으면 세컨샷 지형이 페어웨이 O/X 를 바꾸지 않는다 (볼을 드롭한 자리라서)', async () => {
+      await resume(shotRound({ ...second, fairway: true, penalties: [{ slot: 0, type: 'ob', mode: 'forward' }] }));
       await openTab('field');
       await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
       fireEvent.click(document.querySelector('[data-role="second-surface-rough"]'));
@@ -1745,6 +1825,62 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       await openTab('putt');
       await screen.findByText('PUTT 1');
       expect(document.querySelector('[data-role="landing-wheel"]')).toBeTruthy();
+    });
+
+    // 퍼팅 단계에 들어올 때 화면이 어디로 가는가 — 랜딩 방향이 비어 있으면 휠부터, 골랐으면 PUTT 카드부터.
+    // jsdom 은 스크롤하지 않으므로 scrollIntoView 가 불린 요소(data-role)를 적어 둔다.
+    describe('퍼팅 단계에 들어올 때의 스크롤 자리', () => {
+      let scrolled;
+      beforeEach(() => {
+        scrolled = [];
+        Element.prototype.scrollIntoView = function () { scrolled.push(this.getAttribute('data-role')); };
+      });
+
+      it('랜딩 방향이 비어 있으면 휠부터 보여 준다 (PUTT 카드로 바로 가지 않는다)', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, ...second }));
+        await openTab('putt');
+        await screen.findByText('PUTT 1');
+        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        expect(scrolled).not.toContain('putting-top');
+      });
+
+      it('필드샷에서 온그린 "성공"을 눌러도 휠부터 — 랜딩 방향이 비어 있을 때', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, putts: 2, puttsManual: true, ...second }));
+        await openTab('field');
+        scrolled.length = 0;
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-result-on"]'); expect(b).toBeTruthy(); return b; }));
+        await screen.findByText('PUTT 1');
+        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        expect(scrolled).not.toContain('putting-top');
+      });
+
+      it('이미 랜딩 방향을 골랐으면 PUTT 카드부터 보여 준다', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, onGreenLanding: 6, ...second }));
+        await openTab('putt');
+        await screen.findByText('PUTT 1');
+        await waitFor(() => expect(scrolled).toContain('putting-top'));
+        expect(scrolled).not.toContain('landing-top');
+      });
+
+      it('휠에서 방향을 고르면 PUTT 카드로 내려간다', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, ...second }));
+        await openTab('putt');
+        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        scrolled.length = 0;
+        fireEvent.click(await waitFor(() => { const z = document.querySelector('[data-role="landing-zone"][data-hour="3"]'); expect(z).toBeTruthy(); return z; }));
+        await waitFor(() => expect(scrolled).toContain('putting-top'));
+        await waitFor(async () => expect((await saved()).onGreenLanding).toBe(3));
+      });
+
+      it('휠 구역은 퍼팅 시작선 위에 있어서 거기서 아래로 내려가면 PUTT 1 이 이어진다', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, ...second }));
+        await openTab('putt');
+        await screen.findByText('PUTT 1');
+        const landing = document.querySelector('[data-role="landing-top"]');
+        const putting = document.querySelector('[data-role="putting-top"]');
+        expect(landing.compareDocumentPosition(putting) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(landing.querySelector('[data-role="landing-wheel"]')).toBeTruthy();
+      });
     });
   });
 
@@ -2188,17 +2324,33 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       expect(document.querySelector('[data-role="off-green"]').closest('[data-role="putt-cards"]')).toBeTruthy();
     });
 
-    it('퍼팅 단계가 열리면 PUTT 카드 자리로 화면을 옮긴다 — 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
+    it('퍼팅 단계가 열리면 화면을 옮긴다 — 랜딩 방향이 비었으면 휠 자리로, 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       const targets = () => spy.mock.contexts.map((el) => el?.dataset?.role ?? '');
-      await resume(one());                                                               // 볼이 그린 위 → 퍼팅 단계로 열린다
+      await resume(one());                                                               // 볼이 그린 위 → 퍼팅 단계로 열린다 (랜딩 방향은 비어 있다)
+      await waitFor(() => expect(targets()).toContain('landing-top'));
+      expect(targets()).not.toContain('putting-top');
+      spy.mockClear();
+      await openTab('field');
+      await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());
+      spy.mockClear();
+      await openTab('putt');
+      await waitFor(() => expect(targets()).toContain('landing-top'));
+    });
+
+    it('랜딩 방향을 이미 골랐으면 PUTT 카드 자리로 화면을 옮긴다 — 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
+      const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
+      const targets = () => spy.mock.contexts.map((el) => el?.dataset?.role ?? '');
+      await resume(shotRound({ putts: 1, puttsManual: true, onGreenLanding: 6, puttDetails: [{ distance: 4, aimDistance: 4, lie: [], holein: null }] }));
       await waitFor(() => expect(targets()).toContain('putting-top'));
+      expect(targets()).not.toContain('landing-top');
       spy.mockClear();
       await openTab('field');
       await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());
       spy.mockClear();
       await openTab('putt');
       await waitFor(() => expect(targets()).toContain('putting-top'));
+      expect(targets()).not.toContain('landing-top');
     });
 
     it('처음 열었을 때 퍼팅이 아닌 단계라면 탭 행이 맨 위에 오게 내린다 (맨 위는 스코어보드)', async () => {
@@ -3381,5 +3533,67 @@ describe('새 라운드 설정 — 아래에 고정된 시작 버튼', () => {
     expect(bar.querySelector('[data-role="start-round"]').disabled).toBe(true);
     expect(bar.querySelector('[data-role="start-blockers"]').textContent).toMatch(/골프장 이름/);
     expect(bar.querySelector('[data-role="start-blockers"]').textContent).toMatch(/TEE BOX/);
+  });
+});
+
+describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
+  // jsdom 의 history.back() 은 비동기로 popstate 를 보낸다
+  const back = () => window.history.back();
+  const home = () => waitFor(() => expect(screen.getByText('새 라운드')).toBeTruthy());
+
+  it('스탯 → 뒤로가기 → 홈', async () => {
+    await setup({ rounds: [makeFullRound(1)] });
+    tab('스탯');
+    await screen.findByText('Stats');
+    back();
+    await home();
+    expect(screen.queryByText('Stats')).toBeNull();
+  });
+
+  it('아래 메뉴로 여러 화면을 옮겨 다녀도 기록은 한 칸만 쌓인다 (뒤로가기 한 번에 홈)', async () => {
+    await setup({ rounds: [makeFullRound(1)] });
+    tab('스탯'); await screen.findByText('Stats');
+    tab('인사이트'); await screen.findByText('Insights');
+    tab('MY BAG'); await waitFor(() => expect(window.history.state.v).toBe('mybag'));
+    tab('스탯'); await screen.findByText('Stats');
+    expect(window.history.state).toEqual({ v: 'stats', d: 1 });     // 메뉴를 옮겨 다녀도 홈 위로 한 칸
+    back();
+    await home();
+  });
+
+  it('진행 중인 라운드를 입력하다 뒤로가기 → 홈 (라운드는 그대로, 이어서 기록할 수 있다)', async () => {
+    await setup({ active: makeActiveRound() });
+    fireEvent.click(screen.getByText('이어서'));
+    await screen.findByText('/ 18 holes');
+    back();
+    await home();
+    expect(screen.getByText('진행 중인 라운드')).toBeTruthy();
+    expect((await db.loadActiveRound([user.userId])).courseName).toBe('진행중CC');
+  });
+
+  it('리포트 → 뒤로가기 → 히스토리 → 뒤로가기 → 홈', async () => {
+    await setup({ rounds: [makeFullRound(1)] });
+    await openReportFromHistory('남서울CC');
+    back();
+    await waitFor(() => expect(screen.queryByText('Round Report')).toBeNull());
+    expect(await screen.findByText('남서울CC')).toBeTruthy();           // 히스토리 목록
+    back();
+    await home();
+  });
+
+  it('홈 버튼으로 돌아가면 쌓인 기록도 함께 되감긴다 (이어서 뒤로가기를 눌러도 같은 화면에 머문다)', async () => {
+    await setup({ rounds: [makeFullRound(1)] });
+    tab('스탯'); await screen.findByText('Stats');
+    tab('홈');
+    await home();
+    expect(window.history.state).toEqual({ v: 'home', d: 0 });
+  });
+
+  it('열려 있던 목표 시트 같은 창은 화면과 함께 닫힌다', async () => {
+    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+    tab('스탯'); await screen.findByText('Stats');
+    back();
+    await home();
+    expect(document.querySelector('[data-role="goal-sheet"]')).toBeNull();
   });
 });

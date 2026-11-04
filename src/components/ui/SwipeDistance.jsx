@@ -77,14 +77,40 @@ function RepeatButton({ label, dir, base, step, clamp, onChange }) {
 // 슬라이더는 −/+ 버튼 아래로 칸 전체 폭을 쓴다 (좁은 폭에서 1px 이 몇 m 인지가 맞추기 쉬운지를 정한다).
 // 슬라이더는 흔히 쓰는 범위(sliderMax 까지)만 덮는다. 그보다 큰 값은 오른쪽 끝에 붙어 보이고, 입력은 −/+ · 숫자 밀기로 계속 된다.
 // 값이 비어 있는 동안은 흐린 손잡이(출발값 자리)만 보이고, 건드려야 값이 들어간다 — 눈대중 기본값이 저장되지 않게.
+//
+// 손가락 동작: 브라우저(Chrome)는 슬라이더에 손가락이 닿는 순간 값을 그 자리로 바꿔 놓고 나서야 스크롤인지 가린다
+// (touch-action: pan-y 여도 그렇다). 그대로 두면 화면을 스크롤하려고 슬라이더를 스치기만 해도 거리가 입력된다.
+// 그래서 터치로 닿은 동안은 값 변경을 보류한다 — 가로로 끌기 시작하면 그때부터 받고, 거의 움직이지 않고 떼면(탭) 닿은 자리의 값을
+// 받고, 세로로 밀어 스크롤이 시작되면(pointercancel) 버린다. 마우스 · 키보드는 보류 없이 바로 받는다.
+const SLIDER_TAP_SLOP = 8;     // 이 안에서 떼면 탭
+const SLIDER_DRAG_START = 6;   // 가로로 이만큼 움직이면 끌기 시작
 function DistanceSlider({ value, empty, min, max, step, onChange }) {
   const at = Math.max(min, Math.min(max, value));
+  const touch = useRef(null);   // 터치 중일 때 { x, y, armed(가로로 끌기 시작), pending(보류한 값) }
   return (
     <input
       type="range" className="dist-slider" data-role="dist-slider" data-empty={empty ? '1' : '0'}
       aria-label="거리 슬라이더" min={min} max={max} step={step} value={at}
       style={{ '--frac': (at - min) / (max - min) }}
-      onChange={(e) => onChange(Number(e.target.value))}
+      onPointerDown={(e) => { if (e.pointerType === 'touch') touch.current = { x: e.clientX, y: e.clientY, armed: false, pending: null }; }}
+      onPointerMove={(e) => {
+        const t = touch.current;
+        if (!t || t.armed) return;
+        const dx = e.clientX - t.x;
+        if (Math.abs(dx) >= SLIDER_DRAG_START && Math.abs(dx) > Math.abs(e.clientY - t.y)) t.armed = true;
+      }}
+      onPointerUp={(e) => {
+        const t = touch.current;
+        touch.current = null;
+        if (t && !t.armed && t.pending != null && Math.hypot(e.clientX - t.x, e.clientY - t.y) < SLIDER_TAP_SLOP) onChange(t.pending);
+      }}
+      onPointerCancel={() => { touch.current = null; }}
+      onChange={(e) => {
+        const v = Number(e.target.value);
+        const t = touch.current;
+        if (t && !t.armed) { t.pending = v; return; }
+        onChange(v);
+      }}
     />
   );
 }

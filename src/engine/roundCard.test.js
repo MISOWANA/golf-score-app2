@@ -115,4 +115,20 @@ describe('평균 비교', () => {
   it('compareValues: 퍼트는 18홀 환산', () => {
     expect(compareValues(flat(1, { putts: 2 })).putts).toBe(36);
   });
+
+  it('퍼트가 환산값이면 표시한다 — 입력하지 않은 홀이 있을 때만 (스코어카드 합계와 달라 보이는 이유를 화면이 알려 준다)', () => {
+    const history = [1, 2, 3].map((i) => flat(i));
+    const puttsRow = (round) => buildRoundCard(round, history).compare.rows.find((r) => r.id === 'putts');
+    expect(puttsRow(flat(4)).estimated).toBeUndefined();                       // 18홀 모두 입력 → 실제 합계
+
+    const partial = flat(4, { putts: 3 });
+    partial.holes[17].scores[ME] = defaultScore(partial.holes[17].par);        // 18번 홀은 입력하지 않았다
+    const row = puttsRow(partial);
+    expect(row.estimated).toBe(true);
+    expect(row.value).toBe(54);                                                // 3퍼트 × 17홀 ÷ 17 × 18 = 54 (저장된 합계는 53)
+    expect(partial.holes.reduce((s, h) => s + h.scores[ME].putts, 0)).toBe(53);
+
+    const others = buildRoundCard(partial, history).compare.rows.filter((r) => r.id !== 'putts');
+    expect(others.every((r) => r.estimated === undefined)).toBe(true);        // 퍼트 외에는 표시하지 않는다
+  });
 });

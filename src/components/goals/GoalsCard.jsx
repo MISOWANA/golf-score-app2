@@ -16,7 +16,7 @@ export default function GoalsCard({ goals, rounds, hasRounds, onOpen }) {
           <div style={{ fontSize: 13, color: '#8896b0', lineHeight: 1.5, marginTop: 2, wordBreak: 'keep-all' }}>약점을 목표로 바꾸면 라운드가 끝날 때마다 달성했는지 알려 드려요.</div>
         </div>
         <button type="button" className="bb-press" data-role="goal-add" onClick={() => onOpen({})}
-          style={{ padding: '10px 12px', borderRadius: 10, border: '1.5px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.12)', color: '#c9a228', fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>목표 정하기</button>
+          style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1.5px solid rgba(201,162,40,0.6)', background: 'rgba(201,162,40,0.12)', color: '#c9a228', fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>목표 정하기</button>
       </div>
     );
   }
@@ -26,7 +26,7 @@ export default function GoalsCard({ goals, rounds, hasRounds, onOpen }) {
         <div style={{ ...styles.statLabel, marginBottom: 0 }}>목표</div>
         {goals.length < MAX_GOALS && (
           <button type="button" data-role="goal-add" onClick={() => onOpen({})}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#c9a228', fontSize: 14, fontWeight: 700, cursor: 'pointer', padding: 4 }}><Plus size={14} />추가</button>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: '#c9a228', fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 44, margin: '-10px -6px', padding: '0 10px' }}><Plus size={14} />추가</button>
         )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

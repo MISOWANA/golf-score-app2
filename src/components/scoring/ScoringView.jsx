@@ -52,7 +52,7 @@ const toCompassLabel = (deg) => deg == null ? '—' : COMPASS_LABELS[Math.round(
 
 const getNavLabelFontSize = (text) => {
   const len = (text || '').length;
-  if (len <= 3) return '13px'; if (len <= 5) return '12px'; if (len <= 7) return '11px'; return '10px';
+  return len <= 3 ? '13px' : '12px';   // 12px 아래로는 줄이지 않는다 — 긴 이름은 라벨 칸 안에서 줄바꿈된다
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ function WindCompass({ direction, onChange }) {
             return (
               <text key={l} x={50 + r * Math.cos(rad)} y={50 + r * Math.sin(rad)}
                 textAnchor="middle" dominantBaseline="middle"
-                fontSize="10" fontWeight="bold" fill={col}
+                fontSize="10" /* fontsize-ok: 100칸 viewBox 를 210px 로 그려 화면에서는 약 21px */ fontWeight="bold" fill={col}
               >{l}</text>
             );
           })}
@@ -268,7 +268,7 @@ const lieText = (lie) => {
 
 // 지형 — 그 샷을 치는 자리의 표면 (페어웨이 · 러프 · 벙커). 샷마다 꼭 받는다.
 // suggest: 티샷 결과로 짐작한 표면 — 아직 고르지 않았을 때만 ★ 로 알려 주고, 눌러야 기록된다.
-//   (티샷에서 페어웨이를 지켰을 때만 예외 — 세컨샷 지형을 페어웨이로 미리 채우고 auto 로 알려 준다. setTeeFairway)
+//   (티샷 페어웨이 O/X 를 누르면 예외 — 세컨샷 지형을 페어웨이/러프로 미리 채우고 auto 로 알려 준다. setTeeFairway)
 // auto: 사용자가 고른 게 아니라 티샷 결과로 채운 값이다 — 다른 칩을 누르면 바뀐다.
 function SurfaceRow({ role, value, missing, suggest = null, auto = false, onChange }) {
   return (
@@ -276,7 +276,7 @@ function SurfaceRow({ role, value, missing, suggest = null, auto = false, onChan
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>⛳</span><span style={fLbl}>지형</span>
         {value == null && suggest && <span style={{ fontSize:12, color:'#8896b0' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
-        {value != null && auto && <span data-role={`${role}-auto`} style={{ fontSize:12, color:'#8896b0' }}>티샷 페어웨이라 자동 선택 · 다르면 눌러서 바꾸세요</span>}
+        {value != null && auto && <span data-role={`${role}-auto`} style={{ fontSize:12, color:'#8896b0' }}>{value === 'fairway' ? '티샷 페어웨이라 자동 선택' : '티샷 페어웨이를 놓쳐 자동 선택'} · 다르면 눌러서 바꾸세요</span>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
         {SURFACES.map((x) => {
@@ -880,6 +880,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   const extraShotTopRef = useRef(null);
   const puttTopRef = useRef(null);   // 퍼팅 영역의 맨 위 — 랜딩을 고르면 화면을 여기로 옮긴다
+  const landingTopRef = useRef(null); // 온그린 랜딩 방향 휠 자리 — 방향이 비어 있으면 퍼팅 단계에 들어올 때 화면을 여기로 옮긴다
   const offGreenTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
   const tabsTopRef = useRef(null);   // 입력 탭 행의 자리 — 탭을 바꾸거나 다음 홀로 가면 화면을 여기로 옮긴다
@@ -1159,13 +1160,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 세컨샷 지형 추천 — 티샷에서 페어웨이를 지켰으면 페어웨이, 놓쳤으면 러프 (고르기 전에만 ★ 로 알려 준다)
   const secondSurfaceSuggest = penaltyAt(playerScore, 0) ? null : playerScore.fairway === true ? 'fairway' : playerScore.fairway === false ? 'rough' : null;
 
-  // 티샷 페어웨이 O/X. 페어웨이에 올렸으면 세컨샷은 페어웨이에서 치는 것이니 지형을 미리 채운다 (secondSurfaceAuto 로 직접 고른 값과 구분).
-  // 놓쳤을 때는 러프인지 벙커인지 알 수 없어 채우지 않는다 — 러프 ★ 추천만 한다. 이미 고른 지형은 덮어쓰지 않는다.
+  // 티샷 페어웨이 O/X. 세컨샷은 티샷이 멈춘 자리에서 치는 것이니 지형을 미리 채운다 (secondSurfaceAuto 로 직접 고른 값과 구분).
+  // O 면 페어웨이, X 면 러프 — X 는 벙커일 수도 있지만 가장 흔한 쪽으로 채우고, 다르면 눌러서 바꾸게 한다.
+  // 비어 있거나 이미 채워 둔 지형만 바꾼다 (직접 고른 지형은 덮어쓰지 않는다). 티샷 벌타가 있으면 볼 자리를 알 수 없어 채우지 않는다.
   const autoSurfaceClear = playerScore.secondSurfaceAuto ? { secondSurface: null, secondSurfaceAuto: false } : {};   // 채워 둔 지형만 비운다 (직접 고른 값은 그대로)
   const setTeeFairway = (hit) => {
     const patch = { fairway: hit, ...(playerScore.fairwayFromLanding ? { fairwayFromLanding: false } : {}), ...(playerScore.fairwayDerived ? { fairwayDerived: false } : {}) };   // 직접 누른 값
-    if (hit === true && playerScore.secondSurface == null && !penaltyAt(playerScore, 0)) Object.assign(patch, { secondSurface: 'fairway', secondSurfaceAuto: true });
-    else if (hit !== true) Object.assign(patch, autoSurfaceClear);
+    if (penaltyAt(playerScore, 0)) Object.assign(patch, autoSurfaceClear);
+    else if (playerScore.secondSurface == null || playerScore.secondSurfaceAuto) Object.assign(patch, { secondSurface: hit === true ? 'fairway' : 'rough', secondSurfaceAuto: true });
     updateFields(patch);
   };
 
@@ -1185,13 +1187,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     updateFields(patch);
   };
 
-  // 세컨샷 지형을 고르면 티샷의 페어웨이 적중도 알 수 있다 — 따로 입력하지 않았다면 채워 둔다.
-  // (직접 O/X 를 누른 값은 지형 입력이 바꾸지 않는다. 채워 둔 값(fairwayDerived)만 지형을 바꾸면 따라 바뀐다.)
+  // 세컨샷 지형을 고르면 티샷의 페어웨이 적중도 그에 맞춘다 — 페어웨이에서 쳤으면 O, 러프·벙커면 X.
+  // 티샷 때 O 로 짐작하고 왔는데 막상 러프였던 경우처럼, 볼이 실제로 있는 자리가 티샷 때의 짐작보다 정확하다. 직접 누른 값도 따라 바뀐다
+  // (fairwayDerived 로 표시해 두고 티샷 쪽에 알려 준다 — 거기서 O/X 를 다시 누르면 그때부터는 직접 고른 값이다).
   const setSecondSurface = (v) => {
     const patch = { secondSurface: v };
     if (playerScore.secondSurfaceAuto) patch.secondSurfaceAuto = false;   // 이제 사용자가 고른(또는 지운) 값이다
     const fw = v ? fairwayFromSurface({ ...playerScore, secondSurface: v }, hole.par) : null;
-    if (fw != null && (playerScore.fairway == null || playerScore.fairwayDerived || playerScore.fairwayFromLanding)) Object.assign(patch, { fairway: fw, fairwayDerived: true, ...landingFlagClear });
+    if (fw != null) Object.assign(patch, { fairway: fw, fairwayDerived: true, ...landingFlagClear });
     else if (v == null && playerScore.fairwayDerived) Object.assign(patch, { fairway: null, fairwayDerived: false });
     updateFields(patch);
   };
@@ -2093,17 +2096,24 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   useEffect(() => { lastViewRef.current = { hole: holeIdx, stage }; });
 
   // 화면을 열었을 때와 퍼팅 단계로 넘어왔을 때 입력할 자리가 처음 화면 안에 있게 한다.
-  //  · 처음 열었을 때(새 라운드 · 이어서): 맨 위는 스코어보드라, 탭 행이 맨 위에 오게 내린다. 퍼팅 단계라면 PUTT 카드로.
-  //  · 퍼팅 단계로 넘어왔을 때(탭 · 샷 결과 버튼): PUTT 카드부터 보여 준다 — 그린 스피드 · 핀 · 랜딩은 위로 올리면 있다.
+  //  · 처음 열었을 때(새 라운드 · 이어서): 맨 위는 스코어보드라, 탭 행이 맨 위에 오게 내린다. 퍼팅 단계라면 아래 둘 중 하나로.
+  //  · 퍼팅 단계로 넘어왔을 때(탭 · 샷 결과 버튼): 온그린 랜딩 방향이 비어 있으면 그 휠부터 보여 준다 — 고르면 PUTT 카드로 내려간다
+  //    (휠의 onChange → scrollToPutting). 이미 골랐으면 PUTT 카드부터. 그린 스피드 · 핀 위치는 위로 올리면 있다.
   // 홀을 옮길 때의 스크롤은 confirmAndGoToHole(scrollToTabs)이 맡는다.
+  const landingEmptyRef = useRef(false);
+  useEffect(() => { landingEmptyRef.current = !playerScore.onGreenLanding; });
   const prevStageRef = useRef(null);
   useEffect(() => {
     const was = prevStageRef.current;
     prevStageRef.current = stage;
     const first = was === null;
-    const target = stage === 'putt' && (first || was !== 'putt') ? puttTopRef : first ? tabsTopRef : null;
+    const toPutt = stage === 'putt' && (first || was !== 'putt');
+    if (!toPutt && !first) return;
     // 타이머는 되돌리지 않는다 — 개발 모드의 StrictMode 가 효과를 두 번 돌려도 첫 스크롤이 사라지지 않게
-    if (target) setTimeout(() => target.current?.scrollIntoView?.({ behavior: first ? 'auto' : 'smooth', block: 'start' }), 80);
+    setTimeout(() => {
+      const el = toPutt ? ((landingEmptyRef.current && landingTopRef.current) || puttTopRef.current) : tabsTopRef.current;
+      el?.scrollIntoView?.({ behavior: first ? 'auto' : 'smooth', block: 'start' });
+    }, 80);
   }, [stage]);
 
   // 티샷 입력을 선택 항목까지 모두 마치면 다음 탭으로 넘어간다 (볼이 이미 그린이면 퍼팅, 아니면 필드샷).
@@ -2128,9 +2138,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.scoringHeader}>
-        <button style={styles.iconBack} onClick={handleBackClick} aria-label="뒤로"><ChevronLeft size={22} /></button>
-        <div style={styles.scoringCourse}>{round.courseName}</div>
-        <button style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8896b0', borderRadius: 8 }} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정">
+        <button style={{ ...styles.iconBack, flexShrink: 0 }} onClick={handleBackClick} aria-label="뒤로"><ChevronLeft size={22} /></button>
+        <div style={styles.scoringCourse} title={round.courseName}>{round.courseName}</div>
+        <button style={{ width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8896b0', borderRadius: 8 }} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정">
           <Edit3 size={18} strokeWidth={2} />
         </button>
       </header>
@@ -2214,7 +2224,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={styles.runningScoreStats}>
               {nineStats.map(ns => (
                 <div key={ns.key} style={styles.runningScoreStat}>
-                  <span style={{ ...styles.runningScoreStatLabel, fontSize: ns.label.length>5?'11px':'12px' }}>{ns.label}</span>
+                  <span style={{ ...styles.runningScoreStatLabel, fontSize: '12px' }}>{ns.label}</span>
                   <span style={{ ...styles.runningScoreStatValue, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</span>
                 </div>
               ))}
@@ -2753,6 +2763,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {playerScore.fairwayFromLanding && playerScore.fairway === true && (
               <div data-role="tee-fairway-auto" style={{ fontSize:12, color:'#8896b0', marginTop:6, lineHeight:1.5 }}>랜딩 센터라 O 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
             )}
+            {playerScore.fairwayDerived && playerScore.fairway != null && (
+              <div data-role="tee-fairway-derived" style={{ fontSize:12, color:'#8896b0', marginTop:6, lineHeight:1.5 }}>{playerScore.fairway ? '세컨샷 지형이 페어웨이라 O' : '세컨샷 지형이 페어웨이가 아니라 X'} 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
+            )}
           </div>
         )}
 
@@ -3248,16 +3261,18 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* 온그린 랜딩 방향 (12-clock) — 선택 입력. 그린 어프로치 분석에 쓰이고, 비워 두어도 퍼팅 입력은 열려 있다.
             늘 펼쳐서 보여 준다 (값이 있어도) — 펼치려고 한 번 더 누르는 게 불편하다고 해서. 고르면 화면만 아래 퍼팅 입력으로 옮긴다. */}
-        <OptionalSection
-          key={`landing-${holeIdx}-${activePlayer}`}
-          icon="⊙" label="온그린 랜딩 방향" enabled hint={null}
-          defaultOpen
-          summary={playerScore.onGreenLanding ? `${playerScore.onGreenLanding}시 방향` : ''}
-        >
-          {() => (
-            <LandingWheel value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) scrollToPutting(); }} />
-          )}
-        </OptionalSection>
+        <div ref={landingTopRef} data-role="landing-top" style={{ scrollMarginTop: 64 }}>
+          <OptionalSection
+            key={`landing-${holeIdx}-${activePlayer}`}
+            icon="⊙" label="온그린 랜딩 방향" enabled hint={null}
+            defaultOpen
+            summary={playerScore.onGreenLanding ? `${playerScore.onGreenLanding}시 방향` : ''}
+          >
+            {() => (
+              <LandingWheel value={playerScore.onGreenLanding} onChange={v=>{ updateField('onGreenLanding',v); if(v) scrollToPutting(); }} />
+            )}
+          </OptionalSection>
+        </div>
 
         {/* 퍼팅 상세 */}
         <div ref={puttTopRef} data-role="putting-top" style={{ scrollMarginTop: 64 }} />

@@ -117,6 +117,72 @@ describe('− / + 버튼', () => {
   });
 });
 
+// 슬라이더의 손가락 동작 — Chrome 은 손가락이 닿는 순간(pointerdown 직후) 값을 바꿔 놓고(input) 그다음에야 세로 스크롤이면 pointercancel 을 보낸다.
+// 실제 순서 그대로 재현한다: pointerdown → input(change) → (pointercancel | pointermove… | pointerup)
+const touchPtr = (el, type, x, y) => {
+  const e = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+  Object.defineProperty(e, 'pointerType', { value: 'touch' });
+  Object.defineProperty(e, 'pointerId', { value: 1 });
+  fireEvent(el, e);
+};
+const slider = () => document.querySelector('[data-role="dist-slider"]');
+const jumpTo = (v) => fireEvent.change(slider(), { target: { value: String(v) } });
+
+describe('슬라이더 손가락 동작', () => {
+  it('세로로 밀어 스크롤하면 닿는 순간 바뀐 값은 버려진다 (스크롤하려다 거리가 입력되지 않는다)', () => {
+    render(<Harness initial={100} />);
+    touchPtr(slider(), 'pointerdown', 200, 500);
+    jumpTo(250);                                         // 브라우저가 닿은 자리로 값을 옮긴다
+    touchPtr(slider(), 'pointercancel', 200, 380);       // 세로 스크롤이 시작됐다
+    expect(shown()).toBe(100);
+    expect(slider().value).toBe('100');                  // 손잡이도 제자리로
+  });
+
+  it('값이 비어 있을 때 스크롤로 스쳐도 아무것도 입력되지 않는다', () => {
+    const onChange = vi.fn();
+    render(<SwipeDistance value={null} start={150} min={1} max={300} sliderMax={300} onChange={onChange} />);
+    touchPtr(slider(), 'pointerdown', 120, 500);
+    jumpTo(80);
+    touchPtr(slider(), 'pointermove', 121, 430);
+    touchPtr(slider(), 'pointercancel', 121, 380);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('가로로 끌면 그때부터 값이 바뀐다', () => {
+    render(<Harness initial={100} />);
+    touchPtr(slider(), 'pointerdown', 100, 500);
+    touchPtr(slider(), 'pointermove', 112, 502);         // 가로로 6px 넘게
+    jumpTo(140);
+    jumpTo(180);
+    touchPtr(slider(), 'pointerup', 190, 502);
+    expect(shown()).toBe(180);
+  });
+
+  it('거의 움직이지 않고 떼면(탭) 닿은 자리의 값이 들어간다', () => {
+    render(<Harness initial={100} />);
+    touchPtr(slider(), 'pointerdown', 150, 500);
+    jumpTo(220);
+    expect(shown()).toBe(100);                           // 떼기 전에는 보류
+    touchPtr(slider(), 'pointerup', 151, 500);
+    expect(shown()).toBe(220);
+  });
+
+  it('세로로 먼저 움직인 뒤에는 가로로 흔들려도 끌기로 보지 않는다', () => {
+    render(<Harness initial={100} />);
+    touchPtr(slider(), 'pointerdown', 150, 500);
+    touchPtr(slider(), 'pointermove', 158, 440);         // 가로 8px · 세로 60px — 세로가 크다
+    jumpTo(230);
+    touchPtr(slider(), 'pointercancel', 158, 400);
+    expect(shown()).toBe(100);
+  });
+
+  it('마우스 · 키보드(터치가 아닌 입력)는 보류 없이 바로 바뀐다', () => {
+    render(<Harness initial={100} />);
+    jumpTo(130);
+    expect(shown()).toBe(130);
+  });
+});
+
 describe('배치', () => {
   it('슬라이더는 − 숫자 + 줄 아래에 칸 전체 폭으로 있다', () => {
     render(<Harness />);

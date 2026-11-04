@@ -1,9 +1,10 @@
 // ─── 샷별 벌타 ────────────────────────────────────────────────────────────────
 //
-// score.penalties = [{ slot, type, mode }]
+// score.penalties = [{ slot, type, mode, reason? }]
 //   slot : 벌타가 난 샷 (0=티샷, 1=세컨샷, 2 이상=그다음 샷들 — GPS 지점 순서와 같다)
 //   type : 'ob' | 'hazard' | 'unplayable'
 //   mode : 그다음 샷을 어떻게 쳤는지 (룰 기준 — 모두 아래 벌타 후 '다음 샷'이 실제로 친 샷이다)
+//   reason : 왜 벌타가 났나 — 'distance' 거리 미스 · 'direction' 방향 미스 · 'shank' 생크 (OB · 해저드, 선택 입력)
 //
 //   OB — 선택지는 두 가지뿐이다
 //     'replay'  = 스트로크와 거리 (Rule 18.2) — 직전 샷 위치에서 다시 치기, 1벌타. 다시 친 샷이 3번째 샷
@@ -25,6 +26,16 @@
 
 export const PENALTY_TYPES = ['ob', 'hazard', 'unplayable'];
 export const PENALTY_LABEL = { ob: 'OB', hazard: '해저드', unplayable: '언플레이어블' };
+
+// 벌타 이유 — OB · 해저드가 난 샷이 거리를 못 맞춘 건지, 방향이 틀린 건지, 생크였는지 (선택 입력)
+export const PENALTY_REASONS = [
+  { id: 'distance', label: '거리 미스' },
+  { id: 'direction', label: '방향 미스' },
+  { id: 'shank', label: '생크' },
+];
+export const penaltyReasonLabel = (p) => PENALTY_REASONS.find((r) => r.id === p?.reason)?.label ?? null;
+// 이유를 물을 벌타인가 — 언플레이어블은 샷 실수가 아니라 볼 자리 때문이라 묻지 않는다
+export const asksReason = (type) => type === 'ob' || type === 'hazard';
 
 export const penaltyAt = (score, slot) =>
   (score?.penalties || []).find((p) => p.slot === slot) || null;
@@ -74,7 +85,8 @@ export function penaltyResultText(p, slot) {
   if (!p) return null;
   const head = PENALTY_LABEL[p.type] ?? '벌타';
   const mode = penaltyModeLabel(p, slot) ?? (p.type === 'ob' ? 'OB티' : null);
-  return mode ? `${head} · ${mode}` : head;
+  const why = penaltyReasonLabel(p);
+  return [head, mode, why].filter(Boolean).join(' · ');
 }
 
 const BASE_NAMES = ['티샷', '세컨샷', '써드샷', '포쓰샷', '피프스샷', '식스샷', '세븐샷', '에잇샷', '나인스샷', '텐스샷'];

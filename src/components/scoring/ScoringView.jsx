@@ -4,7 +4,7 @@ import styles from '../../styles/styles';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
-import { penaltyAt, penaltyCount, penaltyModeLabel, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL } from '../../engine/penalties.js';
+import { penaltyAt, penaltyCount, penaltyModeLabel, penaltyResultText, phantomStrokes, strokeNumberOf, shotTitle, titleShifted, PENALTY_LABEL, PENALTY_REASONS, asksReason } from '../../engine/penalties.js';
 import { offGreenShots, offGreenCount, offGreenChain, offGreenPendingAfter, emptyOffGreenShot, OFF_GREEN_CLUBS, OFF_GREEN_START_M, OFF_GREEN_MAX_M } from '../../engine/offGreen.js';
 import { PUTT_MIN_M, PUTT_MAX_M, PUTT_STEP_M, PUTT_START_M, newPuttDetail, sanitizeFirstPutt } from '../../engine/firstPutt.js';
 import { PUTT_LIES, COMPOUND_LIES, DEFAULT_FRAME, TAP_IN_MAX_M, lieIdOf, lieShape, isCompoundLie, puttLieText, refreshMiss, nextFrame, puttRowText } from '../../engine/puttMiss.js';
@@ -624,7 +624,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [pendingFinish, setPendingFinish] = useState(null);   // 미입력 홀 확인 중인 완료 라운드
   const [pendingSkip, setPendingSkip] = useState(null);       // 입력 없는 홀에서 '다음' — 이동할 홀 번호
-  const [penaltyChoice, setPenaltyChoice] = useState(null);   // 벌타 처리 방법(OB티·드롭·다시 치기 …)을 고르는 중인 { slot, type }
+  const [penaltyChoice, setPenaltyChoice] = useState(null);   // 벌타 처리 방법(OB티·드롭·다시 치기 …)과 이유를 고르는 중인 { slot, type, reason }
   // '다음'/'완료'를 누른 홀에 확인할 게 있을 때 — { next } 또는 { finish: true }. 빠진 샷 정보(라이·지형·거리·클럽)와
   // 모르는 퍼팅 수를 한 창에서 한 번만 묻는다 (예전에는 창이 차례로 둘 떠서 같은 홀에서 연속으로 눌러야 했다).
   const [holeCheck, setHoleCheck] = useState(null);
@@ -759,11 +759,19 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // (저장값은 2퍼트 기준 예상치로 계속 갱신해 둔다 — 중간에 앱이 꺼져도 남도록.)
   const scorePending = (s) => autoScoreOn(s) && !puttsKnown(s);
 
+  // 아직 끝나지 않은 홀 — 퍼트 결과를 누르기 시작했지만(다음 퍼트로 넘어갔거나 그린 밖으로 보냈다) 마지막 퍼트가 들어가지
+  // 않았고, 칩인·홀인원도 아니고, 퍼팅 수를 직접 정하거나 홀을 확정하지도 않았다. 이때의 스코어·퍼팅 수는 "지금까지 확실한 최소"일 뿐
+  // (다음 퍼트 카드나 칩 뒤 퍼트는 자리만 만들어 둔 것)이라, 끝난 홀처럼 홀 표에 숫자로 보이거나 "보기" 같은 이름이 붙으면 안 된다.
+  const lastPuttHoled = (s) => { const d = s.puttDetails; return Array.isArray(d) && d.length > 0 && d[d.length - 1]?.holein === 'success'; };
+  const holeOpen = (s) => autoScoreOn(s) && !s.confirmed && !s.puttsManual && !isHoledOut(s) && !lastPuttHoled(s)
+    && (s.puttDetails || []).some(p => p?.holein === 'fail' || p?.holein === 'offgreen');
+  const inProgress = (s) => scorePending(s) || holeOpen(s);
+
   // 홀 표(SCORE · PUTT 줄)에 보일 글자 — 입력하지 않은 홀은 저장된 기본값(파·2퍼트)이 아니라 '-' 로 보여 준다.
   // PUTT 는 퍼트 수를 직접 입력했거나 확정한 홀만 보인다 (퍼팅을 아직 모르는 홀의 2퍼트는 가정값이다).
   const NAV_EMPTY = '-';
-  const navStrokesText = (s, done) => (s?.touched !== true ? NAV_EMPTY : !done && scorePending(s) ? '·' : s.strokes);
-  const navPuttsText = (s, done) => (s?.touched !== true || !(done || puttsKnown(s)) || s.putts == null ? NAV_EMPTY : s.putts);
+  const navStrokesText = (s, done) => (s?.touched !== true ? NAV_EMPTY : !done && inProgress(s) ? '·' : s.strokes);
+  const navPuttsText = (s, done) => (s?.touched !== true || (!done && (holeOpen(s) || !puttsKnown(s))) || s.putts == null ? NAV_EMPTY : s.putts);
   const strokesToGreen = (s, par) => calcAutoStrokes({ ...s, putts: 0 }, par);
 
   // 홀 확정 — 상세 입력 홀은 스코어·GIR을 샷 기록으로 다시 계산한다(칩인·홀인원 포함).
@@ -1693,7 +1701,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 벌타가 난 샷은 그린에 가지 못한 것이므로 결과를 맞추고 다음 샷 자리를 연다.
   const emptyShot = () => ({ club: null, subClub: null, lie: [], surface: null, remainingDistance: null, windDirection: null, windStrength: null, onGreen: null });
 
-  const addShotPenalty = (slot, type, mode = null) => {
+  // extra: 벌타 기록에 덧붙일 것 — { reason }(왜 벌타가 났나)
+  const addShotPenalty = (slot, type, mode = null, extra = {}) => {
     const old = penaltyAt(playerScore, slot);
     const rest = (playerScore.penalties || []).filter(p => p.slot !== slot);
     const counts = {
@@ -1707,7 +1716,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     if (unclaimed <= 0) counts[type] += 1;
     // 스코어가 자동 계산 중이면 updateFields가 샷 기록으로 다시 계산한다. 직접 고친 스코어
     // (strokesManual)는 그대로 둔다 — 벌타를 기록해도 총 스코어를 바꾸지 않는다.
-    const fields = { penalties: [...rest, { slot, type, mode }], ...counts };
+    const fields = { penalties: [...rest, { slot, type, mode, ...extra }], ...counts };
+    if (slot === hole.par - 3 && playerScore.greenMiss) fields.greenMiss = null;   // 규정 타수로 그린을 노린 샷이 벌타면 방향 대신 벌타 이유를 쓴다
     if (slot === 0) {
       // 티샷 벌타 — 페어웨이 미적중, 1온·온그린 아님. 다음 샷(세컨샷 자리)은 늘 있다.
       if (hole.par > 3) Object.assign(fields, { fairway: false, teeGIR: false, ...autoSurfaceClear });
@@ -1804,7 +1814,17 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const choosePenaltyMode = (mode) => {
     const c = penaltyChoice;
     setPenaltyChoice(null);
-    if (c) addShotPenalty(c.slot, c.type, mode);
+    if (c) addShotPenalty(c.slot, c.type, mode, c.reason ? { reason: c.reason } : {});
+  };
+
+  // 이미 기록한 벌타의 이유를 바꾼다 (같은 이유를 다시 누르면 비운다)
+  const setPenaltyReason = (slot, reason) => {
+    const list = (playerScore.penalties || []).map((p) => {
+      if (p.slot !== slot) return p;
+      const { reason: old, ...rest } = p;
+      return old === reason ? rest : { ...rest, reason };
+    });
+    updateFields({ penalties: list });
   };
 
   // [OB]·[해저드]·[언플레이어블] 버튼 한 줄. 누르면 처리 방법(OB티·드롭·다시 치기 …)을 고른 뒤 기록한다.
@@ -1818,19 +1838,32 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       color: active ? '#ef5350' : '#8896b0',
     });
     return (
-      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+      <>
+      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 16px 10px', borderBottom: p && asksReason(p.type) ? 'none' : '1px solid #0e1320' }}>
         <span style={{ ...fLbl, minWidth: 32 }}>벌타</span>
         {['ob', 'hazard', 'unplayable'].map((type) => {
           const active = p?.type === type;
           const mode = active ? penaltyModeLabel(p, slot) : null;
           return (
             <button key={type} style={chip(active)}
-              onClick={() => (active ? removeShotPenalty(slot) : setPenaltyChoice({ slot, type }))}>
+              onClick={() => (active ? removeShotPenalty(slot) : setPenaltyChoice({ slot, type, reason: null }))}>
               {active ? `${PENALTY_LABEL[type]}${mode ? ` · ${mode}` : ''} ✕` : PENALTY_LABEL[type]}
             </button>
           );
         })}
       </div>
+      {/* 왜 벌타가 났나 — 거리 미스 · 방향 미스 · 생크. 선택 입력이라 안 눌러도 된다 */}
+      {p && asksReason(p.type) && (
+        <div data-role={`penalty-reason-${slot}`} style={{ display:'flex', alignItems:'center', gap:6, padding:'0 16px 10px', borderBottom:'1px solid #0e1320' }}>
+          <span style={{ ...fLbl, minWidth: 32 }}>이유</span>
+          {PENALTY_REASONS.map((r) => (
+            <button key={r.id} type="button" aria-pressed={p.reason === r.id} data-role={`penalty-reason-${slot}-${r.id}`}
+              style={{ ...fChip, flex:1, textAlign:'center', padding:'9px 4px', fontSize:14, borderRadius:8, ...(p.reason === r.id ? fChipOn : {}) }}
+              onClick={() => setPenaltyReason(slot, r.id)}>{r.label}</button>
+          ))}
+        </div>
+      )}
+      </>
     );
   };
 
@@ -2051,9 +2084,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 홀인 성공/실패를 누른 퍼트도 입력된 것이다 — 거리 없이 '실패'만 눌러 다음 퍼트가 생겼을 때
   // 첫 퍼트를 '빈 퍼트'로 보면 열린 카드가 PUTT 1로 되돌아가 잘못된 퍼트에 홀인을 누르게 된다.
   // 직전 퍼트가 멈춘 곳에서 자동으로 넣은 거리(distanceAuto)는 사용자가 입력한 게 아니라서 빈 퍼트로 본다.
-  const isPuttEmpty = (p) =>
-    p.holein == null && (p.distance == null || p.distanceAuto === true) && (p.aimDistance == null || p.distanceAuto === true) && p.miss == null &&
-    (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
+  // 첫 퍼팅 기본 거리(설정)도 마찬가지다 — 첫 퍼트에 그 값만 들어 있고 라이·결과가 없으면 아직 입력 전이다.
+  // (이걸 입력한 것으로 보면 온그린 직후 PUTT 1 을 건너뛰고 PUTT 2 가 열린다.)
+  const seededFirstPutt = sanitizeFirstPutt(firstPutt);
+  const isPuttEmpty = (p, i) => {
+    const onlySeeded = i === 0 && seededFirstPutt != null && p.distance === seededFirstPutt && (p.aimDistance == null || p.aimDistance === seededFirstPutt);
+    return p.holein == null && (p.distance == null || p.distanceAuto === true || onlySeeded) && (p.aimDistance == null || p.distanceAuto === true || onlySeeded) && p.miss == null &&
+      (p.lie == null || p.lie === '' || (Array.isArray(p.lie) && p.lie.length === 0));
+  };
 
   // 아래 세 덩어리는 이펙트에서 setState 하지 않고, 값이 바뀐 그 렌더에서 바로 상태를 맞춘다
   // (처음 그릴 때도 한 번 맞추려고 null 에서 시작한다). 순서는 위에서부터 차례로 적용된다.
@@ -2325,7 +2363,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ fontSize:32, fontWeight:900, lineHeight:1, letterSpacing:'-0.02em', color: isPar5?'#3db87a': hole.par===3?'#5b9cf6':'#e8edf8' }}>PAR {hole.par}</div>
             {(() => {
               const diff = playerScore.strokes - hole.par;
-              if (diff === 0 || !playerScore.touched || scorePending(playerScore)) return null;
+              if (diff === 0 || !playerScore.touched || inProgress(playerScore)) return null;
               const under = diff < 0;
               return (
                 <div style={{
@@ -2347,12 +2385,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* 우측: 스코어명 */}
         {/* 퍼팅 입력 전에는 스코어 이름(버디·보기…)을 붙이지 않는다 — 아직 정해지지 않았다 */}
-        {scorePending(playerScore) && (
+        {inProgress(playerScore) && (
           <div style={{ fontSize:13, fontWeight:700, letterSpacing:'0.14em', color:'#8896b0', border:'1.5px solid #3a4e72', borderRadius: 10, padding:'6px 12px' }}>
             진행 중
           </div>
         )}
-        {scoreName && !scorePending(playerScore) && (
+        {scoreName && !inProgress(playerScore) && (
           <div style={{
             fontSize:13, fontWeight: isPar3AtPar?'800':(scoreName.fw||'700'),
             letterSpacing:'0.14em', textTransform:'uppercase',
@@ -2846,7 +2884,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {teeReady && stage === 'field' && !playerScore.teeGIR && <>
         {/* ── 세컨샷 아코디언 헤더 ── */}
-        <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded ? 'none' : '1px solid #0e1320' }}>
+        <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded || penaltyAt(playerScore, 1) ? 'none' : '1px solid #0e1320' }}>
           {(() => {
             const st = turnState('second', !!playerScore.secondClub || playerScore.gir != null || extraShots.length > 0);
             const h = HDR[st];
@@ -2857,6 +2895,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <span style={{ fontSize:13, color: h.arrow, flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
           </>); })()}
         </button>
+        {/* 접혀 있어도 이 샷에서 난 벌타(OB · 방식 · 이유)가 보이게 한다 — 펼쳐야만 보이면 기록했는지 알 수 없다 */}
+        {!secondShotExpanded && penaltyAt(playerScore, 1) && (
+          <div data-role="second-penalty-tag" style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, fontWeight:700, lineHeight:1.5, color:'#ef8a87', borderBottom:'1px solid #0e1320' }}>{penaltyResultText(penaltyAt(playerScore, 1), 1)}</div>
+        )}
 
         {secondShotExpanded && <>
         {/* 세컨샷 지점 — 티샷한 볼 앞. 티 지점과의 거리가 곧 티샷 거리다 */}
@@ -2971,7 +3013,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         )}
 
         {/* 그린을 놓쳤으면 어느 쪽으로 빠졌는지 — 선택 입력(안 눌러도 넘어간다). 같은 칩을 다시 누르면 해제 */}
-        {greenMissed(playerScore, hole.par) && (
+        {greenMissed(playerScore, hole.par) && !penaltyAt(playerScore, hole.par - 3) && (
           // 칩 4개가 한 줄에 들어가도록 라벨을 윗줄에 둔다 (다른 행처럼 왼쪽 라벨 130px 를 쓰면 390px 폭에서 넘친다)
           <div data-role="green-miss" style={{ padding:'10px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ ...fLeft, minWidth:0, marginBottom:8 }}><span style={fIcon}>⊙</span><span style={fLbl}>놓친 방향</span></div>
@@ -2999,7 +3041,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               {/* 아코디언 헤더 */}
               <button
                 onClick={() => setExpandedExtraShot(isExtraOpen ? -1 : idx)}
-                style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isExtraOpen ? 'none' : '1px solid #0e1320' }}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isExtraOpen || penaltyAt(playerScore, idx + 2) ? 'none' : '1px solid #0e1320' }}
               >
                 <div style={{ height:1, flex:1, background: exHdr.line }} />
                 <span style={{ fontSize:14, fontWeight:800, color: exHdr.label, letterSpacing:'0.18em', flexShrink:0 }}>
@@ -3008,6 +3050,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 <div style={{ height:1, flex:1, background: exHdr.line }} />
                 <span style={{ fontSize:13, color: exHdr.arrow, flexShrink:0 }}>{isExtraOpen ? '▲' : '▼'}</span>
               </button>
+              {!isExtraOpen && penaltyAt(playerScore, idx + 2) && (
+                <div data-role={`extra-penalty-tag-${idx}`} style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, fontWeight:700, lineHeight:1.5, color:'#ef8a87', borderBottom:'1px solid #0e1320' }}>{penaltyResultText(penaltyAt(playerScore, idx + 2), idx + 2)}</div>
+              )}
 
               {isExtraOpen && (<>
                 {/* 이 샷을 치는 지점 — 직전 지점과의 거리가 직전 샷의 거리다 */}
@@ -3415,6 +3460,21 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           </div>
 
         </>)}
+
+        {/* 퍼팅이 0개면 카드가 없다 — 빈 화면으로 두지 않고 왜 비었는지와 다음에 할 일을 알려 준다 */}
+        {!(playerScore.putts > 0) && (
+          <div data-role="putts-zero-note" style={{ padding:'20px 16px 24px', textAlign:'center', borderBottom:'1px solid #0e1320' }}>
+            <div style={{ fontSize:14, color:'#a9b8d6', lineHeight:1.6, marginBottom: isHoledOut(playerScore) ? 0 : 14, wordBreak:'keep-all' }}>
+              {isHoledOut(playerScore)
+                ? '칩인(홀인원)으로 끝난 홀이라 퍼팅이 없어요'
+                : '퍼팅 수가 0개예요 · 퍼팅을 했다면 아래 버튼으로 입력하세요'}
+            </div>
+            {!isHoledOut(playerScore) && (
+              <button type="button" data-role="putts-add" onClick={() => updatePuttsCount(1)}
+                style={{ ...fChipWide, minWidth:160, padding:'12px 18px', color:'#c9a228', border:'1.5px solid rgba(201,162,40,0.5)', fontSize:15, fontWeight:800 }}>퍼팅 입력하기</button>
+            )}
+          </div>
+        )}
         </>}
 
       </div>}
@@ -3574,6 +3634,19 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 ? <>OB 처리를 어떻게 했나요?<br/>어느 쪽이든 스코어는 +2타예요 (1벌타 + 다시 친 샷)</>
                 : <>어떤 구제 방식을 썼나요?<br/>어느 방식이든 1벌타(+1타)예요</>}
             </div>
+            {/* 왜 벌타가 났나 — 선택 입력. 누른 뒤 구제 방식을 고르면 함께 기록된다 */}
+            {asksReason(penaltyChoice.type) && (
+              <div data-role="penalty-reason-ask" style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#a9b8d6', marginBottom: 6, textAlign: 'left' }}>어떤 미스였나요? <span style={{ fontWeight: 500, color: '#8896b0' }}>(선택)</span></div>
+                <div style={{ display:'flex', gap:6 }}>
+                  {PENALTY_REASONS.map((r) => (
+                    <button key={r.id} type="button" aria-pressed={penaltyChoice.reason === r.id} data-role={`penalty-ask-${r.id}`}
+                      style={{ ...fChip, flex:1, textAlign:'center', padding:'9px 4px', fontSize:14, borderRadius:8, ...(penaltyChoice.reason === r.id ? fChipOn : {}) }}
+                      onClick={() => setPenaltyChoice((c) => ({ ...c, reason: c.reason === r.id ? null : r.id }))}>{r.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {penaltyOptions(penaltyChoice.slot, penaltyChoice.type).map((o) => (
                 <button key={o.mode} style={reliefCard} onClick={() => choosePenaltyMode(o.mode)}>

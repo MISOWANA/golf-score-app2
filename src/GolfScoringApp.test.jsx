@@ -1947,7 +1947,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       await waitFor(async () => expect((await savedPutts())).toHaveLength(2));
       const d = await savedPutts();
       expect([d[0].distance, d[0].aimDistance, d[1].distance, d[1].aimDistance]).toEqual([6, 6, null, null]);
-      fireEvent.click((await screen.findByText('PUTT 1')).closest('button'));              // 열려 있는 건 다음 퍼팅 — 첫 퍼팅을 펼친다
+      await screen.findByText('PUTT 1');                                                    // 첫 퍼팅이 열려 있다 (기본 거리만 든 퍼트는 입력 전이다)
       const first = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
       expect(first.value).toBe('6');
       expect(first.getAttribute('data-empty')).toBe('0');                                 // 값이 들어가 있다 (흐린 손잡이가 아니다)
@@ -1956,10 +1956,56 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     it('퍼팅 수만 있고 상세가 없는 홀도 첫 퍼팅 칸에는 정한 값이 보인다', async () => {
       await resumeWith(shotRound({ putts: 2, puttsManual: true }), { unit: 'm', firstPutt: 4.5 });
       await openTab('putt');
-      fireEvent.click((await screen.findByText('PUTT 1')).closest('button'));
+      await screen.findByText('PUTT 1');
       const first = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
       expect(first.value).toBe('4.5');
       expect(first.getAttribute('data-empty')).toBe('0');
+    });
+
+    // 지금 펼쳐져 있는 PUTT 카드 번호들 (머리글의 ▲)
+    const openPutts = () => [...document.querySelectorAll('[data-role="putt-cards"] button')]
+      .filter((b) => b.textContent.includes('▲') && /^PUTT \d+$/.test(b.textContent.replace(/[▲▼]/g, '').trim()))
+      .map((b) => Number(b.textContent.replace(/\D/g, '')));
+
+    describe.each([
+      ['기본 거리를 정해 둔 사람', { unit: 'm', firstPutt: 6 }],
+      ['정하지 않은 사람', null],
+    ])('온그린 성공 뒤 열리는 PUTT 카드 — %s', (_name, prefs) => {
+      const enterByField = async (over = {}) => {
+        await resumeWith(shotRound({ onGreen: null, gir: null, putts: 2, puttsManual: false, ...second, ...over }), prefs);
+        await openTab('field');
+        fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-result-on"]'); expect(b).toBeTruthy(); return b; }));
+        await screen.findByText('PUTT 1');
+      };
+
+      it('필드샷에서 "성공"을 누르면 PUTT 1 이 열려 있다 (PUTT 2 가 아니다)', async () => {
+        await enterByField();
+        expect(openPutts()).toEqual([1]);
+      });
+
+      it('퍼팅 탭을 눌러 들어와도 PUTT 1 이 열려 있다', async () => {
+        await resumeWith(shotRound({ onGreen: null, gir: null, putts: 2, puttsManual: false, ...second }), prefs);
+        await openTab('putt');
+        await screen.findByText('PUTT 1');
+        expect(openPutts()).toEqual([1]);
+      });
+
+    });
+
+    it('기본 거리와 다른 거리를 직접 입력한 첫 퍼트는 입력한 것으로 봐서 다음 퍼트(PUTT 2)가 열린다', async () => {
+      const puttDetails = [{ distance: 2, aimDistance: 2, lie: [] }, { distance: null, aimDistance: null, lie: [] }];
+      await resumeWith(shotRound({ putts: 2, puttsManual: true, puttDetails }), { unit: 'm', firstPutt: 6 });
+      await openTab('putt');
+      await screen.findByText('PUTT 2');
+      expect(openPutts()).toEqual([2]);
+    });
+
+    it('기본 거리와 같은 값이라도 라이를 고른 첫 퍼트는 입력한 것으로 본다', async () => {
+      const puttDetails = [{ distance: 6, aimDistance: 6, lie: 'flat' }, { distance: null, aimDistance: null, lie: [] }];
+      await resumeWith(shotRound({ putts: 2, puttsManual: true, puttDetails }), { unit: 'm', firstPutt: 6 });
+      await openTab('putt');
+      await screen.findByText('PUTT 2');
+      expect(openPutts()).toEqual([2]);
     });
 
     it('정하지 않았으면 예전처럼 비어 있다', async () => {

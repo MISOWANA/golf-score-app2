@@ -48,12 +48,12 @@ export function buildCareerInsights(rounds) {
     const d = mean(before.map(s => s.diff)) - mean(recent.map(s => s.diff));   // +면 좋아짐
     if (d >= 2) out.push(mk('C001', 'positive', 'score', 'score_trend_improving',
       '스코어가 좋아지는 추세',
-      `최근 3라운드 평균이 그 이전 ${before.length}라운드보다 ${fmt(d)}타 낮아졌습니다.`,
+      `최근 3라운드 평균이 그 이전 ${before.length}라운드보다 ${fmt(d)}타 낮아졌어요.`,
       '좋아진 구간의 공통점(티샷·퍼팅·페널티)을 확인해 연습 방향을 이어가세요.',
       ['score', 'trend', 'positive']));
     else if (d <= -2) out.push(mk('C002', 'warning', 'score', 'score_trend_worsening',
       '최근 스코어가 나빠지는 추세',
-      `최근 3라운드 평균이 그 이전 ${before.length}라운드보다 ${fmt(-d)}타 높아졌습니다.`,
+      `최근 3라운드 평균이 그 이전 ${before.length}라운드보다 ${fmt(-d)}타 높아졌어요.`,
       '손실이 어느 카테고리(퍼팅·티샷·페널티)에서 늘었는지 라운드 복기에서 확인하세요.',
       ['score', 'trend']));
   }
@@ -63,7 +63,7 @@ export function buildCareerInsights(rounds) {
     const best = st.reduce((a, b) => (b.score < a.score ? b : a));
     out.push(mk('C003', 'neutral', 'score', 'best_round',
       '베스트 라운드',
-      `${best.course || '라운드'} ${best.score}타 (${best.diff >= 0 ? '+' : ''}${best.diff}) — ${n}라운드 중 최저 스코어입니다.`,
+      `${best.course || '라운드'} ${best.score}타 (${best.diff >= 0 ? '+' : ''}${best.diff}) — ${n}라운드 중 최저 스코어예요.`,
       '베스트 라운드의 퍼트 수·GIR·페널티를 기준으로 삼아 다른 라운드와 비교해 보세요.',
       ['score', 'best']));
   }
@@ -73,8 +73,8 @@ export function buildCareerInsights(rounds) {
     const sd = std(st.map(s => s.score));
     if (sd >= 5) out.push(mk('C004', 'neutral', 'pace', 'inconsistency',
       '라운드마다 편차가 큼',
-      `최근 ${n}라운드 스코어 편차 ±${fmt(sd)}타 — 컨디션과 큰 실수 유무에 따라 스코어가 크게 달라집니다.`,
-      '편차의 대부분은 더블 이상·페널티에서 옵니다. 큰 실수를 줄이는 전략 규칙부터 정해 보세요.',
+      `최근 ${n}라운드 스코어 편차 ±${fmt(sd)}타 — 컨디션과 큰 실수 유무에 따라 스코어가 크게 달라져요.`,
+      '편차의 대부분은 더블 이상·페널티에서 와요. 큰 실수를 줄이는 전략 규칙부터 정해 보세요.',
       ['pace', 'consistency']));
   }
 
@@ -85,12 +85,12 @@ export function buildCareerInsights(rounds) {
     const d = before - recent;
     if (d >= 1.5) out.push(mk('C005', 'positive', 'putting', 'putts_trend_improving',
       '퍼트 수가 줄고 있음',
-      `최근 3라운드 평균 ${fmt(recent)}퍼트 — 이전 ${fmt(before)}퍼트보다 ${fmt(d)}개 줄었습니다.`,
-      '퍼트 거리 기록을 유지하면 어떤 구간이 좋아졌는지 확인할 수 있습니다.',
+      `최근 3라운드 평균 ${fmt(recent)}퍼트 — 이전 ${fmt(before)}퍼트보다 ${fmt(d)}개 줄었어요.`,
+      '퍼트 거리 기록을 유지하면 어떤 구간이 좋아졌는지 확인할 수 있어요.',
       ['putting', 'trend', 'positive']));
     else if (d <= -1.5) out.push(mk('C006', 'warning', 'putting', 'putts_trend_worsening',
       '퍼트 수가 늘고 있음',
-      `최근 3라운드 평균 ${fmt(recent)}퍼트 — 이전 ${fmt(before)}퍼트보다 ${fmt(-d)}개 늘었습니다.`,
+      `최근 3라운드 평균 ${fmt(recent)}퍼트 — 이전 ${fmt(before)}퍼트보다 ${fmt(-d)}개 늘었어요.`,
       '3퍼트 원인(거리감 / 숏퍼트)을 나눠 보고 늘어난 쪽을 먼저 연습하세요.',
       ['putting', 'trend']));
   }
@@ -119,7 +119,7 @@ export function buildCareerInsights(rounds) {
           : '3~6m 구간의 라인 확정과 속도(홀 뒤 60cm)를 우선하세요.';
       out.push(mk('C007', 'warning', 'putting', 'three_putt_cause_dominant',
         `누적 3퍼트의 주원인: ${which}`,
-        `${roundCount}라운드 동안 3퍼트 ${cs.total}회 중 원인이 구분된 ${cs.known}회에서 ${which}이 ${top}회(${Math.round((top / cs.known) * 100)}%)였습니다.${cs.counts.unknown ? ` (판단 보류 ${cs.counts.unknown}회)` : ''}`,
+        `${roundCount}라운드 동안 3퍼트 ${cs.total}회 중 원인이 구분된 ${cs.known}회에서 ${which}이 ${top}회(${Math.round((top / cs.known) * 100)}%)였어요.${cs.counts.unknown ? ` (판단 보류 ${cs.counts.unknown}회)` : ''}`,
         advice,
         ['putting', 'three_putt', 'pattern', 'trend']));
     }
@@ -127,8 +127,8 @@ export function buildCareerInsights(rounds) {
   if (cs.total >= 3 && cs.counts.unknown / cs.total >= 0.5) {
     out.push(mk('C008', 'neutral', 'data', 'three_putt_data_gap',
       '3퍼트 원인 판단 보류가 많음',
-      `누적 3퍼트 ${cs.total}회 중 ${cs.counts.unknown}회는 퍼트 거리가 없어 거리감인지 숏퍼트 미스인지 구분하지 못했습니다.`,
-      '퍼트마다 거리(m)를 입력하면 누적 원인 분석이 정확해집니다.',
+      `누적 3퍼트 ${cs.total}회 중 ${cs.counts.unknown}회는 퍼트 거리가 없어 거리감인지 숏퍼트 미스인지 구분하지 못했어요.`,
+      '퍼트마다 거리(m)를 입력하면 누적 원인 분석이 정확해져요.',
       ['putting', 'three_putt', 'data']));
   }
 
@@ -138,12 +138,12 @@ export function buildCareerInsights(rounds) {
     const before = mean(st.slice(3, 6).map(s => s.pen));
     if (before - recent >= 1.5) out.push(mk('C009', 'positive', 'penalty', 'penalty_trend_improving',
       '페널티가 줄고 있음',
-      `최근 3라운드 평균 페널티 ${fmt(recent)}회 — 이전 ${fmt(before)}회보다 줄었습니다.`,
-      '위험 지역 회피 전략이 효과를 보고 있습니다. 계속 유지하세요.',
+      `최근 3라운드 평균 페널티 ${fmt(recent)}회 — 이전 ${fmt(before)}회보다 줄었어요.`,
+      '위험 지역 회피 전략이 효과를 보고 있어요. 계속 유지하세요.',
       ['penalty', 'trend', 'positive']));
     else if (recent - before >= 1.5) out.push(mk('C010', 'warning', 'penalty', 'penalty_trend_worsening',
       '페널티가 늘고 있음',
-      `최근 3라운드 평균 페널티 ${fmt(recent)}회 — 이전 ${fmt(before)}회보다 늘었습니다.`,
+      `최근 3라운드 평균 페널티 ${fmt(recent)}회 — 이전 ${fmt(before)}회보다 늘었어요.`,
       '페널티가 난 홀의 티샷 클럽과 위험 지역 위치를 복기해 안전한 루트를 정해 두세요.',
       ['penalty', 'trend']));
   }
@@ -167,8 +167,8 @@ export function buildCareerInsights(rounds) {
   if (repeat) {
     out.push(mk('C011', 'warning', 'score', 'repeat_hole_loss',
       `${repeat.course} ${repeat.hole}번 홀 반복 손실`,
-      `${repeat.course} ${repeat.hole}번 홀(파${repeat.par})에서 ${repeat.diffs.length}라운드 평균 +${fmt(mean(repeat.diffs))}타를 잃었습니다.`,
-      '같은 홀에서 반복되는 손실은 공략 전략을 바꿔야 하는 신호입니다. 티샷 클럽·목표 지점을 한 번 정해 두세요.',
+      `${repeat.course} ${repeat.hole}번 홀(파${repeat.par})에서 ${repeat.diffs.length}라운드 평균 +${fmt(mean(repeat.diffs))}타를 잃었어요.`,
+      '같은 홀에서 반복되는 손실은 공략 전략을 바꿔야 하는 신호예요. 티샷 클럽·목표 지점을 한 번 정해 두세요.',
       ['score', 'repeat', 'course']));
   }
 

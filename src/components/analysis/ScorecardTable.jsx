@@ -71,28 +71,18 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
               const diff = strokes != null ? strokes - h.par : null;
               const isHoleInOne = strokes === 1;
 
-              let markerStyle = {};
-              let markerColor = '#3a3a3a';
-              if (diff !== null) {
-                if (isHoleInOne) {
-                  markerStyle = styles.markerHoleInOne;
-                  markerColor = '#fff';
-                } else if (diff <= -2) {
-                  markerStyle = styles.markerEagle;
-                  markerColor = '#b8410a';
-                } else if (diff === -1) {
-                  markerStyle = styles.markerBirdie;
-                  markerColor = '#b8410a';
-                } else if (diff === 1) {
-                  markerStyle = styles.markerBogey;
-                } else if (diff >= 2) {
-                  markerStyle = styles.markerDouble;
-                }
-              }
+              // 글자색은 표식 스타일(팔레트)이 정한다 — 입력 화면의 스코어카드와 같은 색. 입력하지 않은 홀('—')만 흐리게.
+              let markerStyle = styles.markerPar;
+              if (diff === null) markerStyle = { color: '#8896b0' };
+              else if (isHoleInOne) markerStyle = styles.markerHoleInOne;
+              else if (diff <= -2) markerStyle = styles.markerEagle;
+              else if (diff === -1) markerStyle = styles.markerBirdie;
+              else if (diff === 1) markerStyle = styles.markerBogey;
+              else if (diff >= 2) markerStyle = styles.markerDouble;
 
               return (
                 <div key={offset + localIdx} style={styles.scorecardScoreCell}>
-                  <span style={{ ...styles.scoreMarker, ...markerStyle, color: markerColor, fontWeight: '700' }}>
+                  <span style={{ ...styles.scoreMarker, ...markerStyle, fontWeight: '700' }}>
                     {isHoleInOne && <span style={styles.holeInOneStar}>★</span>}
                     {strokes || '—'}
                   </span>

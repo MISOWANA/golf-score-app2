@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 'lucide-react';
 import styles from '../../styles/styles';
+import ParTable from '../ui/ParTable';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
@@ -2715,7 +2716,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {(
           (!playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-            <span style={{ fontSize:13, color:'#8aa0c4', letterSpacing:'0.08em' }}>클럽을 선택하면 구질 입력이 나타납니다</span>
+            <span style={{ fontSize:13, color:'#8aa0c4', letterSpacing:'0.08em' }}>클럽을 선택하면 구질 입력이 나타나요</span>
           </div>
           ) : (playerScore.teeClub && !teeClubInteracting) ? (
           <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
@@ -3734,7 +3735,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <div style={styles.modalCard} onClick={e=>e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
             <div style={styles.modalTitle}>라운드를 그만두시겠어요?</div>
-            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#ef5350' }}>삭제</b>합니다</div>
+            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#ef5350' }}>삭제</b>해요</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 기록하기</button>
               <button style={styles.modalBtnCancel} onClick={()=>{ setShowExitConfirm(false); onGoHome(); }}>기록 유지하고 홈으로</button>
@@ -3759,7 +3760,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               {holeInModalData.onCount} 온 &nbsp;/&nbsp; {holeInModalData.putts} 펏
             </div>
             <div style={{ fontSize:13, color:'#8896b0', letterSpacing:'0.12em', marginTop:4 }}>
-              {holeInModalData.isLastHole ? '라운드 완료!' : '다음 홀로 이동합니다.'}
+              {holeInModalData.isLastHole ? '라운드 완료!' : '다음 홀로 이동해요.'}
             </div>
             <button
               onClick={cancelHoleIn}
@@ -3789,33 +3790,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 </div>
               </>)}
             </div>
-            <div style={styles.parTableHint}>← 왼쪽 탭: -1 · 오른쪽 탭: +1 →</div>
-            {nines.map(n => ({ label:n.label, start:n.holes[0].index, end:n.holes[n.holes.length-1].index+1 })).map(({label,start,end})=>(
-              <div key={label} style={styles.parTable}>
-                <div style={styles.parTableRow}>
-                  <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
-                  <div style={styles.parTableCells}>{parDraft.slice(start,end).map((_,li)=><div key={li} style={styles.parTableHoleCell}>{holeNoOf(round, start+li)}</div>)}</div>
-                  <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
-                </div>
-                <div style={{ ...styles.parTableRow, borderBottom:'none' }}>
-                  <div style={styles.parTableLabel}>PAR</div>
-                  <div style={styles.parTableCells}>
-                    {parDraft.slice(start,end).map((p,li)=>{
-                      const hi=start+li;
-                      return (
-                        <div key={hi} style={styles.parTableParCell}>
-                          <div style={{ ...styles.parTableParValue, background:p===3?'rgba(61,184,122,0.15)':p===4?'#0e1c14':p===5?'#c9a228':'#ef5350', color:p===3?'#3db87a':p===4?'#e8edf8':'#0b0e18', outline:hi===holeIdx?'2px solid #c9a228':'none', outlineOffset:1 }}>{p}</div>
-                          <button style={{ ...styles.parTapZone, left:0, opacity:p>3?1:0.3 }} onClick={()=>p>3&&updateParDraft(hi,p-1)} />
-                          <button style={{ ...styles.parTapZone, right:0, opacity:p<7?1:0.3 }} onClick={()=>p<7&&updateParDraft(hi,p+1)} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={styles.parTableTotal}>{parDraft.slice(start,end).reduce((a,b)=>a+b,0)}</div>
-                </div>
-              </div>
-            ))}
-            <div style={{ fontSize:13, color:'#8896b0', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지됩니다.<br/>* 미입력 홀은 변경된 파 기준으로 초기화됩니다.</div>
+            <ParTable pars={parDraft} groups={nines.map(n => ({ label:n.label, start:n.holes[0].index, end:n.holes[n.holes.length-1].index+1 }))} holeNo={(i) => holeNoOf(round, i)} onSetPar={updateParDraft} markHole={holeIdx} />
+            <div style={{ fontSize:13, color:'#8896b0', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지돼요.<br/>* 미입력 홀은 변경된 파 기준으로 초기화돼요.</div>
             {round.players.length === 1 && (
               <div data-role="edit-green-speed" style={{ borderTop:'1px solid #1b2744', paddingTop:14, marginBottom:16 }}>
                 <div style={{ fontSize:15, fontWeight:800, color:'#e8edf8', marginBottom:4, textAlign:'left' }}>그린 스피드</div>

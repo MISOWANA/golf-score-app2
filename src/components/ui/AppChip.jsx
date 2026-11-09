@@ -21,7 +21,7 @@ const base = {
   borderRadius: radii.xs,
   border: '1px solid',
   cursor: 'pointer',
-  transition: 'all 0.12s ease',
+  transition: 'background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, opacity 0.12s ease',
   userSelect: 'none',
   WebkitTapHighlightColor: 'transparent',
   whiteSpace: 'nowrap',

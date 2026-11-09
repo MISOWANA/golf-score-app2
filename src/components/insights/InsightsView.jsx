@@ -22,11 +22,14 @@ import { ROUND_RULES } from '../../engine/rules/roundRules.js';
 import { toBreakdownInput, buildRoundBreakdown, CATEGORY_LABEL } from '../../engine/scoreBreakdown.js';
 import { buildRoundDiagnosis } from '../../engine/diagnosis.js';
 import { buildClubDistanceStats } from '../../engine/clubDistance.js';
-import { buildTeeBias, buildApproachProximity, buildApproachProximityAll, buildPuttingStats, buildScrambling, buildGirp, buildAwfulShots } from '../../engine/shotStats.js';
+import { buildApproachProximity, buildApproachProximityAll, buildScrambling, buildGirp, buildAwfulShots, sumRoundEvents } from '../../engine/shotStats.js';
+import { buildTeeStats, buildComposition } from '../../engine/statsReport.js';
 import { buildGreenSpeedReport } from '../../engine/greenSpeed.js';
 import { buildShortGamePattern, MIN_PATTERN_SHOTS } from '../../engine/shortGamePattern.js';
 import ShortGamePatternPanel from '../stats/ShortGamePatternPanel.jsx';
-import { PuttMissPanel, PuttPacePanel, PuttLinePanel, PuttLiePanel, PuttLagPanel } from '../stats/PuttingDetailPanels.jsx';
+import { PuttDistancePanel, PuttMissPanel, PuttPacePanel, PuttLinePanel, PuttLiePanel, PuttLagPanel } from '../stats/PuttingDetailPanels.jsx';
+import { teeSideText } from '../stats/teeText.js';
+import { fmtPct } from '../stats/format.js';
 import { buildPuttingDetail } from '../../engine/puttingDetail.js';
 import { totalPar as sumPar } from '../../engine/players.js';
 import { isFullRound } from '../../engine/nines.js';
@@ -34,7 +37,7 @@ import { buildInsightReport } from '../../engine/insightIndex.js';
 import { buildLossShares, buildTeePenalty, buildPuttZone, buildPrescriptions } from '../../engine/roundStory.js';
 import { aggregateSG, sgTier, SG_CATEGORIES, SG_LABEL } from '../../engine/strokesGained.js';
 import { GIRP_STEADY_100, AWFUL_CONSISTENCY_LIMIT, AWFUL_LIMIT_SCORE_RANGE, APPROACH_125YD, DRIVER_20YD_VALUE } from '../../engine/bookBenchmarks.js';
-import { rateTier, roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
+import { roundCountStage, estimateRoundsToSampleTarget, estimateRoundsToRateTarget } from '../../engine/stats.js';
 import ExcludedNote from '../stats/ExcludedNote.jsx';
 import EmptyGuide from '../common/EmptyGuide';
 import { isYards, tx, fmtShot, fmtPutt, localizeDeep } from '../../engine/units.js';
@@ -189,66 +192,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
     : null;
   const activeBreakdown = isCareerMode ? careerBreakdown : diagnosis.breakdown;
 
-  // ── §2C/2D/§6: 홀 결과 분포 · 이벤트 · 타임라인 (표시 대상 라운드 = 이번 라운드 고정) ──
+  // ── §6: 홀 타임라인 (표시 대상 라운드 = 이번 라운드 고정) ──
   const timelineHoles = diagnosis.breakdown.holes;
-  const scoreDistribution = (() => {
-    const buckets = { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
-    timelineHoles.forEach(h => {
-      const d = h.holeLoss;
-      if (d <= -2) buckets.eagle++;
-      else if (d === -1) buckets.birdie++;
-      else if (d === 0) buckets.par++;
-      else if (d === 1) buckets.bogey++;
-      else buckets.doublePlus++;
-    });
-    return buckets;
-  })();
-  const events = (() => {
-    let ob = 0, hazard = 0, unplayable = 0, threePutt = 0, onePutt = 0;
-    latestRound.holes.forEach(h => {
-      const s = h.scores?.[player];
-      if (!s) return;
-      ob += s.ob ?? 0;
-      hazard += s.hazard ?? 0;
-      unplayable += s.unplayable ?? 0;
-      if ((s.putts ?? 2) >= 3) threePutt++;
-      if ((s.putts ?? 2) === 1) onePutt++;
-    });
-    return { ob, hazard, unplayable, threePutt, onePutt };
-  })();
 
-  // ── 누적 전용: 홀 결과 분포 + 이벤트 (전체 라운드 합산), 라운드별 스코어 추이 ──
-  const careerScoreDistribution = (() => {
-    const buckets = { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
-    rounds.forEach(r => {
-      const p = r.players[0];
-      r.holes.forEach(h => {
-        const d = (h.scores[p]?.strokes || 0) - h.par;
-        if (d <= -2) buckets.eagle++;
-        else if (d === -1) buckets.birdie++;
-        else if (d === 0) buckets.par++;
-        else if (d === 1) buckets.bogey++;
-        else buckets.doublePlus++;
-      });
-    });
-    return buckets;
-  })();
-  const careerEvents = (() => {
-    let ob = 0, hazard = 0, unplayable = 0, threePutt = 0, onePutt = 0;
-    rounds.forEach(r => {
-      const p = r.players[0];
-      r.holes.forEach(h => {
-        const s = h.scores?.[p];
-        if (!s) return;
-        ob += s.ob ?? 0;
-        hazard += s.hazard ?? 0;
-        unplayable += s.unplayable ?? 0;
-        if ((s.putts ?? 2) >= 3) threePutt++;
-        if ((s.putts ?? 2) === 1) onePutt++;
-      });
-    });
-    return { ob, hazard, unplayable, threePutt, onePutt };
-  })();
+  // ── 이번 라운드/누적 토글을 따르는 값: 홀 결과 · 사고 횟수 ──
+  // 스탯 '종합'(HOLES · 타수가 새는 곳)과 같은 함수가 센다 — 같은 라운드면 두 화면의 숫자가 같다.
+  const benchRounds = isCareerMode ? rounds : [latestRound];
+  const composition = buildComposition(benchRounds);
+  const events = sumRoundEvents(benchRounds);
+  // 플레이 스타일 · 파별 성적 · 전후반 페이스는 토글과 상관없이 '고른 라운드까지의 누적'이다 — 제목에 라운드 수를 적는다.
+  const allComposition = isCareerMode ? composition : buildComposition(rounds);
+  const cumLabel = rounds.length > 1 ? `${rounds.length}라운드 누적` : thisRound;
+
   // 스코어 추세·평균·편차는 18홀 라운드끼리만 — 9홀 점수가 섞이면 추세·평균이 거짓이 된다.
   // 18홀 라운드가 하나도 없으면(9홀만 친 경우) 있는 라운드로 보여 준다.
   const scoreRounds = rounds.some(isFullRound) ? rounds.filter(isFullRound) : rounds;
@@ -264,33 +219,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   });
   const roundTrendMaxAbsDiff = Math.max(1, ...roundTrend.map(r => Math.abs(r.diff)));
 
-  // ── 전체 관찰 지표 (모든 라운드 합산 — career 화면과 동일 로직 유지) ─────────
+  // ── 전후반 페이스에 쓰는 홀 목록 (모든 라운드 합산) ─────────────────────────
   const allHoles = rounds.flatMap(r => {
     const p = r.players[0];
     return r.holes.map(h => ({
-      par: h.par,
       holeNumber: h.holeNumber,
       played: h.scores[p]?.touched !== false,   // 입력한 홀 (전반/후반 페이스 카드가 쓴다)
-      strokes: h.scores[p]?.strokes || 0,
-      putts: h.scores[p]?.putts || 0,
-      gir: h.scores[p]?.gir,
-      fairway: h.scores[p]?.fairway,
-      diff: (h.scores[p]?.strokes || 0) - h.par,
+      diff: (h.scores[p]?.strokes ?? h.par) - h.par,
     }));
   });
 
-  // 3/4/5로 고정하면 파6·파7 홀(예: 코스 DB의 김제/정읍)이 조용히 표에서 빠지므로
-  // 실제 라운드에 존재하는 파 종류를 그대로 뽑아 쓴다.
-  const parTypesPresent = [...new Set(allHoles.map(h => h.par))].sort((a, b) => a - b);
-  const parBreakdown = parTypesPresent.map(parNum => {
-    const holes = allHoles.filter(h => h.par === parNum);
-    if (holes.length === 0) return null;
-    const avgStrokes = (holes.reduce((s, h) => s + h.strokes, 0) / holes.length).toFixed(2);
-    const avgDiff = (holes.reduce((s, h) => s + h.diff, 0) / holes.length).toFixed(2);
-    const birdieRate = ((holes.filter(h => h.diff <= -1).length / holes.length) * 100).toFixed(0);
-    const bogeyPlusRate = ((holes.filter(h => h.diff >= 1).length / holes.length) * 100).toFixed(0);
-    return { par: parNum, count: holes.length, avgStrokes, avgDiff, birdieRate, bogeyPlusRate };
-  }).filter(Boolean);
+  // 파 종류는 실제 라운드에 존재하는 것을 그대로 쓴다 — 파6·파7 홀(예: 코스 DB의 김제/정읍)이 조용히 빠지지 않게.
+  const parBreakdown = allComposition.byPar;
 
   const scores = scoreRounds.map(r => {
     const p = r.players[0];
@@ -300,33 +240,31 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const variance = scores.reduce((s, v) => s + Math.pow(v - avgScore, 2), 0) / scores.length;
   const stdDev = Math.sqrt(variance);
 
-  const birdieCount = allHoles.filter(h => h.diff <= -1).length;
-  const doublePlusCount = allHoles.filter(h => h.diff >= 2).length;
-  const parCount = allHoles.filter(h => h.diff === 0).length;
-  const birdieRatePct = (birdieCount / allHoles.length) * 100;
-  const doubleRatePct = (doublePlusCount / allHoles.length) * 100;
-  const parRatePct = (parCount / allHoles.length) * 100;
+  const rateOf = (n) => (allComposition.total > 0 ? (n / allComposition.total) * 100 : 0);
+  const birdieRatePct = rateOf(allComposition.counts.birdie);
+  const doubleRatePct = rateOf(allComposition.counts.double);
+  const parRatePct = rateOf(allComposition.counts.par);
 
   let styleType, styleSubtitle, styleDescription, styleIcon, styleColor;
   if (birdieRatePct >= 10 && doubleRatePct >= 15) {
     styleType = '공격형 · AGGRESSIVE'; styleSubtitle = '리스크를 감수하는 스코어 메이커';
-    styleDescription = '버디 찬스를 적극적으로 노리지만 때때로 큰 실수가 발생합니다. 빅 스코어가 나올 수 있는 스타일이에요.';
+    styleDescription = '버디 찬스를 적극적으로 노리지만 때때로 큰 실수가 발생해요. 빅 스코어가 나올 수 있는 스타일이에요.';
     styleIcon = '🔥'; styleColor = '#c04a3e';
   } else if (doubleRatePct < 10 && birdieRatePct < 8) {
     styleType = '안정형 · CONSERVATIVE'; styleSubtitle = '실수 없는 꾸준한 스코어 관리';
-    styleDescription = '큰 실수가 적고 안정적으로 파와 보기 사이에서 스코어를 관리합니다. 꾸준함이 무기예요.';
+    styleDescription = '큰 실수가 적고 안정적으로 파와 보기 사이에서 스코어를 관리해요. 꾸준함이 무기예요.';
     styleIcon = '🛡️'; styleColor = '#3db87a';
   } else if (parRatePct >= 35) {
-    styleType = '정교형 · PRECISION'; styleSubtitle = '파 세이브 능력이 뛰어난 플레이어';
-    styleDescription = '파 세이브율이 높아 안정적인 스코어를 만들어냅니다. 정확한 샷메이킹이 강점입니다.';
+    styleType = '정교형 · PRECISION'; styleSubtitle = '파를 꾸준히 지켜내는 플레이어';
+    styleDescription = '파 비율이 높아 안정적인 스코어를 만들어내요. 정확한 샷메이킹이 강점이에요.';
     styleIcon = '🎯'; styleColor = '#e8edf8';
   } else if (stdDev >= 6) {
     styleType = '기복형 · INCONSISTENT'; styleSubtitle = '라운드마다 스코어 편차가 큰 스타일';
-    styleDescription = `라운드별 편차 ±${stdDev.toFixed(1)}타 — 좋을 땐 환상적이지만 컨디션에 좌우됩니다.`;
+    styleDescription = `라운드별 편차 ±${stdDev.toFixed(1)}타 — 좋을 땐 환상적이지만 컨디션에 좌우돼요.`;
     styleIcon = '⚡'; styleColor = '#c9a228';
   } else {
     styleType = '밸런스형 · BALANCED'; styleSubtitle = '공격과 수비의 균형이 잡힌 플레이어';
-    styleDescription = '공격적인 플레이와 안정적인 관리를 적절히 섞는 스타일입니다.';
+    styleDescription = '공격적인 플레이와 안정적인 관리를 적절히 섞는 스타일이에요.';
     styleIcon = '⚖️'; styleColor = '#e8edf8';
   }
 
@@ -355,17 +293,14 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const fadeDiff = backAvgDiff - frontAvgDiff;
 
   // ── §3~5 딥다이브 통계 ───────────────────────────────────────────────────
-  const teeBias = buildTeeBias(rounds);
-  const teeBiasTier = teeBias.total > 0 ? rateTier(teeBias.R, teeBias.total) : null;
+  const tee = buildTeeStats(rounds);   // 스탯 '티샷' 탭과 같은 계산 (같은 라운드면 같은 숫자)
   const approachProximity = buildApproachProximity(rounds);
-  const puttingStats = buildPuttingStats(rounds);
   const puttDetail = buildPuttingDetail(rounds);   // 스탯 '퍼팅' 탭과 같은 계산 · 같은 부품 (같은 라운드면 같은 숫자)
   const scrambling = buildScrambling(rounds);
   const shortPattern = buildShortGamePattern(rounds);   // 스탯 '숏게임' 탭과 같은 계산 (같은 라운드면 같은 숫자)
   const clubStats = buildClubDistanceStats(rounds);
 
   // ── 책(Broadie) 기준 지표 — 이번 라운드/누적 토글을 따른다 ────────────────────────
-  const benchRounds = isCareerMode ? rounds : [latestRound];
   const girp = buildGirp(benchRounds);
   const awful = buildAwfulShots(benchRounds);
   const awfulPoints = isCareerMode ? awful.avgPoints : awful.points;
@@ -386,7 +321,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
   // ── 리포트의 흐름(장)에 필요한 파생 값 ───────────────────────────────────────
   const reportMode = isCareerMode ? 'career' : 'round';
-  const rep = tab === 'report' ? localize(buildInsightReport(rounds, reportMode)) : null;
+  const rep = tab === 'report' ? localize(buildInsightReport(rounds, reportMode, sg)) : null;
   const lossShares = buildLossShares(sg);
   const teePen = buildTeePenalty(benchRounds);
   const puttZone = buildPuttZone(rounds);
@@ -394,14 +329,15 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   const approachRows = approachProximity.filter(b => b.n > 0 && b.id !== 'lt80');
   const approachAllRows = approachAll.filter(b => b.n > 0 && b.id !== 'lt80');
   const shortRows = [
-    { ...approachProximity.find(b => b.id === 'lt80'), key: 'hit', label: '그린 적중' },
+    { ...approachProximity.find(b => b.id === 'lt80'), key: 'hit', label: '올린 샷' },
     { ...approachAll.find(b => b.id === 'lt80'), key: 'all', label: '전체 샷' },
   ].filter(r => r.n > 0);
   const approach110 = approachAll.find(b => b.id === '110to140')?.median ?? null;
   const prescriptions = rep
     ? localizeDeep(buildPrescriptions({
       sg, ranked: activeBreakdown.ranked, awful, awfulOverLimit, teePen, puttZone,
-      puttCauses: rep.causes, approach110, scrambling, teeBias,
+      puttCauses: rep.causes, approach110, scrambling, teeSide: tee.side,
+      pick: rep.weakest,   // 리포트의 포커스와 같은 '가장 약한 부문' — 한 화면에서 두 부문을 가리키지 않게
     }))
     : null;
 
@@ -538,7 +474,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                   <p>
                     투어 평균이 0이라 아마추어는 대부분 마이너스예요 — 숫자 크기보다 카테고리끼리의 차이를 보세요.
                     세컨샷 이후 라이는 페어웨이 O/X와 거리로 추정하고(벙커·러프 미반영), 홀 길이를 지도로 찍지 않은 par 4·5 티샷은 계산에서 빠져요.
-                    20야드 안 그린 밖 샷은 20야드 기준선을 씁니다.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
+                    20야드 안 그린 밖 샷은 20야드 기준선을 써요.{isCareerMode ? ' 라운드당 값은 측정되지 않은 샷이 있으면 실제보다 작게 나와요.' : ''}
                   </p>
                 </>
               )}
@@ -591,7 +527,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <div style={styles.sectionTitle}>
           <KoEnTitle en="SCORE BREAKDOWN" ko="스코어 기준 손실 (파 대비)">
           <InfoNote title="스코어 기준 손실이란?">
-            <p>위 SG와 달리 입력이 적어도 늘 계산돼요. 파를 기준으로 퍼팅 · 티샷 · 어프로치 · 숏게임 · 페널티에서 몇 타를 잃었는지 나눕니다.</p>
+            <p>위 SG와 달리 입력이 적어도 늘 계산돼요. 파를 기준으로 퍼팅 · 티샷 · 어프로치 · 숏게임 · 페널티에서 몇 타를 잃었는지 나눠요.</p>
           </InfoNote>
           </KoEnTitle>
         </div>
@@ -616,7 +552,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>손실 없이 파 또는 그 이상으로 마친 홀이 대부분입니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>손실 없이 파 또는 그 이상으로 마친 홀이 대부분이에요.</div>
         )}
       </div>
 
@@ -625,7 +561,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[diagnosis.top.category], { base: '#1a2235', strength: 0.15 }), marginBottom: 24 }}>
           <div style={styles.riDiagHead}>
             <div>
-              <div style={styles.riDiagLabel}>가장 많이 잃은 곳</div>
+              <div style={styles.riDiagLabel}>스코어 기준 · 가장 많이 잃은 곳</div>
               <div style={{ ...styles.riDiagCause, color: CATEGORY_COLOR[diagnosis.top.category] }}>
                 {diagnosis.top.label} {diagnosis.top.strokes}타
               </div>
@@ -637,7 +573,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             <span>{diagnosis.observation}</span>
           </div>
           {diagnosis.directive && (
-            <div style={styles.riDiagDirective}>{withEuiGa(diagnosis.directive)} {thisRound} 스코어 손실의 핵심입니다.</div>
+            <div style={styles.riDiagDirective}>{withEuiGa(diagnosis.directive)} {thisRound} 스코어 손실의 핵심이에요.</div>
           )}
         </div>
       )}
@@ -646,7 +582,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[careerBreakdown.topCause.category], { base: '#1a2235', strength: 0.15 }), marginBottom: 24 }}>
           <div style={styles.riDiagHead}>
             <div>
-              <div style={styles.riDiagLabel}>누적 · 가장 많이 잃은 곳</div>
+              <div style={styles.riDiagLabel}>누적 · 스코어 기준 · 가장 많이 잃은 곳</div>
               <div style={{ ...styles.riDiagCause, color: CATEGORY_COLOR[careerBreakdown.topCause.category] }}>
                 {careerBreakdown.topCause.label} {careerBreakdown.topCause.strokes}타
               </div>
@@ -655,7 +591,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
           <div style={styles.riDiagRow}>
             <span style={styles.riDiagRowLabel}>관찰</span>
-            <span>{rounds.length}라운드 동안 {careerBreakdown.topCause.holeCount}개 홀에서 손실이 발생했습니다.</span>
+            <span>{rounds.length}라운드 동안 {careerBreakdown.topCause.holeCount}개 홀에서 손실이 발생했어요.</span>
           </div>
         </div>
       )}
@@ -675,9 +611,9 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           career={isCareerMode} rounds={rounds.length}
           awful={awful} awfulPoints={awfulPoints} awfulOverLimit={awfulOverLimit}
           teePen={teePen}
-          doublePlus={(isCareerMode ? careerScoreDistribution : scoreDistribution).doublePlus}
-          holes={isCareerMode ? allHoles.length : timelineHoles.length}
-          threePutt={(isCareerMode ? careerEvents : events).threePutt}
+          doublePlus={composition.counts.double}
+          holes={composition.total}
+          threePutt={events.threePutt}
         />
       </div>
 
@@ -696,7 +632,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             {driverStat && driverStat.n >= 5 && (
               <p data-role="driver-value">
                 드라이버를 {isYards() ? '20야드' : `${DRIVER_20YD_VALUE.meters.toFixed(0)}m(20야드)`} 더 보내면 라운드당 투어 약 {DRIVER_20YD_VALUE.tour}타,
-                90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아낍니다.
+                90타 골퍼 약 {DRIVER_20YD_VALUE.golfer90}타, 100타 골퍼 약 {DRIVER_20YD_VALUE.golfer100}타를 아껴요.
                 내 드라이버 중앙값은 {fmtShot(driverStat.median)}예요.
               </p>
             )}
@@ -704,19 +640,21 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </KoEnTitle>
         </div>
         <SkillHeader cat="tee" sg={sg} career={isCareerMode} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 14, color: '#e8edf8' }}>
-            좌 <span style={{ fontWeight: 800 }}>{teeBias.L}</span> · 중 <span style={{ fontWeight: 800 }}>{teeBias.C}</span> · 우 <span style={{ fontWeight: 800 }}>{teeBias.R}</span>
-            {teeBias.G > 0 && <> · 1온 <span style={{ fontWeight: 800 }}>{teeBias.G}</span></>}
-          </div>
-          {teeBiasTier && <ConfidenceBadge tier={teeBiasTier} n={teeBias.total} />}
-        </div>
-        {teeBias.total > 0 ? (
-          <div style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6 }}>
-            편향지수 {fmtSigned(teeBias.biasIndex)} ({teeBias.biasIndex > 0.15 ? '우측 경향' : teeBias.biasIndex < -0.15 ? '좌측 경향' : '중립'}) — 최근 10라운드 기준
-          </div>
+        {tee.total > 0 ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div data-role="tee-counts" style={{ fontSize: 14, color: '#e8edf8' }}>
+                왼쪽 <span style={{ fontWeight: 800 }}>{tee.left}</span> · 적중 <span style={{ fontWeight: 800 }}>{tee.hit}</span> · 오른쪽 <span style={{ fontWeight: 800 }}>{tee.right}</span>
+                {tee.green > 0 && <> · 1온 <span style={{ fontWeight: 800 }}>{tee.green}</span></>}
+              </div>
+              <ConfidenceBadge tier={tee.tier} n={tee.total} full />
+            </div>
+            <div data-role="tee-take" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6 }}>
+              페어웨이 적중 {fmtPct(tee.hitPct)} (티샷 {tee.total}번 중 {tee.hit}번) — {teeSideText(tee)}
+            </div>
+          </>
         ) : (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없습니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없어요.</div>
         )}
       </div>
 
@@ -730,7 +668,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
               <div style={{ fontSize: 14, color: '#8896b0' }}>
                 GIRP · 규정 타수+1타 이내 그린 도달 {isCareerMode ? '(라운드 평균)' : ''}
                 <InfoNote title="GIRP란?">
-                  <p>프린지는 따로 기록하지 않아 그린만 셉니다. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.</p>
+                  <p>프린지는 따로 기록하지 않아 그린만 세어요. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.</p>
                   {!isCareerMode && girp.holes < 18 && <p>{`입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}</p>}
                 </InfoNote>
               </div>
@@ -756,7 +694,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
         )}
         {stage >= 3 && approachRows.length === 0 && (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>거리구간별 데이터가 아직 없습니다.</div>
+          <div style={{ fontSize: 14, color: '#8896b0' }}>거리구간별 데이터가 아직 없어요.</div>
         )}
 
         {/* 위 근접도는 그린에 올린 샷만 센다. 그린을 놓친 샷까지 센 같은 기준으로 한 번 더 — 그래야 투어·90타 골퍼와 견줄 수 있다. */}
@@ -887,23 +825,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </KoEnTitle>
         </div>
         <SkillHeader cat="putting" sg={sg} career={isCareerMode} />
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 성공률 (커리어 누적)</div>
-        {puttingStats.byDistance.filter(b => b.total > 0).map(b => (
-          <div key={b.id} style={styles.riStatRow}>
-            <div style={styles.riStatRowLabel}>{tx(b.label, { abbr: true })}</div>
-            <div style={styles.riStatRowBarTrack}>
-              <div style={{ ...styles.riStatRowBarFill, width: `${b.ratePct ?? 0}%`, background: '#3db87a' }} />
-            </div>
-            <div style={styles.riStatRowValue}>{b.ratePct?.toFixed(0)}%</div>
-            <ConfidenceBadge tier={b.tier} n={b.total} />
-          </div>
-        ))}
-        {puttingStats.byDistance.every(b => b.total === 0) && (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>퍼팅 상세 기록이 아직 없습니다.</div>
-        )}
+        {/* 거리구간별 성공률 — 스탯 '퍼팅' 탭과 같은 계산 · 같은 부품 (빗나가면 남는 거리와 거리별 SG 까지) */}
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>{`거리구간별 성공률 (${cumLabel})`}</div>
+        <PuttDistancePanel rows={puttDetail.byDistance} />
         {puttZone.total >= 3 && (
           <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
-            퍼팅 실력이 가장 많이 갈리는 <b>{isYards() ? '3~7피트' : '1~2m(3~7피트)'}</b> 구간 성공률 <b style={{ color: '#e8edf8' }}>{Math.round(puttZone.ratePct)}%</b> ({puttZone.made}/{puttZone.total}).
+            퍼팅 실력이 가장 많이 갈리는 구간은 <b>{isYards() ? '3~7피트' : '1~2m'}</b> 줄이에요.
             <InfoNote title={tx('1~2m 구간이 중요한 이유')}>
               <p>최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</p>
             </InfoNote>
@@ -978,13 +905,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <div style={styles.sectionTitle}>
           <KoEnTitle en="HOLE RESULTS" ko={isCareerMode ? `${rounds.length}라운드 누적 홀 결과` : `${thisRound} 홀 결과`} />
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: events.onePutt > 0 ? 12 : 0 }}>
           {[
-            ['이글+', (isCareerMode ? careerScoreDistribution : scoreDistribution).eagle, '#c9a228'],
-            ['버디', (isCareerMode ? careerScoreDistribution : scoreDistribution).birdie, '#3db87a'],
-            ['파', (isCareerMode ? careerScoreDistribution : scoreDistribution).par, '#8896b0'],
-            ['보기', (isCareerMode ? careerScoreDistribution : scoreDistribution).bogey, '#e57373'],
-            ['더블+', (isCareerMode ? careerScoreDistribution : scoreDistribution).doublePlus, '#ef5350'],
+            ['이글+', composition.counts.eagle, '#c9a228'],
+            ['버디', composition.counts.birdie - composition.counts.eagle, '#3db87a'],
+            ['파', composition.counts.par, '#8896b0'],
+            ['보기', composition.counts.bogey, '#e57373'],
+            ['더블+', composition.counts.double, '#ef5350'],
           ].map(([label, count, color]) => (
             <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#111827', border: '1px solid #1b2238', borderRadius: 12 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
@@ -992,13 +919,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {(isCareerMode ? careerEvents : events).ob > 0 && <span style={styles.riSubTabBtn}>OB {(isCareerMode ? careerEvents : events).ob}회</span>}
-          {(isCareerMode ? careerEvents : events).hazard > 0 && <span style={styles.riSubTabBtn}>해저드 {(isCareerMode ? careerEvents : events).hazard}회</span>}
-          {(isCareerMode ? careerEvents : events).unplayable > 0 && <span style={styles.riSubTabBtn}>언플레이어블 {(isCareerMode ? careerEvents : events).unplayable}회</span>}
-          {(isCareerMode ? careerEvents : events).threePutt > 0 && <span style={styles.riSubTabBtn}>3퍼트+ {(isCareerMode ? careerEvents : events).threePutt}회</span>}
-          {(isCareerMode ? careerEvents : events).onePutt > 0 && <span style={styles.riSubTabBtn}>1퍼트 {(isCareerMode ? careerEvents : events).onePutt}회</span>}
-        </div>
+        {/* OB · 해저드 · 3퍼트는 3장 '빅 미스'에 있다 — 같은 숫자를 두 번 보이지 않고 여기서는 1퍼트만 */}
+        {events.onePutt > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={styles.riSubTabBtn}>1퍼트 {events.onePutt}회</span>
+          </div>
+        )}
       </div>
 
       {/* ── 이번 라운드: 홀 타임라인 / 누적: 라운드별 스코어 추이 ────────────── */}
@@ -1038,7 +964,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── MY STYLE ─────────────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}><KoEnTitle text="MY STYLE · 나의 플레이 스타일" /></div>
+        <div style={styles.sectionTitle}><KoEnTitle en="MY STYLE" ko={`나의 플레이 스타일 (${cumLabel})`} /></div>
         <div style={{ ...styles.styleCard, borderColor: styleColor }}>
           <div style={styles.styleIconWrap}>
             <div style={styles.styleIconEmoji}>{styleIcon}</div>
@@ -1056,7 +982,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
           <div style={styles.styleMetricDivider} />
           <div style={styles.styleMetric}>
-            <div style={styles.styleMetricLabel}>파 세이브</div>
+            <div style={styles.styleMetricLabel}>파 비율</div>
             <div style={styles.styleMetricValue}>{parRatePct.toFixed(0)}%</div>
           </div>
           <div style={styles.styleMetricDivider} />
@@ -1100,34 +1026,37 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
 
       {/* ── 파별 성적 ────────────────────────────────────────────────────── */}
       <div style={styles.section}>
-        <div style={styles.sectionTitle}><KoEnTitle text="BY PAR · 파별 성적" /></div>
+        <div style={styles.sectionTitle}><KoEnTitle en="BY PAR" ko={`파별 성적 (${cumLabel})`} /></div>
         <div style={styles.parAnalysis}>
-          {parBreakdown.map(p => (
-            <div key={p.par} style={styles.parAnalysisRow}>
-              <div style={styles.parAnalysisBadge}>PAR {p.par}</div>
-              <div style={styles.parAnalysisData}>
-                <div style={styles.parAnalysisMain}>
-                  <span style={styles.parAnalysisStrokes}>{p.avgStrokes}</span>
-                  <span style={{ ...styles.parAnalysisDiff, color: parseFloat(p.avgDiff) > 0 ? '#ef5350' : parseFloat(p.avgDiff) < 0 ? '#3db87a' : '#8896b0' }}>
-                    {parseFloat(p.avgDiff) > 0 ? '+' : ''}{p.avgDiff}
-                  </span>
-                  <span style={styles.parAnalysisCount}>({p.count}홀)</span>
-                </div>
-                <div style={styles.parAnalysisRates}>
-                  <span>버디+ {p.birdieRate}%</span>
-                  <span style={styles.parAnalysisDot}>·</span>
-                  <span>보기+ {p.bogeyPlusRate}%</span>
+          {parBreakdown.map(p => {
+            const avgDiff = p.avgDiff;
+            return (
+              <div key={p.par} style={styles.parAnalysisRow}>
+                <div style={styles.parAnalysisBadge}>PAR {p.par}</div>
+                <div style={styles.parAnalysisData}>
+                  <div style={styles.parAnalysisMain}>
+                    <span style={styles.parAnalysisStrokes}>{p.avgStrokes.toFixed(2)}</span>
+                    <span style={{ ...styles.parAnalysisDiff, color: avgDiff > 0 ? '#ef5350' : avgDiff < 0 ? '#3db87a' : '#8896b0' }}>
+                      {avgDiff > 0 ? '+' : ''}{avgDiff.toFixed(2)}
+                    </span>
+                    <span style={styles.parAnalysisCount}>({p.count}홀)</span>
+                  </div>
+                  <div style={styles.parAnalysisRates}>
+                    <span>버디+ {p.birdiePct.toFixed(0)}%</span>
+                    <span style={styles.parAnalysisDot}>·</span>
+                    <span>보기+ {p.bogeyPlusPct.toFixed(0)}%</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {/* ── 전후반 페이스 ────────────────────────────────────────────────── */}
       {!isNaN(fadeDiff) && (
         <div style={styles.section}>
-          <div style={styles.sectionTitle}><KoEnTitle text="PACE · 전후반 페이스" /></div>
+          <div style={styles.sectionTitle}><KoEnTitle en="PACE" ko={`전후반 페이스 (${cumLabel})`} /></div>
           <div style={styles.paceCard}>
             <div style={styles.paceRow}>
               <div style={styles.paceLabel}>FRONT 9</div>
@@ -1141,12 +1070,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
           <div style={styles.paceInsight}>
             {Math.abs(fadeDiff) < 0.1
-              ? '전후반 페이스가 균일합니다 — 집중력 유지가 좋아요'
+              ? '전후반 페이스가 균일해요 — 집중력 유지가 좋아요'
               : fadeDiff > 0.3
                 ? `후반에 평균 ${fadeDiff.toFixed(2)}타 더 많이 쳐요 — 체력/집중력 관리 필요`
                 : fadeDiff < -0.3
                   ? `후반에 ${Math.abs(fadeDiff).toFixed(2)}타 적게 쳐요 — 후반 집중력이 강점`
-                  : '전후반이 안정적으로 유지됩니다'}
+                  : '전후반이 안정적으로 유지돼요'}
           </div>
         </div>
       )}
@@ -1154,9 +1083,9 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {/* ── 데이터 성장 현황판 (§7) ──────────────────────────────────────── */}
       {stage < 4 && (() => {
         const clubTarget = estimateRoundsToSampleTarget(clubStats.reduce((s, c) => s + c.n, 0), rounds.length, 15 * Math.max(1, clubStats.length));
-        const teeTarget = estimateRoundsToRateTarget(teeBias.R, teeBias.total, Math.min(rounds.length, 10), 20);
+        const teeTarget = estimateRoundsToRateTarget(tee.hit, tee.total, rounds.length, 20);
         const items = [];
-        if (teeTarget != null && teeTarget > 0) items.push(`티샷 편향 지표 신뢰도 확보까지 약 ${teeTarget}라운드`);
+        if (teeTarget != null && teeTarget > 0) items.push(`티샷 페어웨이 지표 신뢰도 확보까지 약 ${teeTarget}라운드`);
         if (clubTarget != null && clubTarget > 0) items.push(`클럽별 거리 통계까지 약 ${clubTarget}라운드`);
         if (stage < 3) items.push(`경사·거리구간 경향 분석까지 ${Math.max(0, 5 - rounds.length)}라운드`);
         if (stage < 4) items.push(`클럽 거리 매트릭스 확정까지 ${Math.max(0, 10 - rounds.length)}라운드`);

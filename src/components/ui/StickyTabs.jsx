@@ -20,6 +20,7 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
   const stuckRef = useRef(false);
   const mounted = useRef(false);
   const [stuck, setStuck] = useState(false);
+  const listRef = useRef(null);
 
   useEffect(() => {
     const el = sentinel.current;
@@ -32,6 +33,14 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
     io.observe(el);
     return () => io.disconnect();
   }, [sentinel]);
+
+  // 고른 탭이 가려져 있으면 보이는 자리로 (옆으로 미는 탭 줄에서만 의미가 있다)
+  useEffect(() => {
+    const list = listRef.current;
+    const on = list?.querySelector('[aria-selected="true"]');
+    if (!list || !on || list.scrollWidth <= list.clientWidth + 1) return;
+    list.scrollLeft = Math.max(0, on.offsetLeft - (list.clientWidth - on.offsetWidth) / 2);
+  }, [current]);
 
   useLayoutEffect(() => {
     if (!mounted.current) { mounted.current = true; return; }
@@ -59,13 +68,14 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
     <>
       <div ref={sentinel} aria-hidden="true" style={{ height: 1, marginBottom: -1 }} />
       <div data-role={`${rolePrefix}bar`} data-stuck={stuck ? '1' : '0'} style={bar}>
-        <div style={underline ? { display: 'flex' } : { ...styles.riToggleRow, marginBottom: 0 }} role="tablist" aria-label={label}>
+        {/* 밑줄 탭은 글자 폭만큼 자리를 갖고, 화면이 좁아 다 안 들어가면(320px) 옆으로 밀어 본다 — 글자끼리 붙지 않게 */}
+        <div ref={listRef} className={underline ? 'scrollbar-none' : undefined} style={underline ? { display: 'flex', overflowX: 'auto' } : { ...styles.riToggleRow, marginBottom: 0 }} role="tablist" aria-label={label}>
           {tabs.map(([id, text, opt]) => {
             const disabled = !!opt?.disabled;
             const on = current === id;
             const look = underline
               ? {
-                flex: '1 1 0', minWidth: 0, height: 46, padding: '0 2px', background: 'none', border: 'none',
+                flex: '1 0 auto', height: 46, padding: '0 8px', background: 'none', border: 'none',
                 borderBottom: `2px solid ${on ? '#c9a228' : 'transparent'}`, borderRadius: 0,
                 color: on ? '#f3d36b' : '#8896b0', fontSize: dense ? 13 : 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer', ...(dense ? { letterSpacing: '-0.02em' } : {}),
               }

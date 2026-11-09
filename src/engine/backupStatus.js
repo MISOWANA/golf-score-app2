@@ -44,10 +44,10 @@ export function backupFileName(userName, date = new Date()) {
 
 // 가져오기 파일 검사 → 데이터. 문제가 있으면 사용자에게 보일 한국어 메시지로 Error 를 던진다.
 export function parseBackupFile(text, size = text?.length ?? 0) {
-  if (size > BACKUP_MAX_BYTES) throw new Error(`파일이 너무 큽니다 (최대 ${Math.round(BACKUP_MAX_BYTES / 1024 / 1024)}MB)`);
+  if (size > BACKUP_MAX_BYTES) throw new Error(`파일이 너무 커요 (최대 ${Math.round(BACKUP_MAX_BYTES / 1024 / 1024)}MB)`);
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('백업 파일을 읽을 수 없어요. 앱에서 내보낸 JSON 파일인지 확인해 주세요'); }
-  if (!data || typeof data !== 'object' || !data.data || !Array.isArray(data.data.rounds)) throw new Error('유효하지 않은 파일 형식입니다');
+  if (!data || typeof data !== 'object' || !data.data || !Array.isArray(data.data.rounds)) throw new Error('유효하지 않은 파일 형식이에요');
   // version 이 없는 예전 파일은 그대로 받는다. 1.x 만 받고, 더 새 형식(2.x…)은 이 앱이 읽을 수 없다.
   if (data.version != null && !/^1(\.|$)/.test(String(data.version))) {
     throw new Error(`이 앱보다 새로운 형식의 백업 파일이에요 (버전 ${data.version}). 앱을 최신 버전으로 갱신한 뒤 다시 시도해 주세요`);

@@ -8,26 +8,39 @@ import { median, iqr, rateTier, distanceTier } from './stats.js';
 import { offGreenCount } from './offGreen.js';
 import { AWFUL_POINTS } from './bookBenchmarks.js';
 
-// ─── §3-5 티샷 좌우 편향 ───────────────────────────────────────────────────────
-// 편향지수 = (R횟수 - L횟수) / (L+C+R). par>3 홀의 페어웨이 랜딩 칩만 사용.
-// §5-4: 최근 10라운드 롤링 (rounds[0]이 최신 라운드).
-export function buildTeeBias(rounds, windowSize = 10) {
-  let L = 0, C = 0, R = 0, G = 0;
-  rounds.slice(0, windowSize).forEach(r => {
-    const p = r.players[0];
-    r.holes.forEach(h => {
-      if (h.par <= 3) return;
-      const s = h.scores?.[p];
-      if (!s || !s.touched) return;
-      if (s.teeGIR === true) { G++; return; }
-      if (s.fairwayHit === 'L') L++;
-      else if (s.fairwayHit === 'R') R++;
-      else if (s.fairwayHit === 'C') C++;
-    });
+// 티샷 좌우 미스는 statsReport.buildTeeStats 가 센다 — 스탯 '티샷' 탭과 인사이트 티샷 섹션이 같은 함수를 쓴다.
+
+// ─── 홀마다 벌어진 일의 횟수 — 한 곳에서 센다 ─────────────────────────────────────
+// OB · 해저드 · 언플레이어블 · 3퍼트 · 1퍼트 · 더블 이상 홀. 인사이트(빅 미스 · 기록으로 보기),
+// 스탯(타수가 새는 곳), 끔찍한 샷 점수가 모두 이 함수를 쓴다 — 같은 라운드면 어느 화면에서도 같은 숫자.
+// 홀 결과(버디 · 파 · 보기 …)는 statsReport.buildComposition 이 센다.
+// 입력하지 않은 홀은 퍼트 2개 · 파로 읽는다 (3퍼트나 더블로 세지 않는다).
+export function countRoundEvents(round) {
+  const p = round.players[0];
+  const e = { ob: 0, hazard: 0, unplayable: 0, threePutt: 0, onePutt: 0, extraPutts: 0, double: 0, score: 0 };
+  round.holes.forEach(h => {
+    const s = h.scores?.[p];
+    if (!s) return;
+    e.ob += s.ob ?? 0;
+    e.hazard += s.hazard ?? 0;
+    e.unplayable += s.unplayable ?? 0;
+    const putts = s.putts ?? 2;
+    if (putts >= 3) { e.threePutt++; e.extraPutts += putts - 2; }
+    if (putts === 1) e.onePutt++;
+    const strokes = s.strokes ?? h.par;
+    e.score += strokes;
+    if (strokes - h.par >= 2) e.double++;
   });
-  const total = L + C + R;
-  const biasIndex = total > 0 ? (R - L) / total : 0;
-  return { L, C, R, G, total, biasIndex };
+  return e;
+}
+
+// 여러 라운드를 합친 횟수
+export function sumRoundEvents(rounds) {
+  return rounds.reduce((acc, r) => {
+    const e = countRoundEvents(r);
+    Object.keys(e).forEach(k => { acc[k] += e[k]; });
+    return acc;
+  }, { ob: 0, hazard: 0, unplayable: 0, threePutt: 0, onePutt: 0, extraPutts: 0, double: 0, score: 0 });
 }
 
 // ─── §3-2 어프로치 근접도 (거리구간 × PUTT1 잔여거리) ─────────────────────────
@@ -139,19 +152,10 @@ export function buildGirp(rounds) {
 // ─── 끔찍한 샷 점수 (책 p.26, 페널티 기준 근사) ────────────────────────────────
 // OB 2점 · 해저드/언플레이어블 1점. 뒤땅·토핑 같은 미스샷은 기록하지 않아 빠지므로 실제
 // 점수는 이보다 높을 수 있다 — 책의 기준(6점)은 '이 점수만으로도 넘었는가'의 하한으로 본다.
-// OB·해저드·언플 횟수는 인사이트 화면의 이벤트 칩과 같은 필드를 쓴다.
+// OB·해저드·언플 횟수는 countRoundEvents 가 센다 (스탯 '타수가 새는 곳'과 같은 함수).
 export function buildAwfulShots(rounds) {
   const perRound = rounds.map(r => {
-    const p = r.players[0];
-    let ob = 0, hazard = 0, unplayable = 0, score = 0;
-    r.holes.forEach(h => {
-      const s = h.scores?.[p];
-      if (!s) return;
-      ob += s.ob ?? 0;
-      hazard += s.hazard ?? 0;
-      unplayable += s.unplayable ?? 0;
-      score += s.strokes ?? h.par;
-    });
+    const { ob, hazard, unplayable, score } = countRoundEvents(r);
     return { ob, hazard, unplayable, score, points: ob * AWFUL_POINTS.ob + hazard * AWFUL_POINTS.hazard + unplayable * AWFUL_POINTS.unplayable };
   });
   const n = perRound.length;

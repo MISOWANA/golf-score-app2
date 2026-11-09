@@ -21,7 +21,7 @@ export function LossShareCard({ shares, coverage }) {
       <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.14em', marginBottom: 10 }}>
         투어 대비 잃은 타수의 구성
         <InfoNote title="잃은 타수의 구성">
-          <p>골퍼 사이의 스코어 격차는 약 2/3가 100야드 밖 샷(롱게임)에서, 퍼팅은 약 15%에서 나와요. 투어 상위권의 우위도 드라이빙 28% · 어프로치 40% · 숏게임 17% · 퍼팅 15%로 나뉩니다.</p>
+          <p>골퍼 사이의 스코어 격차는 약 2/3가 100야드 밖 샷(롱게임)에서, 퍼팅은 약 15%에서 나와요. 투어 상위권의 우위도 드라이빙 28% · 어프로치 40% · 숏게임 17% · 퍼팅 15%로 나뉘어요.</p>
           <p>퍼팅에 연습을 몰아주기 전에 내 구성을 먼저 확인하세요.</p>
         </InfoNote>
       </div>
@@ -96,12 +96,12 @@ export function BigMissesInfo({ career, awful, awfulPoints, teePen }) {
   return (
     <InfoNote title="빅 미스 읽는 법">
       <p>
-        <b style={{ color: '#e8edf8' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 셉니다.
+        <b style={{ color: '#e8edf8' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 세어요.
         {career ? ` (${awful.rounds}라운드 합계, 라운드 평균 ${awfulPoints.toFixed(1)}점)` : ''} 페널티만 센 점수라 뒤땅·토핑 같은 미스샷은 빠져 있어요.
         {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 빅 미스 줄이기가 먼저예요.
       </p>
       <p>
-        OB는 꼬박 2타를 잃지만 러프에 살짝 들어간 공은 그보다 훨씬 적게 잃어요. 페어웨이 적중률이나 평균 비거리는 이 차이를 가리니, OB율은 따로 봅니다.
+        OB는 꼬박 2타를 잃지만 러프에 살짝 들어간 공은 그보다 훨씬 적게 잃어요. 페어웨이 적중률이나 평균 비거리는 이 차이를 가리니, OB율은 따로 봐요.
         티샷 OB율은 프로 1.5% 이하 · 평균 80타 2% · 100타 3% 이하가 좋은 수준이에요.
         {teePen.skipped > 0 && ` 벌타가 난 샷을 기록하지 않은 ${teePen.skipped}회는 제외했어요.`}
       </p>

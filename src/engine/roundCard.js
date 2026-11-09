@@ -12,6 +12,7 @@ import { buildRoundReplay, buildInsightReport } from './insightIndex.js';
 import { summarizeRound } from './roundSummary.js';
 import { penaltyCount } from './penalties.js';
 import { isFullRound, isNineHoleRound } from './nines.js';
+import { compareRoundsDesc, playedBefore } from './roundOrder.js';
 
 export const COMPARE_WINDOW = 5;
 export const COMPARE_MIN = 3;
@@ -26,15 +27,16 @@ export const COMPARE_METRICS = [
   { id: 'penalty', label: '벌타', unit: '개', better: 'down', flat: 0.5, digits: 1 },
 ];
 
-// 라운드 하나의 비교 지표 값 (없으면 null)
-export function compareValues(round) {
+// 라운드 하나의 비교 지표 값 (없으면 null). GIR · 페어웨이는 화면에 보이는 정수 %.
+// exact: 비교 평균을 낼 때는 반올림하지 않은 값 — 반올림한 값끼리 평균하면 차이가 1%p 어긋난다.
+export function compareValues(round, { exact = false } = {}) {
   const player = round.players[0];
   const s = summarizeRound(round, player);
   const penalties = round.holes.reduce((a, h) => a + penaltyCount(h.scores?.[player] ?? {}), 0);
   return {
     score: s.total,
-    gir: s.playedCount > 0 ? Number(s.girPct) : null,
-    fairway: s.fairwayPct != null ? Number(s.fairwayPct) : null,
+    gir: s.playedCount > 0 ? (exact ? (s.girHoles / s.playedCount) * 100 : Number(s.girPct)) : null,
+    fairway: s.fairwayTotal > 0 ? (exact ? (s.fairwaysHit / s.fairwayTotal) * 100 : Number(s.fairwayPct)) : null,
     putts: s.playedCount > 0 ? Math.round((s.totalPutts / s.playedCount) * round.holes.length) : null,   // 18홀 환산
     penalty: penalties,
   };
@@ -51,13 +53,13 @@ const roundTo = (n, digits) => { const m = 10 ** digits; return Math.round(n * m
 function buildCompare(round, history) {
   if (!isFullRound(round)) return null;
   const prior = (history || [])
-    .filter((r) => r.id !== round.id && r.players?.length === 1 && isFullRound(r) && new Date(r.date) < new Date(round.date))
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .filter((r) => r.id !== round.id && r.players?.length === 1 && isFullRound(r) && playedBefore(r, round))
+    .sort(compareRoundsDesc)
     .slice(0, COMPARE_WINDOW);
   if (prior.length < COMPARE_MIN) return null;
 
-  const mine = compareValues(round);
-  const priorValues = prior.map(compareValues);
+  const mine = compareValues(round, { exact: true });
+  const priorValues = prior.map((r) => compareValues(r, { exact: true }));
   const rows = [];
   COMPARE_METRICS.forEach((m) => {
     if (mine[m.id] == null) return;
@@ -66,7 +68,7 @@ function buildCompare(round, history) {
     const avg = others.reduce((a, b) => a + b, 0) / others.length;
     const delta = roundTo(mine[m.id] - avg, m.digits);
     const tone = Math.abs(delta) <= m.flat ? 'flat' : (m.better === 'down' ? delta < 0 : delta > 0) ? 'good' : 'bad';
-    rows.push({ id: m.id, label: m.label, unit: m.unit, value: mine[m.id], avg: roundTo(avg, m.digits), delta, tone, ...(m.id === 'putts' && puttsEstimated(round) ? { estimated: true } : {}) });
+    rows.push({ id: m.id, label: m.label, unit: m.unit, value: roundTo(mine[m.id], m.digits), avg: roundTo(avg, m.digits), delta, tone, ...(m.id === 'putts' && puttsEstimated(round) ? { estimated: true } : {}) });
   });
   return rows.length ? { basis: prior.length, rows } : null;
 }

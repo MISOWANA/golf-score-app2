@@ -9,6 +9,10 @@ import { makeFullRound, makeHalfRound, makeNoParsRound, makeNineRound, makeMulti
 import { sampleRounds } from './test/putts.js';
 import { summarizeRound } from './engine/roundSummary.js';
 import { localNoonISO } from './engine/roundDate.js';
+import { buildTeeStats, buildComposition } from './engine/statsReport.js';
+import { sumRoundEvents } from './engine/shotStats.js';
+import { buildInsightReport } from './engine/insightIndex.js';
+import { teeSideText } from './components/stats/teeText.js';
 
 vi.setConfig({ testTimeout: 30000 });
 
@@ -322,7 +326,7 @@ describe('9홀 라운드', () => {
     expect(screen.getByRole('radio', { name: /후반 9홀/ }).getAttribute('aria-checked')).toBe('true');
     // 파 표는 9홀만 — OUT 표는 없고 홀 번호 칸은 1~9
     expect(screen.queryByText('FRONT')).toBeNull();
-    expect(document.querySelectorAll('[aria-label="파 증가"]')).toHaveLength(9);
+    expect(document.querySelectorAll('[data-role="par-cell"]')).toHaveLength(9);   // 파 칸 9개 (후반 9홀만)
     const headerRow = screen.getByText('TOT').parentElement;
     expect(headerRow.textContent).toContain('123456789');
     expect(headerRow.textContent).not.toMatch(/10|18/);
@@ -858,6 +862,27 @@ describe('퍼팅 상세 분석 — 거리 · 라이 · 미스 위치', () => {
     expect(read()).toEqual(inStats);
   });
 
+  it('인사이트의 거리구간별 성공률도 스탯과 같은 줄 · 같은 숫자이고, 1~2m 안내는 같은 숫자를 또 적지 않는다', async () => {
+    // 1~2m 퍼트가 3개 이상이어야 안내가 나온다
+    const zoneRs = () => {
+      const r = rs();
+      r[0].holes.slice(0, 6).forEach((h) => { h.scores[ME].puttDetails = [{ distance: 1.5, aimDistance: 1.5, lie: 'flat', holein: 'success' }]; h.scores[ME].putts = 1; });
+      return r;
+    };
+    const rows = () => [...document.querySelectorAll('[data-role^="putt-bucket-"]')].map((e) => [e.getAttribute('data-role'), e.textContent]);
+    await setup({ rounds: zoneRs() });
+    await openPutting();
+    const inStats = rows();
+    expect(inStats.some(([role]) => role === 'putt-bucket-1to2')).toBe(true);
+    cleanup();
+    await setup({ rounds: zoneRs() });
+    const section = await insightsPutting();
+    expect(rows()).toEqual(inStats);                                         // 같은 부품 · 같은 숫자 (빗나가면 남음 · 거리별 SG 까지)
+    const zone = section.querySelector('[data-role="putt-zone"]');
+    expect(zone.textContent).toMatch(/1~2m/);
+    expect(zone.textContent).not.toMatch(/\d\s*%/);                          // 표의 1-2m 줄에 이미 있는 숫자를 다시 적지 않는다
+  });
+
   it('미스 위치를 기록하지 않은 라운드: 과녁 · 거리감 · 라인은 안내만, 라이별과 거리별은 그대로 보인다', async () => {
     const plain = makeFullRound(1, ME, { courseName: '일반CC' });       // 거리 · 라이만 있는 기본 퍼팅 기록 (미스 위치 없음)
     await setup({ rounds: [plain, makeFullRound(2, ME)] });
@@ -1071,7 +1096,7 @@ describe('설정 화면', () => {
       await openSettings();
       const extra = makeFullRound(7, ME, { id: 'restored-1' });
       pickFile(new File([serializeBackup({ version: '1.0', userId: 'other', data: { rounds: [extra], clubs: [] } })], 'backup.json', { type: 'application/json' }));
-      await waitFor(() => expect(noticeText()).toMatch(/데이터를 가져왔습니다.*1개 라운드/));
+      await waitFor(() => expect(noticeText()).toMatch(/데이터를 가져왔어요.*1개 라운드/));
       expect(document.querySelector('[data-role="notice"]').getAttribute('data-tone')).toBe('ok');
       expect(window.alert).not.toHaveBeenCalled();                          // 브라우저 기본 알림창이 아니라 앱 안 알림
       await waitFor(async () => expect((await db.loadRoundsByUser([user.userId])).map((r) => r.id)).toContain('restored-1'));
@@ -3277,7 +3302,8 @@ describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 �
   it('파만 고쳐도 그린 스피드는 그대로 남는다', async () => {
     await resume(makeActiveRound(ME, { greenSpeed: 10.5 }));
     await openEdit();
-    fireEvent.click(document.querySelector('[data-role="edit-green-speed"]').closest('div[style*="overflow"]').querySelector('button[style*="right"]'));   // 첫 홀 파 +1
+    fireEvent.click(document.querySelector('[data-role="par-cell"][data-hole="0"]'));                  // 첫 홀을 고르고
+    fireEvent.click(document.querySelector('[data-role="par-option"][data-par="5"]'));                // 파 5 로
     save();
     await waitFor(async () => expect((await db.loadActiveRound([user.userId])).pars[0]).toBe(5));
     expect(await savedSpeed()).toBe(10.5);
@@ -3644,3 +3670,103 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
     expect(document.querySelector('[data-role="goal-sheet"]')).toBeNull();
   });
 });
+
+// 같은 계산을 한 곳에서 하도록 합친 값들 — 스탯과 인사이트가 같은 라운드에서 같은 글자를 보여 주는지
+describe('스탯과 인사이트는 같은 라운드에서 같은 숫자를 보여 준다', () => {
+  // 3라운드 · 한 라운드에 OB 와 3퍼트가 있다. 앱은 최신 라운드를 앞에 둔다
+  const rounds3 = () => {
+    const rs = [makeFullRound(1, ME), makeFullRound(2, ME), makeFullRound(3, ME)];
+    rs[1].holes[0].scores[ME].ob = 1; rs[1].holes[0].scores[ME].strokes += 2;
+    return rs;
+  };
+  const q = (sel) => document.querySelector(sel);
+  const find = (sel) => waitFor(() => { const e = q(sel); expect(e).toBeTruthy(); return e; });
+  const flat = (el) => el.textContent.replace(/\s+/g, ' ');
+  const statsTab = async (id) => { tab('스탯'); await screen.findByText('Stats'); fireEvent.click(await find(`[data-role="stats-tab-${id}"]`)); };
+  const insightsChapter = async (chapter) => { tab('인사이트'); await screen.findByText('Insights'); fireEvent.click(await find(`[data-role="insights-tab-${chapter}"]`)); };
+  afterEach(() => { try { window.sessionStorage.clear(); } catch { /* 저장소를 못 써도 테스트는 이어 간다 */ } });
+
+  it('티샷: 인사이트 부문별 장과 스탯 티샷 탭이 같은 횟수 · 같은 문장이다', async () => {
+    const rs = rounds3();
+    const tee = buildTeeStats(rs);
+    expect(tee.total).toBeGreaterThan(0);
+    await setup({ rounds: rs });
+    await statsTab('tee');
+    const inStats = flat(await find('[data-role="tab-tee"]'));
+    expect(inStats).toContain(`티샷 ${tee.total}번 중 ${tee.hit}번`);
+    expect(inStats).toContain(teeSideText(tee));
+
+    await insightsChapter('skills');
+    const counts = flat(await find('[data-role="tee-counts"]'));
+    expect(counts).toContain(`왼쪽 ${tee.left} · 적중 ${tee.hit} · 오른쪽 ${tee.right}`);
+    const take = flat(q('[data-role="tee-take"]'));
+    expect(take).toContain(`티샷 ${tee.total}번 중 ${tee.hit}번`);
+    expect(take).toContain(teeSideText(tee));
+    expect(document.body.textContent).not.toMatch(/편향지수/);              // 스탯에 없는 지표를 따로 만들지 않는다
+  });
+
+  it('3퍼트 · 더블+ · OB: 스탯 종합의 타수가 새는 곳과 인사이트 빅 미스(누적)가 같은 숫자다', async () => {
+    const rs = rounds3();
+    const e = sumRoundEvents(rs);
+    expect(e.threePutt).toBeGreaterThan(0);
+    expect(e.ob).toBe(1);
+    const per = (n) => (n / 3).toFixed(1);
+    await setup({ rounds: rs });
+    await statsTab('overview');
+    expect(flat(await find('[data-role="leak-three"]'))).toContain(`${per(e.threePutt)}회`);
+    expect(flat(q('[data-role="leak-double"]'))).toContain(`${per(e.double)}홀`);
+
+    await insightsChapter('bigmiss');
+    fireEvent.click(await find('[data-role="scope-career"]'));
+    await waitFor(() => expect(q('[data-role="threeputt-value"]').textContent).toBe(`${per(e.threePutt)}/R`));
+    expect(q('[data-role="double-value"]').textContent).toBe(`${per(e.double)}/R`);
+    expect(flat(q('[data-role="big-misses"]'))).toContain(`OB ${e.ob}회`);
+  });
+
+  it('기록으로 보기: OB · 3퍼트 칩은 3장에만 있고, 홀 결과는 스탯 종합과 같은 함수가 센다. 범위가 제목에 적힌다', async () => {
+    const rs = rounds3();
+    const comp = buildComposition(rs);
+    const e = sumRoundEvents(rs);
+    await setup({ rounds: rs });
+    await insightsChapter('records');
+    fireEvent.click(await find('[data-role="scope-career"]'));
+    const body = async () => { await waitFor(() => expect(document.body.textContent).toMatch(/3라운드 누적 홀 결과/)); return flat(document.body); };
+    const text = await body();
+    expect(text).not.toMatch(/OB \d+회|해저드 \d+회|3퍼트\+ \d+회/);              // 3장 '빅 미스'와 같은 숫자를 또 보이지 않는다
+    expect(text).toContain(`1퍼트 ${e.onePutt}회`);
+    // 홀 결과 다섯 칸: 이글+ · 버디 · 파 · 보기 · 더블+
+    const tiles = [...document.querySelectorAll('div')].filter((d) => d.children.length === 2 && /^(이글\+|버디|파|보기|더블\+)$/.test(d.children[1]?.textContent ?? ''));
+    const byLabel = Object.fromEntries(tiles.map((t) => [t.children[1].textContent, Number(t.children[0].textContent)]));
+    expect(byLabel).toEqual({ '이글+': comp.counts.eagle, '버디': comp.counts.birdie - comp.counts.eagle, '파': comp.counts.par, '보기': comp.counts.bogey, '더블+': comp.counts.double });
+    // 이름 · 범위: '파 세이브'는 스크램블링 말이다
+    expect(text).toContain('파 비율');
+    expect(text).not.toMatch(/파 세이브/);
+    const titles = [...document.querySelectorAll('[data-role="title-ko"]')].map((t) => t.firstChild.textContent);
+    expect(titles).toContain('나의 플레이 스타일 (3라운드 누적)');
+    expect(titles).toContain('파별 성적 (3라운드 누적)');
+  });
+
+  it('한 줄 요약에는 점수를 다시 적지 않는다 (위 범위 카드가 보여 준다)', async () => {
+    await setup({ rounds: rounds3() });
+    tab('인사이트'); await screen.findByText('Insights');
+    const score = (await find('[data-role="scope-score"]')).textContent;
+    const headline = q('[data-role="report-headline"]').textContent;
+    expect(headline.length).toBeGreaterThan(0);
+    expect(headline).not.toContain(`${score}타`);
+    expect(headline).not.toMatch(/^\d+타 \(/);
+  });
+
+  it('다음 라운드: 포커스 첫 줄과 연습 처방이 같은 부문을 가리킨다', async () => {
+    const rs = rounds3();
+    const rep = buildInsightReport(rs, 'career');
+    expect(rep.weakest).toBeTruthy();
+    await setup({ rounds: rs });
+    await insightsChapter('next');
+    fireEvent.click(await find('[data-role="scope-career"]'));
+    await find(`[data-role="practice-${rep.weakest.skill}"]`);
+    expect(document.body.textContent).toContain(rep.focus[0].text);
+    SKILLS_OTHER(rep.weakest.skill).forEach((other) => expect(q(`[data-role="practice-${other}"]`)).toBeNull());
+  });
+});
+
+const SKILLS_OTHER = (skill) => ['putting', 'shortGame', 'approach', 'tee'].filter((s) => s !== skill);

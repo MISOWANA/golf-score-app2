@@ -1,6 +1,7 @@
 import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { Card, Metric, SplitBar, RateRow, Takeaway, TrendChip, Hint } from './widgets.jsx';
 import { COLOR, fmtPct } from './format.js';
+import { teeSideText } from './teeText.js';
 import { fmtShot, unitLabel } from '../../engine/units.js';
 
 // 티샷 — 페어웨이(미스 방향) · 클럽별 · 구질 · 티샷 사고
@@ -15,11 +16,7 @@ export default function TeeTab({ report }) {
     );
   }
   const other = tee.side === 'right' ? '왼쪽' : '오른쪽';
-  const fwTake = tee.side
-    ? { tone: 'warn', text: `${tee.side === 'right' ? '오른쪽' : '왼쪽'} 미스가 더 많아요 (오른쪽 ${fmtPct(tee.rightPct)} · 왼쪽 ${fmtPct(tee.leftPct)}). 페어웨이 ${other} 가장자리를 겨냥해 보세요.` }
-    : tee.left + tee.right >= 5
-      ? { tone: 'info', text: `왼쪽 ${fmtPct(tee.leftPct)} · 오른쪽 ${fmtPct(tee.rightPct)} — 좌우 미스가 고르게 나뉘어요.` }
-      : { tone: 'info', text: '미스 방향이 더 쌓이면 어느 쪽으로 치우치는지 알려드려요.' };
+  const fwTake = { tone: tee.side ? 'warn' : 'info', text: `${teeSideText(tee)}${tee.side ? ` 페어웨이 ${other} 가장자리를 겨냥해 보세요.` : ''}` };
 
   // 드라이버가 다른 클럽보다 크게 덜 맞으면 알려 준다 (양쪽 모두 5번 이상)
   const driver = tee.byClub.find((r) => r.key === 'driver');
@@ -52,7 +49,7 @@ export default function TeeTab({ report }) {
       </>} right={<TrendChip delta={tee.trend?.delta} id="trend-fairway" label="최근 5R" />}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
           <Metric id="m-fir" value={fmtPct(tee.hitPct)} label="적중률" sub={`티샷 ${tee.total}번 중 ${tee.hit}번`} />
-          <ConfidenceBadge tier={tee.tier} />
+          <ConfidenceBadge tier={tee.tier} full />
         </div>
         <SplitBar id="fairway-bar" segments={[
           { key: 'left', label: '왼쪽', pct: tee.leftPct ?? 0, count: `${tee.left}번`, color: COLOR.amber },

@@ -100,7 +100,7 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
       {rounds.length === 0 ? (
         <div style={styles.emptyState}>
           <div style={styles.emptyIcon}>📖</div>
-          <div style={styles.emptyTitle}>기록된 라운드가 없습니다</div>
+          <div style={styles.emptyTitle}>기록된 라운드가 없어요</div>
           <div style={styles.emptySub}>첫 라운드를 시작해보세요</div>
         </div>
       ) : (
@@ -152,7 +152,7 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
             <div style={styles.modalIcon}>🗑️</div>
             <div style={styles.modalTitle}>라운드 삭제</div>
             <div style={styles.modalText}>
-              {pendingDelete.courseName} 라운드를<br/>삭제하시겠습니까?<br/>
+              {pendingDelete.courseName} 라운드를<br/>삭제할까요?<br/>
               <span style={{ fontSize: 13, color: '#8896b0' }}>휴지통에 {TRASH_KEEP_DAYS}일 보관돼서 되돌릴 수 있어요</span>
             </div>
             <div style={styles.modalActions}>

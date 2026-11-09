@@ -9,18 +9,18 @@ installHooks();
 describe('티샷 — 클럽', () => {
   it('클럽을 누르면 구질·페어웨이·랜딩이 나타나고, 같은 클럽을 다시 누르면 모두 사라지고 필드샷·퍼팅은 다시 잠긴다', async () => {
     await newHole();
-    expect(text()).toContain('클럽을 선택하면 구질 입력이 나타납니다');
+    expect(text()).toContain('클럽을 선택하면 구질 입력이 나타나요');
     expect(text()).not.toContain('FAIRWAY HIT');
     await tap('DRIVER');
     expect(looksOn(one('DRIVER'))).toBe(true);
     expect(text()).toContain('FAIRWAY HIT');
     expect(text()).toContain('LANDING POINT');
-    expect(text()).not.toContain('클럽을 선택하면 구질 입력이 나타납니다');
+    expect(text()).not.toContain('클럽을 선택하면 구질 입력이 나타나요');
     expect(tabInfo()['필드샷'].disabled).toBe(false);
     await tap('DRIVER');                                              // 다시 눌러 해제
     expect(looksOn(one('DRIVER'))).toBe(false);
     expect(text()).not.toContain('FAIRWAY HIT');
-    expect(text()).toContain('클럽을 선택하면 구질 입력이 나타납니다');
+    expect(text()).toContain('클럽을 선택하면 구질 입력이 나타나요');
     expect(tabInfo()['필드샷'].disabled).toBe(true);
     expect(tabInfo()['퍼팅'].disabled).toBe(true);
     expect(scoreNow().pending).toBeNull();                             // 샷 기록이 없으니 '온그린까지 N타'도 사라진다

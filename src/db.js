@@ -3,6 +3,7 @@ import { isTrashExpired } from './engine/trash.js';
 import { sanitizeGoals } from './engine/goals.js';
 import { sanitizeClubs } from './engine/clubCatalog.js';
 import { sanitizePrefs } from './engine/units.js';
+import { compareRoundsDesc } from './engine/roundOrder.js';
 
 const DB_NAME = 'GolfScoreDB';
 const DB_VERSION = 2;
@@ -78,7 +79,7 @@ export const loadRoundsByUser = async (ids) => {
   const lists = await Promise.all(toIds(ids).map((id) => asPromise(index.getAll(id))));
   const byId = new Map();
   lists.flat().forEach((r) => byId.set(r.id, r));
-  return [...byId.values()].sort((a, b) => new Date(b.date) - new Date(a.date));
+  return [...byId.values()].sort(compareRoundsDesc);   // 같은 날이면 나중에 시작한 라운드가 앞
 };
 
 // 라운드 저장

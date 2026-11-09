@@ -148,7 +148,7 @@ export default function LoginView({ onLogin, onDeleteProfile, loading, profiles 
               ))}
             </div>
             <div style={{ fontSize: 13, color: '#8896b0', marginTop: 8, lineHeight: 1.6 }}>
-              같은 이름을 입력해도 기존 기록으로 이어집니다.
+              같은 이름을 입력해도 기존 기록으로 이어져요.
             </div>
           </div>
         )}

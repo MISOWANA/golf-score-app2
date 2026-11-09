@@ -61,7 +61,7 @@ export default function PuttingTab({ report }) {
               <b data-role="putt-sg-value" style={{ fontSize: 17, fontVariantNumeric: 'tabular-nums', color: d.sg.perRound >= 0 ? COLOR.green : COLOR.red }}>
                 {fmtSigned(d.sg.perRound, 2)}<span style={{ fontSize: 12, fontWeight: 700, color: COLOR.muted, marginLeft: 2 }}>/R</span>
               </b>
-              <ConfidenceBadge tier={sgTier(d.sg.strokes)} />
+              <ConfidenceBadge tier={sgTier(d.sg.strokes)} full />
             </span>
           </div>
         ) : (

@@ -7,6 +7,7 @@
 //   · 18홀과 9홀 라운드를 모두 쓰고, 동반자와 함께 친 라운드는 내 점수로 센다 (핸디캡 · 홈 평균과 같다).
 
 import { myPlayer, totalPar } from './players.js';
+import { compareRoundsDesc } from './roundOrder.js';
 import { isNineHoleRound, nineSideOf } from './nines.js';
 
 export const RECENT_SHOWN = 3;
@@ -40,7 +41,7 @@ export function plannedHoles({ nine, outName, inName, holeCount }) {
   return Array.from({ length: n }, (_, i) => ({ key: i < 9 ? `${out}#${i + 1}` : `${inn}#${i - 8}`, holeNumber: i + 1 }));
 }
 
-const byDateDesc = (a, b) => new Date(b.date) - new Date(a.date);
+const byDateDesc = compareRoundsDesc;
 
 // rounds: 모든 라운드 · opts: { courseName, outName, inName, nine, userName }
 // 이 코스를 친 기록이 없으면 null.

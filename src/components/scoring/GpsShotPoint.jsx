@@ -60,13 +60,13 @@ function captureBestFix(onProgress) {
 }
 
 function errorMessage(err) {
-  if (err?.message === 'UNSUPPORTED') return '이 브라우저는 위치 기능을 지원하지 않습니다.';
-  if (err?.message === 'NO_FIX') return '위치를 잡지 못했습니다. 하늘이 트인 곳에서 다시 시도해 주세요.';
+  if (err?.message === 'UNSUPPORTED') return '이 브라우저는 위치 기능을 지원하지 않아요.';
+  if (err?.message === 'NO_FIX') return '위치를 잡지 못했어요. 하늘이 트인 곳에서 다시 시도해 주세요.';
   switch (err?.code) {
-    case 1: return '위치 권한이 거부됐습니다. 브라우저 설정에서 허용해 주세요.';
-    case 2: return '위치를 잡지 못했습니다. 하늘이 트인 곳에서 다시 시도해 주세요.';
-    case 3: return '측위 시간이 초과됐습니다. 다시 시도해 주세요.';
-    default: return '위치를 가져오지 못했습니다. 다시 시도해 주세요.';
+    case 1: return '위치 권한이 거부됐어요. 브라우저 설정에서 허용해 주세요.';
+    case 2: return '위치를 잡지 못했어요. 하늘이 트인 곳에서 다시 시도해 주세요.';
+    case 3: return '측위 시간이 초과됐어요. 다시 시도해 주세요.';
+    default: return '위치를 가져오지 못했어요. 다시 시도해 주세요.';
   }
 }
 

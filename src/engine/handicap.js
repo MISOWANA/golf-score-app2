@@ -17,6 +17,7 @@
 
 import { isFullRound } from './nines.js';
 import { totalPar, myPlayer } from './players.js';
+import { compareRoundsAsc } from './roundOrder.js';
 
 export const HANDICAP_MIN_ROUNDS = 3;
 export const HANDICAP_WINDOW = 20;
@@ -50,7 +51,7 @@ export function adjustedHoleScore(strokes, par, courseHandicap) {
   return Math.min(strokes, cap);
 }
 
-const byDate = (a, b) => new Date(a.date) - new Date(b.date) || String(a.id).localeCompare(String(b.id));
+const byDate = compareRoundsAsc;
 
 // 라운드 한 개의 합계 — 핸디캡에 쓰는 조정 총타수
 function adjustedGross(round, player, courseHandicap) {

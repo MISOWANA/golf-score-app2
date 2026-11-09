@@ -118,7 +118,7 @@ export default function GolfScoringApp() {
       const userRounds = await loadRoundsByUser(userIdsOf(user));
       const valid = userRounds.filter(isValidRound).map(normalizeRound);
       if (valid.length < userRounds.length) {
-        console.warn(`형식이 맞지 않는 라운드 ${userRounds.length - valid.length}개를 제외했습니다`);
+        console.warn(`형식이 맞지 않는 라운드 ${userRounds.length - valid.length}개를 제외했어요`);
       }
       setRounds(valid);
     } catch (e) {
@@ -356,7 +356,7 @@ export default function GolfScoringApp() {
   const handleImportData = async (file) => {
     try {
       if (!file.name.toLowerCase().endsWith('.json')) {
-        throw new Error('JSON 파일만 가져올 수 있습니다');
+        throw new Error('JSON 파일만 가져올 수 있어요');
       }
       // 크기 · 형식 · 버전 검사 (engine/backupStatus.js) — 문제가 있으면 사용자에게 보일 메시지로 던진다
       const importedData = parseBackupFile(await file.text(), file.size);
@@ -379,10 +379,10 @@ export default function GolfScoringApp() {
       await loadUserRounds(currentUser);
       // 백업 파일에 설정(거리 단위 · 첫 퍼팅 기본 거리)이 들어 있으면 가져오므로 화면도 맞춘다
       try { applyPrefs(await getPrefs(currentUser.userId)); } catch { /* 설정을 못 읽어도 기록 복원은 끝났다 */ }
-      setNotice({ tone: 'ok', text: `데이터를 가져왔습니다! (${validRounds.length}개 라운드)`
-        + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었습니다.` : '')
-        + (nineConverted > 0 ? `\n9홀만 입력된 ${nineConverted}개는 9홀 라운드로 저장했습니다 (통계에서는 제외돼요).` : '')
-        + (remapped > 0 ? `\n다른 사용자의 기록과 번호가 겹친 ${remapped}개는 그 기록을 건드리지 않고 사본으로 추가했습니다.` : '') });
+      setNotice({ tone: 'ok', text: `데이터를 가져왔어요! (${validRounds.length}개 라운드)`
+        + (skipped > 0 ? `\n형식이 맞지 않는 ${skipped}개는 건너뛰었어요.` : '')
+        + (nineConverted > 0 ? `\n9홀만 입력된 ${nineConverted}개는 9홀 라운드로 저장했어요 (통계에서는 제외돼요).` : '')
+        + (remapped > 0 ? `\n다른 사용자의 기록과 번호가 겹친 ${remapped}개는 그 기록을 건드리지 않고 사본으로 추가했어요.` : '') });
     } catch (e) {
       console.error('Import failed', e);
       setNotice({ tone: 'error', text: '데이터 가져오기 실패: ' + e.message });

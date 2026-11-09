@@ -709,7 +709,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
             <div style={styles.modalIcon}>🗑️</div>
             <div style={styles.modalTitle}>{pendingDelete.name} 삭제</div>
             <div style={styles.modalText}>
-              이 클럽을 백에서 제거하시겠습니까?
+              이 클럽을 백에서 제거할까요?
             </div>
             <div style={styles.modalActions}>
               <button style={styles.modalBtnCancel} onClick={() => setPendingDelete(null)}>

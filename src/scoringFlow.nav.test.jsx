@@ -242,7 +242,7 @@ describe('코스맵 · 위치 찍기', () => {
     const had = navigator.geolocation;
     Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
     await tap(find(/여기서 위치 찍기/)[0]);
-    await waitFor(() => expect(text()).toMatch(/지원하지 않습니다|위치를 가져오지 못했습니다/));
+    await waitFor(() => expect(text()).toMatch(/지원하지 않아요|위치를 가져오지 못했어요/));
     Object.defineProperty(navigator, 'geolocation', { value: had, configurable: true });
   });
 

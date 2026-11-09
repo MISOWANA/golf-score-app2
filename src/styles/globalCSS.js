@@ -18,6 +18,18 @@ const globalCSS = `
        한 단어가 칸보다 길 때만 글자 사이에서 꺾어 넘치지 않게 한다. */
     word-break: keep-all;
     overflow-wrap: break-word;
+    /* 점수표 · 거리 · 퍼센트처럼 숫자가 줄지어 나오는 곳에서 자릿수가 흔들리지 않게 (폰트가 지원하는 만큼) */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 키보드 · 외부 키보드로 다닐 때 어디에 있는지 보이게. 입력칸은 인라인으로 outline 을 없앤 곳이 많아 !important */
+  button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, [role="radio"]:focus-visible, [role="switch"]:focus-visible, summary:focus-visible {
+    outline: 2px solid #f3d36b;
+    outline-offset: 2px;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid #f3d36b !important;
+    outline-offset: 1px;
   }
 
   button {

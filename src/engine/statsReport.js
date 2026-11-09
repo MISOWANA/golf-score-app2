@@ -12,7 +12,7 @@
 //   · '최근 5R vs 그 이전' 추세는 양쪽 표본이 충분할 때만 낸다.
 
 import { extractClubShots, buildClubDistanceStats, SHORT_SHOT_MAX_M } from './clubDistance.js';
-import { APPROACH_BUCKETS, buildScrambling, buildGirp, buildGirConversion } from './shotStats.js';
+import { APPROACH_BUCKETS, buildScrambling, buildGirp, buildGirConversion, sumRoundEvents } from './shotStats.js';
 import { buildTeePenalty, pickWeakestSkill } from './roundStory.js';
 import { analyzePutts, summarizePuttCauses } from './puttAnalysis.js';
 import { median, rateTier } from './stats.js';
@@ -90,8 +90,10 @@ export function buildScoreSummary(rounds) {
 }
 
 // 홀 결과 구성과 파별 성적 (저장된 타수 기준 — 입력하지 않은 홀도 홈·히스토리 합계에 들어가므로 같이 센다)
+// 스탯 '종합'과 인사이트 '기록으로 보기'(홀 결과 · 파별 성적 · 플레이 스타일)가 이 함수 하나를 쓴다.
+//   counts.birdie 는 버디 이하 전부(이글 포함), counts.eagle 은 그중 이글 이하만이다.
 export function buildComposition(rounds) {
-  const counts = { birdie: 0, par: 0, bogey: 0, double: 0 };
+  const counts = { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0 };
   const byPar = {};
   let total = 0;
   rounds.forEach((r) => {
@@ -99,40 +101,37 @@ export function buildComposition(rounds) {
     r.holes.forEach((h) => {
       const s = h.scores?.[p];
       if (!s) return;
-      const diff = (s.strokes ?? h.par) - h.par;
+      const strokes = s.strokes ?? h.par;
+      const diff = strokes - h.par;
       total++;
+      if (diff <= -2) counts.eagle++;
       if (diff <= -1) counts.birdie++;
       else if (diff === 0) counts.par++;
       else if (diff === 1) counts.bogey++;
       else counts.double++;
-      (byPar[h.par] ??= []).push(diff);
+      (byPar[h.par] ??= []).push({ diff, strokes });
     });
   });
   return {
     total, counts,
     doubleRate: pct(counts.double, total),
-    byPar: Object.keys(byPar).map(Number).sort((a, b) => a - b).map((par) => ({
-      par, count: byPar[par].length, avgDiff: mean(byPar[par]),
-    })),
+    byPar: Object.keys(byPar).map(Number).sort((a, b) => a - b).map((par) => {
+      const list = byPar[par];
+      return {
+        par, count: list.length,
+        avgDiff: mean(list.map((x) => x.diff)),
+        avgStrokes: mean(list.map((x) => x.strokes)),
+        birdiePct: pct(list.filter((x) => x.diff <= -1).length, list.length),
+        bogeyPlusPct: pct(list.filter((x) => x.diff >= 1).length, list.length),
+      };
+    }),
   };
 }
 
 // 타수를 새게 하는 것 — 라운드당 횟수. (3퍼트 · OB · 해저드 · 더블보기 이상 홀)
+// 횟수는 shotStats.countRoundEvents 가 센다 — 인사이트의 빅 미스 · 끔찍한 샷과 같은 함수.
 export function buildLeaks(rounds) {
-  let three = 0, ob = 0, hazard = 0, unplayable = 0, double = 0, extraPutts = 0;
-  rounds.forEach((r) => {
-    const p = me(r);
-    r.holes.forEach((h) => {
-      const s = h.scores?.[p];
-      if (!s) return;
-      const putts = s.putts ?? 2;
-      if (putts >= 3) { three++; extraPutts += putts - 2; }
-      ob += s.ob ?? 0;
-      hazard += s.hazard ?? 0;
-      unplayable += s.unplayable ?? 0;
-      if ((s.strokes ?? h.par) - h.par >= 2) double++;
-    });
-  });
+  const { threePutt: three, ob, hazard, unplayable, double, extraPutts } = sumRoundEvents(rounds);
   // '라운드당'은 18홀 기준이다 — 9홀 라운드는 0.5라운드로 센다 (18홀 라운드만 있으면 라운드 수와 같다)
   const holeCount = rounds.reduce((s, r) => s + r.holes.length, 0);
   const n = holeCount > 0 ? holeCount / FULL_ROUND_HOLES : 1;

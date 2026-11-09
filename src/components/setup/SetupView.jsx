@@ -4,6 +4,7 @@ import { buildCourseHistory } from '../../engine/courseHistory.js';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronLeft, Plus, X, Briefcase } from 'lucide-react';
 import styles from '../../styles/styles';
+import ParTable from '../ui/ParTable';
 import { searchCourses } from '../../data/courseDatabase';
 import { bagCoverage } from '../../engine/clubRecommend.js';
 import { setupBlockers } from '../../engine/roundSetup.js';
@@ -260,12 +261,13 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
           <label style={styles.formLabel}>골프장 이름</label>
           <input
             type="date"
+            aria-label="라운드 날짜"
             value={roundDate}
             max={todayLocalDateStr()}
             onChange={(e) => { if (e.target.value) setRoundDate(e.target.value); }}
             style={{
-              width: '136px', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '12px',
-              color: '#e8edf8', fontSize: '13px', fontWeight: '700', padding: '6px 6px',
+              width: '150px', minHeight: 44, boxSizing: 'border-box', background: '#1a2235', border: '1px solid #252f4a', borderRadius: '12px',
+              color: '#e8edf8', fontSize: '14px', fontWeight: '700', padding: '6px 8px', margin: '-6px 0',
               colorScheme: 'dark',
             }}
           />
@@ -273,6 +275,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
         <div ref={searchRef} style={{ position: 'relative' }}>
           <input
             style={styles.formInput}
+            aria-label="골프장 이름"
             placeholder="골프장 이름 검색..."
             value={courseName}
             onChange={(e) => handleCourseNameChange(e.target.value)}
@@ -394,110 +397,8 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
         </div>
       )}
 
-      {/* 코스 이름 — 9홀이면 치는 9홀의 이름만 */}
-      <div style={styles.formSection}>
-        <div style={styles.formLabelRow}>
-          <label style={styles.formLabel}>코스 이름</label>
-          {!nine && (
-            <button
-              style={{ fontSize: 13, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, minHeight: 44, margin: '-8px 0', padding: '0 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-              onClick={swapOutIn}
-              title="OUT/IN 순서 바꾸기"
-            >
-              ⇄ OUT/IN 순서 변경
-            </button>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {shownNines.map((n) => (
-            <div key={n.key} style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '12px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>{nine ? `${n.label} 코스` : `${n.label} (${n.range})`}</div>
-              <input
-                style={{ ...styles.formInput, marginBottom: 0 }}
-                placeholder={n.placeholder}
-                value={n.nameValue}
-                onChange={(e) => n.setName(e.target.value)}
-                maxLength={20}
-              />
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: '#8aa0c4', marginTop: 8, lineHeight: 1.6 }}>이름을 비워 두면 OUT · IN 으로 저장돼요</div>
-      </div>
-
       {/* 같은 코스를 전에 쳤다면 그 기록 — 코스 이름이 정해진 뒤, 파를 맞추기 전에 */}
       <CourseHistoryCard history={courseHistory} />
-
-      {/* 파 설정 */}
-      <div style={styles.formSection}>
-        <label style={styles.formLabel}>파 설정</label>
-
-        <div style={styles.parSummary}>
-          <div style={styles.parSummaryMain}>
-            <div style={styles.parSummaryLabel}>TOTAL PAR</div>
-            <div style={styles.parSummaryValue}>{playedPars.reduce((a, b) => a + b, 0)}</div>
-          </div>
-          {!nine && (<>
-            <div style={styles.parSummaryDivider} />
-            <div style={styles.parSummaryNines}>
-              <div style={styles.parSummaryNineRow}>
-                <span style={styles.parSummaryNineLabel}>FRONT</span>
-                <span style={styles.parSummaryNineValue}>{pars.slice(0, 9).reduce((a, b) => a + b, 0)}</span>
-              </div>
-              <div style={styles.parSummaryNineRow}>
-                <span style={styles.parSummaryNineLabel}>BACK</span>
-                <span style={styles.parSummaryNineValue}>{pars.slice(9).reduce((a, b) => a + b, 0)}</span>
-              </div>
-            </div>
-          </>)}
-        </div>
-
-        <div style={styles.parTableHint}>← 왼쪽 탭: -1 · 오른쪽 탭: +1 →</div>
-        {shownNines.map(({ label, start, end }) => (
-          <div key={label} style={styles.parTable}>
-            <div style={styles.parTableRow}>
-              <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
-              <div style={styles.parTableCells}>
-                {pars.slice(start, end).map((_, localIdx) => (
-                  <div key={localIdx} style={styles.parTableHoleCell}>{nine ? localIdx + 1 : start + localIdx + 1}</div>
-                ))}
-              </div>
-              <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
-            </div>
-            <div style={{ ...styles.parTableRow, borderBottom: 'none' }}>
-              <div style={styles.parTableLabel}>PAR</div>
-              <div style={styles.parTableCells}>
-                {pars.slice(start, end).map((p, localIdx) => {
-                  const holeIdx = start + localIdx;
-                  const canDecrease = p > 3;
-                  const canIncrease = p < 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
-                  return (
-                    <div key={holeIdx} style={styles.parTableParCell}>
-                      <div style={{
-                        ...styles.parTableParValue,
-                        background: p === 3 ? 'rgba(61,184,122,0.15)' : p === 4 ? '#0e1c14' : p === 5 ? '#c9a228' : '#ef5350',
-                        color: p === 3 ? '#3db87a' : p === 4 ? '#e8edf8' : '#0b0e18',
-                      }}>{p}</div>
-                      <button style={{ ...styles.parTapZone, left: 0, opacity: canDecrease ? 1 : 0.3, cursor: canDecrease ? 'pointer' : 'not-allowed' }}
-                        onClick={() => canDecrease && updatePar(holeIdx, p - 1)} disabled={!canDecrease} aria-label="파 감소" />
-                      <button style={{ ...styles.parTapZone, right: 0, opacity: canIncrease ? 1 : 0.3, cursor: canIncrease ? 'pointer' : 'not-allowed' }}
-                        onClick={() => canIncrease && updatePar(holeIdx, p + 1)} disabled={!canIncrease} aria-label="파 증가" />
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={styles.parTableTotal}>{pars.slice(start, end).reduce((a, b) => a + b, 0)}</div>
-            </div>
-          </div>
-        ))}
-
-        <div style={styles.parLegend}>
-          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: 'rgba(61,184,122,0.15)', color: '#3db87a', border: '1px solid #3db87a' }}>3</span><span>파 3</span></div>
-          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#0e1c14', color: '#e8edf8', border: '1px solid #1a3028' }}>4</span><span>파 4</span></div>
-          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#c9a228', color: '#0b0e18' }}>5</span><span>파 5</span></div>
-          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#ef5350', color: '#fff' }}>6</span><span>파 6</span></div>
-        </div>
-      </div>
 
       {/* 플레이어 */}
       <div style={styles.formSection}>
@@ -517,6 +418,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
                 ...styles.formInput, flex: 1, marginBottom: 0,
                 ...(name.trim() && players.findIndex(q => normPlayer(q) === normPlayer(name)) !== i ? { borderColor: '#ef5350' } : {}),
               }}
+              aria-label={`플레이어 ${i + 1} 이름`}
               placeholder={`플레이어 ${i + 1}`}
               value={name}
               onChange={(e) => updatePlayer(i, e.target.value)}
@@ -570,6 +472,72 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* 코스 이름 — 9홀이면 치는 9홀의 이름만 */}
+      <div style={styles.formSection}>
+        <div style={styles.formLabelRow}>
+          <label style={styles.formLabel}>코스 이름</label>
+          {!nine && (
+            <button
+              style={{ fontSize: 13, color: '#c9a228', background: 'none', border: '1px solid #c9a228', borderRadius: 8, minHeight: 44, margin: '-8px 0', padding: '0 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={swapOutIn}
+              title="OUT/IN 순서 바꾸기"
+            >
+              ⇄ OUT/IN 순서 변경
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {shownNines.map((n) => (
+            <div key={n.key} style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '12px', color: '#8a9a8a', fontWeight: '700', letterSpacing: '0.08em', marginBottom: '6px' }}>{nine ? `${n.label} 코스` : `${n.label} (${n.range})`}</div>
+              <input
+                style={{ ...styles.formInput, marginBottom: 0 }}
+                aria-label={nine ? `${n.label} 코스 이름` : `${n.label} 코스 이름 (${n.range})`}
+                placeholder={n.placeholder}
+                value={n.nameValue}
+                onChange={(e) => n.setName(e.target.value)}
+                maxLength={20}
+              />
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: '#8aa0c4', marginTop: 8, lineHeight: 1.6 }}>이름을 비워 두면 OUT · IN 으로 저장돼요</div>
+      </div>
+
+      {/* 파 설정 */}
+      <div style={styles.formSection}>
+        <label style={styles.formLabel}>파 설정</label>
+
+        <div style={styles.parSummary}>
+          <div style={styles.parSummaryMain}>
+            <div style={styles.parSummaryLabel}>TOTAL PAR</div>
+            <div style={styles.parSummaryValue}>{playedPars.reduce((a, b) => a + b, 0)}</div>
+          </div>
+          {!nine && (<>
+            <div style={styles.parSummaryDivider} />
+            <div style={styles.parSummaryNines}>
+              <div style={styles.parSummaryNineRow}>
+                <span style={styles.parSummaryNineLabel}>FRONT</span>
+                <span style={styles.parSummaryNineValue}>{pars.slice(0, 9).reduce((a, b) => a + b, 0)}</span>
+              </div>
+              <div style={styles.parSummaryNineRow}>
+                <span style={styles.parSummaryNineLabel}>BACK</span>
+                <span style={styles.parSummaryNineValue}>{pars.slice(9).reduce((a, b) => a + b, 0)}</span>
+              </div>
+            </div>
+          </>)}
+        </div>
+
+        <ParTable pars={pars} groups={shownNines} holeNo={(i) => (nine ? i - shownNines[0].start + 1 : i + 1)} onSetPar={updatePar} />
+
+        <div style={styles.parLegend}>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: 'rgba(61,184,122,0.15)', color: '#3db87a', border: '1px solid #3db87a' }}>3</span><span>파 3</span></div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#0e1c14', color: '#e8edf8', border: '1px solid #1a3028' }}>4</span><span>파 4</span></div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#c9a228', color: '#0b0e18' }}>5</span><span>파 5</span></div>
+          <div style={styles.parLegendItem}><span style={{ ...styles.parLegendDot, background: '#ef5350', color: '#fff' }}>6</span><span>파 6</span></div>
         </div>
       </div>
 

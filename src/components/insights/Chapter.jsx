@@ -21,9 +21,10 @@ export function NextChapter({ current, onGo }) {
   return (
     <button type="button" data-role="next-chapter" onClick={() => onGo(next.key)}
       style={{ width: '100%', height: 52, marginTop: 6, padding: '0 16px', borderRadius: 14, background: '#111a2e', border: '1px solid #252f4a', color: '#e8edf8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
-      <span style={{ fontSize: 13, fontWeight: 700, color: '#8896b0', letterSpacing: '0.12em' }}>다음</span>
-      <span style={{ flex: 1, fontSize: 15, fontWeight: 800 }}>
-        <span style={{ color: '#c9a228', marginRight: 6 }}>{next.no}</span>{next.short}
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#8896b0', whiteSpace: 'nowrap' }}>다음 장</span>
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 800 }}>
+        <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(201,162,40,0.18)', color: '#f3d36b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{next.no}</span>
+        {next.short}
       </span>
       <ChevronRight size={18} color="#8896b0" aria-hidden="true" />
     </button>

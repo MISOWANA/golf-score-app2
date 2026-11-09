@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, Home, BookOpen, Edit3, X, Calendar, MapPin, User } from 'lucide-react';
 import styles from '../../styles/styles';
+import ParTable from '../ui/ParTable';
 import StatTile from './StatTile';
 import BreakdownBar from './BreakdownBar';
 import ScorecardTable from './ScorecardTable';
@@ -287,10 +288,8 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
         <ScorecardTable round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
       </div>
 
-      <div style={styles.section}>
-        <div style={styles.sectionTitle}>INSIGHTS</div>
-        <Insights round={round} player={activePlayer} />
-      </div>
+      {/* 위 요약 카드가 이미 말한 잘한 점·아쉬운 점은 빼고, 홀 단위로 짚어 볼 것만 */}
+      <Insights round={round} player={activePlayer} said={card?.eligible ? [...card.strengths, ...card.issues] : []} />
 
       {(() => {
         const memoedHoles = round.holes.filter(h => h.scores[activePlayer]?.memo);
@@ -487,57 +486,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
                 </>)}
               </div>
 
-              <div style={{ fontSize: '13px', color: '#8896b0', marginBottom: '8px', fontStyle: 'italic' }}>
-                ← 왼쪽 탭: -1 · 오른쪽 탭: +1 →
-              </div>
-
-              {editNines.map(({ label, start, end }) => (
-                <div key={label} style={{ ...styles.parTable, marginBottom: '8px' }}>
-                  <div style={styles.parTableRow}>
-                    <div style={{ ...styles.parTableLabel, ...styles.parTableLabelHeader }}>{label}</div>
-                    <div style={styles.parTableCells}>
-                      {editDraft.pars.slice(start, end).map((_, localIdx) => (
-                        <div key={localIdx} style={styles.parTableHoleCell}>{holeNoOf(round, start + localIdx)}</div>
-                      ))}
-                    </div>
-                    <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
-                  </div>
-                  <div style={{ ...styles.parTableRow, borderBottom: 'none' }}>
-                    <div style={styles.parTableLabel}>PAR</div>
-                    <div style={styles.parTableCells}>
-                      {editDraft.pars.slice(start, end).map((p, localIdx) => {
-                        const holeI = start + localIdx;
-                        const canDec = p > 3;
-                        const canInc = p < 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
-                        return (
-                          <div key={holeI} style={styles.parTableParCell}>
-                            <div style={{
-                              ...styles.parTableParValue,
-                              background: p === 3 ? 'rgba(61,184,122,0.15)' : p === 4 ? '#0e1c14' : p === 5 ? '#c9a228' : '#ef5350',
-                              color: p === 3 ? '#3db87a' : p === 4 ? '#e8edf8' : '#0b0e18',
-                            }}>
-                              {p}
-                            </div>
-                            <button
-                              style={{ ...styles.parTapZone, left: 0, opacity: canDec ? 1 : 0.3, cursor: canDec ? 'pointer' : 'not-allowed' }}
-                              onClick={() => canDec && updateParDraft(holeI, p - 1)}
-                              disabled={!canDec}
-                            />
-                            <button
-                              style={{ ...styles.parTapZone, right: 0, opacity: canInc ? 1 : 0.3, cursor: canInc ? 'pointer' : 'not-allowed' }}
-                              onClick={() => canInc && updateParDraft(holeI, p + 1)}
-                              disabled={!canInc}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={styles.parTableTotal}>
-                      {editDraft.pars.slice(start, end).reduce((a, b) => a + b, 0)}
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <ParTable pars={editDraft.pars} groups={editNines} holeNo={(i) => holeNoOf(round, i)} onSetPar={updateParDraft} />
             </div>
 
             {/* 저장이 막힌 이유 — 스크롤 맨 아래 버튼 바로 위에 둬서 놓치지 않게 */}

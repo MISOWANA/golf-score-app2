@@ -112,13 +112,13 @@ export function ActiveRoundCard({ round, onResume, prominent = false }) {
 }
 
 // 누적 라운드 · 평균 스코어 · 핸디캡. 핸디캡은 3라운드부터 — 그전에는 얼마나 더 필요한지 알려 준다.
-export function StatsPanel({ loading, totalRounds, avgScore, handicap }) {
+export function StatsPanel({ loading, totalRounds, nineCount = 0, avgScore, handicap }) {
   const avgShown = !loading && avgScore !== '—';
   const cell = { ...styles.statCard, padding: '11px 12px 12px', minWidth: 0 };
   const hc = handicap ?? { index: null, delta: null, count: 0 };
   const hcSub = hc.index == null
     ? `${Math.max(1, 3 - hc.count)}라운드 더 쌓이면`
-    : hc.delta == null ? '최근 20R 중 낮은 8R' : hc.delta === 0 ? '직전과 같아요' : `직전 대비 ${hc.delta > 0 ? '▲' : '▼'}${Math.abs(hc.delta).toFixed(1)}`;
+    : hc.delta == null ? `${Math.min(hc.count, 20)}R 중 낮은 ${hc.used ?? 1}R` : hc.delta === 0 ? '직전과 같아요' : `직전 대비 ${hc.delta > 0 ? '▲' : '▼'}${Math.abs(hc.delta).toFixed(1)}`;
   const hcColor = hc.index == null || hc.delta == null || hc.delta === 0 ? '#8aa0c4' : hc.delta < 0 ? '#3db87a' : '#ef5350';
   return (
     <div style={{ ...styles.statsGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }} data-role="home-stats">
@@ -128,6 +128,7 @@ export function StatsPanel({ loading, totalRounds, avgScore, handicap }) {
           {loading ? '—' : totalRounds}
           {!loading && <span style={styles.statUnit}>회</span>}
         </div>
+        {!loading && nineCount > 0 && <div data-role="home-nine-note" style={{ fontSize: 12, color: '#8aa0c4', marginTop: 4, lineHeight: 1.35 }}>9홀 {nineCount}회 포함</div>}
       </div>
       <div style={{ ...cell, ...styles.statCardDivider }}>
         <div style={styles.statLabel}>평균 스코어</div>

@@ -39,6 +39,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
 
   // 평균 스코어는 18홀 라운드만 — 9홀 점수가 섞이면 평균이 반토막이 된다
   const fullRounds = rounds.filter(isFullRound);
+  const nineCount = totalRounds - fullRounds.length;   // 9홀 라운드 수 — 누적 라운드에는 들어 있고 평균·핸디캡에서는 빠진다
   const avgScore = fullRounds.length > 0
     ? (fullRounds.reduce((sum, r) => {
         const me = myPlayer(r, currentUser.userName);
@@ -92,7 +93,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
         <BackupNudge status={bStatus} onBackup={onBackup} onSettings={onOpenSettings} onSnooze={() => setNudgeUntil(snoozeNudge(currentUser.userId, nowMs()))} />
       )}
 
-      <StatsPanel loading={loading} totalRounds={totalRounds} avgScore={avgScore} handicap={summary?.handicap} />
+      <StatsPanel loading={loading} totalRounds={totalRounds} nineCount={nineCount} avgScore={avgScore} handicap={summary?.handicap} />
 
       {/* 처음 쓰는 사람에게: 빈 화면 대신 다음에 할 일 3가지 */}
       {!loading && totalRounds === 0 && !activeRound && <FirstRunGuide onGoBag={onGoBag} onNewRound={onNewRound} onSettings={onOpenSettings} />}
@@ -127,7 +128,7 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
             <div style={{ fontSize:26, textAlign:'center', marginBottom:12 }}>⚠️</div>
             <div style={{ fontSize:17, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:8 }}>사용자 전환하시겠어요?</div>
             <div style={{ fontSize:14, color:'#8896b0', textAlign:'center', lineHeight:1.6, marginBottom: activeRound ? 6 : 20 }}>
-              기록은 이 기기에 그대로 남아요.<br/>같은 이름으로 다시 들어오면 이어집니다.
+              기록은 이 기기에 그대로 남아요.<br/>같은 이름으로 다시 들어오면 이어져요.
             </div>
             {activeRound && (
               <div style={{ fontSize:14, color:'#ef5350', textAlign:'center', background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>

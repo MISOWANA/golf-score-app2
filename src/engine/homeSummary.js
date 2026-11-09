@@ -8,12 +8,13 @@ import { buildHandicap } from './handicap.js';
 import { buildSkillBalance } from './statsReport.js';
 import { isFullRound } from './nines.js';
 import { myPlayer } from './players.js';
+import { compareRoundsDesc } from './roundOrder.js';
 
 export const RECENT_N = 5;
 export const FORM_MIN_ROUNDS = 3;
 export const SKILL_NAME = { tee: '티샷', approach: '어프로치', shortGame: '숏게임', putting: '퍼팅', penalty: '벌타' };
 
-const sortDesc = (a, b) => new Date(b.date) - new Date(a.date);
+const sortDesc = compareRoundsDesc;
 const avg = (list) => list.reduce((s, v) => s + v, 0) / list.length;
 const round1 = (n) => Math.round(n * 10) / 10;
 
@@ -33,7 +34,7 @@ export function buildHomeSummary(allRounds, statRounds, userName) {
   const h = buildHandicap(allRounds, userName);
   const balance = (statRounds || []).length >= FORM_MIN_ROUNDS ? buildSkillBalance(statRounds) : null;
   return {
-    handicap: { index: h.index, delta: h.delta, count: h.count },
+    handicap: { index: h.index, delta: h.delta, count: h.count, used: h.used },
     recent: { n: recent.length, avg: recentAvg, prevAvg, delta: recentAvg != null && prevAvg != null ? round1(recentAvg - prevAvg) : null },
     weakest: balance?.weakest ? { id: balance.weakest, label: SKILL_NAME[balance.weakest] ?? balance.weakest } : null,
     strongest: balance?.strongest ? { id: balance.strongest, label: SKILL_NAME[balance.strongest] ?? balance.strongest } : null,

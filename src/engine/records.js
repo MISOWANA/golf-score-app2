@@ -12,12 +12,13 @@ import { compareValues } from './roundCard.js';
 import { myPlayer } from './players.js';
 import { isFullRound } from './nines.js';
 import { courseKey } from './courseHistory.js';
+import { playedBefore } from './roundOrder.js';
 
 export const RECORD_MIN_ROUNDS = 3;
 export const COURSE_RECORD_MIN_ROUNDS = 2;
 const FULL_HOLES = 18;
 
-const earlier = (a, b) => new Date(a.date) < new Date(b.date);
+const earlier = playedBefore;
 
 function scoreOf(round, userName) {
   const me = myPlayer(round, userName);

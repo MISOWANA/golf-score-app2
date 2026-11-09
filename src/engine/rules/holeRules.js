@@ -11,7 +11,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'hole_in_one', severity: 'positive',
       title: '홀인원!',
-      summaryTemplate: '{holeNumber}번 홀에서 홀인원을 기록했습니다!',
+      summaryTemplate: '{holeNumber}번 홀에서 홀인원을 기록했어요!',
       recommendationTemplate: '골프 인생 최고의 순간을 기억하세요.',
       tags: ['score', 'milestone'],
     },
@@ -22,7 +22,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'eagle_plus', severity: 'positive',
       title: '이글 이상',
-      summaryTemplate: '{holeNumber}번 홀(파{par})에서 {scoreToPar}타를 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 홀(파{par})에서 {scoreToPar}타를 기록했어요.',
       recommendationTemplate: '이 홀의 공략 전략을 기억해두세요.',
       tags: ['score', 'eagle'],
     },
@@ -33,7 +33,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'birdie', severity: 'positive',
       title: '버디',
-      summaryTemplate: '{holeNumber}번 홀에서 버디를 잡았습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 버디를 잡았어요.',
       recommendationTemplate: '무엇이 잘 됐는지 기억해두세요.',
       tags: ['score', 'birdie'],
     },
@@ -47,8 +47,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'par_save', severity: 'positive',
       title: '파 세이브',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓쳤지만 파를 지켰습니다.',
-      recommendationTemplate: '쇼트게임 능력이 빛났습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓쳤지만 파를 지켰어요.',
+      recommendationTemplate: '쇼트게임 능력이 빛났어요.',
       tags: ['recovery', 'short_game'],
     },
   },
@@ -62,7 +62,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'textbook_par', severity: 'positive',
       title: '교과서 파',
-      summaryTemplate: '{holeNumber}번 홀에서 GIR + 2퍼트로 깔끔하게 파를 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 GIR + 2퍼트로 깔끔하게 파를 기록했어요.',
       recommendationTemplate: '안정적인 플레이를 유지하세요.',
       tags: ['score', 'gir', 'clean'],
     },
@@ -76,7 +76,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'bogey_clean', severity: 'neutral',
       title: '보기 (페널티 없음)',
-      summaryTemplate: '{holeNumber}번 홀에서 페널티 없이 보기를 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 페널티 없이 보기를 기록했어요.',
       recommendationTemplate: '어프로치 또는 퍼팅 개선으로 파 세이브 비율을 높여보세요.',
       tags: ['score', 'bogey'],
     },
@@ -90,7 +90,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'double_no_penalty', severity: 'warning',
       title: '더블보기 (페널티 없음)',
-      summaryTemplate: '{holeNumber}번 홀에서 페널티 없이 더블보기를 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 페널티 없이 더블보기를 기록했어요.',
       recommendationTemplate: '퍼팅 또는 어프로치를 점검하세요.',
       tags: ['score', 'double'],
     },
@@ -101,8 +101,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'triple_plus', severity: 'critical',
       title: '트리플 이상 — 빅 넘버',
-      summaryTemplate: '{holeNumber}번 홀에서 파+{scoreToPar}를 기록했습니다.',
-      recommendationTemplate: '연속 실수를 끊는 것이 핵심입니다. 실수 직후 무리한 회복 시도를 피하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 파+{scoreToPar}를 기록했어요.',
+      recommendationTemplate: '연속 실수를 끊는 것이 핵심이에요. 실수 직후 무리한 회복 시도를 피하세요.',
       tags: ['score', 'damage', 'critical'],
     },
   },
@@ -115,7 +115,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'par5_birdie_plus', severity: 'positive',
       title: '파5 기회 활용',
-      summaryTemplate: '{holeNumber}번 파5 홀에서 파 이상을 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 파5 홀에서 파 이상을 기록했어요.',
       recommendationTemplate: '파5 버디 전략을 꾸준히 유지하세요.',
       tags: ['par5', 'opportunity'],
     },
@@ -129,7 +129,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'par3_double_plus', severity: 'warning',
       title: '파3 더블 이상',
-      summaryTemplate: '{holeNumber}번 파3 홀에서 더블 이상을 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 파3 홀에서 더블 이상을 기록했어요.',
       recommendationTemplate: '파3에서는 핀보다 그린 중앙을 목표로 하여 큰 미스를 방지하세요.',
       tags: ['par3', 'damage'],
     },
@@ -143,7 +143,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'par3_gir', severity: 'positive',
       title: '파3 원온',
-      summaryTemplate: '{holeNumber}번 파3 홀에서 원온에 성공했습니다.',
+      summaryTemplate: '{holeNumber}번 파3 홀에서 원온에 성공했어요.',
       recommendationTemplate: '버디 퍼트에 집중하세요.',
       tags: ['par3', 'gir'],
     },
@@ -159,7 +159,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'birdie_putt', severity: 'positive',
       title: '버디 퍼트 성공',
-      summaryTemplate: '{holeNumber}번 홀에서 버디 퍼트를 넣었습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 버디 퍼트를 넣었어요.',
       recommendationTemplate: '퍼팅 자신감을 유지하세요.',
       tags: ['putting', 'birdie'],
     },
@@ -173,8 +173,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'one_putt_par', severity: 'positive',
       title: '원 퍼트 파 세이브',
-      summaryTemplate: '{holeNumber}번 홀에서 원 퍼트로 파를 지켰습니다.',
-      recommendationTemplate: '쇼트 퍼트 집중력이 훌륭합니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 원 퍼트로 파를 지켰어요.',
+      recommendationTemplate: '쇼트 퍼트 집중력이 훌륭해요.',
       tags: ['putting', 'save'],
     },
   },
@@ -189,7 +189,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'three_putt_unknown', severity: 'warning', category: 'putting',
       title: '3퍼트 — 원인 판단 보류',
-      summaryTemplate: '{holeNumber}번 홀에서 {threePuttPrefix}3퍼트가 났습니다. {puttCauseDetail}',
+      summaryTemplate: '{holeNumber}번 홀에서 {threePuttPrefix}3퍼트가 났어요. {puttCauseDetail}',
       recommendationTemplate: '{puttCauseAdvice}',
       tags: ['putting', 'three_putt', 'data'],
     },
@@ -272,8 +272,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'four_putt', severity: 'critical', category: 'putting',
       title: '4퍼트 이상',
-      summaryTemplate: '{holeNumber}번 홀에서 {putts}퍼트를 기록했습니다. {puttLineSuffix}',
-      recommendationTemplate: '한 번 크게 남기면 연쇄로 이어집니다. 긴 퍼트는 2퍼트 목표, 짧은 퍼트는 루틴을 지켜 반드시 마무리하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 {putts}퍼트를 기록했어요. {puttLineSuffix}',
+      recommendationTemplate: '한 번 크게 남기면 연쇄로 이어져요. 긴 퍼트는 2퍼트 목표, 짧은 퍼트는 루틴을 지켜 반드시 마무리하세요.',
       tags: ['putting', 'three_putt', 'damage'],
     },
   },
@@ -285,7 +285,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'long_putt_made', severity: 'positive', category: 'putting',
       title: '롱 퍼트 성공',
-      summaryTemplate: '{holeNumber}번 홀에서 {firstPuttDistStr} 롱 퍼트를 한 번에 넣었습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 {firstPuttDistStr} 롱 퍼트를 한 번에 넣었어요.',
       recommendationTemplate: '이때의 속도 감각(스트로크 크기)을 기억해 두세요.',
       tags: ['putting', 'long_putt'],
     },
@@ -296,7 +296,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'lag_putt_great', severity: 'positive', category: 'putting',
       title: '롱 퍼트 거리 컨트롤 훌륭',
-      summaryTemplate: '{holeNumber}번 홀에서 {firstPuttDistStr} 롱 퍼트를 {leaveDistStr}만 남기고 마무리했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 {firstPuttDistStr} 롱 퍼트를 {leaveDistStr}만 남기고 마무리했어요.',
       recommendationTemplate: '롱 퍼트에서는 이 감각 그대로 1m 원 안에 세우는 데 집중하세요.',
       tags: ['putting', 'long_putt', 'distance_control'],
     },
@@ -307,7 +307,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'birdie_chance_missed', severity: 'neutral', category: 'putting',
       title: '버디 기회 놓침 (3m 이내)',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 잡고 첫 퍼트가 {firstPuttDistStr}였지만 버디로 이어지지 못했습니다 (퍼트 {puttLine}).',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 잡고 첫 퍼트가 {firstPuttDistStr}였지만 버디로 이어지지 못했어요 (퍼트 {puttLine}).',
       recommendationTemplate: '3m 이내 첫 퍼트는 공격적으로 홀을 노리되, 놓쳤을 때를 대비해 홀 뒤 50cm 안으로 속도를 맞추세요.',
       tags: ['putting', 'birdie_chance'],
     },
@@ -318,7 +318,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'approach_close', severity: 'positive', category: 'approach',
       title: '어프로치 근접',
-      summaryTemplate: '{holeNumber}번 홀에서 온그린 후 첫 퍼트가 {firstPuttDistStr} — 핀 가까이 붙였습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 온그린 후 첫 퍼트가 {firstPuttDistStr} — 핀 가까이 붙였어요.',
       recommendationTemplate: '이 클럽·라인 선택을 기억해 두세요.',
       tags: ['approach', 'gir', 'proximity'],
     },
@@ -329,8 +329,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'approach_far_green', severity: 'neutral', category: 'approach',
       title: '그린은 잡았지만 핀과 멂',
-      summaryTemplate: '{holeNumber}번 홀에서 온그린 후 첫 퍼트가 {firstPuttDistStr}로 길었습니다.',
-      recommendationTemplate: '핀이 먼 위치에서는 2퍼트가 목표입니다. 첫 퍼트는 홀 옆 1m 원 안에 세우는 데 집중하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 온그린 후 첫 퍼트가 {firstPuttDistStr}로 길었어요.',
+      recommendationTemplate: '핀이 먼 위치에서는 2퍼트가 목표예요. 첫 퍼트는 홀 옆 1m 원 안에 세우는 데 집중하세요.',
       tags: ['approach', 'gir', 'proximity', 'putting'],
     },
   },
@@ -340,8 +340,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'up_and_down', severity: 'positive', category: 'shortgame',
       title: '업앤다운 성공',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓치고도 원 퍼트로 파 이상을 지켰습니다.',
-      recommendationTemplate: '그린 주변 칩샷을 홀 가까이 붙이는 감각이 좋았습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓치고도 원 퍼트로 파 이상을 지켰어요.',
+      recommendationTemplate: '그린 주변 칩샷을 홀 가까이 붙이는 감각이 좋았어요.',
       tags: ['short_game', 'scramble'],
     },
   },
@@ -351,8 +351,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'chip_in', severity: 'positive', category: 'shortgame',
       title: '칩인',
-      summaryTemplate: '{holeNumber}번 홀에서 그린 밖에서 바로 홀인했습니다.',
-      recommendationTemplate: '좋은 샷이었습니다. 이 라이·클럽 선택을 기억해 두세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린 밖에서 바로 홀인했어요.',
+      recommendationTemplate: '좋은 샷이었어요. 이 라이·클럽 선택을 기억해 두세요.',
       tags: ['short_game', 'chip_in'],
     },
   },
@@ -362,7 +362,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'short_game_fail', severity: 'warning', category: 'shortgame',
       title: '그린 주변에서 파 세이브 실패',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓친 뒤 {putts}퍼트로 파 세이브에 실패했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓친 뒤 {putts}퍼트로 파 세이브에 실패했어요.',
       recommendationTemplate: '그린 주변에서는 홀을 직접 노리기보다 첫 퍼트를 2m 안에 남기는 낮은 구르는 샷을 먼저 고려하세요.',
       tags: ['short_game', 'scramble'],
     },
@@ -375,7 +375,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'ob', severity: 'critical',
       title: 'OB 발생',
-      summaryTemplate: '{holeNumber}번 홀에서 OB {obCount}회가 발생했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 OB {obCount}회가 발생했어요.',
       recommendationTemplate: 'OB가 잦은 홀에서는 드라이버 대신 페어웨이 우드 또는 유틸리티로 안전하게 공략하세요.',
       tags: ['penalty', 'ob'],
     },
@@ -386,7 +386,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'multi_ob', severity: 'critical',
       title: 'OB 2회 이상',
-      summaryTemplate: '{holeNumber}번 홀에서 OB {obCount}회로 큰 스코어 손실이 발생했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 OB {obCount}회로 큰 스코어 손실이 발생했어요.',
       recommendationTemplate: 'OB가 반복되면 즉시 클럽을 낮추고 안전 루트를 선택하세요.',
       tags: ['penalty', 'ob', 'critical'],
     },
@@ -397,7 +397,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'hazard', severity: 'warning',
       title: '해저드 페널티',
-      summaryTemplate: '{holeNumber}번 홀에서 해저드 페널티 {hazardCount}회가 발생했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 해저드 페널티 {hazardCount}회가 발생했어요.',
       recommendationTemplate: '해저드 앞에서는 핀보다 안전 지점을 목표로 하세요.',
       tags: ['penalty', 'hazard'],
     },
@@ -408,8 +408,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'unplayable', severity: 'warning',
       title: '언플레이어블',
-      summaryTemplate: '{holeNumber}번 홀에서 언플레이어블 {unplayableCount}회로 1벌타를 받았습니다.',
-      recommendationTemplate: '나무·러프 깊은 곳에서는 무리한 탈출보다 안전하게 페어웨이로 빼는 선택이 더 싸게 먹힙니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 언플레이어블 {unplayableCount}회로 1벌타를 받았어요.',
+      recommendationTemplate: '나무·러프 깊은 곳에서는 무리한 탈출보다 안전하게 페어웨이로 빼는 선택이 더 싸게 먹혀요.',
       tags: ['penalty', 'unplayable'],
     },
   },
@@ -422,8 +422,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'penalty_recovery', severity: 'positive',
       title: '페널티 후 선방',
-      summaryTemplate: '{holeNumber}번 홀에서 페널티에도 불구하고 보기 이내로 마무리했습니다.',
-      recommendationTemplate: '페널티 후 침착한 회복은 큰 손실을 막는 핵심입니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 페널티에도 불구하고 보기 이내로 마무리했어요.',
+      recommendationTemplate: '페널티 후 침착한 회복은 큰 손실을 막는 핵심이에요.',
       tags: ['penalty', 'recovery'],
     },
   },
@@ -436,8 +436,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'penalty_compound', severity: 'critical',
       title: '페널티 + 더블 이상 — 복합 손실',
-      summaryTemplate: '{holeNumber}번 홀에서 페널티와 더블 이상이 겹쳤습니다.',
-      recommendationTemplate: '페널티 직후 무리한 공략이 스코어를 키웁니다. 즉시 수비적 플레이로 전환하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 페널티와 더블 이상이 겹쳤어요.',
+      recommendationTemplate: '페널티 직후 무리한 공략이 스코어를 키워요. 즉시 수비적 플레이로 전환하세요.',
       tags: ['penalty', 'compound', 'critical'],
     },
   },
@@ -447,7 +447,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'driver_penalty', severity: 'critical', category: 'penalty',
       title: '드라이버 티샷에서 페널티',
-      summaryTemplate: '{holeNumber}번 홀에서 드라이버 티샷이 {teePenaltyTypeLabel} 페널티로 이어졌습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 드라이버 티샷이 {teePenaltyTypeLabel} 페널티로 이어졌어요.',
       recommendationTemplate: '이 홀은 드라이버 대신 우드·유틸리티로 페어웨이를 먼저 확보하는 전략을 고려하세요.',
       tags: ['penalty', 'tee_shot', 'driver'],
     },
@@ -458,7 +458,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'tee_penalty_other_club', severity: 'warning', category: 'penalty',
       title: '티샷 페널티 (드라이버 외 클럽)',
-      summaryTemplate: '{holeNumber}번 홀에서 {teeClub} 티샷이 {teePenaltyTypeLabel} 페널티가 됐습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 {teeClub} 티샷이 {teePenaltyTypeLabel} 페널티가 됐어요.',
       recommendationTemplate: '클럽을 낮췄는데도 페널티가 났다면 클럽보다 방향·정렬(타깃 라인)을 먼저 점검하세요.',
       tags: ['penalty', 'tee_shot'],
     },
@@ -469,7 +469,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'approach_penalty', severity: 'warning', category: 'penalty',
       title: '어프로치 구간 페널티',
-      summaryTemplate: '{holeNumber}번 홀에서 세컨 샷 이후 {penaltyTypeLabel} 페널티가 났습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 세컨 샷 이후 {penaltyTypeLabel} 페널티가 났어요.',
       recommendationTemplate: '그린 앞뒤에 위험 지역이 있다면 핀보다 그린 중앙·안전 구간을 목표로 하고 한 클럽 여유를 두세요.',
       tags: ['penalty', 'approach'],
     },
@@ -480,8 +480,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'penalty_multi', severity: 'critical', category: 'penalty',
       title: '한 홀에서 페널티 2회 이상',
-      summaryTemplate: '{holeNumber}번 홀에서 페널티가 {penaltyEvents}회 났습니다.',
-      recommendationTemplate: '첫 페널티 뒤에는 만회하려 하지 말고 한 타를 더 잃더라도 가장 안전한 위치로 보내는 것이 총 타수를 줄입니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 페널티가 {penaltyEvents}회 났어요.',
+      recommendationTemplate: '첫 페널티 뒤에는 만회하려 하지 말고 한 타를 더 잃더라도 가장 안전한 위치로 보내는 것이 총 타수를 줄여요.',
       tags: ['penalty', 'damage', 'critical'],
     },
   },
@@ -491,8 +491,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'ob_tee_choice', severity: 'neutral', category: 'penalty',
       title: 'OB — OB티 선택',
-      summaryTemplate: '{holeNumber}번 홀 OB 후 지정된 특설티(OB티)에서 쳤습니다 (2벌타 상당, 다음 샷 4번째).',
-      recommendationTemplate: '스트로크와 거리(1벌타 + 다시 치기)와 타수는 같지만 위치가 앞으로 가므로 코스에 특설티가 있으면 유리합니다.',
+      summaryTemplate: '{holeNumber}번 홀 OB 후 지정된 특설티(OB티)에서 쳤어요 (2벌타 상당, 다음 샷 4번째).',
+      recommendationTemplate: '스트로크와 거리(1벌타 + 다시 치기)와 타수는 같지만 위치가 앞으로 가므로 코스에 특설티가 있으면 유리해요.',
       tags: ['penalty', 'ob', 'relief'],
     },
   },
@@ -502,8 +502,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'ob_stroke_distance', severity: 'neutral', category: 'penalty',
       title: 'OB — 스트로크와 거리',
-      summaryTemplate: '{holeNumber}번 홀 OB 후 직전 샷 위치에서 다시 쳤습니다 (1벌타 + 다시 친 샷).',
-      recommendationTemplate: '다시 치는 샷은 같은 클럽을 반복하기보다 안전한 클럽으로 페어웨이를 먼저 확보하는 편이 낫습니다.',
+      summaryTemplate: '{holeNumber}번 홀 OB 후 직전 샷 위치에서 다시 쳤어요 (1벌타 + 다시 친 샷).',
+      recommendationTemplate: '다시 치는 샷은 같은 클럽을 반복하기보다 안전한 클럽으로 페어웨이를 먼저 확보하는 편이 나아요.',
       tags: ['penalty', 'ob', 'relief'],
     },
   },
@@ -518,8 +518,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'gir_success', severity: 'positive',
       title: 'GIR 성공',
-      summaryTemplate: '{holeNumber}번 홀에서 규정 타수 내 그린을 적중했습니다.',
-      recommendationTemplate: 'GIR을 꾸준히 유지하면 스코어 안정성이 높아집니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 규정 타수 내 그린을 적중했어요.',
+      recommendationTemplate: 'GIR을 꾸준히 유지하면 스코어 안정성이 높아져요.',
       tags: ['gir', 'iron'],
     },
   },
@@ -529,8 +529,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'short_game_save', severity: 'positive',
       title: '쇼트게임 세이브',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓쳤지만 파 이상을 기록했습니다.',
-      recommendationTemplate: '어프로치와 칩샷 능력이 강점입니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓쳤지만 파 이상을 기록했어요.',
+      recommendationTemplate: '어프로치와 칩샷 능력이 강점이에요.',
       tags: ['gir', 'short_game'],
     },
   },
@@ -543,7 +543,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'no_gir_double', severity: 'critical',
       title: 'GIR 실패 + 더블 이상',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓치고 더블 이상을 기록했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 놓치고 더블 이상을 기록했어요.',
       recommendationTemplate: 'GIR 미스 후 핀보다 파 세이브 가능한 위치를 목표로 하세요.',
       tags: ['gir', 'damage'],
     },
@@ -554,8 +554,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'green_miss_short', severity: 'neutral',
       title: '그린 숏 미스',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 짧게 놓쳤습니다.',
-      recommendationTemplate: '클럽 선택이 문제일 수 있습니다. 같은 상황에서 한 클럽 더 잡는 것을 고려하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 짧게 놓쳤어요.',
+      recommendationTemplate: '클럽 선택이 문제일 수 있어요. 같은 상황에서 한 클럽 더 잡는 것을 고려하세요.',
       tags: ['gir', 'green_miss', 'short'],
     },
   },
@@ -565,8 +565,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'green_miss_long', severity: 'neutral',
       title: '그린 오버',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 오버했습니다.',
-      recommendationTemplate: '핀보다 그린 중앙을 목표로 하면 오버를 줄일 수 있습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 오버했어요.',
+      recommendationTemplate: '핀보다 그린 중앙을 목표로 하면 오버를 줄일 수 있어요.',
       tags: ['gir', 'green_miss', 'long'],
     },
   },
@@ -576,7 +576,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'green_miss_lateral', severity: 'neutral',
       title: '그린 좌우 미스',
-      summaryTemplate: '{holeNumber}번 홀에서 그린을 {greenMissWord} 방향으로 놓쳤습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 그린을 {greenMissWord} 방향으로 놓쳤어요.',
       recommendationTemplate: '같은 방향 반복 미스라면 정렬 또는 스윙 패스를 점검하세요.',
       tags: ['gir', 'green_miss', 'lateral'],
     },
@@ -587,7 +587,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'par5_two_on', severity: 'positive', category: 'approach',
       title: '파5 2온 성공',
-      summaryTemplate: '{holeNumber}번 파5 홀에서 두 번째 샷으로 그린에 올렸습니다.',
+      summaryTemplate: '{holeNumber}번 파5 홀에서 두 번째 샷으로 그린에 올렸어요.',
       recommendationTemplate: '2온이 가능한 날의 컨디션·클럽 선택을 기록해 두세요.',
       tags: ['par5', 'approach', 'opportunity'],
     },
@@ -600,8 +600,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'tee_hook', severity: 'critical',
       title: '훅 — 심각한 좌측 미스',
-      summaryTemplate: '{holeNumber}번 홀에서 훅으로 좌측으로 크게 벗어났습니다.',
-      recommendationTemplate: '훅은 클럽 페이스가 닫힌 채 임팩트됩니다. 그립과 백스윙 오버스윙을 점검하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 훅으로 좌측으로 크게 벗어났어요.',
+      recommendationTemplate: '훅은 클럽 페이스가 닫힌 채 임팩트돼요. 그립과 백스윙 오버스윙을 점검하세요.',
       tags: ['tee_shot', 'hook'],
     },
   },
@@ -611,8 +611,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'tee_slice', severity: 'critical',
       title: '슬라이스 — 심각한 우측 미스',
-      summaryTemplate: '{holeNumber}번 홀에서 슬라이스로 우측으로 크게 벗어났습니다.',
-      recommendationTemplate: '슬라이스는 아웃-인 궤도의 신호입니다. 임팩트 시 페이스 방향을 확인하세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 슬라이스로 우측으로 크게 벗어났어요.',
+      recommendationTemplate: '슬라이스는 아웃-인 궤도의 신호예요. 임팩트 시 페이스 방향을 확인하세요.',
       tags: ['tee_shot', 'slice'],
     },
   },
@@ -625,7 +625,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'tee_rough', severity: 'warning',
       title: '티샷 러프',
-      summaryTemplate: '{holeNumber}번 홀에서 티샷이 페어웨이를 벗어났습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 티샷이 페어웨이를 벗어났어요.',
       recommendationTemplate: '러프에서는 무리한 공략보다 그린 주변 안착을 목표로 하세요.',
       tags: ['tee_shot', 'rough'],
     },
@@ -639,8 +639,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'fairway_hit', severity: 'positive',
       title: '페어웨이 안착',
-      summaryTemplate: '{holeNumber}번 홀에서 티샷이 페어웨이에 안착했습니다.',
-      recommendationTemplate: '좋은 위치에서 두 번째 샷을 공략할 수 있습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 티샷이 페어웨이에 안착했어요.',
+      recommendationTemplate: '좋은 위치에서 두 번째 샷을 공략할 수 있어요.',
       tags: ['tee_shot', 'fairway'],
     },
   },
@@ -650,7 +650,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'fairway_then_green_miss', severity: 'warning', category: 'approach',
       title: '페어웨이에서 그린을 놓침',
-      summaryTemplate: '{holeNumber}번 홀은 티샷이 페어웨이에 안착했지만 그린을 놓쳐 보기 이상이 됐습니다.',
+      summaryTemplate: '{holeNumber}번 홀은 티샷이 페어웨이에 안착했지만 그린을 놓쳐 보기 이상이 됐어요.',
       recommendationTemplate: '좋은 위치에서는 핀보다 그린 중앙을 목표로 하고, 남은 거리에 맞는 클럽을 한 번 더 확인하세요.',
       tags: ['approach', 'gir', 'fairway'],
     },
@@ -661,7 +661,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'rough_save', severity: 'positive', category: 'recovery',
       title: '러프에서 파 세이브',
-      summaryTemplate: '{holeNumber}번 홀에서 티샷이 페어웨이를 벗어났지만 파 이상으로 막았습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 티샷이 페어웨이를 벗어났지만 파 이상으로 막았어요.',
       recommendationTemplate: '러프에서의 클럽 선택과 안전한 공략 경로를 기억해 두세요.',
       tags: ['recovery', 'tee_shot'],
     },
@@ -672,7 +672,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'drive_on_green', severity: 'positive', category: 'tee',
       title: '티샷 1온 성공',
-      summaryTemplate: '{holeNumber}번 홀(파{par})에서 티샷으로 그린에 올렸습니다.',
+      summaryTemplate: '{holeNumber}번 홀(파{par})에서 티샷으로 그린에 올렸어요.',
       recommendationTemplate: '1온이 가능한 홀은 위험 지역 위치를 확인한 뒤 같은 전략을 반복하세요.',
       tags: ['tee_shot', 'opportunity'],
     },
@@ -685,8 +685,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'full_recovery', severity: 'positive',
       title: '완전 회복',
-      summaryTemplate: '{holeNumber}번 홀에서 불리한 상황에서도 파 이상을 기록했습니다.',
-      recommendationTemplate: '위기 상황에서의 회복 능력은 핸디캡을 줄이는 핵심입니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 불리한 상황에서도 파 이상을 기록했어요.',
+      recommendationTemplate: '위기 상황에서의 회복 능력은 핸디캡을 줄이는 핵심이에요.',
       tags: ['recovery', 'mental'],
     },
   },
@@ -696,7 +696,7 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'catastrophic_hole', severity: 'critical',
       title: '재해 홀 — 큰 스코어 손실',
-      summaryTemplate: '{holeNumber}번 홀에서 연속 실수로 큰 스코어 손실이 발생했습니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 연속 실수로 큰 스코어 손실이 발생했어요.',
       recommendationTemplate: '다음 홀로 넘어갈 때 이 홀을 완전히 잊으세요. 첫 샷에만 집중하세요.',
       tags: ['damage', 'mental', 'critical'],
     },
@@ -710,8 +710,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'putt_off_green', severity: 'warning', category: 'putting',
       title: '퍼트가 그린 밖으로 나감',
-      summaryTemplate: '{holeNumber}번 홀에서 퍼트가 그린 밖으로 나가 칩으로 다시 올렸습니다 (스코어에 {offGreenChips}타 추가).',
-      recommendationTemplate: '경사가 큰 그린이나 핀이 가장자리에 있을 때는 홀을 노리기보다 그린 안에 세우는 속도를 먼저 정하세요. 그린 밖으로 나간 퍼트는 퍼팅 손실로 계산됩니다.',
+      summaryTemplate: '{holeNumber}번 홀에서 퍼트가 그린 밖으로 나가 칩으로 다시 올렸어요 (스코어에 {offGreenChips}타 추가).',
+      recommendationTemplate: '경사가 큰 그린이나 핀이 가장자리에 있을 때는 홀을 노리기보다 그린 안에 세우는 속도를 먼저 정하세요. 그린 밖으로 나간 퍼트는 퍼팅 손실로 계산돼요.',
       tags: ['putting', 'green_reading'],
     },
   },
@@ -724,8 +724,8 @@ const RAW_HOLE_RULES = [
     result: {
       insightType: 'putt_off_green_chip_in', severity: 'positive', category: 'shortgame',
       title: '퍼트가 그린 밖으로 나갔지만 칩인',
-      summaryTemplate: '{holeNumber}번 홀에서 퍼트가 그린 밖으로 나갔지만 칩으로 바로 홀인했습니다.',
-      recommendationTemplate: '실수를 칩인으로 만회했습니다. 다만 퍼트가 그린 밖으로 나간 원인(속도·경사 판단)은 짚어 두세요.',
+      summaryTemplate: '{holeNumber}번 홀에서 퍼트가 그린 밖으로 나갔지만 칩으로 바로 홀인했어요.',
+      recommendationTemplate: '실수를 칩인으로 만회했어요. 다만 퍼트가 그린 밖으로 나간 원인(속도·경사 판단)은 짚어 두세요.',
       tags: ['short_game', 'chip_in'],
     },
   },

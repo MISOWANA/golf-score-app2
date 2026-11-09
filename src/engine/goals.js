@@ -9,6 +9,7 @@
 import { summarizeRound } from './roundSummary.js';
 import { compareValues } from './roundCard.js';
 import { isFullRound } from './nines.js';
+import { compareRoundsDesc } from './roundOrder.js';
 
 export const MAX_GOALS = 2;
 export const PROGRESS_WINDOW = 5;     // 최근 몇 라운드의 달성 여부를 보여 줄지
@@ -81,7 +82,7 @@ export function goalProgress(goal, rounds, limit = PROGRESS_WINDOW) {
     .filter((r) => r.completed !== false)
     .map((r) => ({ round: r, ev: evaluateGoal(goal, r) }))
     .filter((x) => x.ev)
-    .sort((a, b) => new Date(b.round.date) - new Date(a.round.date))
+    .sort((a, b) => compareRoundsDesc(a.round, b.round))
     .slice(0, limit)
     .map((x) => ({ id: x.round.id, date: x.round.date, value: x.ev.value, met: x.ev.met }));
   return { results, met: results.filter((r) => r.met).length, total: results.length };
@@ -93,7 +94,7 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 export function recentAverage(metricId, rounds) {
   const values = (rounds || [])
     .filter((r) => isGoalEligible(r))
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort(compareRoundsDesc)
     .slice(0, PROGRESS_WINDOW)
     .map((r) => goalValue(r, metricId))
     .filter((v) => v != null);

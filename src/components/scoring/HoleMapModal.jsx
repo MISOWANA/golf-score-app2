@@ -47,7 +47,7 @@ export default function HoleMapModal({
   const [showKeyForm, setShowKeyForm] = useState(false);
   const [pos, setPos] = useState(null);          // 실시간 현재 위치
   const [posError, setPosError] = useState(
-    () => (navigator.geolocation ? null : '이 브라우저는 위치 기능을 지원하지 않습니다.'),
+    () => (navigator.geolocation ? null : '이 브라우저는 위치 기능을 지원하지 않아요.'),
   );
   const [placeMode, setPlaceMode] = useState(false);
   const [tileError, setTileError] = useState(false);
@@ -286,8 +286,8 @@ export default function HoleMapModal({
       },
       (err) => {
         setPosError(err?.code === 1
-          ? '위치 권한이 거부됐습니다. 브라우저 설정에서 허용해 주세요.'
-          : '위치를 잡지 못했습니다. 하늘이 트인 곳에서 다시 시도해 주세요.');
+          ? '위치 권한이 거부됐어요. 브라우저 설정에서 허용해 주세요.'
+          : '위치를 잡지 못했어요. 하늘이 트인 곳에서 다시 시도해 주세요.');
       },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
     );
@@ -468,11 +468,11 @@ export default function HoleMapModal({
       <Shell holeNo={holeNo} par={par} onClose={close}>
         <div style={{ padding: '28px 20px', overflowY: 'auto' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: COLOR.line, marginBottom: 10 }}>
-            지도를 쓰려면 VWorld 인증키가 필요합니다
+            지도를 쓰려면 VWorld 인증키가 필요해요
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.8, color: COLOR.dim, marginBottom: 18 }}>
-            국토교통부가 운영하는 무료 위성영상입니다. 가입과 키 발급 모두 무료이고
-            결제 카드 등록은 없습니다.
+            국토교통부가 운영하는 무료 위성영상이에요. 가입과 키 발급 모두 무료이고
+            결제 카드 등록은 없어요.
             <br /><br />
             1. 아래 링크에서 가입 후 <b style={{ color: COLOR.line }}>오픈API → 인증키 발급</b>
             <br />
@@ -518,7 +518,7 @@ export default function HoleMapModal({
               onClick={() => {
                 const v = keyDraft.trim();
                 if (!v) return;
-                if (!setVWorldKey(v)) { setPosError('이 브라우저에서는 키를 저장할 수 없습니다.'); return; }
+                if (!setVWorldKey(v)) { setPosError('이 브라우저에서는 키를 저장할 수 없어요.'); return; }
                 setApiKey(v);
                 setShowKeyForm(false);
                 setTileError(false);
@@ -533,8 +533,8 @@ export default function HoleMapModal({
           </div>
 
           <div style={{ marginTop: 14, fontSize: 12, lineHeight: 1.7, color: '#8896b0' }}>
-            여기서 넣은 키는 이 기기에만 저장되고 서버로 전송되지 않습니다.
-            배포본에 키를 넣어두면 이 화면 없이 바로 지도가 열립니다
+            여기서 넣은 키는 이 기기에만 저장되고 서버로 전송되지 않아요.
+            배포본에 키를 넣어두면 이 화면 없이 바로 지도가 열려요
             (저장소 시크릿 VITE_VWORLD_KEY).
           </div>
         </div>
@@ -614,8 +614,8 @@ export default function HoleMapModal({
             padding: '9px 12px', borderRadius: 12, background: 'rgba(239,83,80,0.92)',
             color: '#fff', fontSize: 13, lineHeight: 1.6, fontWeight: 600,
           }}>
-            타일을 불러오지 못했습니다. 인증키가 만료됐거나, 현재 위치가 국내가
-            아닐 수 있습니다 (VWorld 위성영상은 대한민국만 제공합니다).
+            타일을 불러오지 못했어요. 인증키가 만료됐거나, 현재 위치가 국내가
+            아닐 수 있어요 (VWorld 위성영상은 대한민국만 제공해요).
             <button
               onClick={() => setShowKeyForm(true)}
               style={{

@@ -132,3 +132,26 @@ describe('평균 비교', () => {
     expect(others.every((r) => r.estimated === undefined)).toBe(true);        // 퍼트 외에는 표시하지 않는다
   });
 });
+
+describe('최근 라운드와의 비교 차이는 반올림하지 않은 값으로 낸다', () => {
+  // 파4·5 14홀 중 hits 개를 페어웨이에 올린 라운드
+  const withFairways = (i, hits) => {
+    const r = flat(i);
+    let n = 0;
+    r.holes.forEach((h) => { if (h.par > 3) { h.scores[ME].fairway = n < hits; n += 1; } });
+    return r;
+  };
+
+  it('페어웨이 5/14(35.7%)와 이전 5라운드 평균 65.7% 의 차이는 −30%p 다 (반올림한 36 − 65 = −29 가 아니다)', () => {
+    const history = [10, 9, 10, 9, 8].map((hits, k) => withFairways(k + 1, hits));
+    const row = buildRoundCard(withFairways(6, 5), history).compare.rows.find((r) => r.id === 'fairway');
+    expect(row.value).toBe(36);          // 화면에 보이는 값은 정수 %
+    expect(row.delta).toBe(-30);
+  });
+
+  it('목표 판정에 쓰는 값은 화면과 같은 정수 % 그대로다', () => {
+    const r = withFairways(1, 5);
+    expect(compareValues(r).fairway).toBe(36);
+    expect(compareValues(r, { exact: true }).fairway).toBeCloseTo(35.71, 2);
+  });
+});

@@ -51,7 +51,7 @@ export function speedLabel(ft, unit = 'm') {
 export const GREEN_SPEED_TIPS = {
   slow: '느린 그린은 평소 속도로 치면 짧게 서기 쉬워요. 홀을 지나 30~60cm까지 보낼 세기로 치고, 오르막 롱퍼트는 특히 더 강하게 읽으세요.',
   medium: null,
-  fast: '빠른 그린은 내리막이 크게 달라져요. 스팀프 11·경사 2°에서 6m 내리막 퍼트는 평지 3m처럼, 1.8m 오르막은 2.7m처럼 구릅니다. 롱퍼트는 홀이 아니라 1m 원에 세우세요.',
+  fast: '빠른 그린은 내리막이 크게 달라져요. 스팀프 11·경사 2°에서 6m 내리막 퍼트는 평지 3m처럼, 1.8m 오르막은 2.7m처럼 굴러요. 롱퍼트는 홀이 아니라 1m 원에 세우세요.',
 };
 GREEN_SPEED_TIPS.veryFast = GREEN_SPEED_TIPS.fast;
 
@@ -163,21 +163,21 @@ export function greenSpeedRoundInsights(round) {
   const out = [];
 
   if (fast && three >= 2) {
-    const lag = causes.lagTotal > 0 ? ` 그중 거리감(롱 퍼트) 문제가 ${causes.lagTotal}회였습니다.` : '';
+    const lag = causes.lagTotal > 0 ? ` 그중 거리감(롱 퍼트) 문제가 ${causes.lagTotal}회였어요.` : '';
     out.push(mkInsight('G001', 'round', 28, 'warning', 'fast_green_three_putts',
       '빠른 그린에서 3퍼트',
-      `${where}에서 3퍼트가 ${three}회 나왔습니다 (퍼트 ${putts}개).${lag}`,
+      `${where}에서 3퍼트가 ${three}회 나왔어요 (퍼트 ${putts}개).${lag}`,
       GREEN_SPEED_TIPS.fast, ['three_putt', 'fast_green']));
   } else if (fast && three18 <= 1 && putts18 <= 31) {
     out.push(mkInsight('G002', 'round', 28, 'positive', 'fast_green_putting_steady',
       '빠른 그린에서도 퍼팅이 안정적',
-      `${where}에서 퍼트 ${putts}개 · 3퍼트 ${three}회로 막았습니다.`,
-      '속도 감각이 맞은 라운드입니다. 오늘 쓴 퍼팅 루틴(연습 그린 속도 확인·홀 뒤 거리)을 기억해 두세요.', ['fast_green']));
+      `${where}에서 퍼트 ${putts}개 · 3퍼트 ${three}회로 막았어요.`,
+      '속도 감각이 맞은 라운드예요. 오늘 쓴 퍼팅 루틴(연습 그린 속도 확인·홀 뒤 거리)을 기억해 두세요.', ['fast_green']));
   }
   if (band.id === 'slow' && three >= 2) {
     out.push(mkInsight('G003', 'round', 28, 'warning', 'slow_green_three_putts',
       '느린 그린에서 3퍼트',
-      `${where}에서 3퍼트가 ${three}회 나왔습니다 (퍼트 ${putts}개).`,
+      `${where}에서 3퍼트가 ${three}회 나왔어요 (퍼트 ${putts}개).`,
       GREEN_SPEED_TIPS.slow, ['three_putt', 'slow_green']));
   }
   return out;
@@ -194,13 +194,13 @@ export function greenSpeedCareerInsights(rounds) {
     const sa = summarize(a), sb = summarize(b);
     const dThree = sa.three - sb.three;
     const dPutts = sa.putts - sb.putts;
-    const text = `${groupLabel} ${a.length}라운드는 라운드당 퍼트 ${sa.putts.toFixed(1)}개 · 3퍼트 ${sa.three.toFixed(1)}회, 그 밖 ${b.length}라운드는 ${sb.putts.toFixed(1)}개 · ${sb.three.toFixed(1)}회입니다.`;
+    const text = `${groupLabel} ${a.length}라운드는 라운드당 퍼트 ${sa.putts.toFixed(1)}개 · 3퍼트 ${sa.three.toFixed(1)}회, 그 밖 ${b.length}라운드는 ${sb.putts.toFixed(1)}개 · ${sb.three.toFixed(1)}회예요.`;
     if (dThree >= 1 || dPutts >= 2) {
       out.push(mkInsight(id, 'career', 28, 'warning', `${id === 'C012' ? 'fast' : 'slow'}_green_putting_drop`,
         `${groupLabel}에서 퍼팅이 흔들림`, text, tip, ['trend', 'pattern']));
     } else if (id === 'C012' && (dThree <= -1 || dPutts <= -2)) {
       out.push(mkInsight(id, 'career', 28, 'positive', 'fast_green_putting_strength',
-        `${groupLabel}에서 퍼팅이 더 좋음`, text, '속도가 빠른 날 오히려 잘 맞는 편입니다 — 빠른 그린에서의 거리 감각을 강점으로 삼아 보세요.', ['trend', 'positive']));
+        `${groupLabel}에서 퍼팅이 더 좋음`, text, '속도가 빠른 날 오히려 잘 맞는 편이에요 — 빠른 그린에서의 거리 감각을 강점으로 삼아 보세요.', ['trend', 'positive']));
     }
   };
   compare('C012', '빠른 그린', (id) => id === 'fast' || id === 'veryFast', GREEN_SPEED_TIPS.fast);

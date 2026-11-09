@@ -34,7 +34,7 @@ describe('라운드 지표: 입력하지 않은 홀은 세지 않는다', () => 
     expect(m.backFade).toBe(0);
   });
 
-  it('"그린 적중률이 탁월합니다"(R001)는 실제 GIR이 낮으면 나오지 않는다', () => {
+  it('"그린 적중률이 탁월해요"(R001)는 실제 GIR이 낮으면 나오지 않는다', () => {
     const m = buildRoundMetrics(inputsOf(frontNineOnly()));
     const ids = matchRoundInsightRules(m, ROUND_RULES).map((i) => i.id);
     expect(ids).not.toContain('R001');

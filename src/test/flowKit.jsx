@@ -228,20 +228,18 @@ export const setDistance = async (scope, value) => {
 export const waitForHole = (n) => screen.findByText(new RegExp(`^HOLE ${n}$`), {}, { timeout: 8000 });
 export const newHole = async (prefs = null, options = {}) => { await openApp({ prefs }); await startRound(options); };
 
-// 라운드 수정(연필) → 파 표에서 n번째 홀의 칸을 왼쪽(-1)·오른쪽(+1)으로 눌러 파를 바꾸고 저장한다
+// 라운드 수정(연필) → 파 표에서 n번째 홀의 칸을 눌러 고르고, 아래 버튼(파 3~7)으로 파를 바꾸고 저장한다
 export async function setPar(holeIdx, par) {
   await tap(area('round-edit'), '라운드 수정 열기');
   const title = await screen.findByText('라운드 수정');
   const modal = title.closest('div[style*="max-width"]') || title.parentElement.parentElement;
-  const zones = [...modal.querySelectorAll('button')].filter((b) => clean(b.textContent) === '' && b.style.position === 'absolute');
-  // 홀마다 왼쪽(-1)·오른쪽(+1) 두 칸이 있고, 값 칸은 그 바로 앞 형제다
-  const cur = () => Number(clean(zones[holeIdx * 2].previousElementSibling?.textContent));
-  let guard = 10;
-  while (cur() !== par && guard-- > 0) {
-    fireEvent.click(zones[holeIdx * 2 + (par > cur() ? 1 : 0)]);
-    await settle();
-  }
-  expect(cur(), `${holeIdx + 1}번 홀 파 편집`).toBe(par);
+  const cell = modal.querySelector(`[data-role="par-cell"][data-hole="${holeIdx}"]`);
+  expect(cell, `${holeIdx + 1}번 홀 파 칸`).toBeTruthy();
+  if (cell.getAttribute('aria-pressed') !== 'true') await tap(cell, `${holeIdx + 1}번 홀 고르기`);
+  const option = modal.querySelector(`[data-role="par-option"][data-par="${par}"]`);
+  expect(option, `파 ${par} 버튼`).toBeTruthy();
+  await tap(option, `파 ${par} 고르기`);
+  expect(cell.textContent.trim(), `${holeIdx + 1}번 홀 파 편집`).toBe(String(par));
   await tap(one('저장', modal), '라운드 수정 저장');
 }
 

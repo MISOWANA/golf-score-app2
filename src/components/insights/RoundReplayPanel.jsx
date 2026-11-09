@@ -144,7 +144,7 @@ export default function RoundReplayPanel({ rounds, initialRoundId = null }) {
       {/* 3퍼트 원인 */}
       {replay.threePutts > 0 && (<>
         {label('THREE-PUTT · 3퍼트 원인', c.counts.unknown > 0 && (
-          <InfoNote title="판단 보류란?">판단 보류 = 퍼트 거리가 기록되지 않아 거리감인지 숏퍼트 미스인지 구분할 수 없는 홀입니다.</InfoNote>
+          <InfoNote title="판단 보류란?">판단 보류 = 퍼트 거리가 기록되지 않아 거리감인지 숏퍼트 미스인지 구분할 수 없는 홀이에요.</InfoNote>
         ))}
         <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px', fontSize: 14, color: '#b4c0d8', lineHeight: 1.7 }} data-role="cause-summary">
           {[

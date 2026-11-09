@@ -79,8 +79,8 @@ describe('인사이트 규칙이 실제로 동작한다', () => {
   it.each([
     ['long', 'H025', /오버/],
     ['short', 'H024', /짧게/],
-    ['right', 'H026', /오른쪽 방향으로 놓쳤습니다/],
-    ['left', 'H026', /왼쪽 방향으로 놓쳤습니다/],
+    ['right', 'H026', /오른쪽 방향으로 놓쳤어요/],
+    ['left', 'H026', /왼쪽 방향으로 놓쳤어요/],
   ])('홀 인사이트: %s → %s', (dir, id, wording) => {
     const { holeInsights } = analyzeRound(inputs(roundMissing(dir)), HOLE_RULES, ROUND_RULES);
     const hit = holeInsights[0].find((i) => i.id === id);

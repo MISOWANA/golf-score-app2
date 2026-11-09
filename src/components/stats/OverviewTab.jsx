@@ -36,15 +36,15 @@ export default function OverviewTab({ report, onGo }) {
       sub: putting.holes > 0 ? `3퍼트 ${fmtPct(putting.three.pct)}` : '기록이 쌓이면 보여요',
       trend: <TrendChip delta={putting.trend?.delta} id="trend-putting" goodWhen="down" digits={1} unit="개" flat={0.3} label="최근" /> },
   ];
-  const HEADLINE = { tee: ['티샷', `페어웨이 ${fmtPct(tee.hitPct)}`], approach: ['어프로치', `그린 적중 ${fmtPct(approach.gir.pct)}`], shortGame: ['숏게임', `스크램블링 ${fmtPct(shortGame.ratePct)}`], putting: ['퍼팅', `18홀 ${fmtNum(putting.per18)}퍼트`] };
-  const sentence = [balance?.strongest && HEADLINE[balance.strongest] ? `강점은 ${HEADLINE[balance.strongest][0]}(${HEADLINE[balance.strongest][1]})` : null,
-    balance?.weakest && HEADLINE[balance.weakest] ? `약점은 ${HEADLINE[balance.weakest][0]}(${HEADLINE[balance.weakest][1]})` : null].filter(Boolean).join(', ');
   const tagOf = (id) => (balance?.weakest === id ? 'weak' : balance?.strongest === id ? 'strong' : null);
 
   const penaltyStrokes = leaks.penaltyStrokesPerRound;
   const threeStrokes = leaks.threePutt.extraStrokesPerRound;
   const leakTake = (() => {
     if (threeStrokes < 0.15 && penaltyStrokes < 0.15) return { tone: 'good', text: '3퍼트와 벌타로 잃는 타수가 거의 없어요.' };
+    // 한쪽이 거의 없으면 "벌타보다 더" 처럼 없는 것과 견주지 않고, 있는 쪽만 말한다
+    if (penaltyStrokes < 0.15) return { tone: 'warn', text: `3퍼트로 라운드당 ${fmtNum(threeStrokes)}타를 잃어요. 벌타로는 거의 잃지 않아요. 첫 퍼트를 홀 가까이 붙이는 연습이 먼저예요.` };
+    if (threeStrokes < 0.15) return { tone: 'warn', text: `벌타로 라운드당 ${fmtNum(penaltyStrokes)}타를 잃어요. 3퍼트로는 거의 잃지 않아요. 티샷·어프로치 공략이 먼저예요.` };
     const diff = penaltyStrokes - threeStrokes;
     if (Math.abs(diff) < 0.3) return { tone: 'info', text: `3퍼트와 벌타로 라운드당 약 ${fmtNum(threeStrokes + penaltyStrokes)}타를 잃어요. 둘이 비슷해요.` };
     return diff > 0
@@ -109,7 +109,6 @@ export default function OverviewTab({ report, onGo }) {
             );
           })}
         </div>
-        {sentence && <Takeaway tone="info" id="skills-sentence">{sentence}예요.</Takeaway>}
         {balance?.weakest === 'penalty' && (
           <Takeaway tone="warn" id="takeaway-penalty">가장 큰 손실은 어느 영역이 아니라 벌타예요. 아래 "타수가 새는 곳"을 먼저 보세요.</Takeaway>
         )}
@@ -128,7 +127,7 @@ export default function OverviewTab({ report, onGo }) {
               </div>
               <div style={{ fontSize: 13, color: COLOR.faint, marginTop: 4 }}>{sub}</div>
             </div>
-            <div data-role={`${id}-strokes`} style={{ width: 60, textAlign: 'right', fontSize: 16, fontWeight: 900 }}>−{fmtNum(strokes)}<span style={{ fontSize: 13, color: COLOR.muted, fontWeight: 700 }}>타</span></div>
+            <div data-role={`${id}-strokes`} style={{ width: 60, textAlign: 'right', fontSize: 16, fontWeight: 900 }}>{strokes < 0.05 ? '0' : `−${fmtNum(strokes)}`}<span style={{ fontSize: 13, color: COLOR.muted, fontWeight: 700 }}>타</span></div>
           </div>
         ))}
         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>

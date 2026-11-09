@@ -207,12 +207,12 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
     try {
       const out = await renderHoleImage(review, { apiKey });
       if (!out) {
-        setImageError({ holeIdx, text: '이 홀은 기록된 GPS 지점이 없어 이미지를 만들 수 없습니다.' });
+        setImageError({ holeIdx, text: '이 홀은 기록된 GPS 지점이 없어 이미지를 만들 수 없어요.' });
         return;
       }
       setImage({ holeIdx, ...out });
     } catch (e) {
-      setImageError({ holeIdx, text: `이미지를 만들지 못했습니다. ${e?.message ?? ''}` });
+      setImageError({ holeIdx, text: `이미지를 만들지 못했어요. ${e?.message ?? ''}` });
     } finally {
       setRendering(false);
     }
@@ -344,7 +344,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                   position: 'absolute', top: 8, left: 10, right: 10, zIndex: 500,
                   padding: '7px 10px', borderRadius: 7, background: 'rgba(239,83,80,0.9)',
                   color: '#fff', fontSize: 14, lineHeight: 1.6, fontWeight: 600,
-                }}>위성 타일을 불러오지 못했습니다. 인증키가 만료됐을 수 있습니다.</div>
+                }}>위성 타일을 불러오지 못했어요. 인증키가 만료됐을 수 있어요.</div>
               )}
               <button
                 onClick={makeImage}
@@ -361,7 +361,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
         )}
         {!hasMap && review.gps.hasAny && (
           <div style={{ padding: '10px 18px 0', fontSize: 14, color: LABEL }}>
-            지도를 보려면 VWorld 인증키가 필요합니다.
+            지도를 보려면 VWorld 인증키가 필요해요.
           </div>
         )}
 

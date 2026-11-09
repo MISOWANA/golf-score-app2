@@ -17,6 +17,8 @@ import { totalPar } from './players.js';
 import { isBackHole } from './nines.js';
 import { hasHoleMap } from './geo.js';
 import { greenSpeedRoundInsights, buildGreenSpeedReport, GREEN_SPEED_TIPS } from './greenSpeed.js';
+import { aggregateSG, SG_LABEL } from './strokesGained.js';
+import { pickWeakestSkill } from './roundStory.js';
 
 export const SEVERITY_ORDER = { critical: 0, warning: 1, neutral: 2, positive: 3 };
 export const SEVERITY_LABEL = { critical: '심각', warning: '주의', neutral: '참고', positive: '좋은 점' };
@@ -117,7 +119,7 @@ export function buildRoundReplay(round) {
   const fade = frontPlayed.length >= MIN_HALF_HOLES && backPlayed.length >= MIN_HALF_HOLES
     ? Math.round((avgDiff(backPlayed) - avgDiff(frontPlayed)) * 9)
     : 0;
-  const headline = buildHeadline({ score, par, fade, breakdown, causes, penalties, threePutts });
+  const { headline, headlineDetail } = buildHeadline({ score, par, fade, breakdown, causes, penalties, threePutts });
 
   return {
     roundId: round.id, date: round.date, courseName: round.courseName, player, greenSpeed: round.greenSpeed ?? null,
@@ -127,6 +129,7 @@ export function buildRoundReplay(round) {
     breakdown, causes, penalties, threePutts,
     worstHoles, bestHoles,
     headline,
+    headlineDetail,   // 점수 뒤의 내용만 — 점수는 범위 카드가 이미 보여 주므로 인사이트 리포트의 한 줄 요약은 이것만 쓴다
     mapHoles: holes.filter(h => h.hasMap).length,
     enteredHoles: touchedHoles.length,
     defaultHoles: holes.length - touchedHoles.length,
@@ -151,8 +154,8 @@ function buildHeadline({ score, par, fade, breakdown, causes, penalties, threePu
   if (penalties > 0) bits.push(`페널티 ${penalties}회`);
   if (fade >= 4) bits.push(`후반이 전반보다 ${fade}타 많음`);
   else if (fade <= -3) bits.push(`후반이 전반보다 ${-fade}타 적음`);
-  const tail = bits.length ? ` — ${bits.join(', ')}` : ' — 큰 손실 없이 마무리';
-  return `${score}타 (${sign})${tail}`;
+  const headlineDetail = bits.length ? bits.join(', ') : '큰 손실 없이 마무리';
+  return { headline: `${score}타 (${sign}) — ${headlineDetail}`, headlineDetail };
 }
 
 // ─── 검색 색인 ─────────────────────────────────────────────────────────────────
@@ -274,7 +277,8 @@ export function countByCategory(items) {
 
 // ─── 리포트 ────────────────────────────────────────────────────────────────────
 // mode: 'round' = 최신 라운드, 'career' = 모든 라운드 합산
-export function buildInsightReport(rounds, mode = 'round') {
+// sg: 이미 계산한 Strokes Gained (없으면 여기서 계산) — 인사이트 화면의 SG 표와 같은 값으로 '가장 약한 부문'을 고른다.
+export function buildInsightReport(rounds, mode = 'round', sg = null) {
   const solo = rounds.filter(r => r.players.length === 1);
   if (solo.length === 0) return null;
   const target = mode === 'career' ? solo : [solo[0]];
@@ -315,13 +319,18 @@ export function buildInsightReport(rounds, mode = 'round') {
     .sort((a, b) => (SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]) || scopeRank(a) - scopeRank(b)
       || b.count - a.count || (b.priority ?? 0) - (a.priority ?? 0))).slice(0, 5);
 
-  // 다음 라운드 포커스: 가장 큰 손실 카테고리 + 3퍼트 원인 조언 + 기록 보완
+  // 다음 라운드 포커스: 가장 약한 부문 + 3퍼트 원인 조언 + 기록 보완
+  // 가장 약한 부문은 스탯 · 연습 처방과 같은 기준(roundStory.pickWeakestSkill) — 측정된 샷이 충분하면 투어 대비 SG, 아니면 스코어 기준 손실.
   const totals = { penalty: 0, putting: 0, tee: 0, approach: 0, shortGame: 0 };
   replays.forEach(r => Object.keys(totals).forEach(k => { totals[k] += r.breakdown.totals[k]; }));
   const ranked = Object.entries(totals).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const weakest = pickWeakestSkill({
+    sg: sg ?? aggregateSG(target),
+    ranked: ranked.map(([category, strokes]) => ({ category, strokes })),
+  });
   const focus = [];
-  if (ranked.length) {
-    const [cat, strokes] = ranked[0];
+  if (weakest) {
+    const cat = weakest.skill;
     const FOCUS_TEXT = {
       penalty: '위험 지역이 있는 홀의 공략 루트를 미리 정하고, 티샷 클럽을 한 단계 낮춰 안전한 방향으로',
       putting: '롱 퍼트는 1m 원에 세우고, 1.5m 이내는 루틴을 지켜 마무리하기',
@@ -329,7 +338,10 @@ export function buildInsightReport(rounds, mode = 'round') {
       approach: '핀보다 그린 중앙을 목표로 하고 남은 거리에 맞는 클럽을 한 번 더 확인',
       shortGame: '그린 주변에서 첫 퍼트를 2m 안에 남기는 샷 선택',
     };
-    focus.push({ category: cat, text: `${CATEGORY_LABEL[cat]} 손실이 가장 큼 (${strokes}타) → ${FOCUS_TEXT[cat]}` });
+    const lead = weakest.basis === 'sg'
+      ? `${SG_LABEL[cat]}에서 투어 평균 대비 가장 많이 잃음`
+      : `${CATEGORY_LABEL[cat]} 손실이 가장 큼 (${totals[cat]}타)`;
+    focus.push({ category: cat, text: `${lead} → ${FOCUS_TEXT[cat]}` });
   }
   const causeSum = summarizePuttCauses(replays.flatMap(r => r.holes.map(h => (h.touched && h.puttCause ? { isThreePutt: true, cause: h.puttCause } : null))));
   if (causeSum.total > 0) {
@@ -363,7 +375,7 @@ export function buildInsightReport(rounds, mode = 'round') {
     penalties: sum(r => r.penalties),
     holes: sum(r => r.holes.length),
   };
-  return { mode, replays, strengths, issues, focus, stats, causes: causeSum, totals, ranked, greenSpeed };
+  return { mode, replays, strengths, issues, focus, weakest, stats, causes: causeSum, totals, ranked, greenSpeed };
 }
 
 export { PUTT_CAUSE_LABEL, roundStats };

@@ -80,6 +80,6 @@ describe('백업 파일', () => {
   });
 
   it('너무 큰 파일은 읽기 전에 거절한다', () => {
-    expect(() => parseBackupFile('{}', BACKUP_MAX_BYTES + 1)).toThrow(/너무 큽니다/);
+    expect(() => parseBackupFile('{}', BACKUP_MAX_BYTES + 1)).toThrow(/너무 커요/);
   });
 });

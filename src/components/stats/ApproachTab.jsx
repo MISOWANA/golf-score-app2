@@ -71,7 +71,7 @@ export default function ApproachTab({ report }) {
       </>} right={<TrendChip delta={gir.trend?.delta} id="trend-gir" label="최근 5R" />}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
           <Metric id="m-gir" value={fmtPct(gir.pct)} label="그린 적중" sub={`${gir.holes}홀 중 ${gir.hit}홀`} />
-          <ConfidenceBadge tier={gir.tier} />
+          <ConfidenceBadge tier={gir.tier} full />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {parRows.map((p) => (

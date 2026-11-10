@@ -21,7 +21,7 @@ const ptr = (el, type, x, y, id = 1) => {
 const board = () => document.querySelector('[data-role="putt-board"]');
 const handle = () => document.querySelector('[data-role="putt-marker-handle"]');
 
-// 홀은 판 (175, 160). 퍼팅 거리 4m 의 처음 축척은 ±5m(1m ≈ 29px), 위치를 찍어 둔 뒤에는 그 위치가 들어오는 ±3m(1m ≈ 48px)
+// 홀은 판 (175, 160). 처음 축척은 퍼팅 거리와 상관없이 ±3m(1m ≈ 48px) — 찍은 위치가 ±3m 밖이면 그 위치가 들어오는 크기로 넓어진다
 const HOLE = [175, 160];
 const stopAt = (x, y) => buildMiss({ stop: { x, y }, brk: null, frame: DEFAULT_FRAME, tol: 0.15 });
 
@@ -31,12 +31,21 @@ describe('판 배경 — 탭만 위치로 받는다', () => {
     expect(board().style.touchAction).toBe('pan-y');
   });
 
+  it('처음 축척은 퍼팅 거리가 얼마든 ±3m 로 선택돼 있다', () => {
+    for (const d of [1, 4, 9, 15, null]) {
+      const { unmount } = render(<PuttBoard distance={d} onChange={() => {}} />);
+      expect(document.querySelector('[data-role="putt-scale-3"]').getAttribute('aria-pressed'), `거리 ${d}`).toBe('true');
+      expect(document.querySelector('[data-role="putt-scale-10"]').getAttribute('aria-pressed')).toBe('false');
+      unmount();
+    }
+  });
+
   it('거의 움직이지 않고 떼면 뗀 자리가 멈춘 위치로 기록된다', () => {
     const onChange = vi.fn();
     render(<PuttBoard distance={4} onChange={onChange} />);
-    ptr(board(), 'pointerdown', HOLE[0], HOLE[1] + 29);       // 홀 아래(짧은 쪽) 1m
+    ptr(board(), 'pointerdown', HOLE[0], HOLE[1] + 48);       // 홀 아래(짧은 쪽) 1m
     expect(onChange).not.toHaveBeenCalled();                  // 누르는 순간에는 기록하지 않는다
-    ptr(board(), 'pointerup', HOLE[0], HOLE[1] + 29);
+    ptr(board(), 'pointerup', HOLE[0], HOLE[1] + 48);
     expect(onChange).toHaveBeenCalledTimes(1);
     const m = onChange.mock.calls[0][0];
     expect(m.x).toBeCloseTo(0, 1);

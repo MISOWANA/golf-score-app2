@@ -273,7 +273,7 @@ const lieText = (lie) => {
 // auto: 사용자가 고른 게 아니라 티샷 결과로 채운 값이다 — 다른 칩을 누르면 바뀐다.
 function SurfaceRow({ role, value, missing, suggest = null, auto = false, onChange }) {
   return (
-    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
+    <div data-role={role} data-step={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', scrollMarginTop: 72 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>⛳</span><span style={fLbl}>지형</span>
         {value == null && suggest && <span style={{ fontSize:12, color:'#4e5968' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
@@ -303,7 +303,7 @@ function LieRow({ role, value, missing, onChange }) {
   const v = lieValue(value);
   const other = !!v && !QUICK_LIES.some(([id]) => id === v);
   return (
-    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
+    <div data-role={role} data-step={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', scrollMarginTop: 72 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
         {other && <span style={{ fontSize:13, fontWeight:700, color:'#1b64da' }}>{lieText(v)}</span>}
@@ -360,13 +360,13 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
   const handleCategory = (c) => {
     const subs = CLUB_SUBS[c.id] || [];
     if (subs.length === 0) {
-      onCategory(value === c.id ? null : c.id);
+      onCategory(value === c.id ? null : c.id, false);
       return;
     }
     if (value === c.id) {
       setExpandedId(prev => prev === c.id ? null : c.id);
     } else {
-      onCategory(c.id);
+      onCategory(c.id, true);   // 세부 클럽(번호) 줄이 바로 아래에 열린다 — 다음 칸은 그걸 고른 뒤
       setExpandedId(c.id);
     }
   };
@@ -932,7 +932,17 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     else window.scrollTo?.({ top: 0, behavior: 'smooth' });   // 샷 기록이 접혀 있으면 새 홀의 맨 위로
   }, 80);
   const scrollToPutting = () => setTimeout(() => puttTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
-  const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
+  // 다음에 눌러야 할 입력 칸을 화면 맨 위(탭 행 바로 아래)로 옮긴다 — 예전에는 화면 맨 아래로 내렸는데, 아래에 전체 스코어 표가 있어
+  // 다음 칸을 지나쳐 버렸다. 칸은 data-step 이름으로 찾는다. 방금 눌러서 나타나는 칸일 수 있어 잠깐씩 기다리며 몇 번 다시 찾는다
+  // (칸이 끝내 없으면 — 예: 단계가 바뀌어 다른 탭으로 넘어갔다 — 아무것도 하지 않는다).
+  const scrollToStep = (name, tries = 8) => {
+    const go = (n) => {
+      const el = document.querySelector(`[data-step="${name}"]`);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+      if (n > 0) setTimeout(() => go(n - 1), 60);
+    };
+    setTimeout(() => go(tries), 60);
+  };
 
   // ─── 라운드 완료 ────────────────────────────────────────────────────────────
   // 입력하지 않은 홀은 기본값(파·2퍼트)이 그대로 저장돼 평균 스코어가 왜곡되므로
@@ -1152,7 +1162,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const teeRequired = (() => {
     const s = playerScore;
     if (!s.teeClub) return ['클럽'];
-    if (!penaltyAt(s, 0) && hole.par === 3 && s.teeOnGreen == null && s.girAuto) return ['GIR 성공/실패'];
+    if (!penaltyAt(s, 0) && hole.par === 3 && s.teeOnGreen == null && s.girAuto) return ['티샷 결과'];
     return [];
   })();
   const teeOptionalLeft = (() => {
@@ -1261,9 +1271,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     updateFields(patch);
   };
 
-  const clubs = hole.par === 3
-    ? [{ id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }, { id: 'wedge', label: 'WEDGE' }]
-    : [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
+  // 티샷 클럽 버튼 — 파3이든 파4·5든 드라이버 · 하이브리드 · 아이언 세 개. 예전에 우드 · 웨지로 기록한 홀은 그 버튼이 하나 더 보여서 기록이 숨지 않는다.
+  const TEE_CLUBS = [{ id: 'driver', label: 'DRIVER' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
+  const LEGACY_TEE_CLUBS = { wood: { id: 'wood', label: 'WOOD' }, wedge: { id: 'wedge', label: 'WEDGE' } };
+  const clubs = LEGACY_TEE_CLUBS[playerScore.teeClub] ? [...TEE_CLUBS, LEGACY_TEE_CLUBS[playerScore.teeClub]] : TEE_CLUBS;
 
   const secHdr = (label, onDelete, state = 'idle') => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
@@ -2009,8 +2020,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 이 퍼트는 들어가지 않았다 → 다음 퍼트로. 멈춘 곳을 찍어 뒀다면 다음 퍼트 거리와 판 방향이 거기서 이어진다.
   const goNextPutt = (puttIdx) => {
     if (puttDetails[puttIdx]?.holein === 'offgreen') {            // 그린 밖으로 나간 퍼트는 칩 카드에서 이어 간다
-      setExpandedPutt(Math.min(puttIdx + 1, puttDetails.length - 1));
-      scrollDown();
+      const nextCard = Math.min(puttIdx + 1, puttDetails.length - 1);
+      setExpandedPutt(nextCard);
+      scrollToStep(`putt-card-${nextCard}`);
       return;
     }
     const newPutts = Math.max(playerScore.putts || 0, puttIdx + 2);
@@ -2019,7 +2031,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     const details = chainNextPutt(base, puttIdx);
     updateFields({ putts: newPutts, puttDetails: details, offGreen: offGreenShots({ putts: newPutts, puttDetails: details, offGreen: playerScore.offGreen }) });
     setExpandedPutt(puttIdx + 1);
-    scrollDown();
+    scrollToStep(`putt-card-${puttIdx + 1}`);
   };
 
   // 되돌리기 — 이 퍼트를 없애고 앞 퍼트를 다시 입력 중으로 연다 (찍어 둔 위치는 그대로 남아 끌어서 고칠 수 있다)
@@ -2562,12 +2574,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           categories={clubs}
           value={playerScore.teeClub}
           subValue={playerScore.teeClubSub}
-          onCategory={v => { updateFields({ teeClub: v, teeClubSub: null }); if (v) scrollDown(); }}
-          onSub={v => updateField('teeClubSub', v)}
+          onCategory={(v, hasSubs) => { updateFields({ teeClub: v, teeClubSub: null }); if (v && !hasSubs) scrollToStep('tee-shape'); }}
+          onSub={v => { updateField('teeClubSub', v); if (v) scrollToStep('tee-shape'); }}
           stacked
           onInteractStart={() => setTeeClubInteracting(true)}
           onInteractEnd={() => setTeeClubInteracting(false)}
-          suggest={clubSuggest(0, playerScore.teeDistance, (club, sub) => { updateFields({ teeClub: club, teeClubSub: sub }); if (club) scrollDown(); })}
+          suggest={clubSuggest(0, playerScore.teeDistance, (club, sub) => { updateFields({ teeClub: club, teeClubSub: sub }); if (club) scrollToStep('tee-shape'); })}
         />
 
         {/* 티샷 구질 - 클럽 선택 완료 후 등장 */}
@@ -2577,7 +2589,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <span style={{ fontSize:13, color:'#4e5968', letterSpacing:'0' }}>클럽을 선택하면 구질 입력이 나타나요</span>
           </div>
           ) : (playerScore.teeClub && !teeClubInteracting) ? (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
+          <div data-step="tee-shape" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
             </div>
@@ -2587,7 +2599,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   {row.map(s => (
                     <button key={s}
                       style={{ ...fChip, flex:1, textAlign:'center', padding:'10px 6px', fontSize:14, borderRadius:8, ...(playerScore.shotShape===s?fChipOn:{}) }}
-                      onClick={()=>{ const nv=playerScore.shotShape===s?null:s; updateField('shotShape',nv); if(nv) scrollDown(); }}>{s}</button>
+                      onClick={()=>{ const nv=playerScore.shotShape===s?null:s; updateField('shotShape',nv); if(nv) scrollToStep(hole.par === 3 ? 'tee-result' : 'tee-fairway'); }}>{s}</button>
                   ))}
                 </div>
               ))}
@@ -2600,9 +2612,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {hole.par === 3 && playerScore.teeClub && !teeClubInteracting && (() => {
           const hioSelected = playerScore.putts===0 && playerScore.girAuto===false && (playerScore.puttDetails?.length||0)===0 && playerScore.touched;
           return (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
+          <div data-step="tee-result" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-              <span style={fIcon}>⚑</span><span style={fLbl}>GIR</span>
+              <span style={fIcon}>⚑</span><span style={fLbl}>티샷 결과</span>
             </div>
             {/* 성공 / 실패 */}
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
@@ -2610,9 +2622,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               <button disabled={penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true}
                 style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===true || (playerScore.teeOnGreen==null && playerScore.gir===true && !playerScore.girAuto)?{ border:'2px solid #0a7f3f', color:'#0a7f3f' }:{}),
                   ...(penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true ? { opacity:0.35, cursor:'not-allowed' } : {}) }}
-                onClick={()=>{ updateFields({ gir: true, girAuto: false, teeOnGreen: true }); setStage('putt'); }}>성공</button>
+                onClick={()=>{ updateFields({ gir: true, girAuto: false, teeOnGreen: true }); setStage('putt'); }}>그린 온</button>
               <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===false || (playerScore.teeOnGreen==null && playerScore.gir===false)?{ border:'2px solid #c8323a', color:'#c8323a' }:{}) }}
-                onClick={()=>{ updateFields({ gir: false, girAuto: false, teeOnGreen: false }); setSecondShotExpanded(true); setStage('field'); }}>실패</button>
+                onClick={()=>{ updateFields({ gir: false, girAuto: false, teeOnGreen: false }); setSecondShotExpanded(true); setStage('field'); }}>그린 놓침</button>
             </div>
             {/* 홀인원 풀와이드 — 벌타가 있으면 홀인원일 수 없다 */}
             <button
@@ -2648,14 +2660,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* FAIRWAY HIT - 클럽 선택 후 등장 (선택 입력 — 세컨샷 지형을 고르면 따로 안 눌러도 채워진다) */}
         {hole.par > 3 && playerScore.teeClub && (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
+          <div data-step="tee-fairway" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⊙</span><span style={fLbl}>페어웨이 적중</span>
             </div>
             <div style={{ display:'flex', gap:8 }}>
               {/* 1온(G)이면 볼이 그린 위라 페어웨이 O는 성립하지 않는다 — G를 먼저 해제해야 고를 수 있다 */}
-              <button data-role="tee-fairway-hit" disabled={!!playerScore.teeGIR} style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#0a7f3f':'#d1d6db'}`, background:playerScore.fairway===true?'rgba(10,127,63,0.18)':'#e8ebee', color:playerScore.fairway===true?'#0a7f3f':'#4e5968', fontSize:17, fontWeight:800, cursor: playerScore.teeGIR ? 'not-allowed' : 'pointer', opacity: playerScore.teeGIR ? 0.3 : 1 }} onClick={()=>{ if (playerScore.teeGIR) return; setTeeFairway(true); scrollDown(); }}>O</button>
-              <button data-role="tee-fairway-miss" style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#c8323a':'#d1d6db'}`, background:playerScore.fairway===false?'rgba(200,50,58,0.12)':'#e8ebee', color:playerScore.fairway===false?'#c8323a':'#4e5968', fontSize:17, fontWeight:800, cursor:'pointer' }} onClick={()=>{ setTeeFairway(false); scrollDown(); }}>X</button>
+              <button data-role="tee-fairway-hit" disabled={!!playerScore.teeGIR} style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#0a7f3f':'#d1d6db'}`, background:playerScore.fairway===true?'rgba(10,127,63,0.18)':'#e8ebee', color:playerScore.fairway===true?'#0a7f3f':'#4e5968', fontSize:17, fontWeight:800, cursor: playerScore.teeGIR ? 'not-allowed' : 'pointer', opacity: playerScore.teeGIR ? 0.3 : 1 }} onClick={()=>{ if (playerScore.teeGIR) return; setTeeFairway(true); scrollToStep('tee-landing'); }}>O</button>
+              <button data-role="tee-fairway-miss" style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#c8323a':'#d1d6db'}`, background:playerScore.fairway===false?'rgba(200,50,58,0.12)':'#e8ebee', color:playerScore.fairway===false?'#c8323a':'#4e5968', fontSize:17, fontWeight:800, cursor:'pointer' }} onClick={()=>{ setTeeFairway(false); scrollToStep('tee-landing'); }}>X</button>
             </div>
             {playerScore.fairwayFromLanding && playerScore.fairway === true && (
               <div data-role="tee-fairway-auto" style={{ fontSize:12, color:'#4e5968', marginTop:6, lineHeight:1.5 }}>랜딩 센터라 O 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
@@ -2669,7 +2681,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* LANDING POINT (L/C/R/그린) — 선택 입력. 티샷이 어디로 갔는지 방향성 분석에 쓰인다.
             1온(G)은 결과라서 여기서 고른다 — 1온이면 필드샷이 없다. */}
         {hole.par > 3 && playerScore.teeClub && (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
+          <div data-step="tee-landing" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>랜딩 위치</span>
             </div>
@@ -2677,7 +2689,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {[['L','레프트','#1b64da'],['C','센터','#0a7f3f'],['R','라이트','#c8323a']].map(([id,label,col])=>(
                 <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#d1d6db'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#e8ebee', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#4e5968', fontSize:14, fontWeight:700, cursor:'pointer' }}
-                  onClick={() => pickLanding(id)}>
+                  onClick={() => { pickLanding(id); if (playerScore.fairwayHit !== id) scrollToStep('tee-next'); }}>
                   <div style={{ fontSize:14, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:12, marginTop:2 }}>{label}</div>
                 </button>
@@ -2725,7 +2737,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           </div>
         )}
         {stage === 'tee' && teeReady && !teeComplete && hole.par > 3 && !playerScore.teeGIR && (
-          <div data-role="tee-optional-note" style={{ padding:'10px 16px 14px', textAlign:'center' }}>
+          <div data-role="tee-optional-note" data-step="tee-next" style={{ padding:'10px 16px 14px', textAlign:'center', scrollMarginTop: 72 }}>
             <div style={{ fontSize:13, color:'#4e5968', lineHeight:1.6, marginBottom:8, wordBreak:'keep-all' }}>
               {`선택 항목: ${teeOptionalLeft.join(' · ')} — 비워 두고 필드샷으로 넘어가도 돼요`}
             </div>
@@ -2793,10 +2805,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           categories={penaltyAt(playerScore, 0) ? AFTER_TEE_PENALTY_CLUBS : SECOND_CLUBS}
           value={playerScore.secondClub}
           subValue={playerScore.secondClubSub}
-          onCategory={v => { updateFields({ secondClub: v, secondClubSub: null }); if (v) scrollDown(); }}
-          onSub={v => updateField('secondClubSub', v)}
+          onCategory={(v, hasSubs) => { updateFields({ secondClub: v, secondClubSub: null }); if (v && !hasSubs) scrollToStep('second-surface'); }}
+          onSub={v => { updateField('secondClubSub', v); if (v) scrollToStep('second-surface'); }}
           stacked
-          suggest={clubSuggest(1, playerScore.remainingDistance, (club, sub) => { updateFields({ secondClub: club, secondClubSub: sub }); if (club) scrollDown(); })}
+          suggest={clubSuggest(1, playerScore.remainingDistance, (club, sub) => { updateFields({ secondClub: club, secondClubSub: sub }); if (club) scrollToStep('second-surface'); })}
         />
 
         {/* 지형 · 라이 — 샷마다 꼭 받는다 (지형은 Strokes Gained 기준선, 라이는 클럽 분석에 쓰인다). 바람은 선택 */}
@@ -2806,14 +2818,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           missing={infoRequired && !playerScore.secondSurface}
           suggest={secondSurfaceSuggest}
           auto={!!playerScore.secondSurfaceAuto}
-          onChange={setSecondSurface}
+          onChange={(v) => { setSecondSurface(v); if (v) scrollToStep('second-lie'); }}
         />
         <LieRow
           key={`lie-${holeIdx}-${activePlayer}`}
           role="second-lie"
           value={playerScore.terrainCondition}
           missing={infoRequired && !lieValue(playerScore.terrainCondition)}
-          onChange={v => updateField('terrainCondition', v)}
+          onChange={v => { updateField('terrainCondition', v); if (v) scrollToStep('second-result'); }}
         />
         <WindSection
           key={`wind-${holeIdx}-${activePlayer}`}
@@ -2829,7 +2841,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* 라이가 선택 입력이 되면서 다음 단계는 클럽 선택으로 연다. 라이만 있는
             과거 기록, 지도에서 샷을 추가한 경우도 그대로 보이게 한다. */}
         {(playerScore.secondClub || lieValue(playerScore.terrainCondition) || extraShots.length > 0 || playerScore.gir != null) && (<>
-        <div ref={extraShotTopRef} />
+        <div ref={extraShotTopRef} style={{ scrollMarginTop: 72 }} />
 
         {/* 세컨샷 GIR (Par 4+). 파5 이상은 세컨샷 뒤 온그린이 GIR이
             아니라 2온이다 — 레이업을 'GIR 실패'로 누르게 하지 않도록 이름을 바꾼다.
@@ -2837,7 +2849,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             '실패'로 써드샷이 생긴 뒤에도 이 줄은 남겨 둔다 — 그린에 가 보니 온이었을 때 '성공'으로 고치면
             써드샷 이후가 지워진다. 세컨샷 벌타로 생긴 써드샷은 그린에 못 간 것이 맞으므로 줄을 숨긴다. */}
         {hole.par > 3 && (extraShots.length === 0 || !penaltyAt(playerScore, 1)) && (
-          <div data-role="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+          <div data-role="second-result" data-step="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>{penaltyAt(playerScore, 0) ? '온그린' : hole.par >= 5 ? '2온' : 'GIR'}</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
               <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #0a7f3f', color:'#0a7f3f' } : {}) }}
@@ -2855,7 +2867,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* 세컨샷 온그린 (Par 3) — 파4·5와 같다: '실패' 뒤에도 남겨 두고, '성공'으로 고치면 써드샷 이후를 지운다 */}
         {hole.par === 3 && (extraShots.length === 0 || !penaltyAt(playerScore, 1)) && (
-          <div data-role="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+          <div data-role="second-result" data-step="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
               <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true ? { border:'2px solid #0a7f3f', color:'#0a7f3f' } : {}) }}
@@ -2944,10 +2956,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 <ClubSelector
                   icon="〽" label="클럽" categories={SECOND_CLUBS}
                   value={shot.club} subValue={shot.subClub}
-                  onCategory={v => { updateExtraShot(idx, { club: v, subClub: null }); if (v) scrollDown(); }}
-                  onSub={v => updateExtraShot(idx, { subClub: v })}
+                  onCategory={(v, hasSubs) => { updateExtraShot(idx, { club: v, subClub: null }); if (v && !hasSubs) scrollToStep(`extra-surface-${idx}`); }}
+                  onSub={v => { updateExtraShot(idx, { subClub: v }); if (v) scrollToStep(`extra-surface-${idx}`); }}
                   stacked
-                  suggest={clubSuggest(idx + 2, shot.remainingDistance, (club, sub) => { updateExtraShot(idx, { club, subClub: sub }); if (club) scrollDown(); })}
+                  suggest={clubSuggest(idx + 2, shot.remainingDistance, (club, sub) => { updateExtraShot(idx, { club, subClub: sub }); if (club) scrollToStep(`extra-surface-${idx}`); })}
                 />
 
                 {/* 지형 · 라이 — 샷마다 꼭 받는다. 바람은 선택 */}
@@ -2955,14 +2967,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   role={`extra-surface-${idx}`}
                   value={surfaceIdOf(shot.surface)}
                   missing={infoRequired && !shot.surface}
-                  onChange={v => updateExtraShot(idx, { surface: v })}
+                  onChange={v => { updateExtraShot(idx, { surface: v }); if (v) scrollToStep(`extra-lie-${idx}`); }}
                 />
                 <LieRow
                   key={`lie-${holeIdx}-${activePlayer}-${idx}`}
                   role={`extra-lie-${idx}`}
                   value={shot.lie}
                   missing={infoRequired && !lieValue(shot.lie)}
-                  onChange={v => updateExtraShot(idx, { lie: v })}
+                  onChange={v => { updateExtraShot(idx, { lie: v }); if (v) scrollToStep(`extra-result-${idx}`); }}
                 />
                 <WindSection
                   key={`wind-${holeIdx}-${activePlayer}-${idx}`}
@@ -2974,7 +2986,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 />
 
                 {/* 온그린 성공 / 실패 / 칩인 — 세컨샷처럼 클럽 없이도 고를 수 있다 */}
-                <div style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
+                <div data-step={`extra-result-${idx}`} style={{ ...fRow, animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
                   <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
                   <div style={{ display:'flex', gap:6, flex:1 }}>
                     <button
@@ -3036,7 +3048,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* ── 그린 밖으로 나간 퍼트 뒤의 칩 — 필드샷이므로 클럽과 온그린 결과를 여기서 받는다 ── */}
         {teeReady && stage === 'field' && offGreenList.length > 0 && (<>
-          <div ref={offGreenTopRef} data-role="off-green-section" />
+          <div ref={offGreenTopRef} data-role="off-green-section" style={{ scrollMarginTop: 72 }} />
           {offGreenList.map((chip, idx) => {
             const chain = offGreenList.filter(r => r.after === chip.after);
             const nth = chain.indexOf(chip) + 1;
@@ -3192,9 +3204,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               <React.Fragment key={puttIdx}>
                 {/* 아코디언 헤더 */}
                 <button
-                  onClick={() => { const next = isOpen ? -1 : puttIdx; setExpandedPutt(next); if (next >= 0) scrollDown(); }}
+                  data-step={`putt-card-${puttIdx}`}
+                  onClick={() => { const next = isOpen ? -1 : puttIdx; setExpandedPutt(next); if (next >= 0) scrollToStep(`putt-card-${puttIdx}`); }}
                   style={{
-                    width:'100%', display:'flex', alignItems:'center', gap:8,
+                    width:'100%', display:'flex', alignItems:'center', gap:8, scrollMarginTop: 72,
                     minHeight:44, padding:'10px 16px', background:'none', border:'none', cursor:'pointer',
                     borderBottom: isOpen || puttRowText(putt) ? 'none' : '1px solid #e5e8eb',
                   }}
@@ -3233,10 +3246,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
                       {lieIdOf(putt.lie) == null && <span style={{ fontSize:12, color:'#4e5968' }}>선택 입력</span>}
                     </div>
-                    <PuttLieGrid key={`lie-${holeIdx}-${activePlayer}-${puttIdx}`} value={putt.lie} onPick={(id) => pickPuttLie(puttIdx, id)} />
+                    <PuttLieGrid key={`lie-${holeIdx}-${activePlayer}-${puttIdx}`} value={putt.lie} onPick={(id) => { pickPuttLie(puttIdx, id); if (id) scrollToStep(`putt-distance-${puttIdx}`); }} />
                   </div>
 
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
+                  <div data-step={`putt-distance-${puttIdx}`} style={{ padding:'6px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
                     <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v => setPuttDistance(puttIdx, v)} />
                     {putt.distanceAuto === true && (

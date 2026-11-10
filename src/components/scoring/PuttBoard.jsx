@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import {
   BOARD_W, BOARD_H, HOLE_X, HOLE_Y, BOARD_SCALES, BOARD_RINGS, DEFAULT_FRAME,
-  pxPerMeter, scaleForDistance, fitScale, stopTolerance, boardToMeters, clampStop, toLocal,
+  pxPerMeter, fitScale, stopTolerance, boardToMeters, clampStop, toLocal,
   buildMiss, withPassOverride, sideOf, sideBreak, passInfo, missText, layoutOverlays,
 } from '../../engine/puttMiss.js';
 import { fmtPutt } from '../../engine/units.js';
@@ -28,6 +28,10 @@ const BASE_THEME = {
   text: '#191f28', text2: '#333d4b', muted: '#4e5968', bg: '#ffffff', card: '#f2f4f6', line: '#d1d6db',
   ok: '#0a7f3f',
 };
+// 어두운 판 위에 얹는 글자 · 표시는 판에 맞는 밝은 색을 쓴다 (판 바깥의 카드 · 버튼은 위의 밝은 테마 색).
+// 판 위에서 어두운 글자(하이사이드 · 롱/숏 안내)가 안 보이던 문제를 막으려고 따로 둔다.
+const DEFAULT_SCALE = BOARD_SCALES[0];   // 처음 보이는 축척 ±3m
+const B = { text: '#f1f7f5', muted: '#b3cbc5', hi: '#8ab8ff', low: '#ff9a73', idle: 'rgba(0,0,0,0.4)', hiBg: 'rgba(138,184,255,0.2)', lowBg: 'rgba(255,154,115,0.2)' };
 
 // 위치 · 크기를 판 좌표(0~BOARD_W · 0~BOARD_H)에서 비율로 바꾼다
 const TAP_SLOP = 10;   // 판 배경에서 이만큼(px) 안에서 떼면 탭 — 넘게 움직였으면 스크롤이나 끌기다
@@ -56,8 +60,8 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
   const saved = miss ? { x: miss.x, y: miss.y } : null;
   const stop = live ?? saved;
 
-  // 축척: 끄는 동안은 고정 · 직접 고른 값 · 멈춘 곳이 들어오는 크기 · 퍼팅 거리에 맞는 크기 순
-  const R = dragging && lockedR ? lockedR : (scale ?? (stop ? fitScale(stop) : scaleForDistance(distance)));
+  // 축척: 끄는 동안은 고정 · 직접 고른 값 · 멈춘 곳이 들어오는 크기 · 기본 ±3m 순 (퍼팅 거리에 맞춰 바꾸지 않는다 — 처음에는 늘 3m)
+  const R = dragging && lockedR ? lockedR : (scale ?? (stop ? fitScale(stop) : DEFAULT_SCALE));
   const ppm = pxPerMeter(R);
   const px = (x) => HOLE_X + x * ppm;
   const py = (y) => HOLE_Y - y * ppm;
@@ -163,14 +167,14 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
     // 남은 거리 말풍선과 사이드 버튼이 서로, 그리고 멈춘 곳 표시와 겹치지 않게 자리를 정한다 (engine/puttMiss.js layoutOverlays)
     overlay = layoutOverlays({ marker: { x: mx, y: my }, size, dragging });
     mk = {
-      x: mx, y: my, size, ring: pi?.pass === 'low' ? C.low : C.gold,
+      x: mx, y: my, size, ring: pi?.pass === 'low' ? B.low : B.hi,
       bx: overlay.bubble.x, by: overlay.bubble.y,
     };
     leavePath = `M${Math.round(mx)} ${Math.round(my)} L${HOLE_X} ${HOLE_Y}`;
     if (pi?.canPass && pi.pass) {
       const hiRight = sideBreak(brk) === 'hook';
       const passRight = pi.pass === 'high' ? hiRight : !hiRight;
-      passMark = { x: passRight ? 207 : 143, color: pi.pass === 'low' ? C.low : C.gold };
+      passMark = { x: passRight ? 207 : 143, color: pi.pass === 'low' ? B.low : B.hi };
     }
   }
 
@@ -187,26 +191,25 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
     const idle = { disabled: true, on: false, sub: '', subColor: C.muted, bg: 'transparent', bd: 'transparent', bdStyle: 'solid', cursor: 'default', onClick: undefined };
     if (!sd) return { ...idle, text: across === 'left' ? '좌' : '우', color: C.ringLabel };
     const isLow = sd === 'low';
-    const tone = isLow ? C.low : C.text;
+    const tone = isLow ? B.low : B.text;
     const text = isLow ? '로우사이드' : '하이사이드';
     if (!pi || !pi.canPass || !miss) return { ...idle, text, color: tone };
     const on = pi.pass === sd;
-    const rec = pi.rest === sd;
     return {
       text, on, disabled: false, cursor: 'pointer',
-      color: on ? tone : C.muted,
-      bg: on ? (isLow ? C.lowBg : C.sel) : 'rgba(25,31,40,0.55)',
-      bd: on ? (isLow ? C.low : C.gold) : '#3a5a53', bdStyle: on ? 'solid' : 'dashed',
-      sub: rec ? (on ? '추천 · 선택됨' : '추천') : (on ? '직접 선택' : '눌러서 변경'),
-      subColor: on ? (isLow ? C.low : C.gold) : C.muted,
+      color: on ? tone : B.muted,
+      bg: on ? (isLow ? B.lowBg : B.hiBg) : B.idle,
+      bd: on ? (isLow ? B.low : B.hi) : '#5d7f78', bdStyle: on ? 'solid' : 'dashed',
+      sub: on ? '' : '눌러서 변경',
+      subColor: on ? (isLow ? B.low : B.hi) : B.muted,
       onClick: () => onChange?.(withPassOverride(miss, brk, frame, sd)),
     };
   };
 
   const resultText = shown
     ? `${missText({ across: shown.across, along: shown.along }, pi?.pass)}${!brk && shown.across !== 'line' ? ' (라이 선택 시 하이/로우)' : ''}`
-    : '판을 탭해 공이 멈춘 곳을 찍으세요';
-  const resultColor = pi?.pass === 'low' ? C.low : shown ? C.text : C.muted;
+    : '멈춘 곳을 탭해 주세요';
+  const resultColor = pi?.pass === 'low' ? '#b45309' : shown ? C.text : C.muted;   // 판 바깥의 밝은 카드 위 글자
 
   return (
     <div data-role="putt-board-section">
@@ -232,7 +235,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onKeyDown={onKey}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%', padding: 0, boxSizing: 'border-box',
-            border: `1px solid ${dragging ? C.gold : C.boardBorder}`, borderRadius: 18, background: C.board, overflow: 'hidden',
+            border: `1px solid ${dragging ? B.hi : C.boardBorder}`, borderRadius: 18, background: C.board, overflow: 'hidden',
             cursor: 'crosshair', fontFamily: 'inherit', touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none',
             // 눌렀을 때 버튼 공통의 눌림 효과(전체가 줄어드는 것)는 판에서는 끈다 — 위치가 어긋난다
             transform: 'none', filter: 'none',
@@ -249,12 +252,12 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           ))}
           <svg aria-hidden="true" viewBox={`0 0 ${BOARD_W} ${BOARD_H}`} fill="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
             <path d={`M175 ${ballY - 8} L175 168`} stroke={C.path} strokeWidth="1.5" strokeDasharray="4 4" />
-            {liePath && <path d={liePath} stroke={C.gold} strokeWidth="3" strokeLinecap="round" strokeDasharray="2 8" opacity="0.9" />}
+            {liePath && <path d={liePath} stroke={B.hi} strokeWidth="3" strokeLinecap="round" strokeDasharray="2 8" opacity="0.9" />}
             {leavePath && <path d={leavePath} stroke="#ffffff" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.7" />}
             <circle cx="175" cy={ballY} r="7" fill={C.ball} stroke={C.bg} strokeWidth="2" />
           </svg>
-          <span style={{ ...at(12, 10), fontSize: 12, fontWeight: 700, color: C.text2 }}>↑ 롱 (지나침)</span>
-          <span style={{ ...at(12, 292), fontSize: 12, fontWeight: 700, color: C.text2 }}>↓ 숏 (못 미침)</span>
+          <span style={{ ...at(12, 10), fontSize: 12, fontWeight: 700, color: B.muted }}>↑ 롱 (지나침)</span>
+          <span style={{ ...at(12, 292), fontSize: 12, fontWeight: 700, color: B.muted }}>↓ 숏 (못 미침)</span>
           {passMark && (
             <svg aria-hidden="true" width="16" height="22" viewBox="0 0 16 22" fill="none" style={{ ...centered(passMark.x, 160) }}>
               <path d="M8 20V3" stroke={passMark.color} strokeWidth="2.5" strokeLinecap="round" />
@@ -263,7 +266,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           )}
           <span aria-hidden="true" style={{ ...at(189, Math.min(286, ballY - 9)), fontSize: 12, fontWeight: 700, color: '#ffffff', whiteSpace: 'nowrap' }}>{ballLabel}</span>
           {dragging && (
-            <span aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, padding: '3px 8px', borderRadius: 8, background: C.sel, color: C.gold, fontSize: 12, fontWeight: 700 }}>미세 조정 0.5배</span>
+            <span aria-hidden="true" style={{ position: 'absolute', right: 10, top: 8, padding: '3px 8px', borderRadius: 8, background: B.hiBg, color: B.hi, fontSize: 12, fontWeight: 700 }}>미세 조정 0.5배</span>
           )}
         </button>
 
@@ -284,7 +287,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
           <button type="button" data-role="putt-board-hole" aria-label="홀인 성공" onClick={onHoleIn}
             style={{ ...centered(HOLE_X, HOLE_Y), width: 44, height: 44, padding: 0, border: 0, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span aria-hidden="true" style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid #ffffff', background: '#000000', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21V4" /><path d="M7 4l11 4-11 4" /></svg>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={B.hi} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 21V4" /><path d="M7 4l11 4-11 4" /></svg>
             </span>
           </button>
         )}

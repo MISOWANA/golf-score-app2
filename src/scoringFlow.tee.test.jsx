@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // 스코어 상세 입력 — 티샷 탭의 버튼들을 사용자 순서대로 눌러 본다. 방식은 test/flowKit.jsx 머리말 참고.
 import { describe, it, expect, vi } from 'vitest';
-import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, openPutts, scoreNow, stored, looksOn, on, text, newHole, installHooks } from './test/flowKit.jsx';
+import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, openPutts, scoreNow, stored, looksOn, on, text, newHole, setPar, installHooks } from './test/flowKit.jsx';
 
 vi.setConfig({ testTimeout: 40000 });
 installHooks();
@@ -26,16 +26,35 @@ describe('티샷 — 클럽', () => {
     expect(scoreNow().pending).toBeNull();                             // 샷 기록이 없으니 '온그린까지 N타'도 사라진다
   });
 
-  it('WOOD · HYBRID · IRON 은 세부 클럽을 고르고, 눌린 세부 클럽 이름이 버튼에 보인다', async () => {
+  it('티샷 클럽 버튼은 DRIVER · HYBRID · IRON 세 개다 (우드 · 웨지 버튼은 없다)', async () => {
     await newHole();
-    await tap('WOOD');
-    for (const sub of ['3W', '5W', '7W', '9W']) expect(find(sub).length, `WOOD 세부 ${sub}`).toBe(1);
-    await tap('5W');
-    expect(find('5W').length).toBe(1);                                // 고르면 세부 줄은 접히고 큰 버튼에 5W 가 쓰인다
-    expect(looksOn(one('5W'))).toBe(true);
-    expect(find('3W').length).toBe(0);
-    expect((await stored()).s).toMatchObject({ teeClub: 'wood', teeClubSub: '5W' });
-    await tap('HYBRID');                                              // 다른 종류로 바꾸면 세부는 비워진다
+    const row = ['DRIVER', 'HYBRID', 'IRON'].map((c) => one(c));
+    expect(row).toHaveLength(3);
+    expect(find('WOOD')).toHaveLength(0);
+    expect(find('WEDGE')).toHaveLength(0);
+  });
+
+  it('파3 도 티샷 클럽 버튼은 DRIVER · HYBRID · IRON 이다', async () => {
+    await newHole();
+    await setPar(0, 3);
+    for (const c of ['DRIVER', 'HYBRID', 'IRON']) expect(find(c), c).toHaveLength(1);
+    expect(find('WEDGE')).toHaveLength(0);
+    await tap('DRIVER');
+    expect((await stored()).s).toMatchObject({ teeClub: 'driver' });
+  });
+
+  it('HYBRID · IRON 은 세부 클럽을 고르고, 눌린 세부 클럽 이름이 버튼에 보인다', async () => {
+    await newHole();
+    await tap('HYBRID');
+    for (const sub of ['2H', '3H', '4H', '5H']) expect(find(sub).length, `HYBRID 세부 ${sub}`).toBe(1);
+    await tap('4H');
+    expect(find('4H').length).toBe(1);                                // 고르면 세부 줄은 접히고 큰 버튼에 4H 가 쓰인다
+    expect(looksOn(one('4H'))).toBe(true);
+    expect(find('3H').length).toBe(0);
+    expect((await stored()).s).toMatchObject({ teeClub: 'hybrid', teeClubSub: '4H' });
+    await tap('DRIVER');                                              // 다른 종류로 바꾸면 세부는 비워진다
+    expect((await stored()).s).toMatchObject({ teeClub: 'driver', teeClubSub: null });
+    await tap('HYBRID');
     expect((await stored()).s).toMatchObject({ teeClub: 'hybrid', teeClubSub: null });
     for (const sub of ['2H', '3H', '4H', '5H']) expect(find(sub).length, `HYBRID 세부 ${sub}`).toBe(1);
     await tap('IRON');

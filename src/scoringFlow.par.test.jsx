@@ -22,37 +22,38 @@ describe('라운드 수정 — 파 바꾸기', () => {
 describe('파3 홀', () => {
   const startPar3 = async () => { await newHole(); await setPar(0, 3); };
 
-  it('파3 은 티샷 탭에 핀 위치 · 거리 · 클럽 · 구질 · GIR 이 차례로 있고, 클럽을 골라야 GIR 이 나온다', async () => {
+  it('파3 은 티샷 탭에 핀 위치 · 거리 · 클럽 · 구질 · 티샷 결과가 차례로 있고, 클럽을 골라야 티샷 결과가 나온다 (GIR 이라는 말은 없다)', async () => {
     await startPar3();
     expect(area('pin-position')).toBeTruthy();
     expect(text()).toContain('거리');
-    expect(text()).not.toContain('GIR');                               // 클럽 전에는 GIR 칸이 없다
+    expect(text()).not.toContain('티샷 결과');                          // 클럽 전에는 티샷 결과 칸이 없다
     await tap('IRON'); await tap('7I');
-    expect(text()).toContain('GIR');
+    expect(text()).toContain('티샷 결과');
+    expect(text()).not.toContain('GIR');
     expect(text()).not.toContain('페어웨이 적중');                        // 파3 에는 페어웨이가 없다
-    // 파3 은 티샷 결과(GIR)까지 눌러야 다음 탭이 열리고, 무엇이 남았는지 화면이 알려 준다
+    // 파3 은 티샷 결과(그린 온 · 그린 놓침)까지 눌러야 다음 탭이 열리고, 무엇이 남았는지 화면이 알려 준다
     expect(tabInfo()['필드샷'].disabled).toBe(true);
-    expect(text()).toContain('남은 항목: GIR 성공/실패');
-    await tap(find('실패')[0]);
+    expect(text()).toContain('남은 항목: 티샷 결과');
+    await tap(find('그린 놓침')[0]);
     expect(tabInfo()['티샷'].done).toBe(true);
   });
 
-  it('GIR 성공 → 퍼팅 탭, PUTT 1 이 열려 있다. 다시 필드샷 탭을 보면 비어 있고 GIR 칩은 초록으로 남는다', async () => {
+  it('그린 온 → 퍼팅 탭, PUTT 1 이 열려 있다. 다시 필드샷 탭을 보면 비어 있고 그린 온 칩은 초록으로 남는다', async () => {
     await startPar3();
     await tap('IRON'); await tap('7I');
     await setDistance(area('pin-position').nextElementSibling, 150);
-    await tap(find('성공')[0]);
+    await tap(find('그린 온')[0]);
     expect(currentTab()).toBe('퍼팅');
     expect(openPutts()).toEqual([1]);
     expect(tabInfo()['필드샷'].done).toBe(true);
     await tapTab('tee');
-    expect(looksOn(find('성공')[0])).toBe(true);
+    expect(looksOn(find('그린 온')[0])).toBe(true);
   });
 
-  it('GIR 실패 → 필드샷 탭이 열리고, 놓친 방향을 고를 수 있으며, 온그린 성공을 누르면 퍼팅으로 간다', async () => {
+  it('그린 놓침 → 필드샷 탭이 열리고, 놓친 방향을 고를 수 있으며, 온그린 성공을 누르면 퍼팅으로 간다', async () => {
     await startPar3();
     await tap('IRON'); await tap('7I');
-    await tap(find('실패')[0]);
+    await tap(find('그린 놓침')[0]);
     expect(currentTab()).toBe('필드샷');
     expect(text()).toContain('놓친 방향');
     await tap('숏');

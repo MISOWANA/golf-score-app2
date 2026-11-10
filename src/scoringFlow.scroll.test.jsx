@@ -103,9 +103,11 @@ describe('필드샷 · 퍼팅 — 누르면 다음 칸으로', () => {
     await tap('IRON'); await tap('7I');
     await setDistance(area('second-surface').parentElement, 150);
     await tap(area('second-lie-flat'));
+    const w = watchScroll();
     await tap(area('second-result-on'));
     expect(currentTab()).toBe('퍼팅');
-    const w = watchScroll();
+    await w.lands('putt-pin');                                           // 들어올 때의 이동(80ms 타이머)이 끝난 뒤에 누른다 — 느린 CI 에서 순서가 뒤집히지 않게
+    w.reset();
     await tap(area('putt-lie-uphill'));
     await w.lands('putt-distance-0');
     w.reset();

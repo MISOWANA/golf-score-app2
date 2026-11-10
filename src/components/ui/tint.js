@@ -1,5 +1,5 @@
-// 틴트 워시: 카드 모서리에서 번지는 옅은 색과 같은 색 테두리. 막대·장식 없이 색으로 분위기만 낸다.
-// 카드의 background · border 만 돌려주므로 카드 스타일 뒤에 펼쳐서 덮어쓴다: style={{ ...styles.card, ...tintWash('#3db87a') }}
+// 틴트 워시: 카드 전체에 깔리는 옅은 한 가지 색 (테두리·번짐 없이 납작하게). 막대·장식 없이 색으로 분위기만 낸다.
+// 카드의 background · border 만 돌려주므로 카드 스타일 뒤에 펼쳐서 덮어쓴다: style={{ ...styles.card, ...tintWash('#0a7f3f') }}
 
 const rgbOf = (hex) => {
   const h = String(hex).replace('#', '');
@@ -7,11 +7,13 @@ const rgbOf = (hex) => {
   return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)).join(',');
 };
 
-export function tintWash(color, { at = '0% 0%', size = '120% 150%', stop = 62, strength = 0.16, border = 0.34, base = '#111827' } = {}) {
+// at · size · stop · border 는 예전 호출을 그대로 받기 위해 남겨 둔 자리다 (이제 쓰지 않는다)
+export function tintWash(color, { strength = 0.16, base = '#f2f4f6' } = {}) {
   const rgb = rgbOf(color);
+  const a = +(strength * 0.45).toFixed(3);
   return {
-    background: `radial-gradient(${size} at ${at}, rgba(${rgb},${strength}) 0%, rgba(${rgb},0) ${stop}%), ${base}`,
-    border: `1px solid rgba(${rgb},${border})`,
+    background: `linear-gradient(rgba(${rgb},${a}), rgba(${rgb},${a})), ${base}`,
+    border: "none",
   };
 }
 

@@ -34,8 +34,8 @@ export default function LandingDistribution({ counts }) {
         style={{ display: 'block', width: '100%', maxWidth: 340, margin: '0 auto' }}>
         <defs>
           <linearGradient id={`${uid}-gold`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#f8e08a" />
-            <stop offset="1" stopColor="#c9a228" />
+            <stop offset="0" stopColor="#4a8df0" />
+            <stop offset="1" stopColor="#1b64da" />
           </linearGradient>
           <filter id={`${uid}-glow`} x="-60%" y="-60%" width="220%" height="220%">
             <feGaussianBlur stdDeviation="3.2" result="b" />
@@ -48,7 +48,7 @@ export default function LandingDistribution({ counts }) {
           const on = sum.top === q, c = QUADRANT_CENTER[q];
           return (
             <path key={q} d={arcPath(ARC, c - 42, c + 42)} fill="none" strokeWidth="3" strokeLinecap="round"
-              stroke={on ? '#f3d36b' : '#252f4a'} filter={on ? `url(#${uid}-glow)` : undefined} />
+              stroke={on ? '#1b64da' : '#d1d6db'} filter={on ? `url(#${uid}-glow)` : undefined} />
           );
         })}
 
@@ -56,40 +56,40 @@ export default function LandingDistribution({ counts }) {
           const c = counts[h] ?? 0, d = hourAngle(h), key = !!KEY_NAME[h];
           const peak = c > 0 && c === sum.max;
           const alpha = 0.2 + 0.32 * (c / sum.max);   // 진할수록 많이 — 흰 글자 대비 4.5:1 이 지켜지는 선까지만
-          const base = key ? '#1a2644' : '#131b2f';
+          const base = key ? '#dfe9fb' : '#eef1f4';
           const p = pol((WI + WO) / 2, d);
           const shape = sectorPath(WI + 3, WO - 3, d - 12.6, d + 12.6);
           return (
             <g key={h} data-role="landing-point" data-hour={h} data-count={c} data-peak={peak ? '1' : '0'}>
               <path d={shape} fill={base} stroke={base} strokeWidth="6" strokeLinejoin="round" />
               {c > 0 && !peak && (
-                <path d={shape} fill="#c9a228" fillOpacity={alpha} stroke="#c9a228" strokeOpacity={alpha} strokeWidth="6" strokeLinejoin="round" />
+                <path d={shape} fill="#1b64da" fillOpacity={alpha} stroke="#1b64da" strokeOpacity={alpha} strokeWidth="6" strokeLinejoin="round" />
               )}
               {peak && (
-                <path d={shape} fill={`url(#${uid}-gold)`} stroke="#e8c64e" strokeWidth="6" strokeLinejoin="round" filter={`url(#${uid}-glow)`} />
+                <path d={shape} fill={`url(#${uid}-gold)`} stroke="#1b64da" strokeWidth="6" strokeLinejoin="round" filter={`url(#${uid}-glow)`} />
               )}
               {c > 0 ? (
                 <>
                   <text x={fix(p[0])} y={fix(p[1] - 6)} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="900"
-                    fill={peak ? '#1a1405' : '#f4f6fb'}>{c}</text>
+                    fill={peak ? '#ffffff' : '#191f28'}>{c}</text>
                   <text x={fix(p[0])} y={fix(p[1] + 10)} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700"
-                    fill={peak ? 'rgba(26,20,5,0.78)' : '#e1e8f5'}>{h}시</text>
+                    fill={peak ? 'rgba(255,255,255,0.92)' : '#4e5968'}>{h}시</text>
                 </>
               ) : (
-                <text x={fix(p[0])} y={fix(p[1])} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#8896b0">{h}</text>
+                <text x={fix(p[0])} y={fix(p[1])} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#4e5968">{h}</text>
               )}
             </g>
           );
         })}
 
         {/* 가운데 — 핀(깃발)과 총 횟수 */}
-        <circle cx={CENTER} cy={CENTER} r={WI - 9} fill="#0e1c14" stroke="rgba(61,184,122,0.55)" strokeWidth="1.5" />
+        <circle cx={CENTER} cy={CENTER} r={WI - 9} fill="#eaf6ee" stroke="rgba(10,127,63,0.55)" strokeWidth="1.5" />
         <FlagMark x={CENTER - 8} y={CENTER - 9} k={0.85} />
-        <text x={CENTER} y={CENTER + 26} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="800" fill="#f3d36b" data-role="landing-hub-total">{sum.total}회</text>
+        <text x={CENTER} y={CENTER + 26} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="800" fill="#1b64da" data-role="landing-hub-total">{sum.total}회</text>
 
         {meanDot && (
           <g data-role="landing-mean">
-            <circle cx={fix(meanDot[0])} cy={fix(meanDot[1])} r="7.5" fill="#fff" stroke="#c9a228" strokeWidth="3.5" filter={`url(#${uid}-glow)`} />
+            <circle cx={fix(meanDot[0])} cy={fix(meanDot[1])} r="7.5" fill="#ffffff" stroke="#1b64da" strokeWidth="3.5" filter={`url(#${uid}-glow)`} />
           </g>
         )}
 
@@ -98,16 +98,16 @@ export default function LandingDistribution({ counts }) {
           return (
             <g key={q} data-role="landing-label" data-quadrant={q}>
               <text x={fix(CENTER + dx)} y={fix(CENTER + dy - 9)} textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700"
-                letterSpacing="0.04em" fill={hl ? '#f3d36b' : '#8896b0'}>{QUADRANT_NAME[q]}</text>
+                letterSpacing="0.04em" fill={hl ? '#1b64da' : '#4e5968'}>{QUADRANT_NAME[q]}</text>
               <text x={fix(CENTER + dx)} y={fix(CENTER + dy + 8)} textAnchor="middle" dominantBaseline="central" fontSize="17" fontWeight="900"
-                fill={hl ? '#f3d36b' : '#e8edf8'}>{pctOf(q)}%</text>
+                fill={hl ? '#1b64da' : '#191f28'}>{pctOf(q)}%</text>
             </g>
           );
         })}
       </svg>
-      <div data-role="landing-caption" style={{ textAlign: 'center', fontSize: 14, color: '#8896b0', marginTop: 6, lineHeight: 1.5 }}>
+      <div data-role="landing-caption" style={{ textAlign: 'center', fontSize: 14, color: '#4e5968', marginTop: 6, lineHeight: 1.5 }}>
         {meanDot && (
-          <span aria-hidden="true" style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#fff', border: '2px solid #c9a228', verticalAlign: -1, marginRight: 6, boxSizing: 'border-box' }} />
+          <span aria-hidden="true" style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: '#ffffff', border: '2px solid #1b64da', verticalAlign: -1, marginRight: 6, boxSizing: 'border-box' }} />
         )}
         {caption}
       </div>

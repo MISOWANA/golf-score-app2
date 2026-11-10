@@ -55,8 +55,8 @@ export default function PuttingTab({ report }) {
           { key: 'three', label: '3퍼트+', pct: putting.three.pct ?? 0, count: `${putting.three.n}홀`, color: COLOR.red },
         ]} />
         {d.sg.measured ? (
-          <div data-role="putt-sg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, padding: '8px 10px', borderRadius: 8, background: '#0e1424', border: `1px solid ${COLOR.line}` }}>
-            <span style={{ fontSize: 14, color: '#8ca4bc', fontWeight: 700 }}>투어 평균 대비 퍼팅 SG</span>
+          <div data-role="putt-sg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 12, padding: '8px 10px', borderRadius: 8, background: '#f2f4f6', border: `1px solid ${COLOR.line}` }}>
+            <span style={{ fontSize: 14, color: '#4e5968', fontWeight: 700 }}>투어 평균 대비 퍼팅 SG</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <b data-role="putt-sg-value" style={{ fontSize: 17, fontVariantNumeric: 'tabular-nums', color: d.sg.perRound >= 0 ? COLOR.green : COLOR.red }}>
                 {fmtSigned(d.sg.perRound, 2)}<span style={{ fontSize: 12, fontWeight: 700, color: COLOR.muted, marginLeft: 2 }}>/R</span>
@@ -135,7 +135,7 @@ export default function PuttingTab({ report }) {
             <div style={{ fontSize: 14, color: COLOR.muted, marginBottom: 4 }}>3퍼트 이상 <b style={{ color: COLOR.text }}>{causes.total}홀</b></div>
             {causeRows.map((c) => (
               <RateRow key={c} id={`cause-${c}`} label={PUTT_CAUSE_LABEL[c]} value={(causes.counts[c] / causes.total) * 100} text={`${causes.counts[c]}홀`}
-                color={c === 'unknown' ? '#8896b0' : c === causes.dominant ? COLOR.red : COLOR.amber} labelWidth={110} />
+                color={c === 'unknown' ? '#4e5968' : c === causes.dominant ? COLOR.red : COLOR.amber} labelWidth={110} />
             ))}
             {causeTake && <Takeaway tone={causeTake.tone}>{causeTake.text}</Takeaway>}
           </>

@@ -24,9 +24,9 @@ import { fmtPutt } from '../../engine/units.js';
 const BASE_THEME = {
   board: '#0e211e', boardBorder: '#24403a', ring: '#2f5149', ringFill: '#123029', axis: '#1f3a35',
   ringLabel: '#8fb0a8', ball: '#ffffff', path: '#4a6a63',
-  gold: '#c9a228', goldHi: '#f3d36b', low: '#f2895e', lowBg: 'rgba(242,137,94,0.16)', sel: 'rgba(201,162,40,0.18)',
-  text: '#e8edf8', text2: '#c4cfe0', muted: '#8896b0', bg: '#0b0e18', card: '#0d1425', line: '#252f4a',
-  ok: '#3db87a',
+  gold: '#1b64da', goldHi: '#1b64da', low: '#f2895e', lowBg: 'rgba(242,137,94,0.16)', sel: 'rgba(27,100,218,0.18)',
+  text: '#191f28', text2: '#333d4b', muted: '#4e5968', bg: '#ffffff', card: '#f2f4f6', line: '#d1d6db',
+  ok: '#0a7f3f',
 };
 
 // 위치 · 크기를 판 좌표(0~BOARD_W · 0~BOARD_H)에서 비율로 바꾼다
@@ -40,8 +40,8 @@ const centered = (x, y) => ({ ...at(x, y), transform: 'translate(-50%, -50%)' })
 const ptLabel = (m) => fmtPutt(m, { digits: Number.isInteger(m) ? 0 : 1 });
 
 // 스코어 입력의 섹션 머리글(fIcon · fLbl)과 같은 모양 — ScoringView 의 값과 함께 바꾼다
-const iconStyle = { fontSize: 15, width: 18, textAlign: 'center', color: '#8896b0', flexShrink: 0 };
-const labelStyle = { fontSize: 13, fontWeight: 700, color: '#8ca4bc', letterSpacing: '0.15em', textTransform: 'uppercase' };
+const iconStyle = { fontSize: 15, width: 18, textAlign: 'center', color: '#4e5968', flexShrink: 0 };
+const labelStyle = { fontSize: 13, fontWeight: 700, color: '#4e5968', letterSpacing:'0', textTransform:'none' };
 
 export default function PuttBoard({ distance = null, order = 1, brk = null, frame = DEFAULT_FRAME, miss = null, prevStops = [], onChange, onHoleIn, theme }) {
   const C = { ...BASE_THEME, ...theme };
@@ -195,7 +195,7 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
     return {
       text, on, disabled: false, cursor: 'pointer',
       color: on ? tone : C.muted,
-      bg: on ? (isLow ? C.lowBg : C.sel) : 'rgba(11,14,24,0.6)',
+      bg: on ? (isLow ? C.lowBg : C.sel) : 'rgba(25,31,40,0.55)',
       bd: on ? (isLow ? C.low : C.gold) : '#3a5a53', bdStyle: on ? 'solid' : 'dashed',
       sub: rec ? (on ? '추천 · 선택됨' : '추천') : (on ? '직접 선택' : '눌러서 변경'),
       subColor: on ? (isLow ? C.low : C.gold) : C.muted,
@@ -299,8 +299,8 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
 
         {mk && (
           <>
-            <span aria-hidden="true" style={{ ...centered(mk.x, mk.y), width: mk.size, height: mk.size, borderRadius: '50%', background: '#ffffff', border: `3px solid ${mk.ring}`, boxSizing: 'border-box', pointerEvents: 'none', boxShadow: dragging ? '0 0 0 6px rgba(201,162,40,0.25)' : 'none' }} />
-            <span data-role="putt-leave-bubble" aria-hidden="true" style={{ ...centered(mk.bx, mk.by), minWidth: 60, boxSizing: 'border-box', padding: '3px 6px', textAlign: 'center', borderRadius: 8, background: C.gold, color: C.bg, fontSize: 13, fontWeight: 900, whiteSpace: 'nowrap', pointerEvents: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.45)' }}>{fmtPutt(shown.leave, { digits: 1 })}</span>
+            <span aria-hidden="true" style={{ ...centered(mk.x, mk.y), width: mk.size, height: mk.size, borderRadius: '50%', background: '#ffffff', border: `3px solid ${mk.ring}`, boxSizing: 'border-box', pointerEvents: 'none', boxShadow: dragging ? '0 0 0 6px rgba(27,100,218,0.25)' : 'none' }} />
+            <span data-role="putt-leave-bubble" aria-hidden="true" style={{ ...centered(mk.bx, mk.by), minWidth: 60, boxSizing: 'border-box', padding: '3px 6px', textAlign: 'center', borderRadius: 8, background: C.gold, color: C.bg, fontSize: 13, fontWeight: 900, whiteSpace: 'nowrap', pointerEvents: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.158)' }}>{fmtPutt(shown.leave, { digits: 1 })}</span>
           </>
         )}
       </div>
@@ -309,11 +309,11 @@ export default function PuttBoard({ distance = null, order = 1, brk = null, fram
       {/* 결과 카드 */}
       <div data-role="putt-result" style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 64, boxSizing: 'border-box', marginTop: 10, padding: '10px 14px', borderRadius: 12, border: `1px solid ${C.line}`, background: C.card }}>
         <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: C.muted }}>미스 방향</span>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing:'0', color: C.muted }}>미스 방향</span>
           <span data-role="putt-result-text" data-tone={pi?.pass === 'low' ? 'low' : 'normal'} style={{ fontSize: 17, fontWeight: 900, color: resultColor, wordBreak: 'keep-all' }}>{resultText}</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: C.muted }}>남은 거리</span>
+          <span style={{ fontSize: 12, fontWeight: 700, letterSpacing:'0', color: C.muted }}>남은 거리</span>
           <span data-role="putt-leave" style={{ fontSize: 22, fontWeight: 900, color: C.gold }}>{shown ? fmtPutt(shown.leave, { digits: 1 }) : '—'}</span>
         </div>
       </div>

@@ -577,7 +577,7 @@ export default function GolfScoringApp() {
       {showResumeModal && currentRound && (
         <div
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)',
+            position: 'fixed', inset: 0, background: 'rgba(25,31,40,0.55)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 9999, padding: '24px'
           }}
@@ -585,25 +585,25 @@ export default function GolfScoringApp() {
         >
           <div
             style={{
-              background: '#0f1825', borderRadius: 16, padding: '28px 22px', textAlign: 'center',
-              width: '100%', maxWidth: 340, border: '1px solid #1b2744', boxShadow: '0 8px 40px rgba(0,0,0,0.6)'
+              background: '#ffffff', borderRadius: 16, padding: '28px 22px', textAlign: 'center',
+              width: '100%', maxWidth: 340, border: '1px solid #e5e8eb', boxShadow: '0 8px 40px rgba(0,0,0,0.21)'
             }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ fontSize: 26, marginBottom: 12 }}>⛳</div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#191f28', marginBottom: 8 }}>
               진행 중인 라운드가 있어요
             </div>
-            <div style={{ fontSize: 15, color: '#c9a228', fontWeight: 700, marginBottom: 4 }}>
+            <div style={{ fontSize: 15, color: '#1b64da', fontWeight: 700, marginBottom: 4 }}>
               {currentRound.courseName}
             </div>
-            <div style={{ fontSize: 14, color: '#8896b0', marginBottom: confirmDiscard ? 14 : 20 }}>
+            <div style={{ fontSize: 14, color: '#4e5968', marginBottom: confirmDiscard ? 14 : 20 }}>
               {isNineHoleRound(currentRound) ? `${roundKindLabel(currentRound)} · ` : ''}{holeNoOf(currentRound, currentRound.currentHole)}번 홀 진행 중 · {currentRound.players.join(', ')}
             </div>
             {confirmDiscard ? (
               <>
                 {/* 삭제는 되돌릴 수 없다 — 한 번 더 확인한다 */}
-                <div role="alert" style={{ fontSize: 14, color: '#ef5350', background: 'rgba(239,83,80,0.08)', border: '1px solid rgba(239,83,80,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, lineHeight: 1.6 }}>
+                <div role="alert" style={{ fontSize: 14, color: '#c8323a', background: 'rgba(200,50,58,0.08)', border: '1px solid rgba(200,50,58,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, lineHeight: 1.6 }}>
                   입력한 {enteredHoles}개 홀의 기록이 삭제돼요.<br />되돌릴 수 없어요.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
@@ -611,7 +611,7 @@ export default function GolfScoringApp() {
                     onClick={() => setConfirmDiscard(false)}
                     style={{
                       flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                      background: '#c9a228', color: '#0b0e18', border: '1.5px solid transparent',
+                      background: '#1b64da', color: '#ffffff', border: '1.5px solid transparent',
                       borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: 'pointer'
                     }}
                   >
@@ -621,7 +621,7 @@ export default function GolfScoringApp() {
                     onClick={handleDiscardAndSetup}
                     style={{
                       flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                      background: '#ef5350', color: '#fff', border: '1.5px solid transparent',
+                      background: '#c8323a', color: '#ffffff', border: '1.5px solid transparent',
                       borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer'
                     }}
                   >
@@ -635,7 +635,7 @@ export default function GolfScoringApp() {
                   onClick={handleResumeRound}
                   style={{
                     flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                    background: '#c9a228', color: '#0b0e18', border: '1.5px solid transparent',
+                    background: '#1b64da', color: '#ffffff', border: '1.5px solid transparent',
                     borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: 'pointer'
                   }}
                 >
@@ -645,8 +645,8 @@ export default function GolfScoringApp() {
                   onClick={() => setConfirmDiscard(true)}
                   style={{
                     flex: 1, padding: '13px 6px', wordBreak: 'keep-all', textWrap: 'balance', lineHeight: 1.35,
-                    background: 'transparent', color: '#ef5350',
-                    border: '1.5px solid rgba(239,83,80,0.5)', borderRadius: 10,
+                    background: 'transparent', color: '#c8323a',
+                    border: '1.5px solid rgba(200,50,58,0.5)', borderRadius: 10,
                     fontSize: 14, fontWeight: 700, cursor: 'pointer'
                   }}
                 >

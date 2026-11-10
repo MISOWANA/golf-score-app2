@@ -243,7 +243,7 @@ describe.each(PREFS)('끝나지 않은 홀은 홀 표에 숫자로 보이지 않
     expect([navScore(), navPutts()]).toEqual(['·', '-']);
     expect(text()).toContain('진행 중');
     expect(text()).not.toMatch(/Bogey|Birdie|Double/);
-    expect(text()).not.toMatch(/HOLE 1 PAR 4 \+\d/);                        // 파 대비 "+1" 배지도 없다
+    expect(area('score-name').textContent).toBe('진행 중');                  // 스코어 이름(버디 · 보기 …) 자리에는 "진행 중"만 있다
   });
 
   it('칩이 그린에 올라간 뒤에도 마지막 퍼트가 들어가기 전까지는 계속 진행 중이고, 홀인하면 그때 숫자(5타 · 퍼팅 2)로 바뀐다', async () => {
@@ -255,7 +255,7 @@ describe.each(PREFS)('끝나지 않은 홀은 홀 표에 숫자로 보이지 않
     await tap(area('putt-primary'));
     await waitForHole(2);
     expect([navScore(), navPutts()]).toEqual(['5', '2']);                    // 티샷 · 세컨샷 · 퍼트 · 칩 · 퍼트
-    expect(text()).toMatch(/1 ?\/ ?18 holes/);
+    expect(text()).toMatch(/1 ?\/ ?18홀/);
   });
 
   it('PUTT 1 에서 안 들어가 PUTT 2 로 넘어가 있는 동안도 진행 중이다 (카드를 만들어 둔 것일 뿐 퍼트 수가 정해진 게 아니다)', async () => {
@@ -280,7 +280,7 @@ describe.each(PREFS)('끝나지 않은 홀은 홀 표에 숫자로 보이지 않
   it('진행 중인 홀에서 "다음"으로 넘기면 그 홀은 지금까지 기록한 대로 확정되어 숫자로 보인다', async () => {
     await toPutting(prefs);
     await tap(area('putt-next'));
-    await tap(find('다음')[0]);
+    await tap(find('다음 홀')[0]);
     if (area('hole-check')) await tap(find(/^그대로 다음 홀$/)[0] || area('putt-ask-2'));
     await waitForHole(2);
     expect(navScore()).toMatch(/^\d$/);

@@ -1,6 +1,6 @@
 /**
- * LIV Golf Inspired Design System
- * Premium dark sports aesthetic — golf data clarity as top priority
+ * Birdie Buddy Design System
+ * 밝은 바탕 · 파랑 한 가지 · 회색 면 — 숫자가 먼저 보이게
  *
  * Color Palette A — LIV Origin (default, recommended)
  * Deep navy backgrounds, refined gold accent, crisp white text
@@ -9,48 +9,48 @@
  * Lighter dark green surfaces, warmer gold, higher readability
  */
 
-// ─── Palette A: LIV Origin ──────────────────────────────────────────────────
+// ─── Palette A: Birdie Buddy (밝은 바탕 · 파랑 포인트) ──────────────────────
 const paletteA = {
-  bg:        '#0b0e18',   // page background — near-black navy
-  surface1:  '#111827',   // card/panel
-  surface2:  '#1a2235',   // secondary surface / table header
-  surface3:  '#212a40',   // hover / active fill
-  heroSurface: '#0e1c14', // deep green hero panels
+  bg:        '#ffffff',
+  surface1:  '#f2f4f6',
+  surface2:  '#e8ebee',
+  surface3:  '#dde1e6',
+  heroSurface: '#eaf6ee',
 
-  gold:      '#c9a228',   // LIV Gold — primary accent
-  goldLight: '#e8c84e',   // bright gold
-  goldMuted: '#7a611a',   // muted gold
-  goldBg:    'rgba(201,162,40,0.10)',
+  gold:      '#1b64da',   // 포인트(파랑) — 이름은 예전 그대로
+  goldLight: '#1b64da',
+  goldMuted: '#9db9ee',
+  goldBg:    'rgba(27,100,218,0.08)',
 
-  green:     '#0e1c14',   // deep green (heritage panels)
-  greenMid:  '#1a3028',   // mid green
-  greenAccent: '#3db87a', // active / success green
-  greenBg:   'rgba(61,184,122,0.10)',
+  green:     '#eaf6ee',
+  greenMid:  '#cfe9d8',
+  greenAccent: '#0a7f3f',
+  greenBg:   'rgba(10,127,63,0.10)',
 
-  textPrimary:   '#e8edf8',
-  textSecondary: '#8896b0',
-  textMuted:     '#8896b0',
-  textInverse:   '#0b0e18',
+  textPrimary:   '#191f28',
+  textSecondary: '#4e5968',
+  textMuted:     '#5b6572',
+  textInverse:   '#ffffff',
 
-  border:      '#1b2238',
-  borderMid:   '#252f4a',
-  borderGold:  '#c9a228',
+  border:      '#e5e8eb',
+  borderMid:   '#d1d6db',
+  borderGold:  '#1b64da',
 
-  scoreBirdie:   '#3db87a',
-  scoreEagle:    '#c9a228',
-  scoreAlbatross:'#e8c84e',
-  scoreHio:      '#f0d070',
-  scorePar:      '#8896b0',
-  scoreBogey:    '#9aa8c2',
-  scoreDouble:   '#ef5350',
-  scoreTriple:   '#c62828',
+  scoreBirdie:   '#0a7f3f',
+  scoreEagle:    '#1b64da',
+  scoreAlbatross:'#1b64da',
+  scoreHio:      '#1b64da',
+  scorePar:      '#4e5968',
+  scoreBogey:    '#4e5968',
+  scoreDouble:   '#c8323a',
+  scoreTriple:   '#a11d23',
 
-  success: '#3db87a',
-  warning: '#c9a228',
-  error:   '#ef5350',
-  info:    '#5c7cfa',
+  success: '#0a7f3f',
+  warning: '#a85b00',
+  error:   '#c8323a',
+  info:    '#1b64da',
 
-  scrim:   'rgba(11,14,24,0.88)',
+  scrim:   'rgba(25,31,40,0.5)',
 };
 
 // ─── Palette B: Practical Stable ────────────────────────────────────────────
@@ -181,11 +181,11 @@ export const radii = {
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 export const shadows = {
   none: 'none',
-  sm:   '0 1px 4px rgba(0,0,0,0.4)',
-  md:   '0 4px 16px rgba(0,0,0,0.5)',
-  lg:   '0 12px 40px rgba(0,0,0,0.65)',
-  gold: '0 0 0 1px rgba(201,162,40,0.35), 0 4px 16px rgba(201,162,40,0.15)',
-  tabBar: '0 -2px 16px rgba(0,0,0,0.5)',
+  sm:   '0 1px 4px rgba(25,31,40,0.12)',
+  md:   '0 4px 16px rgba(25,31,40,0.14)',
+  lg:   '0 12px 40px rgba(25,31,40,0.2)',
+  gold: '0 0 0 1px rgba(27,100,218,0.3), 0 4px 16px rgba(27,100,218,0.12)',
+  tabBar: '0 -1px 0 rgba(25,31,40,0.06)',
 };
 
 // ─── Borders ─────────────────────────────────────────────────────────────────

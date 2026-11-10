@@ -127,7 +127,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
     <>
       <div aria-hidden="true" style={{ height: 150 }} />
       <div style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 520, boxSizing: 'border-box', bottom: barBottom, zIndex: 40, padding: '0 16px' }}>
-        <div style={{ borderRadius: 18, background: 'rgba(14,20,34,0.96)', border: '1px solid rgba(201,162,40,0.45)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '10px 12px' }}>
+        <div style={{ borderRadius: 18, background: 'rgba(255,255,255,0.96)', border: '1px solid rgba(27,100,218,0.45)', boxShadow: '0 8px 24px rgba(0,0,0,0.175)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '10px 12px' }}>
           {children}
         </div>
       </div>
@@ -135,7 +135,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
   );
   const primaryBtn = (props, label) => (
     <button type="button" {...props}
-      style={{ width: '100%', height: 50, borderRadius: 14, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#0b0e18', fontSize: 16, fontWeight: 900, cursor: props.disabled ? 'default' : 'pointer', opacity: props.disabled ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+      style={{ width: '100%', height: 50, borderRadius: 14, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#ffffff', fontSize: 16, fontWeight: 900, cursor: props.disabled ? 'default' : 'pointer', opacity: props.disabled ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
       {label}
     </button>
   );
@@ -156,7 +156,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
         <li key={n} aria-current={step === n ? 'step' : undefined} style={{ display: 'contents' }}>
           {i > 0 && <span aria-hidden="true" style={{ flex: 1, height: 1, background: COLOR.line }} />}
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 800, color: step === n ? COLOR.goldHi : step > n ? COLOR.green : COLOR.faint, whiteSpace: 'nowrap' }}>
-            <b style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, lineHeight: 1, background: step === n ? COLOR.gold : step > n ? COLOR.green : '#1f2842', color: step === n || step > n ? '#0b0e18' : COLOR.muted }}>
+            <b style={{ width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, lineHeight: 1, background: step === n ? COLOR.gold : step > n ? COLOR.green : '#eef1f4', color: step === n || step > n ? '#ffffff' : COLOR.muted }}>
               {step > n ? <Check size={11} strokeWidth={3.4} /> : n}
             </b>
             {label}
@@ -189,7 +189,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
           return (
             <div key={type} data-role={`group-${type}`} style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 2px 8px' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', color: COLOR.slate }}>{CATEGORY_TITLE[type]}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing:'0', color: COLOR.slate }}>{CATEGORY_TITLE[type]}</span>
                 <span data-role={`group-count-${type}`} style={{ fontSize: 13, color: COLOR.faint, fontVariantNumeric: 'tabular-nums' }}>{on} / {list.length}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -201,8 +201,8 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
                       <button type="button" aria-pressed={isOn} data-role={`club-chip-${e.type}-${e.name}`} onClick={() => toggle(e.key)}
                         style={{
                           ...chipBase,
-                          border: `${e.custom ? '1.5px dashed' : '1.5px solid'} ${isOn ? COLOR.gold : '#252f4a'}`,
-                          background: isOn ? 'rgba(201,162,40,0.16)' : '#1a2235',
+                          border: `${e.custom ? '1.5px dashed' : '1.5px solid'} ${isOn ? COLOR.gold : '#d1d6db'}`,
+                          background: isOn ? 'rgba(27,100,218,0.16)' : '#e8ebee',
                           color: isOn ? COLOR.goldHi : COLOR.faint,
                         }}>
                         {isOn && <Check size={13} strokeWidth={3} aria-hidden="true" />}{e.name}{!readable && <sup aria-label="스코어 입력에 없는 클럽" style={{ fontSize: 12, marginLeft: 1 }}>*</sup>}
@@ -229,17 +229,17 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
 
         {!addOpen ? (
           <button type="button" data-role="add-open" onClick={() => { setNotice(''); setAddOpen(true); }}
-            style={{ width: '100%', height: 48, borderRadius: 14, border: '1.5px dashed rgba(201,162,40,0.55)', background: 'rgba(201,162,40,0.06)', color: COLOR.goldHi, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            style={{ width: '100%', height: 48, borderRadius: 14, border: '1.5px dashed rgba(27,100,218,0.55)', background: 'rgba(27,100,218,0.06)', color: COLOR.goldHi, fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Plus size={16} strokeWidth={2.6} />클럽 직접 추가
           </button>
         ) : (
-          <div data-role="add-panel" style={{ padding: 14, borderRadius: 16, background: 'rgba(201,162,40,0.06)', border: '1px solid rgba(201,162,40,0.35)' }}>
+          <div data-role="add-panel" style={{ padding: 14, borderRadius: 16, background: 'rgba(27,100,218,0.06)', border: '1px solid rgba(27,100,218,0.35)' }}>
             <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>클럽 직접 추가</div>
             <label htmlFor="bag-add-name" style={{ display: 'block', fontSize: 13, color: COLOR.muted, fontWeight: 700, marginBottom: 5 }}>이름</label>
             <input id="bag-add-name" data-role="add-name" type="text" maxLength={NAME_MAX} value={addName} placeholder="예: 47° · 4W · 1I · SW"
               onChange={(ev) => onAddName(ev.target.value)}
               onKeyDown={(ev) => { if (ev.key === 'Enter') submitAdd(); }}
-              style={{ width: '100%', boxSizing: 'border-box', height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#0b0e18', color: COLOR.text, fontSize: 16, fontWeight: 700, padding: '0 12px', outline: 'none' }} />
+              style={{ width: '100%', boxSizing: 'border-box', height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#ffffff', color: COLOR.text, fontSize: 16, fontWeight: 700, padding: '0 12px', outline: 'none' }} />
 
             <div style={{ fontSize: 13, color: COLOR.muted, fontWeight: 700, margin: '12px 0 6px' }}>어느 종류예요?</div>
             <div role="radiogroup" aria-label="클럽 종류" style={{ display: 'flex', gap: 6 }}>
@@ -247,7 +247,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
                 <button key={t} type="button" role="radio" aria-checked={addType === t} data-role={`add-type-${t}`}
                   onClick={() => { setAddType(t); setAddTypeTouched(true); setAddError(''); }}
                   style={{ flex: 1, minWidth: 0, height: 44, borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', padding: 0,
-                    border: `1.5px solid ${addType === t ? COLOR.gold : '#252f4a'}`, background: addType === t ? 'rgba(201,162,40,0.16)' : '#1a2235', color: addType === t ? COLOR.goldHi : COLOR.muted }}>
+                    border: `1.5px solid ${addType === t ? COLOR.gold : '#d1d6db'}`, background: addType === t ? 'rgba(27,100,218,0.16)' : '#e8ebee', color: addType === t ? COLOR.goldHi : COLOR.muted }}>
                   {CATEGORY_LABEL[t]}
                 </button>
               ))}
@@ -269,7 +269,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
               <button type="button" data-role="add-cancel" onClick={closeAdd}
                 style={{ flex: 1, height: 44, borderRadius: 12, border: `1px solid ${COLOR.line}`, background: 'transparent', color: COLOR.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
               <button type="button" data-role="add-submit" onClick={submitAdd}
-                style={{ flex: 1.4, height: 44, borderRadius: 12, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#0b0e18', fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>추가</button>
+                style={{ flex: 1.4, height: 44, borderRadius: 12, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#ffffff', fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>추가</button>
             </div>
           </div>
         )}
@@ -304,7 +304,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
           </span>
           <span style={{ flex: 1 }} />
           <button type="button" data-role="confirm-all" onClick={confirmAll} disabled={unconfirmedCount === 0}
-            style={{ height: 36, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(61,184,122,0.5)', background: 'rgba(61,184,122,0.08)', color: COLOR.green, fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: unconfirmedCount === 0 ? 0.4 : 1 }}>
+            style={{ height: 36, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(10,127,63,0.5)', background: 'rgba(10,127,63,0.08)', color: COLOR.green, fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: unconfirmedCount === 0 ? 0.4 : 1 }}>
             전부 맞아요
           </button>
         </div>
@@ -313,8 +313,8 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
           const list = pickedWithDistance.filter((e) => e.type === type);
           if (list.length === 0) return null;
           return (
-            <div key={type} data-role={`dist-group-${type}`} style={{ marginBottom: 12, borderRadius: 18, background: 'rgba(201,162,40,0.06)', border: '1px solid rgba(201,162,40,0.18)', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 14px 4px', fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', color: COLOR.slate }}>{CATEGORY_TITLE[type]}</div>
+            <div key={type} data-role={`dist-group-${type}`} style={{ marginBottom: 12, borderRadius: 18, background: 'rgba(27,100,218,0.06)', border: '1px solid rgba(27,100,218,0.18)', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 14px 4px', fontSize: 13, fontWeight: 800, letterSpacing:'0', color: COLOR.slate }}>{CATEGORY_TITLE[type]}</div>
               {list.map((e) => {
                 const d = getDist(e);
                 const isOpen = openKey === e.key;
@@ -325,7 +325,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
                       <button type="button" data-role={`dist-open-${e.type}-${e.name}`} aria-expanded={isOpen} onClick={() => setOpenKey(isOpen ? null : e.key)}
                         style={{ flex: 1, minWidth: 0, minHeight: 56, display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: COLOR.text, textAlign: 'left', cursor: 'pointer', padding: '0 4px 0 14px' }}>
                         <span style={{ fontSize: 16, fontWeight: 800 }}>{e.name}{!readable && <sup style={{ fontSize: 12 }}>*</sup>}</span>
-                        {!d.confirmed && <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.faint, border: '1px solid #2a3556', borderRadius: 999, padding: '1px 7px', whiteSpace: 'nowrap' }}>제안값</span>}
+                        {!d.confirmed && <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.faint, border: '1px solid #e5e8eb', borderRadius: 999, padding: '1px 7px', whiteSpace: 'nowrap' }}>제안값</span>}
                         <span style={{ flex: 1 }} />
                         <span style={{ fontSize: 14, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', color: d.confirmed ? COLOR.muted : COLOR.faint }}>
                           캐리 <b style={{ color: BAG_COLOR.carry }}>{fmtShot(d.carry, { unit: false })}</b> · 토탈 <b style={{ color: BAG_COLOR.total }}>{fmtShot(d.total, { unit: false })}</b>
@@ -333,15 +333,15 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
                       </button>
                       <button type="button" data-role={`dist-check-${e.type}-${e.name}`} aria-pressed={!!d.confirmed} aria-label={`${e.name} 거리 확인`} onClick={() => toggleConfirm(e)}
                         style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>
-                        <span style={{ width: 26, height: 26, borderRadius: '50%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${d.confirmed ? COLOR.green : '#34405f'}`, background: d.confirmed ? COLOR.green : 'transparent', color: '#0b0e18' }}>
+                        <span style={{ width: 26, height: 26, borderRadius: '50%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${d.confirmed ? COLOR.green : '#8b95a1'}`, background: d.confirmed ? COLOR.green : 'transparent', color: '#ffffff' }}>
                           {d.confirmed && <Check size={14} strokeWidth={3.2} />}
                         </span>
                       </button>
                     </div>
                     {isOpen && (
                       <div data-role="dist-editor" style={{ padding: '2px 12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <DistanceField id="carry" label="캐리" sub="CARRY" color={BAG_COLOR.carry} value={d.carry} onChange={(v) => setField(e, 'carry', v)} />
-                        <DistanceField id="total" label="토탈" sub="TOTAL" color={BAG_COLOR.total} value={d.total} onChange={(v) => setField(e, 'total', v)} />
+                        <DistanceField id="carry" label="캐리" color={BAG_COLOR.carry} value={d.carry} onChange={(v) => setField(e, 'carry', v)} />
+                        <DistanceField id="total" label="토탈" color={BAG_COLOR.total} value={d.total} onChange={(v) => setField(e, 'total', v)} />
                         <div style={{ fontSize: 13, color: COLOR.faint, lineHeight: 1.5 }}>
                           런(토탈 − 캐리) <b style={{ color: runOf(d) < 0 ? COLOR.amber : COLOR.muted }}>{runOf(d) > 0 ? '+' : runOf(d) < 0 ? '−' : ''}{Math.abs(runOf(d))}{unitLabel('shot')}</b>
                           {!readable && <span style={{ color: COLOR.amber }}> · 스코어 입력에 없는 클럽이라 추천에서는 빠져요</span>}
@@ -380,7 +380,7 @@ export default function BagSetupWizard({ currentUser, onBack, onLater = null, on
       {header}
       {stepper}
       <div style={{ textAlign: 'center', padding: '28px 8px 8px' }}>
-        <span style={{ width: 64, height: 64, borderRadius: 20, margin: '0 auto', background: 'rgba(61,184,122,0.14)', border: '1px solid rgba(61,184,122,0.4)', color: COLOR.green, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ width: 64, height: 64, borderRadius: 20, margin: '0 auto', background: 'rgba(10,127,63,0.14)', border: '1px solid rgba(10,127,63,0.4)', color: COLOR.green, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Check size={30} strokeWidth={2.6} />
         </span>
         <div style={{ fontSize: 22, fontWeight: 900, marginTop: 16 }}>마이백에 등록했어요</div>

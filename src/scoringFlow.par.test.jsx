@@ -15,7 +15,7 @@ describe('라운드 수정 — 파 바꾸기', () => {
     expect((await stored(0)).round.pars.slice(0, 2)).toEqual([3, 4]);
     await setPar(1, 5);
     expect((await stored(0)).round.pars.slice(0, 2)).toEqual([3, 5]);
-    expect(text()).toMatch(/PAR 3 5 4 4/);                            // 홀 표의 파 줄
+    expect(text()).toMatch(/파 3 5 4 4/);                            // 홀 표의 파 줄
   });
 });
 
@@ -29,7 +29,7 @@ describe('파3 홀', () => {
     expect(text()).not.toContain('GIR');                               // 클럽 전에는 GIR 칸이 없다
     await tap('IRON'); await tap('7I');
     expect(text()).toContain('GIR');
-    expect(text()).not.toContain('FAIRWAY HIT');                        // 파3 에는 페어웨이가 없다
+    expect(text()).not.toContain('페어웨이 적중');                        // 파3 에는 페어웨이가 없다
     // 파3 은 티샷 결과(GIR)까지 눌러야 다음 탭이 열리고, 무엇이 남았는지 화면이 알려 준다
     expect(tabInfo()['필드샷'].disabled).toBe(true);
     expect(text()).toContain('남은 항목: GIR 성공/실패');

@@ -8,12 +8,12 @@ const globalCSS = `
   }
 
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     margin: 0;
-    color: #e8edf8;
+    color: #191f28;
     /* 한글은 띄어쓰기 단위로 줄을 바꾼다 ('퍼/팅'처럼 단어가 중간에서 끊기지 않게).
        한 단어가 칸보다 길 때만 글자 사이에서 꺾어 넘치지 않게 한다. */
     word-break: keep-all;
@@ -24,11 +24,11 @@ const globalCSS = `
 
   /* 키보드 · 외부 키보드로 다닐 때 어디에 있는지 보이게. 입력칸은 인라인으로 outline 을 없앤 곳이 많아 !important */
   button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, [role="radio"]:focus-visible, [role="switch"]:focus-visible, summary:focus-visible {
-    outline: 2px solid #f3d36b;
+    outline: 2px solid #1b64da;
     outline-offset: 2px;
   }
   input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid #f3d36b !important;
+    outline: 2px solid #1b64da !important;
     outline-offset: 1px;
   }
 
@@ -37,23 +37,22 @@ const globalCSS = `
     border: none;
     cursor: pointer;
     background: transparent;
-    transition: transform 0.12s ease, filter 0.12s ease;
+    transition: transform 0.16s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.16s ease;
   }
-  /* 모든 버튼에 홈과 같은 누름 피드백 (인라인으로 transform 을 지정한 버튼은 그대로 둔다) */
+  /* 모든 버튼에 누름 피드백 — 살짝 작아졌다 돌아온다 (인라인으로 transform 을 지정한 버튼은 그대로 둔다) */
   button:not(:disabled):active {
-    transform: scale(0.985);
-    filter: brightness(1.1);
+    transform: scale(0.97);
   }
 
   input, textarea {
     font-family: inherit;
-    color-scheme: dark;
+    color-scheme: light;
   }
 
-  /* Scrollbar — dark themed */
+  /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #252f4a; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb { background: #d1d6db; border-radius: 2px; }
 
   /* Hide scrollbar for horizontal tab strips */
   .scrollbar-none {
@@ -89,10 +88,10 @@ const globalCSS = `
   /* Gold pulse ring — used for exceptional scores */
   @keyframes goldPulse {
     0%,100% {
-      box-shadow: 0 2px 12px rgba(201,162,40,0.4), 0 0 0 0 rgba(201,162,40,0.55);
+      box-shadow: 0 2px 12px rgba(27,100,218,0.4), 0 0 0 0 rgba(27,100,218,0.55);
     }
     50% {
-      box-shadow: 0 2px 20px rgba(201,162,40,0.7), 0 0 0 8px rgba(201,162,40,0);
+      box-shadow: 0 2px 20px rgba(27,100,218,0.7), 0 0 0 8px rgba(27,100,218,0);
     }
   }
 
@@ -108,18 +107,17 @@ const globalCSS = `
 
   /* 진행 중 라운드 표시등 — 초록 점이 은은하게 퍼지는 링 */
   @keyframes livePulse {
-    0%   { box-shadow: 0 0 0 0 rgba(61,184,122,0.55); }
-    70%  { box-shadow: 0 0 0 7px rgba(61,184,122,0); }
-    100% { box-shadow: 0 0 0 0 rgba(61,184,122,0); }
+    0%   { box-shadow: 0 0 0 0 rgba(10,127,63,0.55); }
+    70%  { box-shadow: 0 0 0 7px rgba(10,127,63,0); }
+    100% { box-shadow: 0 0 0 0 rgba(10,127,63,0); }
   }
 
   /* 눌렀을 때 살짝 눌리는 터치 피드백 (홈의 카드·버튼) */
   .bb-press {
-    transition: transform 0.12s ease, filter 0.12s ease;
+    transition: transform 0.16s cubic-bezier(0.23, 1, 0.32, 1);
   }
   .bb-press:active {
-    transform: scale(0.985);
-    filter: brightness(1.1);
+    transform: scale(0.97);
   }
 
   /* (!) 알림창 본문 — 문단 사이 간격 */
@@ -127,7 +125,7 @@ const globalCSS = `
   .bb-note-body p:last-child { margin-bottom: 0; }
 
   /* 온그린 랜딩 휠 — 키보드로 조각을 고를 때 보이는 표시 */
-  [data-role="landing-zone"]:focus-visible path { stroke: #f3d36b; stroke-width: 1.5; fill: rgba(243,211,107,0.1); }
+  [data-role="landing-zone"]:focus-visible path { stroke: #1b64da; stroke-width: 1.5; fill: rgba(27,100,218,0.1); }
 
   @media (prefers-reduced-motion: reduce) {
     .bb-live-dot { animation: none !important; }
@@ -154,55 +152,55 @@ const globalCSS = `
   }
 
   @keyframes holeInOnePulse {
-    0%, 100% { box-shadow: 0 2px 12px rgba(201,162,40,0.5); }
-    50%       { box-shadow: 0 2px 28px rgba(201,162,40,0.9), 0 0 0 6px rgba(201,162,40,0.15); }
+    0%, 100% { box-shadow: 0 2px 12px rgba(27,100,218,0.5); }
+    50%       { box-shadow: 0 2px 28px rgba(27,100,218,0.9), 0 0 0 6px rgba(27,100,218,0.15); }
   }
 
   @keyframes albatrossGlow {
-    0%, 100% { box-shadow: 0 2px 16px rgba(232,200,78,0.5), 0 0 0 0 rgba(232,200,78,0.35); }
-    50%       { box-shadow: 0 2px 28px rgba(232,200,78,0.85), 0 0 0 5px rgba(232,200,78,0.12); }
+    0%, 100% { box-shadow: 0 2px 16px rgba(27,100,218,0.5), 0 0 0 0 rgba(27,100,218,0.35); }
+    50%       { box-shadow: 0 2px 28px rgba(27,100,218,0.85), 0 0 0 5px rgba(27,100,218,0.12); }
   }
 
   @keyframes eagleGlow {
-    0%, 100% { box-shadow: 0 2px 10px rgba(201,162,40,0.35), 0 0 0 0 rgba(201,162,40,0.25); }
-    50%       { box-shadow: 0 2px 20px rgba(201,162,40,0.65), 0 0 0 4px rgba(201,162,40,0.08); }
+    0%, 100% { box-shadow: 0 2px 10px rgba(27,100,218,0.35), 0 0 0 0 rgba(27,100,218,0.25); }
+    50%       { box-shadow: 0 2px 20px rgba(27,100,218,0.65), 0 0 0 4px rgba(27,100,218,0.08); }
   }
 
   @keyframes birdieGlow {
-    0%, 100% { box-shadow: 0 2px 6px rgba(61,184,122,0.25), 0 0 0 0 rgba(61,184,122,0.2); }
-    50%       { box-shadow: 0 2px 14px rgba(61,184,122,0.5), 0 0 0 3px rgba(61,184,122,0.06); }
+    0%, 100% { box-shadow: 0 2px 6px rgba(10,127,63,0.25), 0 0 0 0 rgba(10,127,63,0.2); }
+    50%       { box-shadow: 0 2px 14px rgba(10,127,63,0.5), 0 0 0 3px rgba(10,127,63,0.06); }
   }
 
   @keyframes bogeyRed {
-    0%, 100% { box-shadow: 0 2px 5px rgba(239,83,80,0.2); }
-    50%       { box-shadow: 0 2px 12px rgba(239,83,80,0.4), 0 0 0 2px rgba(239,83,80,0.06); }
+    0%, 100% { box-shadow: 0 2px 5px rgba(200,50,58,0.2); }
+    50%       { box-shadow: 0 2px 12px rgba(200,50,58,0.4), 0 0 0 2px rgba(200,50,58,0.06); }
   }
 
   @keyframes doubleRed {
-    0%, 100% { box-shadow: 0 2px 8px rgba(239,83,80,0.3); }
-    50%       { box-shadow: 0 2px 16px rgba(239,83,80,0.58), 0 0 0 3px rgba(239,83,80,0.08); }
+    0%, 100% { box-shadow: 0 2px 8px rgba(200,50,58,0.3); }
+    50%       { box-shadow: 0 2px 16px rgba(200,50,58,0.58), 0 0 0 3px rgba(200,50,58,0.08); }
   }
 
   @keyframes tripleRed {
-    0%, 100% { box-shadow: 0 2px 10px rgba(229,57,53,0.4); }
-    50%       { box-shadow: 0 2px 20px rgba(229,57,53,0.72), 0 0 0 4px rgba(229,57,53,0.1); }
+    0%, 100% { box-shadow: 0 2px 10px rgba(200,50,58,0.4); }
+    50%       { box-shadow: 0 2px 20px rgba(200,50,58,0.72), 0 0 0 4px rgba(200,50,58,0.1); }
   }
 
   @keyframes quadRed {
-    0%, 100% { box-shadow: 0 2px 12px rgba(198,40,40,0.5), 0 0 0 0 rgba(198,40,40,0.35); }
-    50%       { box-shadow: 0 2px 24px rgba(198,40,40,0.82), 0 0 0 5px rgba(198,40,40,0.12); }
+    0%, 100% { box-shadow: 0 2px 12px rgba(200,50,58,0.5), 0 0 0 0 rgba(200,50,58,0.35); }
+    50%       { box-shadow: 0 2px 24px rgba(200,50,58,0.82), 0 0 0 5px rgba(200,50,58,0.12); }
   }
 
   /* ── 거리 슬라이더 (스코어 입력의 거리 칸) ───────────────────────────── */
   /* 손잡이 26px · 입력 높이 40px — 장갑 낀 엄지로도 잡히도록 눌리는 영역은 줄 두께보다 훨씬 크다.
      채워진 부분은 --frac(0~1) 로 그린다 (손잡이 반지름만큼 양쪽을 안으로 들였다). 비어 있으면(data-empty=1) 흐리게. */
   .dist-slider {
-    --fill: #c9a228; --rest: #252f4a; --thumb: #c9a228;
+    --fill: #1b64da; --rest: #d1d6db; --thumb: #1b64da;
     -webkit-appearance: none; appearance: none;
     display: block; width: 100%; height: 44px; margin: 0; padding: 0;
     background: transparent; cursor: pointer; touch-action: pan-y;
   }
-  .dist-slider[data-empty="1"] { --fill: #3a4a6b; --thumb: #6e84a8; }
+  .dist-slider[data-empty="1"] { --fill: #b0b8c1; --thumb: #5b6572; }
   .dist-slider::-webkit-slider-runnable-track {
     height: 8px; border-radius: 4px;
     background: linear-gradient(to right, var(--fill) calc(13px + (100% - 26px) * var(--frac)), var(--rest) calc(13px + (100% - 26px) * var(--frac)));
@@ -210,15 +208,15 @@ const globalCSS = `
   .dist-slider::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 26px; height: 26px; margin-top: -9px; border-radius: 50%;
-    background: var(--thumb); border: 3px solid #0b0e18; box-shadow: 0 0 0 1.5px var(--thumb);
+    background: var(--thumb); border: 3px solid #ffffff; box-shadow: 0 0 0 1.5px var(--thumb);
   }
   .dist-slider::-moz-range-track { height: 8px; border-radius: 4px; background: var(--rest); }
   .dist-slider::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--fill); }
   .dist-slider::-moz-range-thumb {
     box-sizing: border-box; width: 26px; height: 26px; border-radius: 50%;
-    background: var(--thumb); border: 3px solid #0b0e18; box-shadow: 0 0 0 1.5px var(--thumb);
+    background: var(--thumb); border: 3px solid #ffffff; box-shadow: 0 0 0 1.5px var(--thumb);
   }
-  .dist-slider:focus-visible { outline: 2px solid #f3d36b; outline-offset: 2px; border-radius: 6px; }
+  .dist-slider:focus-visible { outline: 2px solid #1b64da; outline-offset: 2px; border-radius: 6px; }
 
   /* ── Mobile optimisations ───────────────────────────────────────────── */
   @media (max-width: 430px) {

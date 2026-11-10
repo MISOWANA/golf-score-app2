@@ -7,7 +7,7 @@ export default function BottomTabBar({ current, onChange }) {
     { id: 'stats', label: '스탯', icon: BarChart3 },
     { id: 'home', label: '홈', icon: Home },
     { id: 'insights', label: '인사이트', icon: Zap },
-    { id: 'mybag', label: 'MY BAG', icon: Briefcase },
+    { id: 'mybag', label: '마이백', icon: Briefcase },
   ];
 
   return (
@@ -23,7 +23,7 @@ export default function BottomTabBar({ current, onChange }) {
                 ...styles.tabBarBtn,
                 ...(isHome ? styles.tabBarBtnHome : {}),
                 // 흐린 회색은 햇빛 아래에서 안 보인다 — 선택 안 된 탭도 또렷한 밝은 회색으로
-                color: isActive ? '#c9a228' : '#a9b8d6',
+                color: isActive ? '#1b64da' : '#333d4b',
               }}
               onClick={() => onChange(id)}
               title={label}

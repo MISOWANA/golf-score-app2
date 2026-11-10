@@ -6,9 +6,9 @@ const W = 1080;
 const PAD = 64;
 const FONT = '"Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif';
 const C = {
-  bgTop: '#0b0e18', bgBottom: '#111a2c', card: '#141d30', line: '#243050',
-  text: '#e8edf8', sub: '#a9b8d6', muted: '#7f93b3', gold: '#c9a228', goldHi: '#f3d36b',
-  good: '#3db87a', bad: '#ef5350', flat: '#8896b0',
+  bgTop: '#ffffff', bgBottom: '#f2f4f6', card: '#f2f4f6', line: '#e5e8eb',
+  text: '#191f28', sub: '#333d4b', muted: '#4e5968', gold: '#1b64da', goldHi: '#1b64da',
+  good: '#0a7f3f', bad: '#c8323a', flat: '#4e5968',
 };
 const toneColor = (t) => (t === 'good' ? C.good : t === 'bad' ? C.bad : C.flat);
 
@@ -96,8 +96,8 @@ function drawModel(ctx, m) {
       ctx.font = font(800, 28);
       const w = ctx.measureText(t).width + 44;
       if (x + w > W - PAD && x > PAD) { x = PAD; y += 58; }
-      ctx.fillStyle = 'rgba(201,162,40,0.2)'; roundRect(ctx, x, y, w, 46, 23); ctx.fill();
-      ctx.strokeStyle = 'rgba(201,162,40,0.65)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = 'rgba(27,100,218,0.2)'; roundRect(ctx, x, y, w, 46, 23); ctx.fill();
+      ctx.strokeStyle = 'rgba(27,100,218,0.65)'; ctx.lineWidth = 2; ctx.stroke();
       ctx.fillStyle = C.goldHi; ctx.fillText(t, x + 22, y + 32);
       x += w + 12;
     });
@@ -118,8 +118,8 @@ function drawModel(ctx, m) {
     m.loss.forEach((t) => {
       ctx.font = font(800, 28);
       const w = ctx.measureText(t).width + 36;
-      ctx.fillStyle = 'rgba(239,83,80,0.14)'; roundRect(ctx, x, y + 6, w, 44, 22); ctx.fill();
-      ctx.strokeStyle = 'rgba(239,83,80,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = 'rgba(200,50,58,0.14)'; roundRect(ctx, x, y + 6, w, 44, 22); ctx.fill();
+      ctx.strokeStyle = 'rgba(200,50,58,0.5)'; ctx.lineWidth = 2; ctx.stroke();
       ctx.fillStyle = C.bad; ctx.fillText(t, x + 18, y + 38);
       x += w + 12;
     });
@@ -169,8 +169,8 @@ function drawModel(ctx, m) {
     ctx.font = font(600, 28);
     const lines = wrapLines(ctx, m.focus, W - PAD * 2 - 56);
     const h = 74 + lines.length * 42;
-    ctx.fillStyle = 'rgba(201,162,40,0.12)'; roundRect(ctx, PAD, y, W - PAD * 2, h, 20); ctx.fill();
-    ctx.strokeStyle = 'rgba(201,162,40,0.45)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = 'rgba(27,100,218,0.12)'; roundRect(ctx, PAD, y, W - PAD * 2, h, 20); ctx.fill();
+    ctx.strokeStyle = 'rgba(27,100,218,0.45)'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = C.gold; ctx.font = font(800, 28); ctx.fillText('다음 포커스', PAD + 28, y + 46);
     ctx.fillStyle = C.text; ctx.font = font(600, 28);
     lines.forEach((l, i) => ctx.fillText(l, PAD + 28, y + 90 + i * 42));
@@ -202,7 +202,7 @@ export async function renderReportImage(model) {
   grad.addColorStop(0, C.bgTop); grad.addColorStop(1, C.bgBottom);
   o.fillStyle = grad; o.fillRect(0, 0, W, H);
   const glow = o.createRadialGradient(W, 0, 10, W, 0, 520);   // 오른쪽 위 금색 번짐
-  glow.addColorStop(0, 'rgba(201,162,40,0.22)'); glow.addColorStop(1, 'rgba(201,162,40,0)');
+  glow.addColorStop(0, 'rgba(27,100,218,0.22)'); glow.addColorStop(1, 'rgba(27,100,218,0)');
   o.fillStyle = glow; o.fillRect(0, 0, W, H);
 
   drawModel(o, model);

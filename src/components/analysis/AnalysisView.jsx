@@ -194,9 +194,9 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
         <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
-        <div style={styles.pageTitle}>Round Report</div>
+        <div style={styles.pageTitle}>라운드 리포트</div>
         <button
-          style={{ ...styles.iconBack, color: '#c9a228' }}
+          style={{ ...styles.iconBack, color: '#1b64da' }}
           onClick={openEditModal}
           title="라운드 정보 수정" aria-label="라운드 정보 수정"
         >
@@ -222,9 +222,9 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
                 key={p}
                 style={{
                   ...styles.playerTab,
-                  background: activePlayer === p ? '#c9a228' : 'transparent',
-                  color: activePlayer === p ? '#0b0e18' : '#8896b0',
-                  borderColor: activePlayer === p ? '#c9a228' : '#252f4a'
+                  background: activePlayer === p ? '#1b64da' : 'transparent',
+                  color: activePlayer === p ? '#ffffff' : '#4e5968',
+                  borderColor: activePlayer === p ? '#1b64da' : '#d1d6db'
                 }}
                 onClick={() => setActivePlayer(p)}
               >
@@ -236,7 +236,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
 
         <div style={styles.bigScoreDisplay}>
           <div style={styles.bigScoreNum}>{stats.total}</div>
-          <div style={{ ...styles.bigScoreDiff, color: stats.diff > 0 ? '#ef5350' : stats.diff < 0 ? '#3db87a' : '#8896b0' }}>
+          <div style={{ ...styles.bigScoreDiff, color: stats.diff > 0 ? '#c8323a' : stats.diff < 0 ? '#0a7f3f' : '#4e5968' }}>
             ({stats.diff > 0 ? `+${stats.diff}` : stats.diff === 0 ? 'E' : stats.diff})
           </div>
           <div style={styles.bigScoreLabel}>vs par {stats.totalPar}</div>
@@ -246,12 +246,12 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
         {!isNineHoleRound(round) && (
           <div style={styles.nineGrid}>
             <div style={styles.nineItem}>
-              <div style={styles.nineLabel}>FRONT 9</div>
+              <div style={styles.nineLabel}>전반 9홀</div>
               <div style={styles.nineValue}>{stats.front9}</div>
             </div>
             <div style={styles.nineDivider} />
             <div style={styles.nineItem}>
-              <div style={styles.nineLabel}>BACK 9</div>
+              <div style={styles.nineLabel}>후반 9홀</div>
               <div style={styles.nineValue}>{stats.back9}</div>
             </div>
           </div>
@@ -263,28 +263,28 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
       </div>
 
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>KEY STATS</div>
+        <div style={styles.sectionTitle}>핵심 기록</div>
         <div style={styles.keyStatsGrid}>
           <StatTile label="GIR" value={`${stats.girPct}%`} sub={`${stats.girHoles}/${stats.playedCount} holes`} />
           <StatTile label="Fairways" value={stats.fairwayPct != null ? `${stats.fairwayPct}%` : '—'} sub={stats.fairwayTotal > 0 ? `${stats.fairwaysHit}/${stats.fairwayTotal}` : '기록 없음'} />
           <StatTile label="Avg Putts" value={stats.avgPutts} sub={stats.playedCount < round.holes.length ? `${stats.totalPutts} total · 입력한 ${stats.playedCount}홀` : `${stats.totalPutts} total`} />
-          <StatTile label="Birdies+" value={stats.birdies + stats.eagles} sub={`${stats.eagles} eagle`} />
+          <StatTile label="버디 이상" value={stats.birdies + stats.eagles} sub={`이글 ${stats.eagles}`} />
         </div>
       </div>
 
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>SCORE BREAKDOWN</div>
+        <div style={styles.sectionTitle}>스코어 구성</div>
         <div style={styles.breakdownList}>
-          <BreakdownBar label="Eagle+" count={stats.eagles} total={Math.max(1, stats.playedCount)} color="#c9a228" />
-          <BreakdownBar label="Birdie" count={stats.birdies} total={Math.max(1, stats.playedCount)} color="#3db87a" />
-          <BreakdownBar label="Par" count={stats.pars} total={Math.max(1, stats.playedCount)} color="#8896b0" />
-          <BreakdownBar label="Bogey" count={stats.bogeys} total={Math.max(1, stats.playedCount)} color="#9aa8c2" />
-          <BreakdownBar label="Double+" count={stats.doubles} total={Math.max(1, stats.playedCount)} color="#ef5350" />
+          <BreakdownBar label="Eagle+" count={stats.eagles} total={Math.max(1, stats.playedCount)} color="#1b64da" />
+          <BreakdownBar label="버디" count={stats.birdies} total={Math.max(1, stats.playedCount)} color="#0a7f3f" />
+          <BreakdownBar label="Par" count={stats.pars} total={Math.max(1, stats.playedCount)} color="#4e5968" />
+          <BreakdownBar label="Bogey" count={stats.bogeys} total={Math.max(1, stats.playedCount)} color="#4e5968" />
+          <BreakdownBar label="Double+" count={stats.doubles} total={Math.max(1, stats.playedCount)} color="#c8323a" />
         </div>
       </div>
 
       <div style={styles.section}>
-        <div style={styles.sectionTitle}>HOLE BY HOLE</div>
+        <div style={styles.sectionTitle}>홀별 기록</div>
         <ScorecardTable round={round} player={activePlayer} onSelectHole={setReviewHoleIdx} />
       </div>
 
@@ -302,13 +302,13 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
                 const ps = h.scores[activePlayer];
                 const diff = ps.strokes - h.par;
                 const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
-                const diffColor = diff <= -1 ? '#3db87a' : diff === 0 ? '#8896b0' : diff === 1 ? '#9aa8c2' : '#ef5350';
+                const diffColor = diff <= -1 ? '#0a7f3f' : diff === 0 ? '#4e5968' : diff === 1 ? '#4e5968' : '#c8323a';
                 return (
                   <div key={h.holeNumber} style={styles.noteCard}>
                     <div style={styles.noteCardHeader}>
                       <div style={styles.noteCardHole}>
                         HOLE {h.holeNumber}
-                        <span style={styles.noteCardPar}>PAR {h.par}</span>
+                        <span style={styles.noteCardPar}>파 {h.par}</span>
                       </div>
                       <div style={{ ...styles.noteCardScore, color: diffColor }}>
                         {ps.strokes}타 ({diffLabel})
@@ -365,11 +365,11 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
           >
             {/* 헤더 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <div style={{ fontSize: '17px', fontWeight: '700', color: '#e8edf8', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '17px', fontWeight: '700', color: '#191f28', letterSpacing: '0.04em' }}>
                 라운드 정보 수정
               </div>
               <button
-                style={{ background: 'none', border: 'none', color: '#8896b0', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'none', border: 'none', color: '#4e5968', cursor: 'pointer', padding: '4px' }}
                 onClick={() => setShowEditModal(false)}
               >
                 <X size={18} />
@@ -466,7 +466,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
               {/* 파 합계 요약 */}
               <div style={{ ...styles.parSummary, marginBottom: '12px', padding: '14px 16px' }}>
                 <div style={styles.parSummaryMain}>
-                  <div style={styles.parSummaryLabel}>TOTAL PAR</div>
+                  <div style={styles.parSummaryLabel}>전체 파</div>
                   <div style={{ ...styles.parSummaryValue, fontSize: '30px' }}>
                     {editDraft.pars.reduce((a, b) => a + b, 0)}
                   </div>
@@ -491,7 +491,7 @@ export default function AnalysisView({ round: initialRound, historyRounds = [], 
 
             {/* 저장이 막힌 이유 — 스크롤 맨 아래 버튼 바로 위에 둬서 놓치지 않게 */}
             {editError && (
-              <div role="alert" style={{ fontSize: 14, color: '#ef5350', marginBottom: 12, lineHeight: 1.6 }}>{editError}</div>
+              <div role="alert" style={{ fontSize: 14, color: '#c8323a', marginBottom: 12, lineHeight: 1.6 }}>{editError}</div>
             )}
 
             {/* 버튼 */}
@@ -521,9 +521,9 @@ const editSectionLabel = {
   display: 'flex',
   alignItems: 'center',
   fontSize: '12px',
-  letterSpacing: '0.2em',
-  color: '#8896b0',
-  textTransform: 'uppercase',
+  letterSpacing:'0',
+  color: '#4e5968',
+  textTransform:'none',
   fontWeight: '700',
   marginBottom: '8px',
 };
@@ -531,10 +531,10 @@ const editSectionLabel = {
 const editInput = {
   width: '100%',
   padding: '11px 13px',
-  background: '#1a2235',
-  border: '1px solid #252f4a',
+  background: '#e8ebee',
+  border: '1px solid #d1d6db',
   borderRadius: '12px',
-  color: '#e8edf8',
+  color: '#191f28',
   fontSize: '15px',
   boxSizing: 'border-box',
   outline: 'none',

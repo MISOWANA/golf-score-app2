@@ -6,7 +6,7 @@ import { alongText, acrossText } from './shortGameText.js';
 // 판정하지 않는다: 어느 쪽이 맞는 모습인지는 말하지 않고, 내 기록의 비율 · 중앙값 · 내 기록끼리의 차이만 말한다.
 
 // 과녁 점 색 — 로우사이드(주황) · 하이사이드(금색) · 그 밖(직선 라이 · 라이를 고르지 않은 퍼트). 어느 쪽이 좋다고 말하는 색이 아니다.
-export const SIDE_COLOR = { low: '#f2895e', high: '#f3d36b', none: 'rgba(125,180,230,0.92)' };
+export const SIDE_COLOR = { low: '#b45309', high: '#1b64da', none: 'rgba(27,100,218,0.92)' };
 
 const P = (v) => `${Math.round(v)}%`;
 const M = (v) => fmtPutt(v, { digits: 1 });

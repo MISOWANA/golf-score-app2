@@ -6,16 +6,16 @@ import { ninesOf } from '../../engine/nines.js';
 // "어느 홀을 되짚을지" 고르는 것이 이 화면의 첫 동작이 되게 한다.
 
 const TONE = (diff) => {
-  if (diff == null) return { color: '#8896b0', bg: '#131d35', border: '#1b2238' };
-  if (diff <= -2) return { color: '#f0c93a', bg: 'rgba(201,162,40,0.18)', border: 'rgba(201,162,40,0.55)' };
-  if (diff === -1) return { color: '#3db87a', bg: 'rgba(61,184,122,0.16)', border: 'rgba(61,184,122,0.5)' };
-  if (diff === 0) return { color: '#e8edf8', bg: '#1a2235', border: '#2a3650' };
-  if (diff === 1) return { color: '#e57373', bg: 'rgba(229,115,115,0.12)', border: 'rgba(229,115,115,0.4)' };
-  return { color: '#ef5350', bg: 'rgba(239,83,80,0.16)', border: 'rgba(239,83,80,0.5)' };
+  if (diff == null) return { color: '#4e5968', bg: '#eef1f4', border: '#e5e8eb' };
+  if (diff <= -2) return { color: '#1b64da', bg: 'rgba(27,100,218,0.18)', border: 'rgba(27,100,218,0.55)' };
+  if (diff === -1) return { color: '#0a7f3f', bg: 'rgba(10,127,63,0.16)', border: 'rgba(10,127,63,0.5)' };
+  if (diff === 0) return { color: '#191f28', bg: '#e8ebee', border: '#e5e8eb' };
+  if (diff === 1) return { color: '#c8323a', bg: 'rgba(200,50,58,0.12)', border: 'rgba(200,50,58,0.4)' };
+  return { color: '#c8323a', bg: 'rgba(200,50,58,0.16)', border: 'rgba(200,50,58,0.5)' };
 };
 
 // 입력하지 않은 홀(touched 아님) — 저장된 기본값(파)이 합계에는 들어간다. 같은 값을 보여주되 점선으로 구분한다.
-const DEFAULT_TONE = { color: '#8ca4bc', bg: '#101a30', border: '#33415f' };
+const DEFAULT_TONE = { color: '#4e5968', bg: '#eef1f4', border: '#1b64da' };
 
 export default function HoleReviewGrid({ round, player, onSelectHole }) {
   // 18홀은 OUT·IN 두 줄, 9홀은 친 9홀 한 줄 (idx 는 round.holes 안의 위치)
@@ -32,9 +32,9 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
         gap: 10, marginBottom: 12,
       }}>
         <div style={{
-          fontSize: 17, fontWeight: 800, color: '#e8edf8', letterSpacing: '0.02em',
+          fontSize: 17, fontWeight: 800, color: '#191f28', letterSpacing: '0.02em',
         }}>홀별 복기</div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: '#8ca4bc' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#4e5968' }}>
           {gpsCount > 0 ? `${gpsCount}개 홀에 지도 기록` : '홀을 눌러 샷 기록 보기'}
         </div>
       </div>
@@ -42,8 +42,8 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
       {rows.map(({ label, items }) => (
         <div key={label} style={{ marginBottom: 12 }}>
           <div style={{
-            fontSize: 14, fontWeight: 800, color: '#8aa0c4',
-            letterSpacing: '0.18em', marginBottom: 6,
+            fontSize: 14, fontWeight: 800, color: '#4e5968',
+            letterSpacing:'0', marginBottom: 6,
           }}>{label}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 5 }}>
             {items.map(({ hole: h, index: idx }) => {
@@ -66,7 +66,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
                     alignItems: 'center', gap: 2,
                   }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', lineHeight: 1 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', lineHeight: 1 }}>
                     {h.holeNumber ?? idx + 1}
                   </span>
                   <span style={{ fontSize: 19, fontWeight: 900, color: t.color, lineHeight: 1 }}>
@@ -75,7 +75,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
                   {/* 지도 기록이 있는 홀은 점 하나로 표시 — 복기 가치가 큰 홀이다 */}
                   <span style={{
                     width: 5, height: 5, borderRadius: '50%',
-                    background: hasGps ? '#5b9cf6' : 'transparent',
+                    background: hasGps ? '#1b64da' : 'transparent',
                   }} />
                 </button>
               );
@@ -85,7 +85,7 @@ export default function HoleReviewGrid({ round, player, onSelectHole }) {
       ))}
 
       {defaultCount > 0 && (
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#8aa0c4', lineHeight: 1.5, textAlign: 'right' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#4e5968', lineHeight: 1.5, textAlign: 'right' }}>
           점선 칸 {defaultCount}개: 입력 없이 파(2퍼트)로 저장된 홀
         </div>
       )}

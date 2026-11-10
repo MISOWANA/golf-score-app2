@@ -37,7 +37,7 @@ function candidates() {
     if (b.getAttribute('aria-label') === '홈' || b.getAttribute('aria-label') === '뒤로') continue;
     const inNav = !!b.closest('[data-role="nav-score"], [data-role="nav-putts"]');
     const name = label || role || b.getAttribute('aria-label') || '(이름 없음)';
-    const weight = inNav ? 0.04 : (DEEP.test(label) || /^(second-result|putt-next|shot-tab)/.test(role)) ? 4 : (label === '다음' || label === '이전') ? 0.15 : 1;
+    const weight = inNav ? 0.04 : (DEEP.test(label) || /^(second-result|putt-next|shot-tab)/.test(role)) ? 4 : (label === '다음 홀' || label === '이전') ? 0.15 : 1;
     out.push({ el: b, name, weight });
   }
   if (!overlay) for (const z of document.querySelectorAll('[data-role="landing-zone"]')) out.push({ el: z, name: `랜딩 ${z.getAttribute('data-hour')}시`, weight: 0.5 });

@@ -4,6 +4,7 @@ import ConfidenceBadge from '../insights/ConfidenceBadge';
 import { tintWash } from '../ui/tint.js';
 import { COLOR, fmtNum, isBetter } from './format.js';
 import localizeNode from '../ui/localizeNode.js';
+import { splitKoEn } from '../ui/koEn.js';
 
 // 스탯 화면을 이루는 작은 부품들. 영역마다 같은 모양으로 읽히게 한다:
 //   Card(제목 · 보조 설명(!) · 추세) → 대표 숫자(Metric) → 묶음(SplitBar · RateRow · RangeRow) → 한 줄 해석(Takeaway)
@@ -11,10 +12,10 @@ import localizeNode from '../ui/localizeNode.js';
 export function Card({ id, title, info, infoTitle, right, children }) {
   return (
     <div data-role={id ? `card-${id}` : undefined}
-      style={{ ...tintWash(COLOR.gold, { strength: 0.06, border: 0.18 }), borderRadius: 18, padding: '14px 14px 14px', marginBottom: 12, textAlign: 'left' }}>
+      style={{ ...tintWash(COLOR.gold, { strength: 0.06, border: 0.18 }), borderRadius: 22, padding: '18px 18px 18px', marginBottom: 12, textAlign: 'left' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10, minHeight: 22 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', color: COLOR.slate }}>
-          {title}
+        <div style={{ fontSize: 15, fontWeight: 800, letterSpacing:'0', color: COLOR.text }}>
+          {typeof title === 'string' ? splitKoEn(title).ko : title}
           {info && <InfoNote title={infoTitle ?? title}>{info}</InfoNote>}
         </div>
         {right}
@@ -62,7 +63,7 @@ export function Takeaway({ tone = 'info', children, id, bare = false }) {
   const color = tone === 'good' ? COLOR.green : tone === 'warn' ? COLOR.amber : COLOR.slate;
   return (
     <div data-role={id ?? 'takeaway'} data-tone={tone}
-      style={{ display: 'flex', gap: 8, alignItems: 'flex-start', ...(bare ? { padding: '4px 0' } : { marginTop: 12, paddingTop: 10, borderTop: `1px solid ${COLOR.line}` }), fontSize: 14, lineHeight: 1.55, color: '#c4cfe0', wordBreak: 'keep-all' }}>
+      style={{ display: 'flex', gap: 8, alignItems: 'flex-start', ...(bare ? { padding: '4px 0' } : { marginTop: 12, paddingTop: 10, borderTop: `1px solid ${COLOR.line}` }), fontSize: 14, lineHeight: 1.55, color: '#333d4b', wordBreak: 'keep-all' }}>
       <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0, marginTop: 7 }} />
       <span>{localizeNode(children)}</span>
     </div>
@@ -132,7 +133,7 @@ export function RangeRow({ id, label, sub, median, q1, q3, scaleMax, text, right
         {sub && <div style={{ fontSize: 12, fontWeight: 500, color: COLOR.faint, marginTop: 1 }}>{localizeNode(sub, { abbr: true })}</div>}
       </div>
       <div style={{ ...styles.riStatRowBarTrack, position: 'relative', overflow: 'visible', height: 8 }}>
-        {hasRange && <div style={{ position: 'absolute', top: 0, bottom: 0, left: at(q1), width: `calc(${at(q3)} - ${at(q1)})`, borderRadius: 4, background: 'rgba(201,162,40,0.35)' }} />}
+        {hasRange && <div style={{ position: 'absolute', top: 0, bottom: 0, left: at(q1), width: `calc(${at(q3)} - ${at(q1)})`, borderRadius: 4, background: 'rgba(27,100,218,0.35)' }} />}
         {median != null && <div style={{ position: 'absolute', top: -2, left: `calc(${at(median)} - 3px)`, width: 6, height: 12, borderRadius: 3, background: COLOR.goldHi }} />}
       </div>
       <div style={{ ...styles.riStatRowValue, width: 48 }}>{text}</div>

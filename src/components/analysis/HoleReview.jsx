@@ -19,19 +19,19 @@ const m = (v) => fmtShot(v, { fallback: '—' });
 const m1 = (v) => fmtPutt(v, { digits: 1, fallback: '—' });
 
 const TONE = { great: C.goldBright, good: C.green, bad: C.red };
-// C.dim(#8896b0)은 작은 글씨에서 대비가 부족해 라벨용 밝은 회색을 따로 쓴다.
-const LABEL = '#a8b6cc';
-const MUTED = '#8896b0';
-const OFF_GREEN = '#e6b94a';   // 그린 밖으로 나간 퍼트·칩
-const CARD = '#121a2e';
-const BORDER = '#1e2840';
-const DIVIDER = 'rgba(255,255,255,0.06)';
+// C.dim(#4e5968)은 작은 글씨에서 대비가 부족해 라벨용 밝은 회색을 따로 쓴다.
+const LABEL = '#8b95a1';
+const MUTED = '#4e5968';
+const OFF_GREEN = '#a85b00';   // 그린 밖으로 나간 퍼트·칩
+const CARD = '#eef1f4';
+const BORDER = '#e5e8eb';
+const DIVIDER = 'rgba(25,31,40,0.048)';
 
 const scoreTone = (diff) => {
   if (diff == null) return C.dim;
   if (diff <= -1) return C.green;
   if (diff === 0) return C.line;
-  return diff === 1 ? '#e57373' : C.red;
+  return diff === 1 ? '#c8323a' : C.red;
 };
 const scoreText = (diff) => (diff == null ? '' : diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`);
 const SCORE_NAME = {
@@ -100,7 +100,7 @@ function Section({ title, aside, children }) {
   return (
     <div style={{ padding: '16px 14px 0' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '0 4px 8px' }}>
-        <span style={{ fontSize: 14, fontWeight: 800, color: C.gold, letterSpacing: '0.1em' }}>{title}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.gold, letterSpacing:'0' }}>{title}</span>
         {aside && <span style={{ fontSize: 14, fontWeight: 700, color: LABEL }}>{aside}</span>}
       </div>
       <div style={{ borderRadius: 14, background: CARD, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
@@ -118,7 +118,7 @@ function ScoreEditor({ par, strokes, putts, onSave, onCancel }) {
   const stepper = (label, value, onDec, onInc) => (
     <div style={{ flex: 1 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: LABEL, textAlign: 'center', marginBottom: 6 }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'center', height: 48, borderRadius: 10, background: '#0d1425', border: `1px solid ${BORDER}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', height: 48, borderRadius: 10, background: '#f2f4f6', border: `1px solid ${BORDER}` }}>
         <button onClick={onDec} style={{ flex: 1, height: '100%', background: 'none', border: 'none', color: C.green, fontSize: 22, fontWeight: 800, cursor: 'pointer' }}>−</button>
         <span style={{ minWidth: 40, textAlign: 'center', fontSize: 24, fontWeight: 900, color: C.line }}>{value}</span>
         <button onClick={onInc} style={{ flex: 1, height: '100%', background: 'none', border: 'none', color: C.red, fontSize: 22, fontWeight: 800, cursor: 'pointer' }}>+</button>
@@ -245,8 +245,8 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
 
   const navBtn = (enabled) => ({
     flex: 1, padding: '13px', borderRadius: 12, cursor: enabled ? 'pointer' : 'default',
-    border: `1px solid ${enabled ? '#2c3a58' : BORDER}`, background: enabled ? CARD : 'transparent',
-    color: enabled ? C.line : '#2a3650', fontSize: 16, fontWeight: 800,
+    border: `1px solid ${enabled ? '#e5e8eb' : BORDER}`, background: enabled ? CARD : 'transparent',
+    color: enabled ? C.line : '#eef1f4', fontSize: 16, fontWeight: 800,
   });
 
   return (
@@ -262,7 +262,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: C.gold, letterSpacing: '0.12em' }}>HOLE</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.gold, letterSpacing:'0' }}>홀</span>
             <span style={{ fontSize: 30, fontWeight: 900, color: C.line, lineHeight: 1 }}>{review.holeNo}</span>
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: LABEL, marginTop: 4 }}>
@@ -275,7 +275,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
             padding: '5px 10px', borderRadius: 8,
             background: tint(nameTone === C.line ? C.dim : nameTone, 0.14),
             border: `1px solid ${tint(nameTone === C.line ? C.dim : nameTone, 0.5)}`,
-            fontSize: 14, fontWeight: 900, letterSpacing: '0.06em', color: nameTone,
+            fontSize: 14, fontWeight: 900, letterSpacing:'0', color: nameTone,
           }}>{name ?? '—'}</span>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
             <span style={{ fontSize: 22, fontWeight: 900, color: C.line }}>
@@ -342,8 +342,8 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
               {tileError && (
                 <div style={{
                   position: 'absolute', top: 8, left: 10, right: 10, zIndex: 500,
-                  padding: '7px 10px', borderRadius: 7, background: 'rgba(239,83,80,0.9)',
-                  color: '#fff', fontSize: 14, lineHeight: 1.6, fontWeight: 600,
+                  padding: '7px 10px', borderRadius: 7, background: 'rgba(200,50,58,0.9)',
+                  color: '#ffffff', fontSize: 14, lineHeight: 1.6, fontWeight: 600,
                 }}>위성 타일을 불러오지 못했어요. 인증키가 만료됐을 수 있어요.</div>
               )}
               <button
@@ -352,7 +352,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                 style={{
                   position: 'absolute', left: 10, bottom: 10, zIndex: 500,
                   padding: '8px 13px', borderRadius: 999, cursor: rendering ? 'default' : 'pointer',
-                  border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(11,14,24,0.85)',
+                  border: '1px solid rgba(25,31,40,0.12)', background: 'rgba(255,255,255,0.85)',
                   color: rendering ? C.gold : C.line, fontSize: 14, fontWeight: 800,
                 }}
               >{rendering ? '만드는 중…' : shownImage ? '↻ 이미지 다시 만들기' : '🖼 이미지로 저장'}</button>
@@ -383,7 +383,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
                   style={{
                     display: 'block', marginTop: 7, padding: '10px', borderRadius: 12,
                     textAlign: 'center', textDecoration: 'none',
-                    border: '1px solid #3a4e72', color: '#d6dfec', fontSize: 15, fontWeight: 700,
+                    border: '1px solid #b0b8c1', color: '#1b64da', fontSize: 15, fontWeight: 700,
                   }}
                 >이미지 저장</a>
                 <div style={{ marginTop: 6, fontSize: 13, color: LABEL, textAlign: 'center' }}>
@@ -463,7 +463,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
 
           {/* 3퍼트 이상 — 퍼트 거리로 본 원인 (거리가 없으면 판단 보류) */}
           {review.puttAnalysis && (
-            <div data-role="putt-cause" style={{ padding: '12px 14px', borderTop: `1px solid ${C.line}22`, fontSize: 15, lineHeight: 1.7, color: '#d6dfec' }}>
+            <div data-role="putt-cause" style={{ padding: '12px 14px', borderTop: `1px solid ${C.line}22`, fontSize: 15, lineHeight: 1.7, color: '#1b64da' }}>
               <div style={{ fontWeight: 800, color: review.puttAnalysis.cause === 'unknown' ? MUTED : C.goldBright, marginBottom: 2 }}>
                 3퍼트 원인 · {review.puttAnalysis.label}
               </div>
@@ -486,7 +486,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
 
         {review.memo && (
           <Section title="메모">
-            <div style={{ padding: '12px 14px', fontSize: 16, lineHeight: 1.8, color: '#d6dfec', whiteSpace: 'pre-wrap' }}>
+            <div style={{ padding: '12px 14px', fontSize: 16, lineHeight: 1.8, color: '#1b64da', whiteSpace: 'pre-wrap' }}>
               {review.memo}
             </div>
           </Section>
@@ -498,7 +498,7 @@ export default function HoleReview({ round, player, holeIdx, onNav, onClose, onE
       {/* 홀 이동 */}
       <div style={{
         flexShrink: 0, display: 'flex', gap: 8, padding: '10px 14px',
-        borderTop: `1px solid ${BORDER}`, background: '#0d1220',
+        borderTop: `1px solid ${BORDER}`, background: '#eef1f4',
       }}>
         <button onClick={() => canPrev && onNav(holeIdx - 1)} disabled={!canPrev} style={navBtn(canPrev)}>
           ← {canPrev ? `${holeIdx}홀` : '이전'}

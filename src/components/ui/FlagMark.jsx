@@ -3,8 +3,8 @@ export default function FlagMark({ x = 170, y = 170, k = 1 }) {
   return (
     <g aria-hidden="true">
       <ellipse cx={x} cy={y + 18 * k} rx={9 * k} ry={2.6 * k} fill="#04100a" />
-      <path d={`M${x} ${y + 18 * k}V${y - 16 * k}`} stroke="#c9a228" strokeWidth="2" strokeLinecap="round" />
-      <path d={`M${x} ${y - 16 * k}L${x + 15 * k} ${y - 9 * k}L${x} ${y - 2 * k}Z`} fill="#c9a228" />
+      <path d={`M${x} ${y + 18 * k}V${y - 16 * k}`} stroke="#1b64da" strokeWidth="2" strokeLinecap="round" />
+      <path d={`M${x} ${y - 16 * k}L${x + 15 * k} ${y - 9 * k}L${x} ${y - 2 * k}Z`} fill="#1b64da" />
     </g>
   );
 }

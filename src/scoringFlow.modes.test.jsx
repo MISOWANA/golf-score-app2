@@ -11,14 +11,14 @@ installHooks();
 describe('9홀 라운드', () => {
   it('전반 9홀로 시작하면 진행률이 0 / 9 holes, 홀 번호는 1~9 이고 9번 홀에서 다음 버튼 대신 완료가 나온다', async () => {
     await newHole(null, { nine: 'out' });
-    expect(text()).toContain('/ 9 holes');
+    expect(text()).toContain('/9홀');
     expect(holeHeader().hole).toBe(1);
     const cells = [...document.querySelectorAll('[data-role="nav-score"] button')];
     expect(cells).toHaveLength(9);
     await tap(cells[8], '9번 홀 칸');
     expect(holeHeader().hole).toBe(9);
-    expect(find('완료').length).toBeGreaterThan(0);
-    expect(find('다음').length).toBe(0);
+    expect(find('라운드 완료').length).toBeGreaterThan(0);
+    expect(find('다음 홀').length).toBe(0);
   });
 
   it('후반 9홀로 시작해도 홀 번호는 1~9 이고 한 홀을 끝까지 칠 수 있다', async () => {
@@ -30,16 +30,16 @@ describe('9홀 라운드', () => {
     expect(openPutts()).toEqual([1]);
     await tap(area('putt-primary'));
     await waitForHole(2);
-    expect(text()).toContain('/ 9 holes');
+    expect(text()).toContain('/9홀');
   });
 });
 
 describe('동반자와 함께 (간편 입력)', () => {
-  it('플레이어가 둘이면 상세 샷 입력 대신 플레이어별 스코어 −/+ 가 나오고, 다음 홀 · 이전 버튼으로 이동한다', async () => {
+  it('플레이어가 둘이면 상세 샷 입력 대신 플레이어별 스코어 −/+ 가 나오고, 아래 막대의 다음 홀 · 이전 버튼으로 이동한다', async () => {
     await newHole(null, { players: ['철수'] });
     expect(text()).toContain('철수');
-    expect(text()).not.toContain('FAIRWAY HIT');                     // 상세 샷 입력은 혼자 칠 때만
-    expect(find('다음 홀 ›').length).toBe(1);
+    expect(text()).not.toContain('페어웨이 적중');                     // 상세 샷 입력은 혼자 칠 때만
+    expect(find('다음 홀').length).toBe(1);                           // 아래 막대 하나뿐 (본문 안에 같은 버튼을 또 두지 않는다)
     const minus = find('−').length; const plus = find('+').length;
     expect(minus).toBeGreaterThanOrEqual(2);
     expect(plus).toBeGreaterThanOrEqual(2);
@@ -52,9 +52,9 @@ describe('동반자와 함께 (간편 입력)', () => {
     // 두 번째 플레이어(철수) 행의 + : 간편 입력 카드의 + 두 번째
     const plusButtons = find('+');
     await tap(plusButtons[1]);
-    await tap(find('다음 홀 ›')[0]);
+    await tap(find('다음 홀')[0]);
     if (area('hole-check')) await tap(find(/그대로|취소/)[0]);
-    await waitFor(() => expect(text()).toMatch(/HOLE 2|입력하지 않았어요/));
+    await waitFor(() => expect(text()).toMatch(/2번 홀|입력하지 않았어요/));
   });
 });
 
@@ -122,7 +122,7 @@ describe('필수 정보(라이 · 지형 · 거리 · 클럽)와 확인 창', ()
     await tapTab('field');
     await tap(area('second-result-on'));
     await tap(area('putt-next'));
-    await tap(one('다음'));
+    await tap(one('다음 홀'));
     // 퍼팅 수를 알면(PUTT 1 → 2 를 눌러 2퍼트 이상이 확정) 샷 정보만 묻는다
     expect(area('hole-check')).toBeTruthy();
     expect(area('hole-check').getAttribute('data-info')).toBe('1');
@@ -138,7 +138,7 @@ describe('필수 정보(라이 · 지형 · 거리 · 클럽)와 확인 창', ()
     await tapTab('field');
     await tap(area('second-result-on'));
     await tap(area('putt-next'));
-    await tap(one('다음'));
+    await tap(one('다음 홀'));
     await tap(area('info-ask-fill'));
     expect(area('hole-check')).toBeNull();
     expect(currentTab()).toBe('필드샷');
@@ -154,7 +154,7 @@ describe('필수 정보(라이 · 지형 · 거리 · 클럽)와 확인 창', ()
     await tapTab('field');
     await tap(area('second-result-on'));
     await tap(area('putt-next'));
-    await tap(one('다음'));
+    await tap(one('다음 홀'));
     await tap(find(/^그대로 다음 홀$/)[0]);
     expect(holeHeader().hole).toBe(2);
     expect((await stored(0)).s.confirmed).toBe(true);

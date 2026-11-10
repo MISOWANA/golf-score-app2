@@ -150,9 +150,9 @@ export function isHoledOut(score) {
 
 // 측위 품질 — 오차 반경(m) 기준.
 const QUALITY_TIERS = [
-  { id: 'good', max: 8,        label: '양호', color: '#3db87a' },
-  { id: 'fair', max: 15,       label: '보통', color: '#c9a228' },
-  { id: 'poor', max: Infinity, label: '불량', color: '#ef5350' },
+  { id: 'good', max: 8,        label: '양호', color: '#0a7f3f' },
+  { id: 'fair', max: 15,       label: '보통', color: '#a85b00' },
+  { id: 'poor', max: Infinity, label: '불량', color: '#c8323a' },
 ];
 
 export function gpsQuality(acc) {

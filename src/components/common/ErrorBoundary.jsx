@@ -29,30 +29,30 @@ export default class ErrorBoundary extends React.Component {
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24, background: '#0b0e18', textAlign: 'center',
+        padding: 24, background: '#ffffff', textAlign: 'center',
       }}>
         <div style={{ width: '100%', maxWidth: 340 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>⛳</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#191f28', marginBottom: 8 }}>
             화면을 표시하지 못했어요
           </div>
-          <div style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.7, marginBottom: 20 }}>
+          <div style={{ fontSize: 14, color: '#4e5968', lineHeight: 1.7, marginBottom: 20 }}>
             저장된 기록은 그대로 있어요.<br />
             아래 버튼으로 다시 시도해 주세요.
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {this.props.onHome && (
               <button
-                style={{ ...btn, border: '1.5px solid transparent', background: '#c9a228', color: '#0b0e18' }}
+                style={{ ...btn, border: '1.5px solid transparent', background: '#1b64da', color: '#ffffff' }}
                 onClick={() => { this.setState({ error: null }); this.props.onHome(); }}
               >홈으로</button>
             )}
             <button
-              style={{ ...btn, border: '1.5px solid #3a4e72', background: 'transparent', color: '#e8edf8' }}
+              style={{ ...btn, border: '1.5px solid #b0b8c1', background: 'transparent', color: '#191f28' }}
               onClick={() => window.location.reload()}
             >새로고침</button>
           </div>
-          <div style={{ marginTop: 16, fontSize: 13, color: '#8896b0', wordBreak: 'break-all' }}>
+          <div style={{ marginTop: 16, fontSize: 13, color: '#4e5968', wordBreak: 'break-all' }}>
             {String(error?.message || error)}
           </div>
         </div>

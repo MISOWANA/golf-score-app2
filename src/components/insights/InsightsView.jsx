@@ -68,25 +68,25 @@ function ScopeToggle({ rounds, isCareerMode, isLatest = true, onPick, small = fa
         const on = (isCareerMode ? 'career' : 'round') === k;
         return (
           <button key={k} type="button" aria-pressed={on} aria-label={full} data-role={`${prefix}-${k}`} onClick={() => onPick(k)}
-            style={{ height: 44, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14, fontWeight: on ? 800 : 700, background: on ? '#c9a228' : 'transparent', color: on ? '#0b0e18' : '#8896b0' }}>{l}</button>
+            style={{ height: 44, padding: `0 ${small ? 11 : 13}px`, borderRadius: 999, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 14, fontWeight: on ? 800 : 700, background: on ? '#1b64da' : 'transparent', color: on ? '#ffffff' : '#4e5968' }}>{l}</button>
         );
       })}
     </div>
   );
 }
 
-const SEVERITY_COLOR = { positive: '#3db87a', neutral: '#8896b0', warning: '#c9a228', critical: '#ef5350' };
-const SEVERITY_BG    = { positive: 'rgba(61,184,122,0.12)', neutral: 'rgba(136,150,176,0.10)', warning: 'rgba(201,162,40,0.12)', critical: 'rgba(239,83,80,0.12)' };
+const SEVERITY_COLOR = { positive: '#0a7f3f', neutral: '#4e5968', warning: '#1b64da', critical: '#c8323a' };
+const SEVERITY_BG    = { positive: 'rgba(10,127,63,0.12)', neutral: 'rgba(25,31,40,0.06)', warning: 'rgba(27,100,218,0.12)', critical: 'rgba(200,50,58,0.12)' };
 const SEVERITY_BADGE = { positive: '✓', neutral: '·', warning: '△', critical: '!' };
 
 // 스코어 5단계 분해 카테고리별 색 — success(green)/danger(red) 이분법과 겹치지 않도록
 // penalty만 위험 신호로 red를 재사용하고 나머지는 중립 카테고리 팔레트를 쓴다.
 const CATEGORY_COLOR = {
-  penalty:   '#ef5350',
-  putting:   '#c9a228',
-  tee:       '#6b8cae',
-  approach:  '#8a6fb0',
-  shortGame: '#d98e3e',
+  penalty:   '#c8323a',
+  putting:   '#1b64da',
+  tee:       '#8b95a1',
+  approach:  '#6b4fa0',
+  shortGame: '#b45309',
 };
 
 const careerRules = ROUND_RULES.filter(r => r.careerApplicable !== false);
@@ -109,7 +109,7 @@ function withEuiGa(word) {
 function RoundPicker({ allRounds, pick, onPick }) {
   return (
     <div role="listbox" aria-label="리포트로 볼 라운드" data-role="round-picker"
-      style={{ margin: '-4px 0 12px', maxHeight: 264, overflowY: 'auto', borderRadius: 14, background: '#0f1626', border: '1px solid #252f4a', padding: 4, textAlign: 'left' }}>
+      style={{ margin: '-4px 0 12px', maxHeight: 264, overflowY: 'auto', borderRadius: 14, background: '#eef1f4', border: '1px solid #d1d6db', padding: 4, textAlign: 'left' }}>
       {allRounds.map((r, i) => {
         const p = r.players[0];
         const total = r.holes.reduce((s, h) => s + (h.scores[p]?.strokes || 0), 0);
@@ -117,12 +117,12 @@ function RoundPicker({ allRounds, pick, onPick }) {
         const on = i === pick;
         return (
           <button key={r.id} type="button" role="option" aria-selected={on} data-role={`pick-${i}`} onClick={() => onPick(i)}
-            style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? 'rgba(201,162,40,0.14)' : 'transparent', color: '#e8edf8', textAlign: 'left' }}>
-            <span data-role="pick-date" style={{ minWidth: 80, flexShrink: 0, whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0', fontVariantNumeric: 'tabular-nums' }}>{roundDateLabel(r.date)}</span>
+            style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 10, border: 'none', cursor: 'pointer', background: on ? 'rgba(27,100,218,0.14)' : 'transparent', color: '#191f28', textAlign: 'left' }}>
+            <span data-role="pick-date" style={{ minWidth: 80, flexShrink: 0, whiteSpace: 'nowrap', fontSize: 14, fontWeight: 700, color: on ? '#1b64da' : '#4e5968', fontVariantNumeric: 'tabular-nums' }}>{roundDateLabel(r.date)}</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.courseName || '코스 이름 없음'}</span>
-            {i === 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#3db87a', border: '1px solid rgba(61,184,122,0.5)', borderRadius: 999, padding: '1px 7px' }}>최신</span>}
+            {i === 0 && <span style={{ fontSize: 12, fontWeight: 800, color: '#0a7f3f', border: '1px solid rgba(10,127,63,0.5)', borderRadius: 999, padding: '1px 7px' }}>최신</span>}
             <span style={{ fontSize: 16, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{total}</span>
-            <span style={{ width: 28, fontSize: 14, fontWeight: 800, textAlign: 'right', color: diff > 0 ? '#ef5350' : diff < 0 ? '#3db87a' : '#8896b0' }}>{fmtSigned(diff, 0)}</span>
+            <span style={{ width: 28, fontSize: 14, fontWeight: 800, textAlign: 'right', color: diff > 0 ? '#c8323a' : diff < 0 ? '#0a7f3f' : '#4e5968' }}>{fmtSigned(diff, 0)}</span>
           </button>
         );
       })}
@@ -160,7 +160,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
             <ChevronLeft size={22} />
           </button>
-          <div style={styles.pageTitle}>Insights</div>
+          <div style={styles.pageTitle}>인사이트</div>
           <div style={{ width: 44 }} />
         </header>
         <ExcludedNote multiCount={excludedCount} nineCount={nineExcludedCount} margin="0 16px 12px" />
@@ -249,23 +249,23 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
   if (birdieRatePct >= 10 && doubleRatePct >= 15) {
     styleType = '공격형 · AGGRESSIVE'; styleSubtitle = '리스크를 감수하는 스코어 메이커';
     styleDescription = '버디 찬스를 적극적으로 노리지만 때때로 큰 실수가 발생해요. 빅 스코어가 나올 수 있는 스타일이에요.';
-    styleIcon = '🔥'; styleColor = '#c04a3e';
+    styleIcon = '🔥'; styleColor = '#c8323a';
   } else if (doubleRatePct < 10 && birdieRatePct < 8) {
     styleType = '안정형 · CONSERVATIVE'; styleSubtitle = '실수 없는 꾸준한 스코어 관리';
     styleDescription = '큰 실수가 적고 안정적으로 파와 보기 사이에서 스코어를 관리해요. 꾸준함이 무기예요.';
-    styleIcon = '🛡️'; styleColor = '#3db87a';
+    styleIcon = '🛡️'; styleColor = '#0a7f3f';
   } else if (parRatePct >= 35) {
     styleType = '정교형 · PRECISION'; styleSubtitle = '파를 꾸준히 지켜내는 플레이어';
     styleDescription = '파 비율이 높아 안정적인 스코어를 만들어내요. 정확한 샷메이킹이 강점이에요.';
-    styleIcon = '🎯'; styleColor = '#e8edf8';
+    styleIcon = '🎯'; styleColor = '#191f28';
   } else if (stdDev >= 6) {
     styleType = '기복형 · INCONSISTENT'; styleSubtitle = '라운드마다 스코어 편차가 큰 스타일';
     styleDescription = `라운드별 편차 ±${stdDev.toFixed(1)}타 — 좋을 땐 환상적이지만 컨디션에 좌우돼요.`;
-    styleIcon = '⚡'; styleColor = '#c9a228';
+    styleIcon = '⚡'; styleColor = '#1b64da';
   } else {
     styleType = '밸런스형 · BALANCED'; styleSubtitle = '공격과 수비의 균형이 잡힌 플레이어';
     styleDescription = '공격적인 플레이와 안정적인 관리를 적절히 섞는 스타일이에요.';
-    styleIcon = '⚖️'; styleColor = '#e8edf8';
+    styleIcon = '⚖️'; styleColor = '#191f28';
   }
 
   // ── 패턴 인사이트 (룰 엔진) — 이번 라운드는 최신 라운드만, 누적은 전체 라운드 합산 ──
@@ -361,16 +361,16 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <button style={{ ...styles.iconBack, justifySelf: 'start' }} onClick={onBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
-        <div style={styles.pageTitle}>Insights</div>
+        <div style={styles.pageTitle}>인사이트</div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           {TOOLS.map(([v, aria, text, Icon]) => {
             const on = tab === v;
             return (
               <button key={v} type="button" aria-label={aria} aria-pressed={on} data-role={`view-${v}`}
                 onClick={() => changeView(on ? 'report' : v)}
-                style={{ width: 46, height: 46, borderRadius: 12, background: on ? 'rgba(201,162,40,0.14)' : 'transparent', border: 'none', cursor: 'pointer', color: on ? '#f3d36b' : '#c4cfe0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 0 }}>
+                style={{ width: 46, height: 46, borderRadius: 12, background: on ? 'rgba(27,100,218,0.14)' : 'transparent', border: 'none', cursor: 'pointer', color: on ? '#1b64da' : '#333d4b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 0 }}>
                 <Icon size={20} strokeWidth={1.9} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#f3d36b' : '#8896b0' }}>{text}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: on ? '#1b64da' : '#4e5968' }}>{text}</span>
               </button>
             );
           })}
@@ -398,11 +398,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </div>
             <div style={styles.insightsScopeValue}>
               <span data-role="scope-score">{isCareerMode ? avgScore.toFixed(1) : roundScore}</span>
-              <span style={{ fontSize: 14, fontWeight: 800, color: scopeDiff > 0 ? '#ef5350' : scopeDiff < 0 ? '#3db87a' : '#8896b0' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: scopeDiff > 0 ? '#c8323a' : scopeDiff < 0 ? '#0a7f3f' : '#4e5968' }}>
                 {fmtSigned(scopeDiff, isCareerMode ? 1 : 0)}
               </span>
               {!isLatest && (
-                <span data-role="scope-past" style={{ fontSize: 12, fontWeight: 800, color: '#c9a228', border: '1px solid rgba(201,162,40,0.5)', borderRadius: 999, padding: '1px 7px', alignSelf: 'center', whiteSpace: 'nowrap' }}>지난 라운드</span>
+                <span data-role="scope-past" style={{ fontSize: 12, fontWeight: 800, color: '#1b64da', border: '1px solid rgba(27,100,218,0.5)', borderRadius: 999, padding: '1px 7px', alignSelf: 'center', whiteSpace: 'nowrap' }}>지난 라운드</span>
               )}
             </div>
           </>
@@ -429,12 +429,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       {tab === 'report'
         ? <StickyTabs variant="underline" tabs={CHAPTER_TABS} current={chapter} onChange={setChapter} label="리포트 장" rolePrefix="insights-tab"
           stuckSlot={(
-            <div data-role="insights-stuck-row" style={{ display: 'flex', alignItems: 'center', justifyContent: rounds.length > 1 ? 'space-between' : 'flex-end', gap: 8, padding: '2px 16px', background: 'rgba(11,14,24,0.94)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid #1b2238' }}>
+            <div data-role="insights-stuck-row" style={{ display: 'flex', alignItems: 'center', justifyContent: rounds.length > 1 ? 'space-between' : 'flex-end', gap: 8, padding: '2px 16px', background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid #e5e8eb' }}>
               {rounds.length > 1 && <ScopeToggle rounds={rounds} isCareerMode={isCareerMode} isLatest={isLatest} onPick={setMode} small prefix="stuck-scope" />}
               <div style={{ display: 'flex', gap: 2 }}>
                 {TOOLS.map(([v, aria, , Icon]) => (
                   <button key={v} type="button" aria-label={aria} data-role={`stuck-view-${v}`} onClick={() => changeView(v)}
-                    style={{ width: 44, height: 44, borderRadius: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: '#c4cfe0', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                    style={{ width: 44, height: 44, borderRadius: 10, background: 'transparent', border: 'none', cursor: 'pointer', color: '#333d4b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                     <Icon size={19} strokeWidth={1.9} />
                   </button>
                 ))}
@@ -482,13 +482,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </KoEnTitle>
           </div>
           {sg.holesWithData === 0 ? (
-            <div style={{ fontSize: 14, color: '#8896b0' }}>아직 계산할 수 있는 샷이 없어요.</div>
+            <div style={{ fontSize: 14, color: '#4e5968' }}>아직 계산할 수 있는 샷이 없어요.</div>
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 14, color: '#8896b0' }}>측정된 샷 합계</div>
-                <div data-role="sg-total" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: sgValue(sg.total) >= 0 ? '#3db87a' : '#ef5350' }}>
-                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 14, fontWeight: 700, color: '#8896b0', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
+                <div style={{ fontSize: 14, color: '#4e5968' }}>측정된 샷 합계</div>
+                <div data-role="sg-total" style={{ fontSize: 22, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: sgValue(sg.total) >= 0 ? '#0a7f3f' : '#c8323a' }}>
+                  {fmtSigned(sgValue(sg.total))}<span style={{ fontSize: 14, fontWeight: 700, color: '#4e5968', marginLeft: 3 }}>타{isCareerMode ? '/R' : ''}</span>
                 </div>
               </div>
               {sgRows.map(r => (
@@ -496,21 +496,21 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                   <div style={styles.riStatRowLabel}>{SG_LABEL[r.cat]}</div>
                   {/* 가운데가 0 — 오른쪽(초록)은 투어 평균보다 잘 침, 왼쪽(빨강)은 잃음 */}
                   <div style={{ ...styles.riStatRowBarTrack, position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#3a4e72' }} />
+                    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#b0b8c1' }} />
                     <div style={{
                       position: 'absolute', top: 0, bottom: 0,
                       [r.value >= 0 ? 'left' : 'right']: '50%',
                       width: `${Math.min(50, (Math.abs(r.value) / sgMaxAbs) * 50)}%`,
-                      background: r.cat === 'mixed' ? '#6b7a99' : r.value >= 0 ? '#3db87a' : '#ef5350',
+                      background: r.cat === 'mixed' ? '#8b95a1' : r.value >= 0 ? '#0a7f3f' : '#c8323a',
                       borderRadius: 3,
                     }} />
                   </div>
-                  <div style={{ ...styles.riStatRowValue, color: r.value >= 0 ? '#3db87a' : '#ef5350' }}>{r.segments > 0 ? fmtSigned(r.value) : '–'}</div>
+                  <div style={{ ...styles.riStatRowValue, color: r.value >= 0 ? '#0a7f3f' : '#c8323a' }}>{r.segments > 0 ? fmtSigned(r.value) : '–'}</div>
                   {r.segments > 0 && r.cat !== 'mixed' ? <ConfidenceBadge tier={sgTier(r.strokes)} n={r.strokes} /> : <div style={{ width: 52 }} />}
                 </div>
               ))}
               {sg.coverage < 0.5 && (
-                <div data-role="sg-low-coverage" style={{ fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 8 }}>
+                <div data-role="sg-low-coverage" style={{ fontSize: 13, color: '#4e5968', lineHeight: 1.6, marginTop: 8 }}>
                   측정된 샷이 전체의 {Math.round(sg.coverage * 100)}%라 참고용이에요.
                 </div>
               )}
@@ -552,13 +552,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>손실 없이 파 또는 그 이상으로 마친 홀이 대부분이에요.</div>
+          <div style={{ fontSize: 14, color: '#4e5968' }}>손실 없이 파 또는 그 이상으로 마친 홀이 대부분이에요.</div>
         )}
       </div>
 
       {/* ── 진단 카드 (§2B, T1.5 최우선 강조) ────────────────────────────────── */}
       {!isCareerMode && diagnosis.top && (
-        <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[diagnosis.top.category], { base: '#1a2235', strength: 0.15 }), marginBottom: 24 }}>
+        <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[diagnosis.top.category], { base: '#e8ebee', strength: 0.15 }), marginBottom: 24 }}>
           <div style={styles.riDiagHead}>
             <div>
               <div style={styles.riDiagLabel}>스코어 기준 · 가장 많이 잃은 곳</div>
@@ -579,7 +579,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
       )}
 
       {isCareerMode && careerBreakdown.topCause && (
-        <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[careerBreakdown.topCause.category], { base: '#1a2235', strength: 0.15 }), marginBottom: 24 }}>
+        <div data-role="diag-card" style={{ ...styles.riDiagCard, ...tintWash(CATEGORY_COLOR[careerBreakdown.topCause.category], { base: '#e8ebee', strength: 0.15 }), marginBottom: 24 }}>
           <div style={styles.riDiagHead}>
             <div>
               <div style={styles.riDiagLabel}>누적 · 스코어 기준 · 가장 많이 잃은 곳</div>
@@ -643,18 +643,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {tee.total > 0 ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div data-role="tee-counts" style={{ fontSize: 14, color: '#e8edf8' }}>
+              <div data-role="tee-counts" style={{ fontSize: 14, color: '#191f28' }}>
                 왼쪽 <span style={{ fontWeight: 800 }}>{tee.left}</span> · 적중 <span style={{ fontWeight: 800 }}>{tee.hit}</span> · 오른쪽 <span style={{ fontWeight: 800 }}>{tee.right}</span>
                 {tee.green > 0 && <> · 1온 <span style={{ fontWeight: 800 }}>{tee.green}</span></>}
               </div>
               <ConfidenceBadge tier={tee.tier} n={tee.total} full />
             </div>
-            <div data-role="tee-take" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6 }}>
+            <div data-role="tee-take" style={{ fontSize: 14, color: '#4e5968', lineHeight: 1.6 }}>
               페어웨이 적중 {fmtPct(tee.hitPct)} (티샷 {tee.total}번 중 {tee.hit}번) — {teeSideText(tee)}
             </div>
           </>
         ) : (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>페어웨이 랜딩 기록이 아직 없어요.</div>
+          <div style={{ fontSize: 14, color: '#4e5968' }}>페어웨이 랜딩 기록이 아직 없어요.</div>
         )}
       </div>
 
@@ -665,14 +665,14 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {girp.holes > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ fontSize: 14, color: '#8896b0' }}>
+              <div style={{ fontSize: 14, color: '#4e5968' }}>
                 GIRP · 규정 타수+1타 이내 그린 도달 {isCareerMode ? '(라운드 평균)' : ''}
                 <InfoNote title="GIRP란?">
                   <p>프린지는 따로 기록하지 않아 그린만 세어요. 라운드당 {GIRP_STEADY_100}개 이상이면 꾸준히 100타를 깨는 수준이라고 해요.</p>
                   {!isCareerMode && girp.holes < 18 && <p>{`입력한 ${girp.holes}홀 기준, 18홀로 환산하면 ${girp.per18.toFixed(1)}개예요.`}</p>}
                 </InfoNote>
               </div>
-              <div data-role="girp-value" style={{ fontSize: 18, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: girp.per18 >= GIRP_STEADY_100 ? '#3db87a' : '#e8edf8' }}>
+              <div data-role="girp-value" style={{ fontSize: 18, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: girp.per18 >= GIRP_STEADY_100 ? '#0a7f3f' : '#191f28' }}>
                 {isCareerMode ? `${girp.per18.toFixed(1)}/18` : `${girp.girp}/${girp.holes}`}
               </div>
             </div>
@@ -680,7 +680,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         )}
         {stage >= 3 && approachRows.length > 0 && (
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>거리구간별 근접도 — 그린에 올린 샷의 첫 퍼트 거리 (최근 20R)</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', marginBottom: 6 }}>거리구간별 근접도 — 그린에 올린 샷의 첫 퍼트 거리 (최근 20R)</div>
             {approachRows.map(b => (
               <div key={b.id} style={styles.riStatRow}>
                 <div style={styles.riStatRowLabel}>{tx(b.label, { abbr: true })}</div>
@@ -694,13 +694,13 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
         )}
         {stage >= 3 && approachRows.length === 0 && (
-          <div style={{ fontSize: 14, color: '#8896b0' }}>거리구간별 데이터가 아직 없어요.</div>
+          <div style={{ fontSize: 14, color: '#4e5968' }}>거리구간별 데이터가 아직 없어요.</div>
         )}
 
         {/* 위 근접도는 그린에 올린 샷만 센다. 그린을 놓친 샷까지 센 같은 기준으로 한 번 더 — 그래야 투어·90타 골퍼와 견줄 수 있다. */}
         {stage >= 3 && approachAllRows.length > 0 && (
           <div style={{ marginTop: 14 }} data-role="approach-all">
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', marginBottom: 6 }}>
               전체 샷 기준 — 그린을 놓친 샷 포함 (샷 뒤 핀까지 남은 거리)
               <InfoNote title="전체 샷 기준 비교">
                 <p>125야드{isYards() ? '' : `(${APPROACH_125YD.distanceM.toFixed(0)}m)`}에서 절반의 샷이 들어오는 거리: 투어 {fmtPutt(APPROACH_125YD.tourMedianM, { digits: 1 })} · 90타 골퍼 {fmtPutt(APPROACH_125YD.golfer90MedianM, { digits: 1 })}예요.</p>
@@ -754,7 +754,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
               </KoEnTitle>
             </div>
             <LandingDistribution counts={counts} />
-            <div data-role="landing-total" style={{ textAlign: 'center', color: '#8896b0', fontSize: 13, marginTop: 6 }}>{tx(`80m 밖 샷으로 그린에 올라간 ${total}홀`)}{shortGame > 0 ? ` · ${tx('80m 안')} ${shortGame}홀은 숏게임에서` : ''}</div>
+            <div data-role="landing-total" style={{ textAlign: 'center', color: '#4e5968', fontSize: 13, marginTop: 6 }}>{tx(`80m 밖 샷으로 그린에 올라간 ${total}홀`)}{shortGame > 0 ? ` · ${tx('80m 안')} ${shortGame}홀은 숏게임에서` : ''}</div>
           </div>
         );
       })()}
@@ -765,18 +765,18 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         <SkillHeader cat="shortGame" sg={sg} career={isCareerMode} />
         {scrambling.attempts > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: 14, color: '#8896b0' }}>
-              스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#e8edf8', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
-              <span style={{ marginLeft: 6, color: '#8aa0c4' }}>({scrambling.saves}/{scrambling.attempts}홀)</span>
+            <div style={{ fontSize: 14, color: '#4e5968' }}>
+              스크램블링 (그린 미스 후 파 세이브) <span style={{ color: '#191f28', fontWeight: 700 }}>{scrambling.ratePct.toFixed(0)}%</span>
+              <span style={{ marginLeft: 6, color: '#4e5968' }}>({scrambling.saves}/{scrambling.attempts}홀)</span>
             </div>
             <ConfidenceBadge tier={scrambling.tier} n={scrambling.attempts} />
           </div>
         ) : (
-          <div style={{ fontSize: 14, color: '#8896b0', marginBottom: 10 }}>그린을 놓친 홀이 아직 없어요.</div>
+          <div style={{ fontSize: 14, color: '#4e5968', marginBottom: 10 }}>그린을 놓친 홀이 아직 없어요.</div>
         )}
         {stage >= 3 && shortRows.length > 0 && (
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', marginBottom: 6 }}>
               {tx('80m 안 샷의 근접도')}
               <InfoNote title="근접도 두 줄의 차이">
                 <p>첫 줄은 그린에 올린 샷의 첫 퍼트 거리, 둘째 줄은 그린을 놓친 샷까지 센 샷 뒤 핀까지 남은 거리예요.</p>
@@ -798,7 +798,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {/* 핀 기준 탄착 — 80m 안 샷이 핀 기준 어디에 멈췄나 (랜딩 방향 + 첫 퍼트 거리). 스탯 '숏게임' 탭과 같은 컴포넌트다 */}
         {shortPattern.enough ? (
           <div data-role="insights-pin-pattern" style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', marginBottom: 6 }}>
               {tx('핀 기준 탄착 · 80m 안 샷')}
               <InfoNote title="핀 기준 탄착 읽는 법">
                 <p>퍼팅 탭에서 기록한 "온그린 랜딩 방향"(몇 시)과 "첫 퍼트 거리"를 합쳐서, 80m 안 샷이 그린에 올라 핀 기준 어디에 멈췄는지 찍어요. 위가 롱(핀 너머), 아래가 숏, 오른쪽이 라이트예요.</p>
@@ -809,7 +809,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             <ShortGamePatternPanel pattern={shortPattern} />
           </div>
         ) : shortPattern.coverage.onGreen > 0 && (
-          <div data-role="insights-pin-pattern-hint" style={{ fontSize: 14, color: '#8896b0', marginTop: 12, lineHeight: 1.6 }}>
+          <div data-role="insights-pin-pattern-hint" style={{ fontSize: 14, color: '#4e5968', marginTop: 12, lineHeight: 1.6 }}>
             {tx(`핀 기준 탄착은 랜딩 방향과 첫 퍼트 거리를 둘 다 기록한 80m 안 샷이 ${MIN_PATTERN_SHOTS}개 이상 쌓이면 보여요 (지금 ${shortPattern.n}샷).`)}
           </div>
         )}
@@ -826,10 +826,10 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         </div>
         <SkillHeader cat="putting" sg={sg} career={isCareerMode} />
         {/* 거리구간별 성공률 — 스탯 '퍼팅' 탭과 같은 계산 · 같은 부품 (빗나가면 남는 거리와 거리별 SG 까지) */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', marginBottom: 6 }}>{`거리구간별 성공률 (${cumLabel})`}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', marginBottom: 6 }}>{`거리구간별 성공률 (${cumLabel})`}</div>
         <PuttDistancePanel rows={puttDetail.byDistance} />
         {puttZone.total >= 3 && (
-          <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
+          <div style={{ fontSize: 14, color: '#333d4b', lineHeight: 1.6, marginTop: 10 }} data-role="putt-zone">
             퍼팅 실력이 가장 많이 갈리는 구간은 <b>{isYards() ? '3~7피트' : '1~2m'}</b> 줄이에요.
             <InfoNote title={tx('1~2m 구간이 중요한 이유')}>
               <p>최상위 퍼터는 전체 이득의 38%를, 아마추어는 프로에게 잃는 타수의 46%를 이 구간에서 얻고 잃어요.</p>
@@ -846,25 +846,25 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
               ['LINE', '라인 (좌우 · 하이/로우사이드)', <PuttLinePanel key="l" line={puttDetail.line} />],
             ].map(([en, ko, panel]) => (
               <div key={en} style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}><KoEnTitle en={en} ko={ko} /></div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 8 }}><KoEnTitle en={en} ko={ko} /></div>
                 {panel}
               </div>
             ))}
             {puttDetail.byLie.n > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}><KoEnTitle en="BY LIE" ko="라이별 성공률" /></div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 8 }}><KoEnTitle en="BY LIE" ko="라이별 성공률" /></div>
                 <PuttLiePanel byLie={puttDetail.byLie} />
               </div>
             )}
             {puttDetail.lag.length > 0 && (
               <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}><KoEnTitle en="FIRST PUTT" ko="첫 퍼트 붙이기" /></div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 8 }}><KoEnTitle en="FIRST PUTT" ko="첫 퍼트 붙이기" /></div>
                 <PuttLagPanel lag={puttDetail.lag} comeback={puttDetail.comeback} threePutt={puttDetail.threePutt} />
               </div>
             )}
           </div>
         ) : (
-          <div data-role="putt-detail-hint" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6, marginTop: 12 }}>
+          <div data-role="putt-detail-hint" style={{ fontSize: 14, color: '#4e5968', lineHeight: 1.6, marginTop: 12 }}>
             퍼팅 탭에서 퍼트마다 라이를 고르고 공이 멈춘 곳(미스 위치)을 찍으면, 롱 · 숏과 하이/로우사이드까지 분석해 드려요.
           </div>
         )}
@@ -876,7 +876,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         {/* 그날의 그린 스피드에 따른 퍼팅 — 이번 라운드 / 누적 토글에 연동 */}
         {greenSpeedReport && (
           <div style={{ marginTop: 4 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.16em', marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 8 }}>
               <KoEnTitle en="GREEN SPEED" ko={`그린 스피드${isCareerMode ? ' (구간별 라운드 평균)' : ''}`} />
             </div>
             <GreenSpeedPanel report={greenSpeedReport} past={!isLatest} />
@@ -907,15 +907,15 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: events.onePutt > 0 ? 12 : 0 }}>
           {[
-            ['이글+', composition.counts.eagle, '#c9a228'],
-            ['버디', composition.counts.birdie - composition.counts.eagle, '#3db87a'],
-            ['파', composition.counts.par, '#8896b0'],
-            ['보기', composition.counts.bogey, '#e57373'],
-            ['더블+', composition.counts.double, '#ef5350'],
+            ['이글+', composition.counts.eagle, '#1b64da'],
+            ['버디', composition.counts.birdie - composition.counts.eagle, '#0a7f3f'],
+            ['파', composition.counts.par, '#4e5968'],
+            ['보기', composition.counts.bogey, '#c8323a'],
+            ['더블+', composition.counts.double, '#c8323a'],
           ].map(([label, count, color]) => (
-            <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#111827', border: '1px solid #1b2238', borderRadius: 12 }}>
+            <div key={label} style={{ flex: '1 0 18%', textAlign: 'center', padding: '10px 4px', background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 12 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{count}</div>
-              <div style={{ fontSize: 12, color: '#8896b0', marginTop: 2 }}>{label}</div>
+              <div style={{ fontSize: 12, color: '#4e5968', marginTop: 2 }}>{label}</div>
             </div>
           ))}
         </div>
@@ -940,11 +940,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                     ...styles.riStatRowBarFill,
                     width: `${(Math.abs(r.diff) / roundTrendMaxAbsDiff) * 100}%`,
                     marginLeft: r.diff < 0 ? 'auto' : 0,
-                    background: r.diff > 0 ? '#ef5350' : r.diff < 0 ? '#3db87a' : '#8896b0',
+                    background: r.diff > 0 ? '#c8323a' : r.diff < 0 ? '#0a7f3f' : '#8b95a1',
                   }}
                 />
               </div>
-              <div style={styles.riStatRowValue}>{r.score} <span style={{ color: r.diff > 0 ? '#ef5350' : r.diff < 0 ? '#3db87a' : '#8896b0' }}>{r.diff === 0 ? 'E' : fmtSigned(r.diff, 0)}</span></div>
+              <div style={styles.riStatRowValue}>{r.score} <span style={{ color: r.diff > 0 ? '#c8323a' : r.diff < 0 ? '#0a7f3f' : '#4e5968' }}>{r.diff === 0 ? 'E' : fmtSigned(r.diff, 0)}</span></div>
             </div>
           ))}
         </div>
@@ -953,7 +953,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={styles.sectionTitle}><KoEnTitle text="HOLE TIMELINE · 홀별 원인" /></div>
           <div style={styles.riTimelineWrap}>
             {timelineHoles.map(h => (
-              <div key={h.holeNumber} style={{ ...styles.riTimelineCell, borderTopColor: h.primaryCause ? CATEGORY_COLOR[h.primaryCause] : '#1b2238' }}>
+              <div key={h.holeNumber} style={{ ...styles.riTimelineCell, borderTopColor: h.primaryCause ? CATEGORY_COLOR[h.primaryCause] : '#e5e8eb' }}>
                 <div style={styles.riTimelineHole}>{h.holeNumber}</div>
                 <div style={styles.riTimelineScore}>{h.score}</div>
               </div>
@@ -1006,8 +1006,8 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           </div>
           <div style={styles.insightCards}>
             {patternInsights.map((ins, i) => {
-              const color = SEVERITY_COLOR[ins.severity] ?? '#8896b0';
-              const bg    = SEVERITY_BG[ins.severity]    ?? 'rgba(136,150,176,0.10)';
+              const color = SEVERITY_COLOR[ins.severity] ?? '#4e5968';
+              const bg    = SEVERITY_BG[ins.severity]    ?? 'rgba(25,31,40,0.06)';
               const badge = SEVERITY_BADGE[ins.severity] ?? '·';
               return (
                 <div key={i} style={{ ...styles.insightCard, ...tintWash(color, TINT_SOFT) }}>
@@ -1015,7 +1015,7 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
                   <div style={styles.insightCardContent}>
                     <div style={styles.insightCardTitle}>{ins.title}</div>
                     <div style={styles.insightCardDetail}>{ins.summary}</div>
-                    <div style={{ ...styles.insightCardDetail, color: '#8896b0', marginTop: 3 }}>{ins.recommendation}</div>
+                    <div style={{ ...styles.insightCardDetail, color: '#4e5968', marginTop: 3 }}>{ins.recommendation}</div>
                   </div>
                 </div>
               );
@@ -1032,11 +1032,11 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
             const avgDiff = p.avgDiff;
             return (
               <div key={p.par} style={styles.parAnalysisRow}>
-                <div style={styles.parAnalysisBadge}>PAR {p.par}</div>
+                <div style={styles.parAnalysisBadge}>파 {p.par}</div>
                 <div style={styles.parAnalysisData}>
                   <div style={styles.parAnalysisMain}>
                     <span style={styles.parAnalysisStrokes}>{p.avgStrokes.toFixed(2)}</span>
-                    <span style={{ ...styles.parAnalysisDiff, color: avgDiff > 0 ? '#ef5350' : avgDiff < 0 ? '#3db87a' : '#8896b0' }}>
+                    <span style={{ ...styles.parAnalysisDiff, color: avgDiff > 0 ? '#c8323a' : avgDiff < 0 ? '#0a7f3f' : '#4e5968' }}>
                       {avgDiff > 0 ? '+' : ''}{avgDiff.toFixed(2)}
                     </span>
                     <span style={styles.parAnalysisCount}>({p.count}홀)</span>
@@ -1059,12 +1059,12 @@ export default function InsightsView({ rounds: allRounds, onBack, excludedCount 
           <div style={styles.sectionTitle}><KoEnTitle en="PACE" ko={`전후반 페이스 (${cumLabel})`} /></div>
           <div style={styles.paceCard}>
             <div style={styles.paceRow}>
-              <div style={styles.paceLabel}>FRONT 9</div>
+              <div style={styles.paceLabel}>전반 9홀</div>
               <div style={styles.paceValue}>{fmtSigned(frontAvgDiff)}<span style={styles.paceSub}>/홀</span></div>
             </div>
             <div style={styles.paceArrow}>{Math.abs(fadeDiff) < 0.1 ? '→' : fadeDiff > 0 ? '↗' : '↘'}</div>
             <div style={styles.paceRow}>
-              <div style={styles.paceLabel}>BACK 9</div>
+              <div style={styles.paceLabel}>후반 9홀</div>
               <div style={styles.paceValue}>{fmtSigned(backAvgDiff)}<span style={styles.paceSub}>/홀</span></div>
             </div>
           </div>

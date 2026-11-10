@@ -21,10 +21,10 @@ export function MilestoneList({ rounds = 0 }) {
         return (
           <li key={m.n} data-role={`milestone-${m.n}`} data-state={done ? 'done' : isNext ? 'next' : 'later'} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ flexShrink: 0, minWidth: 46, textAlign: 'center', padding: '4px 0', borderRadius: 999, fontSize: 13, fontWeight: 800,
-              color: done ? '#3db87a' : isNext ? '#0b0e18' : '#a9b8d6', background: done ? 'rgba(61,184,122,0.14)' : isNext ? '#c9a228' : 'rgba(136,150,176,0.14)' }}>
+              color: done ? '#0a7f3f' : isNext ? '#ffffff' : '#333d4b', background: done ? 'rgba(10,127,63,0.14)' : isNext ? '#1b64da' : 'rgba(25,31,40,0.084)' }}>
               {done ? '✓' : `${m.n}R`}
             </span>
-            <span style={{ fontSize: 14, lineHeight: 1.45, color: done ? '#8896b0' : '#e8edf8', wordBreak: 'keep-all' }}>{m.text}</span>
+            <span style={{ fontSize: 14, lineHeight: 1.45, color: done ? '#4e5968' : '#191f28', wordBreak: 'keep-all' }}>{m.text}</span>
           </li>
         );
       })}
@@ -37,19 +37,19 @@ export function StartButton({ onStart, label = '라운드 시작하기' }) {
   return (
     <button type="button" className="bb-press" data-role="empty-start" onClick={onStart}
       style={{ width: '100%', minHeight: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, border: 'none',
-        background: 'linear-gradient(180deg, #e8c84e 0%, #c9a228 100%)', color: '#0b0e18', fontSize: 16, fontWeight: 900, cursor: 'pointer' }}>
-      <Play size={17} fill="#0b0e18" />{label}
+        background: 'linear-gradient(180deg, #1b64da 0%, #1b64da 100%)', color: '#ffffff', fontSize: 16, fontWeight: 900, cursor: 'pointer' }}>
+      <Play size={17} fill="#ffffff" />{label}
     </button>
   );
 }
 
 export default function EmptyGuide({ icon, title, lead, rounds = 0, onStart, startLabel, role = 'empty-guide' }) {
   return (
-    <div data-role={role} style={{ margin: '8px 0 0', padding: '26px 18px 20px', borderRadius: 20, background: '#111827', border: '1px solid #1b2238', textAlign: 'center' }}>
+    <div data-role={role} style={{ margin: '8px 0 0', padding: '26px 18px 20px', borderRadius: 20, background: '#f2f4f6', border: '1px solid #e5e8eb', textAlign: 'center' }}>
       <div aria-hidden="true" style={{ fontSize: 40, lineHeight: 1, marginBottom: 12 }}>{icon}</div>
-      <div style={{ fontSize: 19, fontWeight: 800, color: '#e8edf8', marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 15, lineHeight: 1.65, color: '#a9b8d6', marginBottom: 20, wordBreak: 'keep-all' }}>{lead}</div>
-      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.14em', color: '#8aa0c4', textAlign: 'left', marginBottom: 10 }}>기록이 쌓이면</div>
+      <div style={{ fontSize: 19, fontWeight: 800, color: '#191f28', marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 15, lineHeight: 1.65, color: '#333d4b', marginBottom: 20, wordBreak: 'keep-all' }}>{lead}</div>
+      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing:'0', color: '#4e5968', textAlign: 'left', marginBottom: 10 }}>기록이 쌓이면</div>
       <MilestoneList rounds={rounds} />
       {onStart && <div style={{ marginTop: 20 }}><StartButton onStart={onStart} label={startLabel} /></div>}
     </div>

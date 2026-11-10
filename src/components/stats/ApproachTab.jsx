@@ -76,7 +76,7 @@ export default function ApproachTab({ report }) {
         <div style={{ display: 'flex', gap: 8 }}>
           {parRows.map((p) => (
             <div key={p.par} data-role={`gir-par-${p.par}`} style={{ flex: 1, textAlign: 'center', padding: '9px 4px', background: COLOR.track, borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: COLOR.muted, fontWeight: 700, letterSpacing: '0.06em' }}>PAR {p.par}</div>
+              <div style={{ fontSize: 12, color: COLOR.muted, fontWeight: 700, letterSpacing:'0' }}>파 {p.par}</div>
               <div style={{ fontSize: 17, fontWeight: 900, marginTop: 3 }}>{fmtPct(p.pct)}</div>
               <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 2 }}>{p.hit}/{p.n}홀</div>
             </div>

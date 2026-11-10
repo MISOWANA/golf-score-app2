@@ -17,8 +17,10 @@ let user;
 
 // ─── 앱을 켜고 새 라운드를 시작한다 ───────────────────────────────────────────────
 // prefs: 설정 (예: { unit:'yd', firstPutt: 6 }). 처음 쓰는 사람이 아니라 이미 로그인한 사용자.
-export async function openApp({ prefs = null } = {}) {
+// shots: 샷 기록 구역을 열어 둔 채로 시작한다 (기본 true — 예전 상세 입력 흐름 테스트가 그대로 돈다). false 면 새 사용자의 기본 모습(스코어 · 퍼팅만).
+export async function openApp({ prefs = null, shots = true } = {}) {
   globalThis.indexedDB = new IDBFactory();
+  try { localStorage.setItem('bb-shot-detail', shots ? '1' : '0'); } catch { /* 저장소가 없으면 기본(접힘) */ }
   vi.resetModules();
   db = await import('../db.js');
   await db.initDB();
@@ -32,7 +34,7 @@ export async function openApp({ prefs = null } = {}) {
 // nine: null(18홀) | 'out' | 'in' · players: 함께 칠 동반자 이름들 (최대 3명)
 export async function startRound({ nine = null, players = [] } = {}) {
   fireEvent.click(screen.getByText('시작하기'));
-  await screen.findByText('New Round');
+  await screen.findByPlaceholderText('골프장 이름 검색...');
   fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '흐름CC' } });
   if (nine) fireEvent.click(screen.getByText(nine === 'out' ? '전반 9홀' : '후반 9홀'));
   for (let i = 0; i < players.length; i++) {
@@ -41,7 +43,7 @@ export async function startRound({ nine = null, players = [] } = {}) {
   }
   fireEvent.click(screen.getByText('화이트'));
   fireEvent.click(screen.getByText('라운드 시작하기'));
-  await screen.findByText(/^HOLE 1$/);
+  await screen.findByText(/^1번 홀$/);
 }
 export const getDb = () => db;
 export const getUser = () => user;
@@ -59,9 +61,9 @@ export function installHooks() {
 export const clean = (s) => (s || '').replace(/\s+/g, ' ').trim();
 export const root = () => document.body;
 
-// 눌린(선택된) 모양인가 — aria-pressed 가 있으면 그것, 없으면 테두리 색이 평소 색(어두운 남색)이 아니면 눌린 것
-// (칩은 눌리면 금색·초록·빨강 테두리로 바뀐다. 평소 테두리는 #252f4a 계열)
-const OFF_BORDERS = ['rgb(37, 47, 74)', 'rgb(27, 34, 56)', 'rgb(14, 19, 32)', 'rgb(44, 58, 92)', 'rgb(58, 78, 114)', 'transparent', 'rgba(0, 0, 0, 0)', ''];
+// 눌린(선택된) 모양인가 — aria-pressed 가 있으면 그것, 없으면 테두리 색이 평소 색(옅은 회색)이 아니면 눌린 것
+// (칩은 눌리면 파랑·초록·빨강 테두리로 바뀐다. 평소 테두리는 #d1d6db 계열)
+const OFF_BORDERS = ['rgb(209, 214, 219)', 'rgb(229, 232, 235)', 'rgb(217, 221, 226)', 'rgb(205, 211, 216)', 'rgb(176, 184, 193)', 'rgb(242, 244, 246)', 'transparent', 'rgba(0, 0, 0, 0)', ''];
 export const looksOn = (b) => {
   if (b.getAttribute('aria-pressed') != null) return b.getAttribute('aria-pressed') === 'true';
   const m = (b.style.border || '').match(/(rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}|transparent)\s*$/);
@@ -103,24 +105,19 @@ export function puttCards() {
 export const openPutts = () => puttCards().filter((c) => c.open).map((c) => c.n);
 // 윗쪽 큰 스코어 칸 — { pending: "온그린까지 3타" 로 보이면 그 타수, n: 숫자로 보이면 그 스코어 }
 export function scoreNow() {
-  const label = [...document.querySelectorAll('span')].find((s) => clean(s.textContent) === '스코어');
-  const section = label?.parentElement?.parentElement;   // 스코어 줄 전체 (제목 줄 + − + 막대)
-  const text = clean(section?.textContent);
-  const pend = text.match(/온그린까지 (\d+) ?타/);
-  if (pend) return { pending: Number(pend[1]), n: null };
-  const nums = text.match(/(\d+)\s*$/);
-  return { pending: null, n: nums ? Number(nums[1]) : null };
+  const pend = area('score-pending');
+  if (pend) { const m = clean(pend.textContent).match(/온그린까지 (\d+) ?타/); return { pending: m ? Number(m[1]) : null, n: null }; }
+  const v = area('score-value');
+  return { pending: null, n: v ? Number(clean(v.textContent)) : null };
 }
 // 윗쪽 퍼팅 줄에서 눌린 모양인 숫자 (0~4) — 없으면 null
 export function puttsPicked() {
-  const label = [...document.querySelectorAll('span')].find((s) => clean(s.textContent) === '퍼팅' && s.style.letterSpacing);
-  const row = label?.closest('div')?.parentElement;
-  const on = [...(row?.querySelectorAll('button') || [])].filter((b) => /^\d\+?$/.test(clean(b.textContent)) && /inset 0 0 0 2px/.test(b.style.boxShadow || ''));
+  const on = [...document.querySelectorAll('[data-role^="putts-"][aria-pressed="true"]')];
   return on.length ? clean(on[0].textContent) : null;
 }
-// 홀 이름표 줄 (HOLE n  PAR m)
+// 홀 머리글 (n번 홀 · 파 m 홀이에요)
 export function holeHeader() {
-  const m = visibleText().match(/HOLE (\d+) PAR (\d)/);
+  const m = visibleText().match(/(\d+)번 홀 (?:스코어를 알려 주세요 )?파 (\d) 홀이에요/);
   return m ? { hole: Number(m[1]), par: Number(m[2]) } : null;
 }
 
@@ -225,7 +222,7 @@ export const setDistance = async (scope, value) => {
   expect(slider.getAttribute('data-empty'), '거리가 실제로 입력된 모양이어야 한다').toBe('0');
 };
 // 홀인 연출(2.5초)이 끝나고 다음 홀 n 이 열릴 때까지
-export const waitForHole = (n) => screen.findByText(new RegExp(`^HOLE ${n}$`), {}, { timeout: 8000 });
+export const waitForHole = (n) => screen.findByText(new RegExp(`^${n}번 홀$`), {}, { timeout: 8000 });
 export const newHole = async (prefs = null, options = {}) => { await openApp({ prefs }); await startRound(options); };
 
 // 라운드 수정(연필) → 파 표에서 n번째 홀의 칸을 눌러 고르고, 아래 버튼(파 3~7)으로 파를 바꾸고 저장한다
@@ -253,5 +250,5 @@ export async function reopenApp() {
   render(<App />);
   await screen.findByText('새 라운드');
   fireEvent.click(await screen.findByText('이어서'));
-  await screen.findByText(/^HOLE \d+$/);
+  await screen.findByText(/^\d+번 홀$/);
 }

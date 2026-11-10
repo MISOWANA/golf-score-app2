@@ -8,7 +8,7 @@ export default function EmptyValue({ width = 30, height = 28, label = '미입력
       <span aria-hidden="true"
         style={{
           display: 'block', width, height: 3, borderRadius: 2,
-          background: 'linear-gradient(90deg, rgba(110,132,168,0.1), rgba(110,132,168,0.75) 30%, rgba(110,132,168,0.75) 70%, rgba(110,132,168,0.1))',
+          background: 'linear-gradient(90deg, rgba(25,31,40,0.06), rgba(25,31,40,0.3) 30%, rgba(25,31,40,0.3) 70%, rgba(25,31,40,0.06))',
         }} />
     </span>
   );

@@ -2,9 +2,9 @@ import { fmtShot, fmtPutt } from '../../engine/units.js';
 // 스탯 화면의 숫자 표기와 색 — 컴포넌트 파일에는 컴포넌트만 둔다.
 
 export const COLOR = {
-  gold: '#c9a228', goldHi: '#f3d36b', green: '#3db87a', red: '#ef5350',
-  amber: '#e6b94a', orange: '#ef8a50', blue: '#4f6290', lightBlue: '#7db4e6', slate: '#8896b0',
-  text: '#e8edf8', muted: '#8896b0', faint: '#8aa0c4', line: '#1b2238', track: '#1a2235',
+  gold: '#1b64da', goldHi: '#1b64da', green: '#0a7f3f', red: '#c8323a',
+  amber: '#a85b00', orange: '#ef8a50', blue: '#4f6290', lightBlue: '#7db4e6', slate: '#4e5968',
+  text: '#191f28', muted: '#4e5968', faint: '#4e5968', line: '#e5e8eb', track: '#e8ebee',
 };
 
 export const fmtPct = (v, digits = 0) => (v == null || Number.isNaN(v) ? '–' : `${v.toFixed(digits)}%`);

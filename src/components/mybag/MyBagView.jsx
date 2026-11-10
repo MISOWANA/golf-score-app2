@@ -421,7 +421,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
       <div style={styles.container}>
         <header style={styles.pageHeader}>
           <button style={styles.iconBack} onClick={goBack} aria-label="뒤로"><ChevronLeft size={22} /></button>
-          <div style={styles.pageTitle}>My Bag</div>
+          <div style={styles.pageTitle}>마이백</div>
           <div style={{ width: 44 }} />
         </header>
       </div>
@@ -441,7 +441,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
         <button style={styles.iconBack} onClick={goBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
-        <div style={styles.pageTitle}>My Bag</div>
+        <div style={styles.pageTitle}>마이백</div>
         <div style={{ width: 44 }} />
       </header>
 
@@ -462,7 +462,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
       <Takeaway bare tone={statusTake.tone} id="bag-status">{statusTake.text}</Takeaway>
       {!isSaved && (
         <button type="button" data-role="bag-register-start" onClick={() => setWizardOff(false)}
-          style={{ width: '100%', height: 46, margin: '6px 0 4px', borderRadius: 14, border: '1px solid rgba(201,162,40,0.55)', background: 'rgba(201,162,40,0.1)', color: COLOR.goldHi, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+          style={{ width: '100%', height: 46, margin: '6px 0 4px', borderRadius: 14, border: '1px solid rgba(27,100,218,0.55)', background: 'rgba(27,100,218,0.1)', color: COLOR.goldHi, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
           내 클럽 등록하기
         </button>
       )}
@@ -484,7 +484,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
               <Card key={type} id={`bag-${type.toLowerCase()}`} title={TYPE_TITLE[type]}
                 right={canAdd && (
                   <button type="button" onClick={() => addClub(type)} aria-label={`${type} 추가`}
-                    style={{ height: 36, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(201,162,40,0.5)', background: 'rgba(201,162,40,0.1)', color: COLOR.goldHi, fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                    style={{ height: 36, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(27,100,218,0.5)', background: 'rgba(27,100,218,0.1)', color: COLOR.goldHi, fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
                     <Plus size={14} strokeWidth={2.6} /><span>{TYPE_ADD_LABEL[type]} 추가</span>
                   </button>
                 )}>
@@ -542,7 +542,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                 {chartRows.length > 0 && (
                   <>
                     {/* 범례 — 색마다 '무슨 숫자인지'를 글로 적는다 */}
-                    <div data-role="bag-legend" style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, padding: '10px 12px', borderRadius: 12, background: '#0f1524', border: `1px solid ${COLOR.line}` }}>
+                    <div data-role="bag-legend" style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12, padding: '10px 12px', borderRadius: 12, background: '#eef1f4', border: `1px solid ${COLOR.line}` }}>
                       {[
                         { key: 'carry', color: BAG_COLOR.carry, name: '캐리', text: '내가 마이백에 등록한 캐리 · 공이 떨어지는 곳', dim: false, mark: <i style={{ display: 'block', width: 12, height: 5, borderRadius: 2, background: BAG_COLOR.carry }} /> },
                         { key: 'total', color: BAG_COLOR.total, name: '토탈', text: '내가 마이백에 등록한 토탈 · 굴러서 멈추는 곳', dim: false, mark: <i style={{ display: 'block', width: 12, height: 5, borderRadius: 2, background: BAG_COLOR.total }} /> },
@@ -559,7 +559,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                           <span aria-hidden="true" style={{ width: 14, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>{l.mark}</span>
                           <span style={{ minWidth: 0, wordBreak: 'keep-all' }}>
                             {l.key !== 'unsaved' && <b style={{ color: l.color, marginRight: 6 }}>{l.name}</b>}
-                            <span style={{ color: '#c4cfe0' }}>{l.text}</span>
+                            <span style={{ color: '#333d4b' }}>{l.text}</span>
                           </span>
                         </div>
                       ))}
@@ -668,7 +668,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
         <>
           <div aria-hidden="true" style={{ height: 76 }} />
           <div data-role="bag-savebar" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 520, boxSizing: 'border-box', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))', zIndex: 40, padding: '0 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 10px 10px 16px', borderRadius: 16, background: 'rgba(14,20,34,0.96)', border: `1px solid ${dirty ? 'rgba(239,138,80,0.65)' : 'rgba(61,184,122,0.6)'}`, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 10px 10px 16px', borderRadius: 16, background: 'rgba(255,255,255,0.96)', border: `1px solid ${dirty ? 'rgba(217,119,6,0.65)' : 'rgba(10,127,63,0.6)'}`, boxShadow: '0 8px 24px rgba(0,0,0,0.175)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
               {dirty ? (
                 <>
                   <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -678,7 +678,7 @@ export default function MyBagView({ currentUser, onBack, rounds = [], registerLe
                   <button type="button" data-role="bag-discard" onClick={discardDrafts}
                     style={{ height: 44, padding: '0 14px', borderRadius: 12, border: `1px solid ${COLOR.line}`, background: 'transparent', color: COLOR.muted, fontSize: 14, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>취소</button>
                   <button type="button" data-role="bag-save" onClick={saveDrafts}
-                    style={{ height: 44, padding: '0 22px', borderRadius: 12, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#0b0e18', fontSize: 15, fontWeight: 900, cursor: 'pointer', flexShrink: 0 }}>저장</button>
+                    style={{ height: 44, padding: '0 22px', borderRadius: 12, border: 'none', background: `linear-gradient(180deg, ${COLOR.goldHi} 0%, ${COLOR.gold} 100%)`, color: '#ffffff', fontSize: 15, fontWeight: 900, cursor: 'pointer', flexShrink: 0 }}>저장</button>
                 </>
               ) : (
                 <div data-role="bag-flash" style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 800, color: COLOR.green, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓ 저장했어요</div>

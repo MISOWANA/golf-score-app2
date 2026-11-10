@@ -74,7 +74,7 @@ describe.each(SETTINGS)('파4 한 홀을 처음부터 끝까지 — %s', (_name,
     // 위 홀 표에 1번 홀 결과: 4타 · 2퍼트
     const { round } = await stored(0);
     expect(round.holes[0].scores['테스터']).toMatchObject({ strokes: 4, putts: 2, confirmed: true });
-    expect(visibleText()).toMatch(/SCORE 4 - - - - - - - - /);
-    expect(visibleText()).toMatch(/PUTT 2 - - - - - - - - /);
+    expect(visibleText()).toMatch(/스코어 4 - - - - - - - - /);
+    expect(visibleText()).toMatch(/퍼트 2 - - - - - - - - /);
   });
 });

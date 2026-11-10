@@ -5,7 +5,7 @@
 export default function ExcludedNote({ multiCount = 0, nineCount = 0, margin = '0 0 10px' }) {
   if (multiCount <= 0 && nineCount <= 0) return null;
   return (
-    <div data-role="excluded-note" style={{ margin, padding: '0 2px', fontSize: 13, color: '#8aa0c4', lineHeight: 1.5, textAlign: 'left' }}>
+    <div data-role="excluded-note" style={{ margin, padding: '0 2px', fontSize: 13, color: '#4e5968', lineHeight: 1.5, textAlign: 'left' }}>
       {multiCount > 0 && <div data-role="multi-excluded">여러 명이 함께 기록한 라운드 {multiCount}개는 집계에서 제외돼요 (1인 라운드만 분석)</div>}
       {nineCount > 0 && <div data-role="nine-excluded">9홀 라운드 {nineCount}개는 집계에서 제외돼요</div>}
     </div>

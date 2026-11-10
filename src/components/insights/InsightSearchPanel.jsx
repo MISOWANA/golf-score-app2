@@ -9,11 +9,11 @@ import { roundDateLabel as dateLabel } from '../../engine/dateLabel.js';   // �
 const QUICK = ['3퍼트', '숏퍼트', '그린스피드', '거리감', 'OB', '해저드', '드라이버', '업앤다운', '버디', '후반', '연속'];
 const PAGE = 30;
 
-const pill = (active, color = '#c9a228') => ({
+const pill = (active, color = '#1b64da') => ({
   padding: '6px 10px', borderRadius: 999, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-  border: `1px solid ${active ? color : '#252f4a'}`,
-  background: active ? `${color}22` : '#111827',
-  color: active ? color : '#8896b0', whiteSpace: 'nowrap',
+  border: `1px solid ${active ? color : '#d1d6db'}`,
+  background: active ? `${color}22` : '#f2f4f6',
+  color: active ? color : '#4e5968', whiteSpace: 'nowrap',
 });
 
 // 인사이트 검색 — 모든 라운드·홀·누적 인사이트를 한 목록에서 찾는다.
@@ -45,19 +45,19 @@ export default function InsightSearchPanel({ rounds }) {
   return (
     <div data-panel="search">
       {/* 검색창 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#111827', border: '1px solid #252f4a', borderRadius: 14, padding: '0 12px', marginBottom: 10 }}>
-        <Search size={16} color="#8aa0c4" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f2f4f6', border: '1px solid #d1d6db', borderRadius: 14, padding: '0 12px', marginBottom: 10 }}>
+        <Search size={16} color="#4e5968" />
         <input
           type="search"
           aria-label="인사이트 검색"
           value={query}
           onChange={e => { setQuery(e.target.value); setLimit(PAGE); }}
           placeholder="예: 3퍼트, 숏퍼트, 거리감, OB, 드라이버, 7번"
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#e8edf8', fontSize: 15, padding: '12px 0' }}
+          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: '#191f28', fontSize: 15, padding: '12px 0' }}
         />
         {query && (
           <button aria-label="검색어 지우기" onClick={() => { setQuery(''); setLimit(PAGE); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8aa0c4', padding: 4, display: 'flex' }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4e5968', padding: 4, display: 'flex' }}>
             <X size={16} />
           </button>
         )}
@@ -76,28 +76,28 @@ export default function InsightSearchPanel({ rounds }) {
         onClick={() => setFiltersOpen(o => !o)}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: '#111827', border: '1px solid #1b2238', borderRadius: 14, padding: '10px 12px',
-          marginBottom: filtersOpen ? 8 : 12, cursor: 'pointer', color: '#e8edf8', fontSize: 14, fontWeight: 700,
+          background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 14, padding: '10px 12px',
+          marginBottom: filtersOpen ? 8 : 12, cursor: 'pointer', color: '#191f28', fontSize: 14, fontWeight: 700,
         }}>
         <span>
           필터
           {activeFilterCount > 0 && (
-            <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: 'rgba(201,162,40,0.18)', color: '#c9a228', fontSize: 13 }}>
+            <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: 'rgba(27,100,218,0.18)', color: '#1b64da', fontSize: 13 }}>
               {activeFilterCount}개 선택
             </span>
           )}
         </span>
-        <span style={{ color: '#8aa0c4' }}>{filtersOpen ? '▴' : '▾'}</span>
+        <span style={{ color: '#4e5968' }}>{filtersOpen ? '▴' : '▾'}</span>
       </button>
       {filtersOpen && (
-      <div style={{ background: '#111827', border: '1px solid #1b2238', borderRadius: 14, padding: '10px 12px', marginBottom: 12 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>심각도</div>
+      <div style={{ background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 14, padding: '10px 12px', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 6, textAlign: 'left' }}>심각도</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {['critical', 'warning', 'neutral', 'positive'].map(s => (
             <button key={s} style={pill(severities.includes(s), SEVERITY_COLOR[s])} onClick={() => toggle(severities, setSeverities, s)}>{SEVERITY_LABEL[s]}</button>
           ))}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>분류</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 6, textAlign: 'left' }}>분류</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
           {INSIGHT_CATEGORY_ORDER.filter(c => catCounts[c] || categories.includes(c)).map(c => (
             <button key={c} style={pill(categories.includes(c))} onClick={() => toggle(categories, setCategories, c)}>
@@ -105,7 +105,7 @@ export default function InsightSearchPanel({ rounds }) {
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#8aa0c4', letterSpacing: '0.18em', marginBottom: 6, textAlign: 'left' }}>범위</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 6, textAlign: 'left' }}>범위</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {[['all', '전체'], ['hole', '홀별'], ['round', '라운드 요약'], ['career', '누적 추세']].map(([v, l]) => (
             <button key={v} style={pill(scope === v)} onClick={() => { setScope(v); setLimit(PAGE); }}>{l}</button>
@@ -115,7 +115,7 @@ export default function InsightSearchPanel({ rounds }) {
               aria-label="라운드 선택"
               value={roundId}
               onChange={e => { setRoundId(e.target.value); setLimit(PAGE); }}
-              style={{ background: '#111827', color: '#e8edf8', border: '1px solid #252f4a', borderRadius: 10, padding: '6px 8px', fontSize: 14, maxWidth: 180 }}
+              style={{ background: '#f2f4f6', color: '#191f28', border: '1px solid #d1d6db', borderRadius: 10, padding: '6px 8px', fontSize: 14, maxWidth: 180 }}
             >
               <option value="">모든 라운드</option>
               {solo.map(r => <option key={r.id} value={r.id}>{dateLabel(r.date)} {r.courseName}</option>)}
@@ -127,17 +127,17 @@ export default function InsightSearchPanel({ rounds }) {
 
       {/* 결과 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ fontSize: 14, color: '#8896b0' }} data-role="result-count">
-          {query.trim() ? `"${query.trim()}" ` : ''}<b style={{ color: '#e8edf8' }}>{results.length}건</b>
+        <div style={{ fontSize: 14, color: '#4e5968' }} data-role="result-count">
+          {query.trim() ? `"${query.trim()}" ` : ''}<b style={{ color: '#191f28' }}>{results.length}건</b>
           {activeFilterCount > 0 && ` · 필터 ${activeFilterCount}개`}
         </div>
         {(query || activeFilterCount > 0) && (
-          <button onClick={reset} style={{ background: 'none', border: 'none', color: '#c9a228', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>초기화</button>
+          <button onClick={reset} style={{ background: 'none', border: 'none', color: '#1b64da', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>초기화</button>
         )}
       </div>
 
       {results.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#8896b0', fontSize: 14, lineHeight: 1.7, padding: '28px 12px', background: '#111827', border: '1px solid #1b2238', borderRadius: 16 }}>
+        <div style={{ textAlign: 'center', color: '#4e5968', fontSize: 14, lineHeight: 1.7, padding: '28px 12px', background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 16 }}>
           {index.length === 0
             ? '아직 분석할 인사이트가 없어요. 라운드를 기록하면 여기서 찾아볼 수 있어요.'
             : <>검색 결과가 없어요.<br />다른 말로 찾아보거나 필터를 줄여 보세요.</>}

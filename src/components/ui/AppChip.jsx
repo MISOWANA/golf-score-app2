@@ -16,7 +16,7 @@ const base = {
   fontFamily: "'Noto Sans KR', sans-serif",
   fontWeight: '700',
   fontSize: '12px',
-  letterSpacing: '0.06em',
+  letterSpacing:'0',
   padding: '6px 12px',
   borderRadius: radii.xs,
   border: '1px solid',
@@ -49,7 +49,7 @@ const variants = {
     borderColor: palette.gold,
   },
   error: {
-    background: 'rgba(239,83,80,0.12)',
+    background: 'rgba(200,50,58,0.12)',
     color: palette.error,
     borderColor: palette.error,
   },

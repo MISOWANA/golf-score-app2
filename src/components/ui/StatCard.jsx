@@ -51,8 +51,8 @@ export default function StatCard({
         <div style={{
           fontSize: '10px',
           fontWeight: '700',
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
+          letterSpacing:'0',
+          textTransform:'none',
           color: palette.textSecondary,
           marginBottom: '10px',
         }}>

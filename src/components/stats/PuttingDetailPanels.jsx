@@ -19,12 +19,12 @@ const sigPct = (v) => (v == null ? '–' : `${Math.round(v)}%`);
 // 위 · 아래 선택 막대 (44px)
 function Segmented({ id, label, options, value, onChange }) {
   return (
-    <div role="group" aria-label={label} data-role={id} style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 12, background: '#0d1425', border: `1px solid ${COLOR.line}`, marginBottom: 12 }}>
+    <div role="group" aria-label={label} data-role={id} style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 12, background: '#f2f4f6', border: `1px solid ${COLOR.line}`, marginBottom: 12 }}>
       {options.map(([v, text, sub]) => {
         const on = value === v;
         return (
           <button key={v} type="button" aria-pressed={on} data-role={`${id}-${v}`} onClick={() => onChange(v)}
-            style={{ flex: 1, minHeight: 44, minWidth: 0, padding: '0 6px', border: 0, borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', background: on ? 'rgba(201,162,40,0.18)' : 'transparent', color: on ? COLOR.goldHi : COLOR.muted, fontSize: 14, fontWeight: 800 }}>
+            style={{ flex: 1, minHeight: 44, minWidth: 0, padding: '0 6px', border: 0, borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit', background: on ? 'rgba(27,100,218,0.18)' : 'transparent', color: on ? COLOR.goldHi : COLOR.muted, fontSize: 14, fontWeight: 800 }}>
             {text}{sub != null && <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 5, color: on ? COLOR.gold : COLOR.faint }}>{sub}</span>}
           </button>
         );
@@ -204,7 +204,7 @@ function LieCell({ c }) {
   return (
     <div data-role={`lie-cell-${c.id}`} data-total={c.total} data-rate={c.ratePct == null ? '' : Math.round(c.ratePct)}
       style={{ minHeight: 76, boxSizing: 'border-box', minWidth: 0, padding: '8px 4px', borderRadius: 10, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
-        background: tint ? `${tint}22` : '#131b2f', border: `1px solid ${tint ? `${tint}66` : COLOR.line}`, opacity: c.total === 0 ? 0.55 : 1 }}>
+        background: tint ? `${tint}22` : '#eef1f4', border: `1px solid ${tint ? `${tint}66` : COLOR.line}`, opacity: c.total === 0 ? 0.55 : 1 }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: COLOR.muted, whiteSpace: 'pre-line', lineHeight: 1.25, wordBreak: 'keep-all' }}>{CELL_SHORT[c.id] ?? c.label}</span>
       <b style={{ fontSize: 18, fontWeight: 900, color: c.total === 0 ? COLOR.faint : COLOR.text, fontVariantNumeric: 'tabular-nums' }}>{c.total === 0 ? '–' : fmtPct(c.ratePct)}</b>
       <span style={{ fontSize: 12, color: COLOR.faint }}>{c.total === 0 ? '기록 없음' : `${c.made}/${c.total}`}</span>
@@ -257,7 +257,7 @@ export function PuttLagPanel({ lag, comeback, threePutt }) {
   return (
     <>
       {lag.map((r) => (
-        <div key={r.id} data-role={`lag-${r.id}`} style={{ marginTop: 8, padding: '10px 10px 12px', borderRadius: 12, background: '#0e1424', border: `1px solid ${COLOR.line}` }}>
+        <div key={r.id} data-role={`lag-${r.id}`} style={{ marginTop: 8, padding: '10px 10px 12px', borderRadius: 12, background: '#f2f4f6', border: `1px solid ${COLOR.line}` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 800, color: COLOR.text }}>{localizeNode(r.label, { abbr: true })} <span style={{ fontSize: 13, fontWeight: 600, color: COLOR.faint }}>첫 퍼트 {r.n}번</span></span>
             {r.leaveN >= MIN_ROW && <ConfidenceBadge tier={r.tier} />}
@@ -271,7 +271,7 @@ export function PuttLagPanel({ lag, comeback, threePutt }) {
         </div>
       ))}
       {comeback.total >= MIN_ROW && (
-        <div data-role="comeback" style={{ marginTop: 12, fontSize: 14, color: '#c4cfe0', lineHeight: 1.5 }}>
+        <div data-role="comeback" style={{ marginTop: 12, fontSize: 14, color: '#333d4b', lineHeight: 1.5 }}>
           {localizeNode('컴백 퍼트(두 번째 이후, 2m 이내)')} <b style={{ color: COLOR.text }}>{fmtPct(comeback.ratePct)}</b> <span style={{ color: COLOR.faint }}>({comeback.made}/{comeback.total})</span>
         </div>
       )}

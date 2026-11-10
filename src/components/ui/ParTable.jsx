@@ -15,11 +15,11 @@ export const PAR_MIN = 3;
 export const PAR_MAX = 7; // 정읍 등 실제 코스 DB에 파7 홀이 존재
 
 const PAR_STYLE = {
-  3: { background: 'rgba(61,184,122,0.15)', color: '#3db87a' },
-  4: { background: '#0e1c14', color: '#e8edf8' },
-  5: { background: '#c9a228', color: '#0b0e18' },
-  6: { background: '#ef5350', color: '#0b0e18' },
-  7: { background: '#ef5350', color: '#0b0e18' },
+  3: { background: 'rgba(10,127,63,0.15)', color: '#0a7f3f' },
+  4: { background: '#eaf6ee', color: '#191f28' },
+  5: { background: '#1b64da', color: '#ffffff' },
+  6: { background: '#c8323a', color: '#ffffff' },
+  7: { background: '#c8323a', color: '#ffffff' },
 };
 const parLook = (p) => PAR_STYLE[p] ?? PAR_STYLE[6];
 
@@ -38,10 +38,10 @@ export default function ParTable({ pars, groups, holeNo = (i) => i + 1, onSetPar
             <div style={styles.parTableCells}>
               {pars.slice(start, end).map((_, li) => <div key={li} style={styles.parTableHoleCell}>{holeNo(start + li)}</div>)}
             </div>
-            <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>TOT</div>
+            <div style={{ ...styles.parTableTotal, ...styles.parTableTotalHeader }}>합계</div>
           </div>
           <div style={{ ...styles.parTableRow, borderBottom: 'none' }}>
-            <div style={styles.parTableLabel}>PAR</div>
+            <div style={styles.parTableLabel}>파</div>
             <div style={styles.parTableCells}>
               {pars.slice(start, end).map((p, li) => {
                 const hi = start + li;
@@ -50,8 +50,8 @@ export default function ParTable({ pars, groups, holeNo = (i) => i + 1, onSetPar
                   <button key={hi} type="button" data-role="par-cell" data-hole={hi} aria-pressed={on}
                     aria-label={`${holeNo(hi)}번 홀 파 ${p}`}
                     onClick={() => setSel(on ? null : hi)}
-                    style={{ ...styles.parTableParCell, minHeight: 44, padding: '0 1px', background: on ? 'rgba(243,211,107,0.14)' : 'transparent', border: 'none', borderRight: styles.parTableParCell.borderRight, cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
-                    <span style={{ ...styles.parTableParValue, ...parLook(p), outline: on ? '2px solid #f3d36b' : markHole === hi ? '2px solid #c9a228' : 'none', outlineOffset: 1 }}>{p}</span>
+                    style={{ ...styles.parTableParCell, minHeight: 44, padding: '0 1px', background: on ? 'rgba(27,100,218,0.14)' : 'transparent', border: 'none', borderRight: styles.parTableParCell.borderRight, cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
+                    <span style={{ ...styles.parTableParValue, ...parLook(p), outline: on ? '2px solid #1b64da' : markHole === hi ? '2px solid #1b64da' : 'none', outlineOffset: 1 }}>{p}</span>
                   </button>
                 );
               })}
@@ -63,8 +63,8 @@ export default function ParTable({ pars, groups, holeNo = (i) => i + 1, onSetPar
 
       {picked != null && (
         <div data-role="par-picker" role="group" aria-label={`${holeNo(picked)}번 홀 파 고르기`}
-          style={{ background: '#111a2e', border: '1px solid #3a4a78', borderRadius: 14, padding: '10px 10px 12px', marginBottom: 10 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', marginBottom: 8, textAlign: 'left' }}>{holeNo(picked)}번 홀 파</div>
+          style={{ background: '#eef1f4', border: '1px solid #1b64da', borderRadius: 14, padding: '10px 10px 12px', marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#191f28', marginBottom: 8, textAlign: 'left' }}>{holeNo(picked)}번 홀 파</div>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`, gap: 6 }}>
             {options.map((n) => {
               const cur = pars[picked] === n;
@@ -72,7 +72,7 @@ export default function ParTable({ pars, groups, holeNo = (i) => i + 1, onSetPar
                 <button key={n} type="button" data-role="par-option" data-par={n} aria-pressed={cur} aria-label={`파 ${n}`}
                   onClick={() => onSetPar(picked, n)}
                   style={{ minHeight: 48, borderRadius: 12, cursor: 'pointer', fontSize: 18, fontWeight: 800,
-                    border: cur ? '2px solid #f3d36b' : '1px solid #2c3a5c', ...(cur ? parLook(n) : { background: '#0b0e18', color: '#e8edf8' }) }}>
+                    border: cur ? '2px solid #1b64da' : '1px solid #cdd3d8', ...(cur ? parLook(n) : { background: '#ffffff', color: '#191f28' }) }}>
                   {n}
                 </button>
               );

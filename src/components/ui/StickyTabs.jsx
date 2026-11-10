@@ -51,16 +51,16 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
   const bar = underline
     ? {
       position: 'sticky', top: 0, zIndex: 30, margin: '0 -16px 14px', padding: '0 8px',
-      background: stuck ? 'rgba(11,14,24,0.94)' : 'transparent',
+      background: stuck ? 'rgba(255,255,255,0.94)' : 'transparent',
       backdropFilter: stuck ? 'blur(8px)' : 'none', WebkitBackdropFilter: stuck ? 'blur(8px)' : 'none',
-      borderBottom: '1px solid #1b2238',
+      borderBottom: '1px solid #e5e8eb',
       transition: 'background 0.15s',
     }
     : {
       position: 'sticky', top: 0, zIndex: 30, margin: '-8px -16px 6px', padding: '8px 16px',
-      background: stuck ? 'rgba(11,14,24,0.94)' : 'transparent',
+      background: stuck ? 'rgba(255,255,255,0.94)' : 'transparent',
       backdropFilter: stuck ? 'blur(8px)' : 'none', WebkitBackdropFilter: stuck ? 'blur(8px)' : 'none',
-      borderBottom: `1px solid ${stuck ? '#1b2238' : 'transparent'}`,
+      borderBottom: `1px solid ${stuck ? '#e5e8eb' : 'transparent'}`,
       transition: 'background 0.15s, border-color 0.15s',
     };
 
@@ -76,15 +76,15 @@ export default function StickyTabs({ tabs, current, onChange, label, rolePrefix,
             const look = underline
               ? {
                 flex: '1 0 auto', height: 46, padding: '0 8px', background: 'none', border: 'none',
-                borderBottom: `2px solid ${on ? '#c9a228' : 'transparent'}`, borderRadius: 0,
-                color: on ? '#f3d36b' : '#8896b0', fontSize: dense ? 13 : 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer', ...(dense ? { letterSpacing: '-0.02em' } : {}),
+                borderBottom: `2px solid ${on ? '#1b64da' : 'transparent'}`, borderRadius: 0,
+                color: on ? '#1b64da' : '#4e5968', fontSize: dense ? 13 : 14, fontWeight: on ? 800 : 700, whiteSpace: 'nowrap', cursor: 'pointer', ...(dense ? { letterSpacing: '-0.02em' } : {}),
               }
               : { ...styles.riToggleBtn, letterSpacing: 0, padding: '8px 0', minHeight: 44, ...(on ? styles.riToggleBtnActive : {}) };
             return (
               <button key={id} role="tab" type="button" aria-selected={on} disabled={disabled} data-role={`${rolePrefix}-${id}`}
-                style={{ ...look, ...(disabled ? { color: '#8896b0', cursor: 'default' } : {}) }}
+                style={{ ...look, ...(disabled ? { color: '#4e5968', cursor: 'default' } : {}) }}
                 onClick={() => onChange(id)}>
-                {opt?.done && <span aria-hidden="true" style={{ color: '#3db87a', marginRight: 3 }}>✓</span>}{text}
+                {opt?.done && <span aria-hidden="true" style={{ color: '#0a7f3f', marginRight: 3 }}>✓</span>}{text}
               </button>
             );
           })}

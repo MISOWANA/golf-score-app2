@@ -1,6 +1,6 @@
 
 export default function ShotShapeIcon({ shapeId, active, color }) {
-  const stroke = active ? '#fff' : color;
+  const stroke = active ? '#ffffff' : color;
 
   const paths = {
     hook: 'M 18 36 L 18 14 Q 18 10 14 10 L 8 10',

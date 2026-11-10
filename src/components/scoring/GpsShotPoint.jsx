@@ -119,18 +119,18 @@ export default function GpsShotPoint({
   const liveDistance = busy && live ? haversine(prevPoint, live) : null;
   const liveToPin = busy && live ? haversine(live, pinPoint) : null;
   const livePreview = (liveDistance != null || liveToPin != null) ? (
-    <div style={{ marginTop: 6, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#8ca4bc' }}>
+    <div style={{ marginTop: 6, textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#4e5968' }}>
       {liveDistance != null && <span>{prevLabel}에서 {fmtShot(liveDistance)}</span>}
       {liveDistance != null && liveToPin != null && <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>}
-      {liveToPin != null && <span style={{ color: '#c9a228' }}>⛳ 핀까지 {fmtShot(liveToPin)}</span>}
+      {liveToPin != null && <span style={{ color: '#1b64da' }}>⛳ 핀까지 {fmtShot(liveToPin)}</span>}
     </div>
   ) : null;
 
   return (
-    <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid #0e1320' }}>
+    <div style={{ padding: '8px 16px 10px', borderBottom: '1px solid #e5e8eb' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 15, width: 18, textAlign: 'center', color: '#8896b0', flexShrink: 0 }}>📍</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#8ca4bc', letterSpacing: '0.15em' }}>{label}</span>
+        <span style={{ fontSize: 15, width: 18, textAlign: 'center', color: '#4e5968', flexShrink: 0 }}>📍</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#4e5968', letterSpacing:'0' }}>{label}</span>
         {point && quality && (
           <span style={{ fontSize: 12, fontWeight: 700, color: quality.color, marginLeft: 2 }}>
             {fmtAcc(point.acc)} {quality.label}
@@ -143,26 +143,26 @@ export default function GpsShotPoint({
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '4px 8px',
             padding: '11px 12px', borderRadius: 12, marginBottom: 6,
-            border: '1.5px solid rgba(61,184,122,0.45)', background: 'rgba(61,184,122,0.1)',
+            border: '1.5px solid rgba(10,127,63,0.45)', background: 'rgba(10,127,63,0.1)',
           }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#3db87a' }}>✓</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#0a7f3f' }}>✓</span>
             {distance != null && (
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#191f28' }}>
                 {prevLabel}에서 {fmtShot(distance)}
                 {distanceAcc != null && (
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#8896b0', marginLeft: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#4e5968', marginLeft: 3 }}>
                     {fmtAcc(distanceAcc)}
                   </span>
                 )}
               </span>
             )}
             {toPin != null && (
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#c9a228' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#1b64da' }}>
                 ⛳ 핀까지 {fmtShot(toPin)}
               </span>
             )}
             {distance == null && toPin == null && (
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#8896b0' }}>기록됨</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#4e5968' }}>기록됨</span>
             )}
           </div>
           {/* 이미 지나온 샷이라도 다시 찍을 수 있어야 한다 — 측위가 나빴거나
@@ -174,9 +174,9 @@ export default function GpsShotPoint({
               style={{
                 flex: 1, padding: '10px', borderRadius: 12,
                 cursor: busy ? 'default' : 'pointer',
-                border: `1px solid ${busy ? 'rgba(201,162,40,0.45)' : '#3a4e72'}`,
-                background: busy ? 'rgba(201,162,40,0.08)' : 'transparent',
-                color: busy ? '#c9a228' : '#c4cfe0', fontSize: 14, fontWeight: 700,
+                border: `1px solid ${busy ? 'rgba(27,100,218,0.45)' : '#b0b8c1'}`,
+                background: busy ? 'rgba(27,100,218,0.08)' : 'transparent',
+                color: busy ? '#1b64da' : '#333d4b', fontSize: 14, fontWeight: 700,
               }}
             >
               {busy ? `측위 중… ${live?.acc != null ? fmtAcc(live.acc) : ''}` : '↻ 다시 찍기'}
@@ -185,8 +185,8 @@ export default function GpsShotPoint({
               onClick={onClear}
               style={{
                 width: 44, borderRadius: 12, cursor: 'pointer',
-                border: '1px solid rgba(239,83,80,0.3)', background: 'transparent',
-                color: 'rgba(239,83,80,0.65)', fontSize: 14, fontWeight: 700,
+                border: '1px solid rgba(200,50,58,0.3)', background: 'transparent',
+                color: 'rgba(200,50,58,0.65)', fontSize: 14, fontWeight: 700,
               }}
             >✕</button>
           </div>
@@ -198,8 +198,8 @@ export default function GpsShotPoint({
             onClick={onOpenMap}
             style={{
               width: '100%', padding: '12px 16px', borderRadius: 12, textAlign: 'center',
-              border: '1px dashed #3a4e72', background: 'rgba(255,255,255,0.02)',
-              color: '#8ca4bc', fontSize: 14, fontWeight: 700, letterSpacing: '0.04em',
+              border: '1px dashed #b0b8c1', background: 'rgba(25,31,40,0.016)',
+              color: '#4e5968', fontSize: 14, fontWeight: 700, letterSpacing: '0.04em',
               cursor: 'pointer',
             }}
           >
@@ -208,8 +208,8 @@ export default function GpsShotPoint({
         ) : (
           <div style={{
             padding: '12px 16px', borderRadius: 12, textAlign: 'center',
-            border: '1px dashed #252f4a', background: 'transparent',
-            color: '#8896b0', fontSize: 13, fontWeight: 600, lineHeight: 1.5,
+            border: '1px dashed #d1d6db', background: 'transparent',
+            color: '#4e5968', fontSize: 13, fontWeight: 600, lineHeight: 1.5,
           }}>
             {lockedHint}
           </div>
@@ -221,9 +221,9 @@ export default function GpsShotPoint({
           style={{
             width: '100%', padding: '12px 16px', borderRadius: 12,
             cursor: busy ? 'default' : 'pointer',
-            border: `1.5px solid ${busy ? 'rgba(201,162,40,0.45)' : '#3a4e72'}`,
-            background: busy ? 'rgba(201,162,40,0.08)' : 'rgba(255,255,255,0.03)',
-            color: busy ? '#c9a228' : '#c4cfe0',
+            border: `1.5px solid ${busy ? 'rgba(27,100,218,0.45)' : '#b0b8c1'}`,
+            background: busy ? 'rgba(27,100,218,0.08)' : 'rgba(25,31,40,0.024)',
+            color: busy ? '#1b64da' : '#333d4b',
             fontSize: 14, fontWeight: 700, letterSpacing: '0.04em',
           }}
         >
@@ -235,7 +235,7 @@ export default function GpsShotPoint({
       {!point && !locked && livePreview}
 
       {error && (
-        <div style={{ marginTop: 7, fontSize: 12, lineHeight: 1.5, color: '#ef5350' }}>{error}</div>
+        <div style={{ marginTop: 7, fontSize: 12, lineHeight: 1.5, color: '#c8323a' }}>{error}</div>
       )}
     </div>
   );

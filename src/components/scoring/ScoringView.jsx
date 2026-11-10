@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Edit3, Home, Flag, Map as MapIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus } from 'lucide-react';
 import styles from '../../styles/styles';
 import ParTable from '../ui/ParTable';
 import GpsShotPoint from './GpsShotPoint';
@@ -108,8 +108,8 @@ function WindCompass({ direction, onChange }) {
       >
         <svg viewBox="0 0 100 100" width="100%" height="100%">
           {/* Background */}
-          <circle cx="50" cy="50" r="48" fill="#0b0e18" stroke="#1b2238" strokeWidth="1.5" />
-          <circle cx="50" cy="50" r="44" fill="none" stroke="#111827" strokeWidth="0.5" />
+          <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#e5e8eb" strokeWidth="1.5" />
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#f2f4f6" strokeWidth="0.5" />
 
           {/* Degree ticks */}
           {Array.from({ length: 72 }, (_, i) => {
@@ -122,14 +122,14 @@ function WindCompass({ direction, onChange }) {
               <line key={i}
                 x1={50 + r1 * Math.cos(rad)} y1={50 + r1 * Math.sin(rad)}
                 x2={50 + 44 * Math.cos(rad)} y2={50 + 44 * Math.sin(rad)}
-                stroke={isMajor ? '#9aa8c2' : isMinor ? '#8896b0' : '#1b2238'}
+                stroke={isMajor ? '#4e5968' : isMinor ? '#4e5968' : '#e5e8eb'}
                 strokeWidth={isMajor ? 1.5 : isMinor ? 1 : 0.6}
               />
             );
           })}
 
           {/* Cardinal labels */}
-          {[['N', 0, '#ef5350'], ['E', 90, '#8896b0'], ['S', 180, '#8896b0'], ['W', 270, '#8896b0']].map(([l, a, col]) => {
+          {[['N', 0, '#c8323a'], ['E', 90, '#4e5968'], ['S', 180, '#4e5968'], ['W', 270, '#4e5968']].map(([l, a, col]) => {
             const rad = (a - 90) * Math.PI / 180;
             const r = 31;
             return (
@@ -147,17 +147,17 @@ function WindCompass({ direction, onChange }) {
             transition: dragging ? 'none' : 'transform 0.08s ease-out',
             opacity: direction != null ? 1 : 0,
           }}>
-            <polygon points="50,9 45,24 55,24" fill="#c9a228" />
-            <rect x="48.5" y="24" width="3" height="20" fill="#c9a228" rx="1" />
-            <line x1="50" y1="50" x2="50" y2="70" stroke="rgba(201,162,40,0.28)" strokeWidth="2" strokeLinecap="round" />
+            <polygon points="50,9 45,24 55,24" fill="#1b64da" />
+            <rect x="48.5" y="24" width="3" height="20" fill="#1b64da" rx="1" />
+            <line x1="50" y1="50" x2="50" y2="70" stroke="rgba(27,100,218,0.28)" strokeWidth="2" strokeLinecap="round" />
           </g>
 
           {/* Center */}
-          <circle cx="50" cy="50" r="4" fill={direction != null ? '#c9a228' : '#252f4a'} stroke="#0b0e18" strokeWidth="1.5" />
+          <circle cx="50" cy="50" r="4" fill={direction != null ? '#1b64da' : '#d1d6db'} stroke="#ffffff" strokeWidth="1.5" />
         </svg>
 
         {direction == null && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#8aa0c4', letterSpacing: '0.1em', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#4e5968', letterSpacing:'0', pointerEvents: 'none' }}>
             탭해서 방향 설정
           </div>
         )}
@@ -165,10 +165,10 @@ function WindCompass({ direction, onChange }) {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, minHeight: 26 }}>
         {direction != null ? (<>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#c9a228' }}>{toCompassLabel(direction)}</span>
-          <span style={{ fontSize: 13, color: '#8896b0' }}>{direction}°</span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: '#1b64da' }}>{toCompassLabel(direction)}</span>
+          <span style={{ fontSize: 13, color: '#4e5968' }}>{direction}°</span>
         </>) : (
-          <span style={{ fontSize: 12, color: '#8896b0' }}>방향 미설정</span>
+          <span style={{ fontSize: 12, color: '#4e5968' }}>방향 미설정</span>
         )}
       </div>
     </div>
@@ -182,10 +182,10 @@ function WindInput({ direction, strength, onDir, onStrength }) {
       <div style={{ marginTop: 16 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8 }}>
           <div style={{ flex:1 }} />
-          <div style={{ fontSize: 12, color: '#8896b0', letterSpacing: '0.18em', textTransform: 'uppercase' }}>바람 세기</div>
+          <div style={{ fontSize: 12, color: '#4e5968', letterSpacing:'0', textTransform:'none' }}>바람 세기</div>
           <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
             {strength > 0 && (
-              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
+              <button style={{ fontSize:12, color:'#4e5968', background:'none', border:'1px solid #d1d6db', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
                 onClick={() => onStrength(0)}>초기화</button>
             )}
           </div>
@@ -207,23 +207,23 @@ function WindInput({ direction, strength, onDir, onStrength }) {
 function OptionalSection({ icon, label, enabled, summary, required = false, defaultOpen, hint = '선택 입력', children }) {
   const [open, setOpen] = useState(defaultOpen ?? (required && !summary));
   const hasValue = !!summary;
-  const accent = hasValue ? '#c9a228' : enabled ? '#8896b0' : '#8896b0';
+  const accent = hasValue ? '#1b64da' : enabled ? '#4e5968' : '#4e5968';
   return (
-    <div style={{ padding:'8px 16px', borderBottom:'1px solid #0e1320' }}>
+    <div style={{ padding:'8px 16px', borderBottom:'1px solid #e5e8eb' }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'10px 12px', borderRadius:9,
           cursor:'pointer', textAlign:'left',
-          border:`1.5px solid ${hasValue ? '#c9a228' : enabled ? '#2c3a5c' : '#1d2740'}`,
-          background: hasValue ? 'rgba(201,162,40,0.12)' : 'transparent',
+          border:`1.5px solid ${hasValue ? '#1b64da' : enabled ? '#cdd3d8' : '#e5e8eb'}`,
+          background: hasValue ? 'rgba(27,100,218,0.12)' : 'transparent',
         }}
       >
         <span style={{ ...fIcon, color: accent }}>{icon}</span>
-        <span style={{ ...fLbl, color: hasValue ? '#e8c45a' : enabled ? '#a9b8d6' : '#8896b0' }}>{label}</span>
-        <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:700, color:'#c9a228', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+        <span style={{ ...fLbl, color: hasValue ? '#b45309' : enabled ? '#333d4b' : '#4e5968' }}>{label}</span>
+        <span style={{ flex:1, minWidth:0, fontSize:14, fontWeight:700, color:'#1b64da', marginLeft:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {hasValue ? summary
-            : !open && hint != null && <span style={{ color: enabled ? '#8896b0' : '#8896b0', fontWeight:600 }}>
+            : !open && hint != null && <span style={{ color: enabled ? '#4e5968' : '#4e5968', fontWeight:600 }}>
                 {enabled ? hint : '클럽 선택 후 입력'}
               </span>}
         </span>
@@ -248,7 +248,7 @@ function WindSection({ enabled, direction, strength, onDir, onStrength, onReset 
       {() => (<>
         {direction != null && (
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
-            <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
+            <button style={{ fontSize:12, color:'#4e5968', background:'none', border:'1px solid #d1d6db', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
               onClick={onReset}>방향 초기화</button>
           </div>
         )}
@@ -273,11 +273,11 @@ const lieText = (lie) => {
 // auto: 사용자가 고른 게 아니라 티샷 결과로 채운 값이다 — 다른 칩을 누르면 바뀐다.
 function SurfaceRow({ role, value, missing, suggest = null, auto = false, onChange }) {
   return (
-    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>⛳</span><span style={fLbl}>지형</span>
-        {value == null && suggest && <span style={{ fontSize:12, color:'#8896b0' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
-        {value != null && auto && <span data-role={`${role}-auto`} style={{ fontSize:12, color:'#8896b0' }}>{value === 'fairway' ? '티샷 페어웨이라 자동 선택' : '티샷 페어웨이를 놓쳐 자동 선택'} · 다르면 눌러서 바꾸세요</span>}
+        {value == null && suggest && <span style={{ fontSize:12, color:'#4e5968' }}>티샷 결과로는 {surfaceLabel(suggest)}</span>}
+        {value != null && auto && <span data-role={`${role}-auto`} style={{ fontSize:12, color:'#4e5968' }}>{value === 'fairway' ? '티샷 페어웨이라 자동 선택' : '티샷 페어웨이를 놓쳐 자동 선택'} · 다르면 눌러서 바꾸세요</span>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
         {SURFACES.map((x) => {
@@ -285,7 +285,7 @@ function SurfaceRow({ role, value, missing, suggest = null, auto = false, onChan
           const hinted = value == null && suggest === x.id;
           return (
             <button key={x.id} type="button" data-role={`${role}-${x.id}`} aria-pressed={on}
-              style={{ ...fChip, textAlign:'center', padding:'11px 4px', fontSize:14, borderRadius:8, ...(on ? fChipOn : {}), ...(hinted ? { border:'1.5px dashed #c9a228' } : {}) }}
+              style={{ ...fChip, textAlign:'center', padding:'11px 4px', fontSize:14, borderRadius:8, ...(on ? fChipOn : {}), ...(hinted ? { border:'1.5px dashed #1b64da' } : {}) }}
               onClick={() => onChange(on ? null : x.id)}>
               {x.label}{hinted ? ' ★' : ''}
             </button>
@@ -303,10 +303,10 @@ function LieRow({ role, value, missing, onChange }) {
   const v = lieValue(value);
   const other = !!v && !QUICK_LIES.some(([id]) => id === v);
   return (
-    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+    <div data-role={role} data-missing={missing ? '1' : '0'} style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
         <span style={fIcon}>▲</span><span style={fLbl}>라이</span>
-        {other && <span style={{ fontSize:13, fontWeight:700, color:'#c9a228' }}>{lieText(v)}</span>}
+        {other && <span style={{ fontSize:13, fontWeight:700, color:'#1b64da' }}>{lieText(v)}</span>}
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(64px, 1fr))', gap:6 }}>
         {QUICK_LIES.map(([id, label]) => {
@@ -391,13 +391,13 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
             style={{
               ...btnChip, flex:1,
               ...(isSelected ? fChipOn : {}),
-              border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#c9a228' : '#252f4a'}`,
-              ...(selectedSub ? { fontWeight:900, fontSize: stacked ? 15 : 14, boxShadow:'0 0 8px rgba(201,162,40,0.45)', color:'#f0c93a' } : {}),
+              border: `${selectedSub ? '2px' : '1.5px'} solid ${isSelected ? '#1b64da' : '#d1d6db'}`,
+              ...(selectedSub ? { fontWeight:900, fontSize: stacked ? 15 : 14, boxShadow:'0 0 8px rgba(27,100,218,0.45)', color:'#1b64da' } : {}),
             }}
             onClick={() => handleCategory(c)}
           >
             {displayLabel}
-            {recPick?.club === c.id && !isSelected && <span style={{ color:'#3db87a', marginLeft:3, fontSize:12 }}>★</span>}
+            {recPick?.club === c.id && !isSelected && <span style={{ color:'#0a7f3f', marginLeft:3, fontSize:12 }}>★</span>}
           </button>
         );
       })}
@@ -416,13 +416,13 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
               flex:1, minWidth:'calc(25% - 4px)',
               minHeight:44, padding:'9px 4px', borderRadius: 10, textAlign:'center',
               fontSize:14, fontWeight: isSel ? 700 : 500, cursor:'pointer',
-              border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
-              background: isSel ? 'rgba(201,162,40,0.18)' : '#1a2235',
-              color: isSel ? '#c9a228' : '#e8edf8',
+              border:`1.5px solid ${isSel ? '#1b64da' : '#d1d6db'}`,
+              background: isSel ? 'rgba(27,100,218,0.18)' : '#e8ebee',
+              color: isSel ? '#1b64da' : '#191f28',
             }}
           >
             {s.label}
-            {!isSel && recPick && recPick.club === value && recPick.subClub === s.id && <span style={{ color:'#3db87a', marginLeft:3, fontSize:12 }}>★</span>}
+            {!isSel && recPick && recPick.club === value && recPick.subClub === s.id && <span style={{ color:'#0a7f3f', marginLeft:3, fontSize:12 }}>★</span>}
           </button>
         );
       })}
@@ -431,7 +431,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
 
   if (stacked) {
     return (
-      <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+      <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
           <span style={fIcon}>{icon}</span>
           <span style={fLbl}>{label}</span>
@@ -444,7 +444,7 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
   }
 
   return (
-    <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54 }}>
+    <div style={{ padding:'10px 16px', borderBottom:'1px solid #e5e8eb', minHeight:54 }}>
       {suggestions}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
         <div style={fLeft}>
@@ -541,16 +541,16 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
         style={{
           width:'100%', display:'flex', alignItems:'center', justifyContent:'center',
           gap:6, minHeight:44, padding:'10px 16px', borderRadius:10, cursor:'pointer',
-          background: open ? 'rgba(201,162,40,0.07)' : hasSelection ? 'rgba(201,162,40,0.12)' : 'rgba(255,255,255,0.03)',
-          border:`1.5px solid ${open || hasSelection ? 'rgba(201,162,40,0.4)' : '#3a4e72'}`,
+          background: open ? 'rgba(27,100,218,0.07)' : hasSelection ? 'rgba(27,100,218,0.12)' : 'rgba(25,31,40,0.024)',
+          border:`1.5px solid ${open || hasSelection ? 'rgba(27,100,218,0.4)' : '#b0b8c1'}`,
           transition:'background 0.15s, border-color 0.15s',
         }}
       >
-        <span style={{ fontSize:15, fontWeight:700, color: open || hasSelection ? '#c9a228' : '#8896b0' }}>
+        <span style={{ fontSize:15, fontWeight:700, color: open || hasSelection ? '#1b64da' : '#4e5968' }}>
           {hasSelection ? (selLabel || centerLabel) : (placeholder || centerLabel)}
         </span>
-        {!open && selIcon && <span style={{ color:'#c9a228' }}>{selIcon}</span>}
-        <span style={{ fontSize: 12, color: open || hasSelection ? '#c9a228' : '#8896b0', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
+        {!open && selIcon && <span style={{ color:'#1b64da' }}>{selIcon}</span>}
+        <span style={{ fontSize: 12, color: open || hasSelection ? '#1b64da' : '#4e5968', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
       </button>}
 
       {open && (() => {
@@ -568,9 +568,9 @@ function RadialPicker({ centerId, centerLabel, dirs, value, onChange, onOpen, pl
                 width:'100%', minHeight:44, padding: isCompound ? '7px 4px' : '11px 6px', borderRadius:8, cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:2,
                 fontSize: isCompound ? 12 : 14, fontWeight: isSel ? 700 : 500, lineHeight: isCompound ? 1.3 : 1,
-                border:`1.5px solid ${isSel ? '#c9a228' : '#252f4a'}`,
-                background: isSel ? 'rgba(201,162,40,0.18)' : '#131d35',
-                color: isSel ? '#c9a228' : '#8896b0',
+                border:`1.5px solid ${isSel ? '#1b64da' : '#d1d6db'}`,
+                background: isSel ? 'rgba(27,100,218,0.18)' : '#eef1f4',
+                color: isSel ? '#1b64da' : '#4e5968',
                 animation:'fadeIn 0.15s ease-out',
                 textAlign:'center', whiteSpace:'pre-line',
               }}
@@ -614,6 +614,36 @@ const PIN_DIRS = [
 ];
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+// ─── 샷 기록 열기/접기 · 새 입력 화면 공통 모양 ─────────────────────────────────
+// 기본은 스코어 · 퍼팅만 받는다. 샷 기록(티샷 · 필드샷 · 퍼팅 상세)은 "샷 기록" 줄을 눌러야 열리고, 한 번 열면 다음 홀에서도 열려 있다
+// (이 기기에 기억 — 접으면 다시 접힌 채로 시작). 이미 샷 기록이 있는 홀은 늘 열려 보인다.
+const SHOT_DETAIL_KEY = 'bb-shot-detail';
+const readShotDetail = () => { try { return localStorage.getItem(SHOT_DETAIL_KEY) === '1'; } catch { return false; } };
+const writeShotDetail = (on) => { try { localStorage.setItem(SHOT_DETAIL_KEY, on ? '1' : '0'); } catch { /* 저장하지 못해도 이번 화면에서는 그대로 동작한다 */ } };
+
+// 스코어 이름 (한글) — 큰 숫자 아래 작은 알약에 보인다
+const koScoreName = (strokes, par) => {
+  if (!strokes) return null;
+  if (strokes === 1) return '홀인원';
+  const d = strokes - par;
+  if (d <= -3) return '알바트로스';
+  if (d === -2) return '이글';
+  if (d === -1) return '버디';
+  if (d === 0) return '파';
+  if (d === 1) return '보기';
+  if (d === 2) return '더블 보기';
+  if (d === 3) return '트리플 보기';
+  if (d === 4) return '쿼드러플 보기';
+  return `+${d}`;
+};
+const NAME_TONE = (strokes, par) => (strokes - par <= 0 ? { color: '#0a7f3f', bg: '#e6f6ec' } : { color: '#c8323a', bg: '#fdebec' });
+
+// 머리줄 아이콘 버튼 · 스코어 −/+ 큰 버튼 · 한 줄 목록 버튼
+const HDR_BTN = { width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 12 };
+const STEP_BTN = { width: 72, height: 72, flexShrink: 0, borderRadius: '50%', border: 'none', background: '#f2f4f6', color: '#191f28', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
+const ROW_BTN = { width: '100%', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 2px', background: 'transparent', border: 'none', borderBottom: '1px solid #f2f4f6', color: '#191f28', fontSize: 15, cursor: 'pointer', textAlign: 'left' };
+const SMALL_LINK = { fontSize: 13, color: '#5b6572', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', minHeight: 44 };
+
 export default function ScoringView({ round, currentUser, onUpdate, onFinish, onGoHome, onExit, onGoToSetup, goals = [], firstPutt = null }) {
   // 거리별 클럽 추천을 받을지 — 라운드 시작 전에 정한 설정. 값이 없는 예전 라운드는 켜짐.
   const recommendOn = round.clubRecommend !== false;
@@ -646,6 +676,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [showHoleInModal, setShowHoleInModal] = useState(false);
   const [holeInModalData, setHoleInModalData] = useState(null);
   const [showPuttsDropdown, setShowPuttsDropdown] = useState(false);
+  const [shotPref, setShotPref] = useState(readShotDetail);   // 샷 기록을 열어 두었는지 (이 기기에 기억)
+  const [penOpen, setPenOpen] = useState(false);              // 벌타 칸이 열려 있는지
   const [showHoleMap, setShowHoleMap] = useState(false);
   // 그날의 그린 스피드 — 라운드 시작 때 못 정했거나 라운드 중 알게 된 값을 퍼팅 화면에서 고친다
   const [showGreenSpeed, setShowGreenSpeed] = useState(false);
@@ -894,7 +926,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const prevExtraShotsLenRef = useRef(0);
   const tabsTopRef = useRef(null);   // 입력 탭 행의 자리 — 탭을 바꾸거나 다음 홀로 가면 화면을 여기로 옮긴다
 
-  const scrollToTabs = () => setTimeout(() => tabsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  const scrollToTabs = () => setTimeout(() => {
+    const el = tabsTopRef.current;
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo?.({ top: 0, behavior: 'smooth' });   // 샷 기록이 접혀 있으면 새 홀의 맨 위로
+  }, 80);
   const scrollToPutting = () => setTimeout(() => puttTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   const scrollDown = () => setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80);
 
@@ -1081,23 +1117,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   const getScoreName = (strokes, par) => {
     if (!strokes) return null;
-    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#c9a228', textColor: '#fff', bg: 'linear-gradient(135deg,#e8c84e 0%,#c9a228 50%,#7a611a 100%)', shadow: '0 2px 12px rgba(201,162,40,0.5)', anim: 'holeInOnePulse 2s ease-in-out infinite', fw: '800' };
+    if (strokes === 1) return { name: '🏆 HOLE IN ONE', color: '#1b64da', textColor: '#ffffff', bg: 'linear-gradient(135deg,#1b64da 0%,#1b64da 50%,#9db9ee 100%)', shadow: '0 2px 12px rgba(27,100,218,0.5)', anim: 'holeInOnePulse 2s ease-in-out infinite', fw: '800' };
     const diff = strokes - par;
-    if (diff <= -3) return { name: 'Albatross', color: '#e8c84e', bg: 'rgba(232,200,78,0.12)', shadow: '0 2px 16px rgba(232,200,78,0.4)', anim: 'albatrossGlow 1.8s ease-in-out infinite', fw: '800' };
-    if (diff === -2) return { name: 'Eagle',     color: '#c9a228', bg: 'rgba(201,162,40,0.1)',  shadow: '0 2px 10px rgba(201,162,40,0.35)', anim: 'eagleGlow 2.2s ease-in-out infinite',     fw: '700' };
-    if (diff === -1) return { name: 'Birdie',    color: '#3db87a', bg: 'rgba(61,184,122,0.08)', shadow: '0 2px 6px rgba(61,184,122,0.25)',   anim: 'birdieGlow 2.8s ease-in-out infinite',   fw: '600' };
-    if (diff === 0)  return { name: 'Par',        color: '#8896b0' };
-    if (diff === 1)  return { name: 'Bogey',      color: '#e57373', bg: 'rgba(239,83,80,0.06)',  shadow: '0 2px 5px rgba(239,83,80,0.2)',   anim: 'bogeyRed 3.5s ease-in-out infinite',  fw: '600' };
-    if (diff === 2)  return { name: 'Double',     color: '#ef5350', bg: 'rgba(239,83,80,0.09)',  shadow: '0 2px 8px rgba(239,83,80,0.3)',   anim: 'doubleRed 3s ease-in-out infinite',   fw: '700' };
-    if (diff === 3)  return { name: 'Triple',     color: '#ff6b68', bg: 'rgba(229,57,53,0.12)',  shadow: '0 2px 10px rgba(229,57,53,0.4)',  anim: 'tripleRed 2.5s ease-in-out infinite', fw: '700' };
-    if (diff === 4)  return { name: 'Quadruple',  color: '#ff6b68', bg: 'rgba(198,40,40,0.15)',  shadow: '0 2px 12px rgba(198,40,40,0.5)',  anim: 'quadRed 2s ease-in-out infinite',     fw: '800' };
-    if (diff === 5)  return { name: 'Quintuple',  color: '#ff6b68', bg: 'rgba(183,28,28,0.17)',  shadow: '0 2px 14px rgba(183,28,28,0.55)', anim: 'quadRed 1.9s ease-in-out infinite',   fw: '800' };
-    if (diff === 6)  return { name: 'Sextuple',   color: '#ff6b68', bg: 'rgba(183,28,28,0.18)',  shadow: '0 2px 15px rgba(183,28,28,0.58)', anim: 'quadRed 1.8s ease-in-out infinite',   fw: '800' };
-    if (diff === 7)  return { name: 'Septuple',   color: '#ff6b68', bg: 'rgba(183,28,28,0.19)',  shadow: '0 2px 16px rgba(183,28,28,0.62)', anim: 'quadRed 1.7s ease-in-out infinite',   fw: '800' };
-    if (diff === 8)  return { name: 'Octuple',    color: '#ff6b68', bg: 'rgba(183,28,28,0.20)',  shadow: '0 2px 17px rgba(183,28,28,0.65)', anim: 'quadRed 1.6s ease-in-out infinite',   fw: '800' };
-    if (diff === 9)  return { name: 'Nonuple',    color: '#ff6b68', bg: 'rgba(183,28,28,0.21)',  shadow: '0 2px 18px rgba(183,28,28,0.68)', anim: 'quadRed 1.5s ease-in-out infinite',   fw: '800' };
-    if (diff === 10) return { name: 'Decuple',    color: '#ff6b68', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
-    return                   { name: `+${diff}`,  color: '#ff6b68', bg: 'rgba(183,28,28,0.22)',  shadow: '0 2px 20px rgba(183,28,28,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
+    if (diff <= -3) return { name: 'Albatross', color: '#1b64da', bg: 'rgba(27,100,218,0.12)', shadow: '0 2px 16px rgba(27,100,218,0.4)', anim: 'albatrossGlow 1.8s ease-in-out infinite', fw: '800' };
+    if (diff === -2) return { name: 'Eagle',     color: '#1b64da', bg: 'rgba(27,100,218,0.1)',  shadow: '0 2px 10px rgba(27,100,218,0.35)', anim: 'eagleGlow 2.2s ease-in-out infinite',     fw: '700' };
+    if (diff === -1) return { name: 'Birdie',    color: '#0a7f3f', bg: 'rgba(10,127,63,0.08)', shadow: '0 2px 6px rgba(10,127,63,0.25)',   anim: 'birdieGlow 2.8s ease-in-out infinite',   fw: '600' };
+    if (diff === 0)  return { name: 'Par',        color: '#4e5968' };
+    if (diff === 1)  return { name: 'Bogey',      color: '#c8323a', bg: 'rgba(200,50,58,0.06)',  shadow: '0 2px 5px rgba(200,50,58,0.2)',   anim: 'bogeyRed 3.5s ease-in-out infinite',  fw: '600' };
+    if (diff === 2)  return { name: 'Double',     color: '#c8323a', bg: 'rgba(200,50,58,0.09)',  shadow: '0 2px 8px rgba(200,50,58,0.3)',   anim: 'doubleRed 3s ease-in-out infinite',   fw: '700' };
+    if (diff === 3)  return { name: 'Triple',     color: '#c8323a', bg: 'rgba(200,50,58,0.12)',  shadow: '0 2px 10px rgba(200,50,58,0.4)',  anim: 'tripleRed 2.5s ease-in-out infinite', fw: '700' };
+    if (diff === 4)  return { name: 'Quadruple',  color: '#c8323a', bg: 'rgba(200,50,58,0.15)',  shadow: '0 2px 12px rgba(200,50,58,0.5)',  anim: 'quadRed 2s ease-in-out infinite',     fw: '800' };
+    if (diff === 5)  return { name: 'Quintuple',  color: '#c8323a', bg: 'rgba(200,50,58,0.17)',  shadow: '0 2px 14px rgba(200,50,58,0.55)', anim: 'quadRed 1.9s ease-in-out infinite',   fw: '800' };
+    if (diff === 6)  return { name: 'Sextuple',   color: '#c8323a', bg: 'rgba(200,50,58,0.18)',  shadow: '0 2px 15px rgba(200,50,58,0.58)', anim: 'quadRed 1.8s ease-in-out infinite',   fw: '800' };
+    if (diff === 7)  return { name: 'Septuple',   color: '#c8323a', bg: 'rgba(200,50,58,0.19)',  shadow: '0 2px 16px rgba(200,50,58,0.62)', anim: 'quadRed 1.7s ease-in-out infinite',   fw: '800' };
+    if (diff === 8)  return { name: 'Octuple',    color: '#c8323a', bg: 'rgba(200,50,58,0.2)',  shadow: '0 2px 17px rgba(200,50,58,0.65)', anim: 'quadRed 1.6s ease-in-out infinite',   fw: '800' };
+    if (diff === 9)  return { name: 'Nonuple',    color: '#c8323a', bg: 'rgba(200,50,58,0.21)',  shadow: '0 2px 18px rgba(200,50,58,0.68)', anim: 'quadRed 1.5s ease-in-out infinite',   fw: '800' };
+    if (diff === 10) return { name: 'Decuple',    color: '#c8323a', bg: 'rgba(200,50,58,0.22)',  shadow: '0 2px 20px rgba(200,50,58,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
+    return                   { name: `+${diff}`,  color: '#c8323a', bg: 'rgba(200,50,58,0.22)',  shadow: '0 2px 20px rgba(200,50,58,0.72)', anim: 'quadRed 1.4s ease-in-out infinite',   fw: '800' };
   };
 
   const scoreName = getScoreName(playerScore.strokes, hole.par);
@@ -1133,16 +1169,33 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const teeReady = teeRequired.length === 0;                          // 필드샷·퍼팅 탭이 열린다
   const teeComplete = teeReady && teeOptionalLeft.length === 0;        // 선택 항목까지 모두 입력 — 자동으로 다음 탭으로 넘어간다
   const isLastHole = holeIdx === holeTotal - 1;
-  const isPar3AtPar = hole.par === 3 && playerScore.touched && playerScore.strokes === 3;
-  const isPar5 = hole.par === 5;
   const isSimpleMode = round.players.length > 1;
+
+  // ─── 샷 기록 열기 — 기본은 접혀 있고 스코어 · 퍼팅만 받는다 ─────────────────────────────
+  // 이미 샷 기록(티샷 클럽 · 필드샷 · 퍼트 상세)이 있는 홀은 그 기록이 숨지 않게 늘 열어 둔다.
+  const hasShotData = !!(playerScore.teeClub || (playerScore.extraShots || []).length > 0
+    || (Array.isArray(playerScore.puttDetails) && playerScore.puttDetails.some(Boolean))
+    || (playerScore.penalties || []).length > 0);
+  const shotVisible = !isSimpleMode && (shotPref || hasShotData);
+  const shotCount = (playerScore.teeClub ? 1 : 0) + (playerScore.extraShots || []).length
+    + (Array.isArray(playerScore.puttDetails) ? playerScore.puttDetails.filter(Boolean).length : 0);
+  const setShotOpen = (open) => {
+    setShotPref(open);
+    writeShotDetail(open);
+    if (open) { setStage('tee'); scrollToTabs(); }   // 샷 기록은 티샷부터
+  };
+  const penaltySummary = penaltyCount(playerScore) > 0
+    ? [['해저드', playerScore.hazard || 0], ['OB', playerScore.ob || 0], ['언플레이어블', playerScore.unplayable || 0]]
+      .filter(([, n]) => n > 0).map(([l, n]) => `${l} ${n}`).join(', ') || `${penaltyCount(playerScore)}타`
+    : '없음';
+
 
   // 벌타가 기록된 홀은 티샷이 그린에 한 번에 올라갔다(1온·파3 티샷 온그린·홀인원)고 기록할 수 없다.
   // 벌타를 넣을 때는 그 표시가 풀리는데, 반대 순서(벌타 → 1온)를 막지 않으면 1온 표시와 벌타가
   // 함께 남아 화면은 1온인데 타수는 벌타 기준으로 계산되는 모순이 된다. 벌타를 먼저 지워야 한다.
   const penaltyBlocksTeeOnGreen = penaltyCount(playerScore) > 0;
   const teeOnGreenBlockedHint = (
-    <div style={{ fontSize:13, color:'#8aa0c4', lineHeight:1.5, marginTop:6, textAlign:'center' }}>
+    <div style={{ fontSize:13, color:'#4e5968', lineHeight:1.5, marginTop:6, textAlign:'center' }}>
       벌타가 기록돼 있어 티샷 한 번에 올린 것으로 기록할 수 없어요 · 벌타를 먼저 지워 주세요
     </div>
   );
@@ -1215,12 +1268,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const secHdr = (label, onDelete, state = 'idle') => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px 6px' }}>
       <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
-      <span style={{ fontSize: 13, fontWeight: 800, color: HDR[state].label, letterSpacing: '0.2em' }}>
+      <span style={{ fontSize: 13, fontWeight: 800, color: HDR[state].label, letterSpacing:'0' }}>
         {state === 'done' && '✓ '}{label}
       </span>
       <div style={{ height: 1, flex: 1, background: HDR[state].line }} />
       {onDelete && (
-        <button onClick={onDelete} style={{ fontSize: 12, color: '#ef5350', background: 'none', border: '1px solid rgba(239,83,80,0.3)', borderRadius: 8, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
+        <button onClick={onDelete} style={{ fontSize: 12, color: '#c8323a', background: 'none', border: '1px solid rgba(200,50,58,0.3)', borderRadius: 8, padding: '2px 6px', cursor: 'pointer', flexShrink: 0 }}>✕ 삭제</button>
       )}
     </div>
   );
@@ -1347,7 +1400,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   // 직전 샷 위치에서 다시 친 샷의 남은 거리가 직전 샷 값을 그대로 쓴 경우
   const replayTag = (copied) => (copied
-    ? <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8, color: '#e6b94a', border: '1px solid rgba(230,185,74,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
+    ? <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8, color: '#a85b00', border: '1px solid rgba(168,91,0,0.4)' }}>다시 치기 · 직전 샷과 같음</span>
     : null);
 
   // 남은 거리·티샷 거리 옆 표시 — 값이 지도 거리와 같으면 'GPS 실측', 사용자가 정한 값이 달라서
@@ -1356,18 +1409,18 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const mapDistanceTag = (measured, value, source, onApply) => {
     const base = { fontSize: 12, fontWeight: 800, marginLeft: 6, padding: '1px 5px', borderRadius: 8 };
     if (measured != null && value === measured) {
-      return <span style={{ ...base, color: '#3db87a', border: '1px solid rgba(61,184,122,0.4)' }}>GPS 실측</span>;
+      return <span style={{ ...base, color: '#0a7f3f', border: '1px solid rgba(10,127,63,0.4)' }}>GPS 실측</span>;
     }
     if (measured != null) {
       return (
         <button onClick={onApply}
-          style={{ ...base, color: '#8ec0ff', background: 'transparent', border: '1px solid rgba(142,192,255,0.5)', cursor: 'pointer' }}>
+          style={{ ...base, color: '#1b64da', background: 'transparent', border: '1px solid rgba(27,100,218,0.5)', cursor: 'pointer' }}>
           지도 {fmtShot(measured)} 적용
         </button>
       );
     }
     if (source === 'live' && value != null) {
-      return <span style={{ ...base, color: '#8ec0ff', border: '1px solid rgba(142,192,255,0.4)' }}>지도 현재 위치 기준</span>;
+      return <span style={{ ...base, color: '#1b64da', border: '1px solid rgba(27,100,218,0.4)' }}>지도 현재 위치 기준</span>;
     }
     return null;
   };
@@ -1834,13 +1887,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     const chip = (active) => ({
       flex: active ? 2.2 : 1, minWidth: 'min-content', minHeight: 44, padding: '9px 4px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',   // min-content: 가장 긴 단어(언플레이어블)가 글자 중간에서 꺾이지 않게
       fontSize: 14, fontWeight: 700, lineHeight: 1.25, whiteSpace: 'normal', wordBreak: 'keep-all',
-      border: `1.5px solid ${active ? '#ef5350' : '#252f4a'}`,
-      background: active ? 'rgba(239,83,80,0.14)' : '#1a2235',
-      color: active ? '#ef5350' : '#8896b0',
+      border: `1.5px solid ${active ? '#c8323a' : '#d1d6db'}`,
+      background: active ? 'rgba(200,50,58,0.14)' : '#e8ebee',
+      color: active ? '#c8323a' : '#4e5968',
     });
     return (
       <>
-      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 16px 10px', borderBottom: p && asksReason(p.type) ? 'none' : '1px solid #0e1320' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 16px 10px', borderBottom: p && asksReason(p.type) ? 'none' : '1px solid #e5e8eb' }}>
         <span style={{ ...fLbl, minWidth: 32 }}>벌타</span>
         {['ob', 'hazard', 'unplayable'].map((type) => {
           const active = p?.type === type;
@@ -1855,7 +1908,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       </div>
       {/* 왜 벌타가 났나 — 거리 미스 · 방향 미스 · 생크. 선택 입력이라 안 눌러도 된다 */}
       {p && asksReason(p.type) && (
-        <div data-role={`penalty-reason-${slot}`} style={{ display:'flex', alignItems:'center', gap:6, padding:'0 16px 10px', borderBottom:'1px solid #0e1320' }}>
+        <div data-role={`penalty-reason-${slot}`} style={{ display:'flex', alignItems:'center', gap:6, padding:'0 16px 10px', borderBottom:'1px solid #e5e8eb' }}>
           <span style={{ ...fLbl, minWidth: 32 }}>이유</span>
           {PENALTY_REASONS.map((r) => (
             <button key={r.id} type="button" aria-pressed={p.reason === r.id} data-role={`penalty-reason-${slot}-${r.id}`}
@@ -2175,237 +2228,60 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <header style={styles.scoringHeader}>
-        <button style={{ ...styles.iconBack, flexShrink: 0 }} onClick={handleBackClick} aria-label="뒤로"><ChevronLeft size={22} /></button>
-        <div style={styles.scoringCourse} title={round.courseName}>{round.courseName}</div>
-        <button style={{ width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: '#8896b0', borderRadius: 8 }} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정">
-          <Edit3 size={18} strokeWidth={2} />
+      {/* Header — 뒤로 · 코스 이름 · 코스맵 · 메모 · 라운드 수정 */}
+      <header style={{ ...styles.scoringHeader, padding: '4px 0 8px' }}>
+        <button style={{ ...styles.iconBack, background: 'transparent', border: 'none', color: '#191f28', flexShrink: 0 }} onClick={handleBackClick} aria-label="뒤로"><ChevronLeft size={24} /></button>
+        <div style={{ ...styles.scoringCourse, fontSize: 16 }} title={round.courseName}>{round.courseName}</div>
+        {(() => {
+          const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
+          return (
+            <button data-role="map-button" style={HDR_BTN} onClick={() => setShowHoleMap(true)} aria-label="코스맵">
+              <MapIcon size={21} strokeWidth={mapUsed ? 2.2 : 1.8} color={mapUsed ? '#1b64da' : '#4e5968'} />
+            </button>
+          );
+        })()}
+        <button
+          data-role="memo-button" data-has-memo={playerScore.memo ? '1' : '0'}
+          style={{ ...HDR_BTN, position: 'relative' }}
+          onClick={() => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); }}
+          aria-label={playerScore.memo ? '메모 있음 — 열기' : '메모 쓰기'}
+        >
+          <StickyNote size={21} strokeWidth={playerScore.memo ? 2.2 : 1.8} color={playerScore.memo ? '#1b64da' : '#4e5968'} />
+          {playerScore.memo && <span data-role="memo-dot" style={{ position: 'absolute', top: 9, right: 9, width: 9, height: 9, borderRadius: '50%', background: '#1b64da', border: '2px solid #ffffff' }} />}
         </button>
+        <button style={HDR_BTN} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정"><Edit3 size={19} strokeWidth={1.8} color="#4e5968" /></button>
       </header>
 
-      {/* Progress */}
+      {/* 진행 — 합계 · 퍼트 · 몇 홀째 */}
       {(() => {
         const c = round.holes.filter(h => round.players.every(p => doneFor(h, p))).length;
-        return (
-          <div style={styles.progressBar}>
-            <div style={styles.progressText}><span style={styles.progressNumber}>{c}</span><span style={styles.progressTotal}> / {holeTotal} holes</span></div>
-            <div style={styles.progressTrack}><div style={{ ...styles.progressFill, width: `${(c/holeTotal)*100}%` }} /></div>
-          </div>
-        );
-      })()}
-
-      <GoalLine goals={goals} round={round} margin="0 16px 8px" />
-
-      {/* Running Score */}
-      {isSimpleMode ? (() => {
-        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
-        const fmtC=(d,has)=>!has?'#8896b0':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
-        return (
-          <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
-            {round.players.map((player, pi) => {
-              const th = round.holes.filter(h => doneFor(h, player));
-              const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
-              const pp = th.reduce((s,h) => s+h.par, 0);
-              const pd = ps-pp;
-              // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
-              const nineStats = nines.map(n => {
-                const done = n.holes.map(x => x.hole).filter(h => doneFor(h, player));
-                return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[player].strokes-h.par,0) };
-              });
-              const isLast = pi === round.players.length - 1;
-              return (
-                <div key={player} style={{ display:'flex', alignItems:'center', gap:8, paddingTop:6, paddingBottom:6, borderBottom: isLast?'none':'1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ width:20, height:20, borderRadius:'50%', background:'#1b2a45', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <span style={{ fontSize:12, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
-                  </div>
-                  <span style={{ flex:1, fontSize:14, fontWeight:700, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    {nineStats.map(ns => (
-                      <div key={ns.key} style={{ textAlign:'center', minWidth:28 }}>
-                        <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0.1em', color:'#8896b0', marginBottom:1 }}>{ns.label}</div>
-                        <div style={{ fontSize:14, fontWeight:800, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</div>
-                      </div>
-                    ))}
-                    <div style={{ display:'flex', alignItems:'baseline', gap:2, minWidth:60, justifyContent:'flex-end' }}>
-                      <span style={{ fontSize:22, fontWeight:900, color:'#e8edf8', lineHeight:1 }}>{ps||0}</span>
-                      {th.length > 0 && <span style={{ fontSize:14, fontWeight:800, color: fmtC(pd,true), lineHeight:1 }}>({fmt(pd,true)})</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })() : (() => {
         const th = round.holes.filter(h => doneFor(h, activePlayer));
-        const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
-        const pp = th.reduce((s,h) => s+h.par, 0);
-        const pu = th.reduce((s,h) => s+(h.scores[activePlayer]?.putts||0), 0);
-        const pd = ps-pp;
-        // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
-        const nineStats = nines.map(n => {
-          const done = n.holes.map(x => x.hole).filter(h => doneFor(h, activePlayer));
-          return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[activePlayer].strokes-h.par,0) };
-        });
-        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
-        const fmtC=(d,has)=>!has?'#8896b0':d>0?'#ef5350':d<0?'#3db87a':'#8896b0';
+        const ps = th.reduce((s, h) => s + (h.scores[activePlayer]?.strokes || 0), 0);
+        const pp = th.reduce((s, h) => s + h.par, 0);
+        const pu = th.reduce((s, h) => s + (h.scores[activePlayer]?.putts || 0), 0);
+        const pd = ps - pp;
+        const diffText = th.length === 0 ? '' : ` (${pd === 0 ? 'E' : pd > 0 ? `+${pd}` : pd})`;
         return (
-          <div style={styles.runningScore}>
-            <div style={styles.runningScoreMain}>
-              <div style={styles.runningScoreLabel}>SCORE</div>
-              <div style={styles.runningScoreValues}>
-                <span style={styles.runningScoreNumber}>{ps}</span>
-                {th.length > 0 && <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,true) }}>({fmt(pd,true)})</span>}
-              </div>
+          <div data-role="progress" style={{ margin: '4px 4px 0', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontSize: 13, color: '#4e5968', marginBottom: 6 }}>
+              <span data-role="running-total">{isSimpleMode ? `${round.players.length}명이 함께 쳐요` : `합계 ${ps}타${diffText}${pu ? `, 퍼트 ${pu}` : ''}`}</span>
+              <span data-role="progress-count"><b style={{ color: '#191f28', fontWeight: 800 }}>{c}</b>{`/${holeTotal}홀`}</span>
             </div>
-            <div style={styles.runningScoreDivider} />
-            <div style={styles.runningScoreStats}>
-              {nineStats.map(ns => (
-                <div key={ns.key} style={styles.runningScoreStat}>
-                  <span style={{ ...styles.runningScoreStatLabel, fontSize: '12px' }}>{ns.label}</span>
-                  <span style={{ ...styles.runningScoreStatValue, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</span>
-                </div>
-              ))}
-              <div style={styles.runningScoreStat}>
-                <span style={styles.runningScoreStatLabel}>PUTTS</span>
-                <span style={styles.runningScoreStatValue}>{pu||'—'}</span>
-              </div>
+            <div style={{ height: 6, borderRadius: 3, background: '#e5e8eb', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${(c / holeTotal) * 100}%`, borderRadius: 3, background: '#1b64da', transition: 'width 0.3s ease' }} />
             </div>
           </div>
         );
       })()}
 
-      {/* Hole Navigator */}
-      <div style={styles.holeNavigator}>
-        {/* 18홀은 OUT·IN 두 줄, 9홀은 치는 9홀 한 줄. offset = 그 묶음의 첫 홀이 round.holes 에서 차지하는 위치 */}
-        {nines.map(({ label, holes: items }) => ({ label, holes: items.map(x => x.hole), offset: items[0].index })).map(({ label, holes, offset }) => (
-          <div key={label} style={styles.holeNavTable}>
-            <div style={styles.holeNavTableRow}>
-              <div style={{ ...styles.holeNavRowLabel, ...styles.holeNavRowLabelHeader, fontSize: getNavLabelFontSize(label) }}>{label}</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; return <button key={i} style={{ ...styles.holeNavHoleCell, background: ic?'#c9a228':'transparent', color: ic?'#0b0e18':'#8896b0' }} onClick={()=>goToHole(i)}>{h.holeNumber ?? i+1}</button>; })}
-              </div>
-            </div>
-            <div style={styles.holeNavTableRow}>
-              <div style={styles.holeNavRowLabel}>PAR</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#ff8844':'#c96820'):h.par===5?(ic?'#5dd49a':'#2ea868'):(ic?'#c9a228':'#8896b0'); const pb=ic?(h.par===3?'rgba(200,80,20,0.22)':h.par===5?'rgba(61,184,122,0.18)':'#1a2235'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
-              </div>
-            </div>
-            {isSimpleMode ? round.players.map((player, pi) => {
-              const isLastPlayer = pi === round.players.length - 1;
-              const shortName = player.length > 4 ? player.slice(0,4) : player;
-              return (
-                <div key={player} data-role="nav-score" style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(255,255,255,0.04)' }}>
-                  <div style={{ ...styles.holeNavRowLabel, color:'#8fb0cc', fontSize: 12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
-                  <div style={styles.holeNavTableCells}>
-                    {holes.map((h,li) => {
-                      const i=offset+li; const done=doneFor(h, player); const ic=i===holeIdx;
-                      const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
-                      let ms={};
-                      if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
-                      return (
-                        <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
-                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#8896b0'), fontWeight: done?'700':'500' }}>
-                            {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }) : (<>
-            <div style={styles.holeNavTableRow} data-role="nav-score">
-              <div style={styles.holeNavRowLabel}>SCORE</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => {
-                  const i=offset+li; const done=round.players.every(p=>doneFor(h, p)); const ic=i===holeIdx;
-                  const psc=h.scores[activePlayer]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
-                  let ms={};
-                  if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
-                  return (
-                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
-                      <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#0b0e18':done?(diff<=-1?'#3db87a':diff>=1?'#ef5350':'#e8edf8'):(ic?'#c9a228':'#8896b0'), fontWeight: done?'700':'500' }}>
-                        {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            {/* PUTT — 입력한 퍼트 수. 동반자와 함께 기록할 때는 퍼트를 입력하지 않으므로(스코어로 추정) 이 줄이 없다 */}
-            <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }} data-role="nav-putts">
-              <div style={styles.holeNavRowLabel}>PUTT</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => {
-                  const i=offset+li; const ic=i===holeIdx;
-                  const psc=h.scores[activePlayer]; const text=navPuttsText(psc, doneFor(h, activePlayer)); const has=text!==NAV_EMPTY;
-                  return (
-                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#1a2235':'transparent' }} onClick={()=>goToHole(i)}>
-                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#c4cfe0':(ic?'#c9a228':'#8896b0'), fontWeight: has?'700':'500' }}>{text}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            </>)}
-          </div>
-        ))}
-      </div>
+      <GoalLine goals={goals} round={round} margin="8px 0 0" />
 
-      {/* Hole Header */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 16px 16px', borderBottom:'1px solid #0e1320', background:'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 100%)' }}>
-        {/* 좌측: HOLE + PAR + 파대비 */}
-        <div>
-          <div style={{ fontSize:12, fontWeight:700, color:'#c9a228', letterSpacing:'0.28em', marginBottom:5, textTransform:'uppercase' }}>HOLE {holeNo}</div>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ fontSize:32, fontWeight:900, lineHeight:1, letterSpacing:'-0.02em', color: isPar5?'#3db87a': hole.par===3?'#5b9cf6':'#e8edf8' }}>PAR {hole.par}</div>
-            {(() => {
-              const diff = playerScore.strokes - hole.par;
-              if (diff === 0 || !playerScore.touched || inProgress(playerScore)) return null;
-              const under = diff < 0;
-              return (
-                <div style={{
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  height:28, padding:'0 10px',
-                  fontSize:14, fontWeight:800, letterSpacing:'0.04em',
-                  alignSelf:'center',
-                  color: under?'#3db87a':'#ef5350',
-                  background: under?'rgba(61,184,122,0.1)':'rgba(239,83,80,0.1)',
-                  border:`1px solid ${under?'rgba(61,184,122,0.3)':'rgba(239,83,80,0.3)'}`,
-                  borderRadius: 10,
-                }}>
-                  {under ? diff : `+${diff}`}
-                </div>
-              );
-            })()}
-          </div>
+      {/* Hole Header — 몇 번 홀 · 파 몇 */}
+      <div data-role="hole-header" style={{ padding: '22px 4px 0', textAlign: 'left' }}>
+        <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.4, letterSpacing: '-0.02em', color: '#191f28' }}>
+          <span data-role="hole-no">{`${holeNo}번 홀`}</span>{isSimpleMode ? '' : <> 스코어를<br />알려 주세요</>}
         </div>
-
-        {/* 우측: 스코어명 */}
-        {/* 퍼팅 입력 전에는 스코어 이름(버디·보기…)을 붙이지 않는다 — 아직 정해지지 않았다 */}
-        {inProgress(playerScore) && (
-          <div style={{ fontSize:13, fontWeight:700, letterSpacing:'0.14em', color:'#8896b0', border:'1.5px solid #3a4e72', borderRadius: 10, padding:'6px 12px' }}>
-            진행 중
-          </div>
-        )}
-        {scoreName && !inProgress(playerScore) && (
-          <div style={{
-            fontSize:13, fontWeight: isPar3AtPar?'800':(scoreName.fw||'700'),
-            letterSpacing:'0.14em', textTransform:'uppercase',
-            color: isPar3AtPar?'#fff':(scoreName.textColor||scoreName.color),
-            background: isPar3AtPar?'linear-gradient(135deg,#c04a10 0%,#7a2000 100%)':(scoreName.bg||'transparent'),
-            border:`1.5px solid ${isPar3AtPar?'#c04a10':scoreName.color}`,
-            borderRadius: 10, padding:'6px 12px',
-            boxShadow: isPar3AtPar?'0 2px 12px rgba(180,60,0,0.45)':(playerScore.touched&&scoreName.shadow?scoreName.shadow:'none'),
-            opacity: playerScore.touched?1:0.3,
-            animation: playerScore.touched&&scoreName.anim?scoreName.anim:'none',
-          }}>
-            {isPar3AtPar?'PAR 3 !':scoreName.name}
-          </div>
-        )}
+        <div data-role="hole-par" style={{ marginTop: 4, fontSize: 15, color: '#4e5968' }}>{`파 ${hole.par} 홀이에요`}</div>
       </div>
 
       {/* ── 멀티플레이어 간편 스코어 ── */}
@@ -2417,238 +2293,220 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             const diff = ps.strokes - hole.par;
             const diffLabel = diff === 0 ? 'E' : diff > 0 ? `+${diff}` : `${diff}`;
             return (
-              <div key={player} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8, padding:'6px 10px', borderRadius:10, background:'#0d1525', border:'1px solid #1b2744' }}>
-                <div style={{ width:26, height:26, borderRadius:'50%', background:'#1b2a45', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                  <span style={{ fontSize:13, fontWeight:800, color:'#c9a228' }}>{pi+1}</span>
+              <div key={player} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8, padding:'6px 10px', borderRadius:10, background:'#eef1f4', border:'1px solid #e5e8eb' }}>
+                <div style={{ width:26, height:26, borderRadius:'50%', background:'#eef1f4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <span style={{ fontSize:13, fontWeight:800, color:'#1b64da' }}>{pi+1}</span>
                 </div>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'#c4cfe0', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
-                <span style={{ fontSize:12, fontWeight:700, color: sn?.color||'#8896b0', minWidth:24, textAlign:'center' }}>{diffLabel}</span>
-                <div style={{ display:'flex', alignItems:'center', background:'#131c30', borderRadius:8, overflow:'hidden', height:38 }}>
-                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'#3db87a', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:'#333d4b', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                <span style={{ fontSize:12, fontWeight:700, color: sn?.color||'#4e5968', minWidth:24, textAlign:'center' }}>{diffLabel}</span>
+                <div style={{ display:'flex', alignItems:'center', background:'#eef1f4', borderRadius:8, overflow:'hidden', height:38 }}>
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'#0a7f3f', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
                     onClick={() => updatePlayerStrokes(player, Math.max(1, ps.strokes - 1))}>−</button>
-                  <span style={{ width:34, textAlign:'center', fontSize:20, fontWeight:900, color: sn?.color||'#e8edf8', lineHeight:1 }}>{ps.strokes}</span>
-                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'#ef5350', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
+                  <span style={{ width:34, textAlign:'center', fontSize:20, fontWeight:900, color: sn?.color||'#191f28', lineHeight:1 }}>{ps.strokes}</span>
+                  <button style={{ width:38, height:38, background:'transparent', border:'none', color:'#c8323a', fontSize:20, fontWeight:700, cursor:'pointer', flexShrink:0 }}
                     onClick={() => updatePlayerStrokes(player, Math.min(20, ps.strokes + 1))}>+</button>
                 </div>
               </div>
             );
           })}
 
-          {/* 이전/다음 홀 네비게이션 */}
-          <div style={{ display:'flex', gap:8, marginTop:4 }}>
-            <button
-              disabled={holeIdx === 0}
-              style={{ flex:1, height:46, borderRadius:10, border:'1px solid #1b2744', background:'transparent', color: holeIdx===0?'#252f4a':'#c4cfe0', fontSize:15, fontWeight:700, cursor: holeIdx===0?'default':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
-              onClick={() => goToHole(holeIdx - 1)}>
-              ‹ 이전
-            </button>
-            {isLastHole ? (
-              <button
-                style={{ flex:1, height:46, borderRadius:10, border:'none', background:'#c9a228', color:'#0b0e18', fontSize:15, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
-                onClick={handleFinishClick}>
-                🏁 라운드 완료
-              </button>
-            ) : (
-              <button
-                style={{ flex:1, height:46, borderRadius:10, border:'none', background:'#1b2a45', color:'#e8edf8', fontSize:15, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
-                onClick={handleNext}>
-                다음 홀 ›
-              </button>
-            )}
-          </div>
         </div>
       )}
 
-      {!isSimpleMode && <>
-      {/* 스코어 */}
-      <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320' }}>
-        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
-          <div style={{ flex:1 }}>
-            {/* 상세 입력 홀: 샷 기록으로 계산 중이면 '자동', 직접 고쳤으면 '직접 입력' */}
-            {playerScore.teeClub && !isSimpleMode && (
-              playerScore.strokesManual
-                ? <span style={{ fontSize:12, fontWeight:700, color:'#c9a228' }}>직접 입력 · 벌타 포함 총 스코어</span>
-                : <span style={{ fontSize:12, fontWeight:700, color:'#3db87a' }}>샷 기록으로 자동 계산</span>
-            )}
-          </div>
-          <span style={{ fontSize:14, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>스코어</span>
-          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            {playerScore.teeClub ? (
-              // 상세 입력 홀에서 직접 고친 값을 버리고 샷 기록 계산으로 되돌린다
-              playerScore.strokesManual && (
-                <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
-                  onClick={()=>{
-                    // 점수를 퍼팅 수 밑으로 내려 잘려 나간 퍼팅 기록이 있으면 함께 되돌린다
-                    const hd = playerScore.puttsHeld;
-                    updateFields(hd && (playerScore.putts || 0) === hd.clamped
-                      ? { strokesManual: false, putts: hd.value, puttsHeld: null }
-                      : { strokesManual: false });
-                  }}>자동 계산</button>
-              )
-            ) : (
-              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
-                onClick={()=>updateScore('strokes', hole.par, { strokesManual: false })}>초기화</button>
-            )}
-          </div>
-        </div>
-        <div style={{ position:'relative', display:'flex', height:56, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.18), rgba(239,83,80,0.18))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-          <button
-            style={{ flex:1, background:'transparent', border:'none', color:'#3db87a', fontSize:22, fontWeight:700, cursor:'pointer', textAlign:'left', padding:'0 0 0 18px' }}
-            onClick={()=>updateScore('strokes',Math.max(1,playerScore.strokes-1))}>−</button>
-          <button
-            style={{ flex:1, background:'transparent', border:'none', color:'#ef5350', fontSize:22, fontWeight:700, cursor:'pointer', textAlign:'right', padding:'0 18px 0 0' }}
-            onClick={()=>updateScore('strokes',Math.min(20,playerScore.strokes+1))}>+</button>
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+      {!isSimpleMode && <div style={{ padding: '0 4px', textAlign: 'left' }}>
+        {/* 스코어 — 크게 하나 */}
+        <div data-role="score-input" style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <button data-role="score-minus" aria-label="한 타 줄이기" style={STEP_BTN}
+            onClick={() => updateScore('strokes', Math.max(1, playerScore.strokes - 1))}><Minus size={28} strokeWidth={2.2} /></button>
+          <div style={{ textAlign: 'center', minWidth: 0 }}>
             {scorePending(playerScore) ? (
               // 퍼팅 전: 2퍼트로 가정한 스코어 대신 그린까지 친(칠) 타수만 보여준다
-              <div style={{ textAlign:'center', lineHeight:1.2 }}>
-                <div style={{ fontSize:18, fontWeight:900, color:'#e8edf8' }}>온그린까지 {strokesToGreen(playerScore, hole.par)}타</div>
-                <div style={{ fontSize:13, fontWeight:700, color:'#8896b0', marginTop:2 }}>퍼팅 남음</div>
+              <div data-role="score-pending" style={{ lineHeight: 1.3 }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#191f28' }}>온그린까지 {strokesToGreen(playerScore, hole.par)}타</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#4e5968', marginTop: 2 }}>퍼팅 남음</div>
               </div>
             ) : (
-              <span style={{ fontSize:28, fontWeight:900, color:scoreName?.color||'#e8edf8', letterSpacing:'-0.02em' }}>{playerScore.strokes}</span>
+              <div data-role="score-value" style={{ fontSize: 96, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em', color: '#191f28' }}>{playerScore.strokes}</div>
+            )}
+            {inProgress(playerScore) ? (
+              <div data-role="score-name" style={{ display: 'inline-block', marginTop: 4, height: 26, lineHeight: '26px', padding: '0 12px', borderRadius: 13, background: '#f2f4f6', color: '#4e5968', fontSize: 13, fontWeight: 700 }}>진행 중</div>
+            ) : scoreName && (
+              <div data-role="score-name" style={{ display: 'inline-block', marginTop: 4, height: 26, lineHeight: '26px', padding: '0 12px', borderRadius: 13, ...NAME_TONE(playerScore.strokes, hole.par), fontSize: 13, fontWeight: 700, opacity: playerScore.touched ? 1 : 0.65 }}>
+                {koScoreName(playerScore.strokes, hole.par)}
+              </div>
             )}
           </div>
+          <button data-role="score-plus" aria-label="한 타 늘리기" style={{ ...STEP_BTN, background: '#1b64da', color: '#ffffff' }}
+            onClick={() => updateScore('strokes', Math.min(20, playerScore.strokes + 1))}><Plus size={28} strokeWidth={2.2} /></button>
         </div>
-      </div>
 
-      {/* 퍼팅 개수 */}
-      <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
-        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
-          <div style={{ flex:1 }} />
-          <span style={{ fontSize:14, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>퍼팅</span>
-          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
-              onClick={()=>{ updatePuttsCount(2); setShowPuttsDropdown(false); }}>초기화</button>
-          </div>
-        </div>
-        <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'linear-gradient(to right, rgba(61,184,122,0.22), rgba(239,83,80,0.22))', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.07)' }}>
-          {[0,1,2,3,4].map((n, i) => {
-            const t = n / 4;
-            const r = Math.round(61 + (239-61)*t);
-            const g = Math.round(184 + (83-184)*t);
-            const b = Math.round(122 + (80-122)*t);
-            const sel = n === 4 ? playerScore.putts >= 4 : playerScore.putts === n;
-            const curVal = playerScore.putts;
-            const disabled = n > maxPuttsAllowed;
-            const label = n === 4
-              ? (curVal < 4 ? '4' : `${curVal}+`)
-              : String(n);
+        {/* 한 번에 고르기 — 버디 · 파 · 보기 · 더블 이상 */}
+        <div data-role="score-quick" style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+          {[['버디', hole.par - 1], ['파', hole.par], ['보기', hole.par + 1], ['더블 이상', hole.par + 2]].map(([label, val]) => {
+            const diff = playerScore.strokes - hole.par;
+            const on = playerScore.touched && !scorePending(playerScore) && (label === '더블 이상' ? diff >= 2 : playerScore.strokes === val);
             return (
-              <button key={n}
-                disabled={disabled}
-                style={{
-                  flex:1, background: sel ? `rgba(${r},${g},${b},0.32)` : 'transparent',
-                  border:'none', borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                  color: sel ? `rgb(${r},${g},${b})` : 'rgba(232,237,248,0.45)',
-                  fontSize: 18, fontWeight:900,
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: disabled ? 0.35 : 1,
-                  boxShadow: sel ? `inset 0 0 0 2px rgba(${r},${g},${b},0.7)` : 'none',
-                }}
-                onClick={() => {
-                  if (n === 4) {
-                    if (curVal < 4) { updatePuttsCount(4); setShowPuttsDropdown(false); }
-                    else { setShowPuttsDropdown(v => !v); }
-                  } else {
-                    updatePuttsCount(n);
-                    setShowPuttsDropdown(false);
-                  }
-                }}>{label}</button>
+              <button key={label} type="button" aria-pressed={on}
+                style={{ flex: 1, minHeight: 44, borderRadius: 12, border: 'none', background: on ? '#e8f3ff' : '#f2f4f6', color: on ? '#1b64da' : '#191f28', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+                onClick={() => updateScore('strokes', Math.min(20, Math.max(1, val)))}>{label}</button>
             );
           })}
         </div>
 
-        {offGreenCount(playerScore) > 0 && (
-          <div data-role="off-green-note" style={{ marginTop:6, fontSize:13, color:'#e6b94a', textAlign:'center', lineHeight:1.5 }}>
-            그린 밖으로 나가 다시 친 칩 {offGreenCount(playerScore)}타는 스코어에만 들어가요
-          </div>
-        )}
-
-        {showPuttsDropdown && (() => {
-          // 스코어가 높아 퍼팅 8개를 넘어야 하는 경우도 선택 가능하도록 상한까지 확장
-          const upper = Math.max(8, Math.min(maxPuttsAllowed, 15));
-          const options = Array.from({ length: Math.max(0, upper - 4) }, (_, i) => i + 5);
-          return (
-            <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap' }}>
-              {options.map(n => {
-                const disabled = n > maxPuttsAllowed;
-                const sel = playerScore.putts === n;
-                return (
-                  <button key={n}
-                    disabled={disabled}
-                    style={{
-                      flex:1, height:38, borderRadius:8,
-                      border: `2px solid ${sel ? '#ef5350' : '#1b2238'}`,
-                      background: sel ? 'rgba(239,83,80,0.18)' : '#161c2c',
-                      color: sel ? '#ef5350' : 'rgba(232,237,248,0.7)',
-                      fontSize:17, fontWeight:800,
-                      cursor: disabled ? 'not-allowed' : 'pointer',
-                      opacity: disabled ? 0.35 : 1,
-                    }}
-                    onClick={() => { updatePuttsCount(n); setShowPuttsDropdown(false); }}>{n}</button>
-                );
-              })}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* 패널티 */}
-      <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
-        <div style={{ display:'flex', alignItems:'center', marginBottom:6 }}>
-          <div style={{ flex:1 }} />
-          <span style={{ fontSize:14, color:'#c4cfe0', fontWeight:700, letterSpacing:'0.12em' }}>벌타 합계</span>
-          <div style={{ flex:1, display:'flex', justifyContent:'flex-end' }}>
-            {penaltyCount(playerScore) > 0 && (
-              <button style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius: 8, padding:'0 12px', minHeight: 36, cursor:'pointer' }}
-                onClick={()=>{
-                  const cleared = { ob:0, hazard:0, unplayable:0, penalties: [] };
-                  // 직접 고친 스코어는 벌타 초기화로 바꾸지 않는다
-                  updateFields(playerScore.strokesManual
-                    ? cleared
-                    : { ...cleared, strokes: calcAutoStrokes({ ...playerScore, ...cleared }, hole.par) });
-                }}>초기화</button>
-            )}
-          </div>
+        {/* 상세 입력 홀: 샷 기록으로 계산 중이면 '자동', 직접 고쳤으면 '직접 입력' */}
+        <div style={{ marginTop: 4, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: playerScore.teeClub && playerScore.strokesManual ? '#1b64da' : '#0a7f3f' }}>
+            {playerScore.teeClub ? (playerScore.strokesManual ? '직접 입력 · 벌타 포함 총 스코어' : '샷 기록으로 자동 계산') : ''}
+          </span>
+          {playerScore.teeClub ? (
+            // 상세 입력 홀에서 직접 고친 값을 버리고 샷 기록 계산으로 되돌린다
+            playerScore.strokesManual && (
+              <button style={SMALL_LINK} onClick={() => {
+                // 점수를 퍼팅 수 밑으로 내려 잘려 나간 퍼팅 기록이 있으면 함께 되돌린다
+                const hd = playerScore.puttsHeld;
+                updateFields(hd && (playerScore.putts || 0) === hd.clamped
+                  ? { strokesManual: false, putts: hd.value, puttsHeld: null }
+                  : { strokesManual: false });
+              }}>자동 계산</button>
+            )
+          ) : (
+            <button style={SMALL_LINK} onClick={() => updateScore('strokes', hole.par, { strokesManual: false })}>초기화</button>
+          )}
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          {[
-            { label:'해저드', val:playerScore.hazard||0, onDec:()=>{ const c=playerScore.hazard||0; if(c>0) updatePenalty('hazard',c-1); }, onInc:()=>updatePenalty('hazard',Math.min(5,(playerScore.hazard||0)+1)) },
-            { label:'OB',    val:playerScore.ob||0,     onDec:()=>{ const c=playerScore.ob||0;     if(c>0) updatePenalty('ob',c-1);     }, onInc:()=>updatePenalty('ob',    Math.min(5,(playerScore.ob||0)+1))   },
-            { label:'언플레이어블', val:playerScore.unplayable||0, onDec:()=>{ const c=playerScore.unplayable||0; if(c>0) updatePenalty('unplayable',c-1); }, onInc:()=>updatePenalty('unplayable',Math.min(5,(playerScore.unplayable||0)+1)) },
-          ].map(item => (
-            <div key={item.label} style={{ flex:1 }}>
-              <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0.15em', color:'#8896b0', textAlign:'center', marginBottom:4 }}>{item.label}</div>
-              <div style={{ position:'relative', display:'flex', height:46, borderRadius:10, overflow:'hidden', background:'#131c30', boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
-                <button style={{ flex:1, background:'transparent', border:'none', color:'#3db87a', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onDec}>−</button>
-                <button style={{ flex:1, background:'transparent', border:'none', color:'#ef5350', fontSize:20, fontWeight:700, cursor:'pointer' }} onClick={item.onInc}>+</button>
-                <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                  <span style={{ fontSize:22, fontWeight:900, color: item.val > 0 ? '#ef5350' : '#8896b0', lineHeight:1 }}>{item.val}</span>
-                </div>
+
+        {/* 퍼팅 */}
+        <div data-role="putts-input" style={{ marginTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 36 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#191f28' }}>퍼팅</span>
+            <button style={SMALL_LINK} onClick={() => { updatePuttsCount(2); setShowPuttsDropdown(false); }}>초기화</button>
+          </div>
+          <div role="group" aria-label="퍼팅 수" style={{ display: 'flex', gap: 2, background: '#f2f4f6', borderRadius: 16, padding: 4 }}>
+            {[0, 1, 2, 3, 4].map((n) => {
+              const sel = n === 4 ? playerScore.putts >= 4 : playerScore.putts === n;
+              const curVal = playerScore.putts;
+              const disabled = n > maxPuttsAllowed;
+              const label = n === 4 ? (curVal < 4 ? '4' : `${curVal}+`) : String(n);
+              return (
+                <button key={n} type="button" data-role={`putts-${n}`} aria-pressed={sel} disabled={disabled}
+                  style={{
+                    flex: 1, minHeight: 52, borderRadius: 12, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+                    background: sel ? '#ffffff' : 'transparent', color: sel ? '#191f28' : '#4e5968',
+                    fontSize: 18, fontWeight: sel ? 900 : 700, opacity: disabled ? 0.35 : 1,
+                    boxShadow: sel ? '0 1px 4px rgba(25,31,40,0.14)' : 'none',
+                  }}
+                  onClick={() => {
+                    if (n === 4) {
+                      if (curVal < 4) { updatePuttsCount(4); setShowPuttsDropdown(false); }
+                      else { setShowPuttsDropdown(v => !v); }
+                    } else {
+                      updatePuttsCount(n);
+                      setShowPuttsDropdown(false);
+                    }
+                  }}>{label}</button>
+              );
+            })}
+          </div>
+
+          {offGreenCount(playerScore) > 0 && (
+            <div data-role="off-green-note" style={{ marginTop: 6, fontSize: 13, color: '#a85b00', textAlign: 'center', lineHeight: 1.5 }}>
+              그린 밖으로 나가 다시 친 칩 {offGreenCount(playerScore)}타는 스코어에만 들어가요
+            </div>
+          )}
+
+          {showPuttsDropdown && (() => {
+            // 스코어가 높아 퍼팅 8개를 넘어야 하는 경우도 선택 가능하도록 상한까지 확장
+            const upper = Math.max(8, Math.min(maxPuttsAllowed, 15));
+            const options = Array.from({ length: Math.max(0, upper - 4) }, (_, i) => i + 5);
+            return (
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                {options.map(n => {
+                  const disabled = n > maxPuttsAllowed;
+                  const sel = playerScore.putts === n;
+                  return (
+                    <button key={n} disabled={disabled} aria-pressed={sel}
+                      style={{
+                        flex: 1, minHeight: 44, borderRadius: 12, border: 'none',
+                        background: sel ? '#e8f3ff' : '#f2f4f6', color: sel ? '#1b64da' : '#191f28',
+                        fontSize: 17, fontWeight: 800, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.35 : 1,
+                      }}
+                      onClick={() => { updatePuttsCount(n); setShowPuttsDropdown(false); }}>{n}</button>
+                  );
+                })}
               </div>
-            </div>
-          ))}
+            );
+          })()}
         </div>
-        {/* 샷별로 넣으면 구제 방식까지 기록된다는 안내 (합계로만 넣은 벌타가 없을 때) */}
-        {penaltyCount(playerScore) <= (playerScore.penalties || []).length && (
-          <div style={{ fontSize:12, color:'#8aa0c4', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
-            샷 아래 [벌타]에서 넣으면 구제 방식까지 기록돼요
-          </div>
-        )}
-        {/* 어느 샷인지 모르는 벌타(위쪽 칸으로만 넣은 것)가 있을 때만 안내한다 */}
-        {penaltyCount(playerScore) > (playerScore.penalties || []).length && (
-          <div style={{ fontSize:13, color:'#8896b0', textAlign:'center', marginTop:6, lineHeight:1.5 }}>
-            여기서 넣은 OB는 OB티 기준(+2타)으로 계산돼요 · 해저드는 1벌타<br/>
-            샷 아래 [OB]·[해저드]로 기록하면 '스트로크와 거리(다시 치기)'도 고를 수 있어요
-          </div>
-        )}
-      </div>
 
-      </>}
+        {/* 벌타 — 누르면 해저드 · OB · 언플레이어블을 넣는 칸이 열린다 */}
+        <div data-role="penalty-input" style={{ marginTop: 12 }}>
+          <button type="button" data-role="penalty-toggle" aria-expanded={penOpen} style={{ ...ROW_BTN, borderTop: '1px solid #f2f4f6' }} onClick={() => setPenOpen(v => !v)}>
+            <span style={{ fontWeight: 500 }}>벌타</span>
+            <span data-role="penalty-summary" style={{ display: 'flex', alignItems: 'center', gap: 2, color: penaltyCount(playerScore) > 0 ? '#c8323a' : '#4e5968', fontWeight: penaltyCount(playerScore) > 0 ? 700 : 400 }}>
+              {penaltySummary}<ChevronRight size={18} style={{ transform: penOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.16s ease' }} />
+            </span>
+          </button>
+          {penOpen && (
+            <div data-role="penalty-panel" style={{ padding: '4px 0 8px' }}>
+              {[
+                { label: '해저드', val: playerScore.hazard || 0, onDec: () => { const c = playerScore.hazard || 0; if (c > 0) updatePenalty('hazard', c - 1); }, onInc: () => updatePenalty('hazard', Math.min(5, (playerScore.hazard || 0) + 1)) },
+                { label: 'OB', val: playerScore.ob || 0, onDec: () => { const c = playerScore.ob || 0; if (c > 0) updatePenalty('ob', c - 1); }, onInc: () => updatePenalty('ob', Math.min(5, (playerScore.ob || 0) + 1)) },
+                { label: '언플레이어블', val: playerScore.unplayable || 0, onDec: () => { const c = playerScore.unplayable || 0; if (c > 0) updatePenalty('unplayable', c - 1); }, onInc: () => updatePenalty('unplayable', Math.min(5, (playerScore.unplayable || 0) + 1)) },
+              ].map(item => (
+                <div key={item.label} data-role={`penalty-${item.label}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 52 }}>
+                  <span style={{ fontSize: 15, color: '#333d4b' }}>{item.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', background: '#f2f4f6', borderRadius: 12 }}>
+                    <button aria-label={`${item.label} 줄이기`} style={{ width: 48, height: 44, border: 'none', background: 'transparent', color: '#4e5968', fontSize: 22, cursor: 'pointer' }} onClick={item.onDec}>−</button>
+                    <span style={{ width: 28, textAlign: 'center', fontSize: 18, fontWeight: 800, color: item.val > 0 ? '#c8323a' : '#191f28' }}>{item.val}</span>
+                    <button aria-label={`${item.label} 늘리기`} style={{ width: 48, height: 44, border: 'none', background: 'transparent', color: '#1b64da', fontSize: 22, cursor: 'pointer' }} onClick={item.onInc}>+</button>
+                  </div>
+                </div>
+              ))}
+              {penaltyCount(playerScore) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button style={SMALL_LINK} onClick={() => {
+                    const cleared = { ob: 0, hazard: 0, unplayable: 0, penalties: [] };
+                    // 직접 고친 스코어는 벌타 초기화로 바꾸지 않는다
+                    updateFields(playerScore.strokesManual
+                      ? cleared
+                      : { ...cleared, strokes: calcAutoStrokes({ ...playerScore, ...cleared }, hole.par) });
+                  }}>초기화</button>
+                </div>
+              )}
+              {/* 샷별로 넣으면 구제 방식까지 기록된다는 안내 (합계로만 넣은 벌타가 없을 때) */}
+              {penaltyCount(playerScore) <= (playerScore.penalties || []).length && (
+                <div style={{ fontSize: 12, color: '#4e5968', lineHeight: 1.5 }}>샷 기록에서 [벌타]로 넣으면 구제 방식까지 기록돼요</div>
+              )}
+              {/* 어느 샷인지 모르는 벌타(여기서만 넣은 것)가 있을 때만 안내한다 */}
+              {penaltyCount(playerScore) > (playerScore.penalties || []).length && (
+                <div style={{ fontSize: 13, color: '#4e5968', lineHeight: 1.5 }}>
+                  여기서 넣은 OB는 OB티 기준(+2타)으로 계산돼요 · 해저드는 1벌타<br />
+                  샷 기록에서 [OB]·[해저드]로 넣으면 '스트로크와 거리(다시 치기)'도 고를 수 있어요
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 샷 기록 — 눌러야 티샷부터 입력할 수 있다 (기본은 접힘) */}
+        <div data-role="shot-entry">
+          <button type="button" data-role="shot-toggle" aria-expanded={shotVisible} style={ROW_BTN}
+            onClick={() => (hasShotData ? scrollToTabs() : setShotOpen(!shotPref))}>
+            <span style={{ fontWeight: 500 }}>샷 기록</span>
+            <span data-role="shot-summary" style={{ display: 'flex', alignItems: 'center', gap: 2, color: '#4e5968' }}>
+              {hasShotData ? `${shotCount}샷 기록됨` : shotVisible ? '접기' : '티샷부터'}
+              <ChevronRight size={18} style={{ transform: shotVisible ? 'rotate(90deg)' : 'none', transition: 'transform 0.16s ease' }} />
+            </span>
+          </button>
+          {!shotVisible && (
+            <div data-role="shot-hint" style={{ padding: '2px 2px 4px', fontSize: 13, lineHeight: 1.5, color: '#5b6572' }}>
+              샷마다 클럽 · 거리 · 결과까지 남기려면 눌러 주세요. 티샷부터 이어서 입력해요.
+            </div>
+          )}
+        </div>
+      </div>}
 
       {/* ── Score Input Form ── */}
-      {!isSimpleMode && <div style={{ paddingBottom: 8 }}>
+      {shotVisible && <div style={{ paddingBottom: 8 }}>
 
         {/* ── 입력 탭: 티샷 · 필드샷 · 퍼팅 — 화면을 내려도 맨 위에 붙고, 한 단계를 마치면 다음 탭으로 넘어간다 ── */}
         <StickyTabs
@@ -2673,7 +2531,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* PAR3 전용: 핀 위치 — 선택 입력. 고르지 않아도 다음 입력이 열린다 */}
         {hole.par === 3 && (
-          <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+          <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #e5e8eb' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
               <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
             </div>
@@ -2686,14 +2544,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* PAR3 전용: 거리 */}
         {hole.par === 3 && (
-          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ ...fLeft, marginBottom:10 }}>
               <span style={fIcon}>↔</span><span style={fLbl}>거리</span>
               {mapDistanceTag(measuredTee, playerScore.teeDistance, null,
                 () => updateFields({ teeDistance: measuredTee, teeDistanceAppliedM: measuredTee }))}
             </div>
             <SwipeDistance kind="shot" value={playerScore.teeDistance ?? null} start={measuredTee ?? 150} min={50} max={250} sliderMax={250} onChange={v=>updateField('teeDistance',v)} />
-            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
+            {playerScore.teeDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#4e5968', marginTop:6, letterSpacing:'0' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
           </div>
         )}
 
@@ -2715,11 +2573,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* 티샷 구질 - 클럽 선택 완료 후 등장 */}
         {(
           (!playerScore.teeClub && !teeClubInteracting) ? (
-          <div style={{ padding:'10px 16px', borderBottom:'1px solid #0e1320', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-            <span style={{ fontSize:13, color:'#8aa0c4', letterSpacing:'0.08em' }}>클럽을 선택하면 구질 입력이 나타나요</span>
+          <div style={{ padding:'10px 16px', borderBottom:'1px solid #e5e8eb', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            <span style={{ fontSize:13, color:'#4e5968', letterSpacing:'0' }}>클럽을 선택하면 구질 입력이 나타나요</span>
           </div>
           ) : (playerScore.teeClub && !teeClubInteracting) ? (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>〜</span><span style={fLbl}>구질</span>
             </div>
@@ -2742,7 +2600,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {hole.par === 3 && playerScore.teeClub && !teeClubInteracting && (() => {
           const hioSelected = playerScore.putts===0 && playerScore.girAuto===false && (playerScore.puttDetails?.length||0)===0 && playerScore.touched;
           return (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <span style={fIcon}>⚑</span><span style={fLbl}>GIR</span>
             </div>
@@ -2750,10 +2608,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {/* teeOnGreen: 티샷 결과를 따로 남긴다 — gir는 홀 확정 때 다시 계산돼 바뀐다 */}
               <button disabled={penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true}
-                style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===true || (playerScore.teeOnGreen==null && playerScore.gir===true && !playerScore.girAuto)?{ border:'2px solid #3db87a', color:'#3db87a' }:{}),
+                style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===true || (playerScore.teeOnGreen==null && playerScore.gir===true && !playerScore.girAuto)?{ border:'2px solid #0a7f3f', color:'#0a7f3f' }:{}),
                   ...(penaltyBlocksTeeOnGreen && playerScore.teeOnGreen !== true ? { opacity:0.35, cursor:'not-allowed' } : {}) }}
                 onClick={()=>{ updateFields({ gir: true, girAuto: false, teeOnGreen: true }); setStage('putt'); }}>성공</button>
-              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===false || (playerScore.teeOnGreen==null && playerScore.gir===false)?{ border:'2px solid #ef5350', color:'#ef5350' }:{}) }}
+              <button style={{ ...fChipWide, flex:1, padding:'12px 8px', ...(playerScore.teeOnGreen===false || (playerScore.teeOnGreen==null && playerScore.gir===false)?{ border:'2px solid #c8323a', color:'#c8323a' }:{}) }}
                 onClick={()=>{ updateFields({ gir: false, girAuto: false, teeOnGreen: false }); setSecondShotExpanded(true); setStage('field'); }}>실패</button>
             </div>
             {/* 홀인원 풀와이드 — 벌타가 있으면 홀인원일 수 없다 */}
@@ -2764,14 +2622,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 cursor: penaltyBlocksTeeOnGreen && !hioSelected ? 'not-allowed' : 'pointer',
                 opacity: penaltyBlocksTeeOnGreen && !hioSelected ? 0.35 : 1,
                 display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                border: hioSelected ? '2px solid #c9a228' : '1.5px solid #252f4a',
+                border: hioSelected ? '2px solid #1b64da' : '1.5px solid #d1d6db',
                 background: hioSelected
-                  ? 'linear-gradient(135deg, rgba(201,162,40,0.28) 0%, rgba(201,162,40,0.08) 100%)'
-                  : '#1a2235',
-                color: hioSelected ? '#c9a228' : '#8896b0',
-                fontWeight: 700, fontSize: 14, letterSpacing:'0.08em',
+                  ? 'linear-gradient(135deg, rgba(27,100,218,0.28) 0%, rgba(27,100,218,0.08) 100%)'
+                  : '#e8ebee',
+                color: hioSelected ? '#1b64da' : '#4e5968',
+                fontWeight: 700, fontSize: 14, letterSpacing:'0',
                 animation: hioSelected ? 'holeInOnePulse 1.6s ease-in-out infinite' : 'none',
-                boxShadow: hioSelected ? '0 0 20px rgba(201,162,40,0.35)' : 'none',
+                boxShadow: hioSelected ? '0 0 20px rgba(27,100,218,0.35)' : 'none',
                 transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
               }}
               onClick={() => {
@@ -2790,20 +2648,20 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* FAIRWAY HIT - 클럽 선택 후 등장 (선택 입력 — 세컨샷 지형을 고르면 따로 안 눌러도 채워진다) */}
         {hole.par > 3 && playerScore.teeClub && (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-              <span style={fIcon}>⊙</span><span style={fLbl}>FAIRWAY HIT</span>
+              <span style={fIcon}>⊙</span><span style={fLbl}>페어웨이 적중</span>
             </div>
             <div style={{ display:'flex', gap:8 }}>
               {/* 1온(G)이면 볼이 그린 위라 페어웨이 O는 성립하지 않는다 — G를 먼저 해제해야 고를 수 있다 */}
-              <button data-role="tee-fairway-hit" disabled={!!playerScore.teeGIR} style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#3db87a':'#252f4a'}`, background:playerScore.fairway===true?'rgba(61,184,122,0.18)':'#1a2235', color:playerScore.fairway===true?'#3db87a':'#8896b0', fontSize:17, fontWeight:800, cursor: playerScore.teeGIR ? 'not-allowed' : 'pointer', opacity: playerScore.teeGIR ? 0.3 : 1 }} onClick={()=>{ if (playerScore.teeGIR) return; setTeeFairway(true); scrollDown(); }}>O</button>
-              <button data-role="tee-fairway-miss" style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#ef5350':'#252f4a'}`, background:playerScore.fairway===false?'rgba(239,83,80,0.12)':'#1a2235', color:playerScore.fairway===false?'#ef5350':'#8896b0', fontSize:17, fontWeight:800, cursor:'pointer' }} onClick={()=>{ setTeeFairway(false); scrollDown(); }}>X</button>
+              <button data-role="tee-fairway-hit" disabled={!!playerScore.teeGIR} style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===true?'#0a7f3f':'#d1d6db'}`, background:playerScore.fairway===true?'rgba(10,127,63,0.18)':'#e8ebee', color:playerScore.fairway===true?'#0a7f3f':'#4e5968', fontSize:17, fontWeight:800, cursor: playerScore.teeGIR ? 'not-allowed' : 'pointer', opacity: playerScore.teeGIR ? 0.3 : 1 }} onClick={()=>{ if (playerScore.teeGIR) return; setTeeFairway(true); scrollDown(); }}>O</button>
+              <button data-role="tee-fairway-miss" style={{ flex:1, textAlign:'center', padding:'12px', borderRadius:8, border:`1.5px solid ${playerScore.fairway===false?'#c8323a':'#d1d6db'}`, background:playerScore.fairway===false?'rgba(200,50,58,0.12)':'#e8ebee', color:playerScore.fairway===false?'#c8323a':'#4e5968', fontSize:17, fontWeight:800, cursor:'pointer' }} onClick={()=>{ setTeeFairway(false); scrollDown(); }}>X</button>
             </div>
             {playerScore.fairwayFromLanding && playerScore.fairway === true && (
-              <div data-role="tee-fairway-auto" style={{ fontSize:12, color:'#8896b0', marginTop:6, lineHeight:1.5 }}>랜딩 센터라 O 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
+              <div data-role="tee-fairway-auto" style={{ fontSize:12, color:'#4e5968', marginTop:6, lineHeight:1.5 }}>랜딩 센터라 O 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
             )}
             {playerScore.fairwayDerived && playerScore.fairway != null && (
-              <div data-role="tee-fairway-derived" style={{ fontSize:12, color:'#8896b0', marginTop:6, lineHeight:1.5 }}>{playerScore.fairway ? '세컨샷 지형이 페어웨이라 O' : '세컨샷 지형이 페어웨이가 아니라 X'} 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
+              <div data-role="tee-fairway-derived" style={{ fontSize:12, color:'#4e5968', marginTop:6, lineHeight:1.5 }}>{playerScore.fairway ? '세컨샷 지형이 페어웨이라 O' : '세컨샷 지형이 페어웨이가 아니라 X'} 로 자동 선택 · 다르면 눌러서 바꾸세요</div>
             )}
           </div>
         )}
@@ -2811,14 +2669,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* LANDING POINT (L/C/R/그린) — 선택 입력. 티샷이 어디로 갔는지 방향성 분석에 쓰인다.
             1온(G)은 결과라서 여기서 고른다 — 1온이면 필드샷이 없다. */}
         {hole.par > 3 && playerScore.teeClub && (
-          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+          <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-              <span style={fIcon}>⚑</span><span style={fLbl}>LANDING POINT</span>
+              <span style={fIcon}>⚑</span><span style={fLbl}>랜딩 위치</span>
             </div>
             {/* L / C / R 3분할 */}
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-              {[['L','레프트','#c9a228'],['C','센터','#3db87a'],['R','라이트','#ef5350']].map(([id,label,col])=>(
-                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#252f4a'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#1a2235', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#8896b0', fontSize:14, fontWeight:700, cursor:'pointer' }}
+              {[['L','레프트','#1b64da'],['C','센터','#0a7f3f'],['R','라이트','#c8323a']].map(([id,label,col])=>(
+                <button key={id} style={{ flex:1, textAlign:'center', padding:'10px 4px', borderRadius:8, border:`1.5px solid ${!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#d1d6db'}`, background:!playerScore.teeGIR && playerScore.fairwayHit===id?`${col}22`:'#e8ebee', color:!playerScore.teeGIR && playerScore.fairwayHit===id?col:'#4e5968', fontSize:14, fontWeight:700, cursor:'pointer' }}
                   onClick={() => pickLanding(id)}>
                   <div style={{ fontSize:14, fontWeight:800 }}>{id}</div>
                   <div style={{ fontSize:12, marginTop:2 }}>{label}</div>
@@ -2833,11 +2691,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 cursor: penaltyBlocksTeeOnGreen && !playerScore.teeGIR ? 'not-allowed' : 'pointer',
                 opacity: penaltyBlocksTeeOnGreen && !playerScore.teeGIR ? 0.35 : 1,
                 display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-                border: playerScore.teeGIR ? '1.5px solid #c9a228' : '1.5px solid #252f4a',
-                background: playerScore.teeGIR ? 'linear-gradient(135deg, rgba(201,162,40,0.22) 0%, rgba(201,162,40,0.08) 100%)' : '#1a2235',
-                color: playerScore.teeGIR ? '#c9a228' : '#8896b0',
+                border: playerScore.teeGIR ? '1.5px solid #1b64da' : '1.5px solid #d1d6db',
+                background: playerScore.teeGIR ? 'linear-gradient(135deg, rgba(27,100,218,0.22) 0%, rgba(27,100,218,0.08) 100%)' : '#e8ebee',
+                color: playerScore.teeGIR ? '#1b64da' : '#4e5968',
                 animation: playerScore.teeGIR ? 'goldPulse 1.8s ease-in-out infinite' : 'none',
-                boxShadow: playerScore.teeGIR ? '0 0 18px rgba(201,162,40,0.28)' : 'none',
+                boxShadow: playerScore.teeGIR ? '0 0 18px rgba(27,100,218,0.28)' : 'none',
                 transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
               }}
               onClick={()=>{
@@ -2850,7 +2708,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 }
               }}>
               <span style={{ fontSize:16, fontWeight:900 }}>G</span>
-              <span style={{ fontSize:14, fontWeight:700, letterSpacing:'0.06em' }}>그린  (1온)</span>
+              <span style={{ fontSize:14, fontWeight:700, letterSpacing:'0' }}>그린  (1온)</span>
               {playerScore.teeGIR && <span style={{ fontSize:15, marginLeft:4 }}>⛳</span>}
             </button>
             {penaltyBlocksTeeOnGreen && !playerScore.teeGIR && teeOnGreenBlockedHint}
@@ -2861,44 +2719,44 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {stage === 'tee' && !teeReady && playerScore.teeClub && (
           <div style={{ padding:'8px 16px', textAlign:'center' }}>
-            <span style={{ fontSize:13, color:'#8aa0c4', letterSpacing:'0.06em' }}>
+            <span style={{ fontSize:13, color:'#4e5968', letterSpacing:'0' }}>
               {`티샷을 마치면 필드샷·퍼팅을 입력할 수 있어요 · 남은 항목: ${teeRequired.join(' · ')}`}
             </span>
           </div>
         )}
         {stage === 'tee' && teeReady && !teeComplete && hole.par > 3 && !playerScore.teeGIR && (
           <div data-role="tee-optional-note" style={{ padding:'10px 16px 14px', textAlign:'center' }}>
-            <div style={{ fontSize:13, color:'#8aa0c4', lineHeight:1.6, marginBottom:8, wordBreak:'keep-all' }}>
+            <div style={{ fontSize:13, color:'#4e5968', lineHeight:1.6, marginBottom:8, wordBreak:'keep-all' }}>
               {`선택 항목: ${teeOptionalLeft.join(' · ')} — 비워 두고 필드샷으로 넘어가도 돼요`}
             </div>
             <button type="button" data-role="go-field" onClick={() => { setStage('field'); scrollToTabs(); }}
-              style={{ ...fChipWide, width:'100%', padding:'12px 8px', color:'#c9a228', border:'1.5px solid rgba(201,162,40,0.5)', fontSize:15, fontWeight:800 }}>필드샷 입력하기 ›</button>
+              style={{ ...fChipWide, width:'100%', padding:'12px 8px', color:'#1b64da', border:'1.5px solid rgba(27,100,218,0.5)', fontSize:15, fontWeight:800 }}>필드샷 입력하기 ›</button>
           </div>
         )}
 
         {/* 1온이면 필드샷이 없다 — 필드샷 탭을 눌러 본 경우를 위한 안내 */}
         {teeReady && stage === 'field' && hole.par > 3 && playerScore.teeGIR && (
-          <div data-role="field-empty" style={{ padding:'22px 16px', textAlign:'center', borderBottom:'1px solid #0e1320' }}>
-            <span style={{ fontSize:14, color:'#8896b0', lineHeight:1.6 }}>티샷으로 그린에 올려서 필드샷이 없어요 · 퍼팅 탭에서 이어 입력하세요</span>
+          <div data-role="field-empty" style={{ padding:'22px 16px', textAlign:'center', borderBottom:'1px solid #e5e8eb' }}>
+            <span style={{ fontSize:14, color:'#4e5968', lineHeight:1.6 }}>티샷으로 그린에 올려서 필드샷이 없어요 · 퍼팅 탭에서 이어 입력하세요</span>
           </div>
         )}
 
         {teeReady && stage === 'field' && !playerScore.teeGIR && <>
         {/* ── 세컨샷 아코디언 헤더 ── */}
-        <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded || penaltyAt(playerScore, 1) ? 'none' : '1px solid #0e1320' }}>
+        <button onClick={() => setSecondShotExpanded(v => !v)} style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: secondShotExpanded || penaltyAt(playerScore, 1) ? 'none' : '1px solid #e5e8eb' }}>
           {(() => {
             const st = turnState('second', !!playerScore.secondClub || playerScore.gir != null || extraShots.length > 0);
             const h = HDR[st];
             return (<>
           <div style={{ height:1, flex:1, background: h.line }} />
-          <span style={{ fontSize:14, fontWeight:800, color: h.label, letterSpacing:'0.18em', flexShrink:0 }}>{st === 'done' && '✓ '}{secondShotName}</span>
+          <span style={{ fontSize:14, fontWeight:800, color: h.label, letterSpacing:'0', flexShrink:0 }}>{st === 'done' && '✓ '}{secondShotName}</span>
           <div style={{ height:1, flex:1, background: h.line }} />
           <span style={{ fontSize:13, color: h.arrow, flexShrink:0 }}>{secondShotExpanded ? '▲' : '▼'}</span>
           </>); })()}
         </button>
         {/* 접혀 있어도 이 샷에서 난 벌타(OB · 방식 · 이유)가 보이게 한다 — 펼쳐야만 보이면 기록했는지 알 수 없다 */}
         {!secondShotExpanded && penaltyAt(playerScore, 1) && (
-          <div data-role="second-penalty-tag" style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, fontWeight:700, lineHeight:1.5, color:'#ef8a87', borderBottom:'1px solid #0e1320' }}>{penaltyResultText(penaltyAt(playerScore, 1), 1)}</div>
+          <div data-role="second-penalty-tag" style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, fontWeight:700, lineHeight:1.5, color:'#c8323a', borderBottom:'1px solid #e5e8eb' }}>{penaltyResultText(penaltyAt(playerScore, 1), 1)}</div>
         )}
 
         {secondShotExpanded && <>
@@ -2917,7 +2775,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         />
 
         {/* 남은 거리 */}
-        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+        <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #e5e8eb' }}>
           <div style={{ ...fLeft, marginBottom:10 }}>
             <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
             {mapDistanceTag(measuredSecond, playerScore.remainingDistance, playerScore.remainingSource,
@@ -2925,7 +2783,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {replayTag(playerScore.replayCopied)}
           </div>
           <SwipeDistance kind="shot" value={playerScore.remainingDistance ?? null} start={defaultRemaining} min={1} max={SANE_REMAIN_M} sliderMax={SLIDER_REMAIN_M} onChange={v=>updateFields({ remainingDistance: v, remainingSource: null, replayCopied: false })} />
-          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
+          {playerScore.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#4e5968', marginTop:6, letterSpacing:'0' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
         </div>
 
         {/* 세컨샷 클럽 */}
@@ -2982,14 +2840,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <div data-role="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>{penaltyAt(playerScore, 0) ? '온그린' : hole.par >= 5 ? '2온' : 'GIR'}</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
-              <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+              <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true || (playerScore.gir===true && !playerScore.girAuto && playerScore.onGreen!=='chip-in') ? { border:'2px solid #0a7f3f', color:'#0a7f3f' } : {}) }}
                 onClick={()=>{ updateFields({ ...fieldsWithoutShotsAfter(1), gir: true, girAuto: false, onGreen: true }); setStage('putt'); }}>성공</button>
-              <button data-role="second-result-miss" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false || (extraShots.length > 0 && playerScore.onGreen !== true) ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+              <button data-role="second-result-miss" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.gir===false || (extraShots.length > 0 && playerScore.onGreen !== true) ? { border:'2px solid #c8323a', color:'#c8323a' } : {}) }}
                 onClick={()=>{
                   if (extraShots.length > 0) { setExpandedExtraShot(0); return; }   // 이미 실패 — 써드샷을 또 만들지 않고 그 샷을 연다
                   setSecondShotExpanded(false); addExtraShot(hole.par >= 5 ? { onGreen: null } : { gir: false, girAuto: false, onGreen: null });
                 }}>실패</button>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #1b64da', color:'#1b64da' } : {}) }}
                 onClick={secondShotChipIn}>칩인</button>
             </div>
           </div>
@@ -3000,14 +2858,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <div data-role="second-result" style={{ ...fRow, animation:'fadeIn 0.18s ease-out' }}>
             <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
             <div style={{ display:'flex', gap:6, flex:1 }}>
-              <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+              <button data-role="second-result-on" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===true ? { border:'2px solid #0a7f3f', color:'#0a7f3f' } : {}) }}
                 onClick={()=>{ updateFields({ ...fieldsWithoutShotsAfter(1), onGreen: true }); setStage('putt'); }}>성공</button>
-              <button data-role="second-result-miss" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===false || (extraShots.length > 0 && playerScore.onGreen !== true) ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+              <button data-role="second-result-miss" style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen===false || (extraShots.length > 0 && playerScore.onGreen !== true) ? { border:'2px solid #c8323a', color:'#c8323a' } : {}) }}
                 onClick={()=>{
                   if (extraShots.length > 0) { setExpandedExtraShot(0); return; }
                   setSecondShotExpanded(false); addExtraShot({ onGreen: false });
                 }}>실패</button>
-              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+              <button style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(playerScore.onGreen==='chip-in' ? { border:'2px solid #1b64da', color:'#1b64da' } : {}) }}
                 onClick={secondShotChipIn}>칩인</button>
             </div>
           </div>
@@ -3016,14 +2874,14 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* 그린을 놓쳤으면 어느 쪽으로 빠졌는지 — 선택 입력(안 눌러도 넘어간다). 같은 칩을 다시 누르면 해제 */}
         {greenMissed(playerScore, hole.par) && !penaltyAt(playerScore, hole.par - 3) && (
           // 칩 4개가 한 줄에 들어가도록 라벨을 윗줄에 둔다 (다른 행처럼 왼쪽 라벨 130px 를 쓰면 390px 폭에서 넘친다)
-          <div data-role="green-miss" style={{ padding:'10px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+          <div data-role="green-miss" style={{ padding:'10px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
             <div style={{ ...fLeft, minWidth:0, marginBottom:8 }}><span style={fIcon}>⊙</span><span style={fLbl}>놓친 방향</span></div>
             <div style={{ display:'flex', gap:6 }}>
               {GREEN_MISS_DIRS.map(d => {
                 const on = playerScore.greenMiss === d.id;
                 return (
                   <button key={d.id} aria-pressed={on}
-                    style={{ ...fChipWide, flex:1, minWidth:0, padding:'10px 2px', ...(on ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                    style={{ ...fChipWide, flex:1, minWidth:0, padding:'10px 2px', ...(on ? { border:'2px solid #c8323a', color:'#c8323a' } : {}) }}
                     onClick={() => updateField('greenMiss', on ? null : d.id)}>{d.label}</button>
                 );
               })}
@@ -3042,17 +2900,17 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               {/* 아코디언 헤더 */}
               <button
                 onClick={() => setExpandedExtraShot(isExtraOpen ? -1 : idx)}
-                style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isExtraOpen || penaltyAt(playerScore, idx + 2) ? 'none' : '1px solid #0e1320' }}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isExtraOpen || penaltyAt(playerScore, idx + 2) ? 'none' : '1px solid #e5e8eb' }}
               >
                 <div style={{ height:1, flex:1, background: exHdr.line }} />
-                <span style={{ fontSize:14, fontWeight:800, color: exHdr.label, letterSpacing:'0.18em', flexShrink:0 }}>
+                <span style={{ fontSize:14, fontWeight:800, color: exHdr.label, letterSpacing:'0', flexShrink:0 }}>
                   {exState === 'done' && '✓ '}{extraShotName(idx)}
                 </span>
                 <div style={{ height:1, flex:1, background: exHdr.line }} />
                 <span style={{ fontSize:13, color: exHdr.arrow, flexShrink:0 }}>{isExtraOpen ? '▲' : '▼'}</span>
               </button>
               {!isExtraOpen && penaltyAt(playerScore, idx + 2) && (
-                <div data-role={`extra-penalty-tag-${idx}`} style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, fontWeight:700, lineHeight:1.5, color:'#ef8a87', borderBottom:'1px solid #0e1320' }}>{penaltyResultText(penaltyAt(playerScore, idx + 2), idx + 2)}</div>
+                <div data-role={`extra-penalty-tag-${idx}`} style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, fontWeight:700, lineHeight:1.5, color:'#c8323a', borderBottom:'1px solid #e5e8eb' }}>{penaltyResultText(penaltyAt(playerScore, idx + 2), idx + 2)}</div>
               )}
 
               {isExtraOpen && (<>
@@ -3071,7 +2929,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 />
 
                 {/* 남은 거리 */}
-                <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #e5e8eb' }}>
                   <div style={{ ...fLeft, marginBottom:10 }}>
                     <span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span>
                     {mapDistanceTag(measuredExtra(idx), shot.remainingDistance, shot.remainingSource,
@@ -3079,7 +2937,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                     {replayTag(shot.replayCopied)}
                   </div>
                   <SwipeDistance kind="shot" value={shot.remainingDistance ?? null} start={extraStartDistance(idx)} min={1} max={SANE_REMAIN_M} sliderMax={SLIDER_REMAIN_M} onChange={v => updateExtraShot(idx, { remainingDistance: v, remainingSource: null, replayCopied: false })} />
-                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#8aa0c4', marginTop:6, letterSpacing:'0.06em' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
+                  {shot.remainingDistance != null && <div style={{ textAlign:'center', fontSize:12, color:'#4e5968', marginTop:6, letterSpacing:'0' }}>← 슬라이드로 1{unitLabel('shot')} 단위 조정 →</div>}
                 </div>
 
                 {/* 클럽 */}
@@ -3120,7 +2978,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
                   <div style={{ display:'flex', gap:6, flex:1 }}>
                     <button
-                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===true ? { border:'2px solid #0a7f3f', color:'#0a7f3f' } : {}) }}
                       onClick={() => {
                         // 이 샷이 그린에 올라갔으면 뒤에 기록된 샷은 있을 수 없다 — '실패'를
                         // 잘못 눌러 생긴 샷이 남아 타수에 더해지지 않게 그 샷과 GPS 지점을 지운다.
@@ -3131,7 +2989,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                         setStage('putt');
                       }}>성공</button>
                     <button
-                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen===false ? { border:'2px solid #c8323a', color:'#c8323a' } : {}) }}
                       onClick={() => {
                         const updated = extraShots.map((s, i) => i === idx ? { ...s, onGreen: false } : s);
                         // 뒤에 이미 샷이 기록돼 있으면 그게 곧 이 샷의 후속타다.
@@ -3147,7 +3005,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                         setExpandedExtraShot(extraShots.length);
                       }}>실패</button>
                     <button
-                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+                      style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(shot.onGreen==='chip-in' ? { border:'2px solid #1b64da', color:'#1b64da' } : {}) }}
                       onClick={() => {
                         // 칩인 뒤에 기록된 샷도 함께 지운다 (위 '성공'과 같은 이유)
                         const updatedShots = extraShots.slice(0, idx + 1).map((s, i) => i === idx ? { ...s, onGreen: 'chip-in' } : s);
@@ -3163,9 +3021,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 {penaltyRow(idx + 2)}
 
                 {/* 삭제 */}
-                <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+                <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #e5e8eb' }}>
                   <button
-                    style={{ width:'100%', padding:'8px', borderRadius: 10, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:13, fontWeight:600, cursor:'pointer' }}
+                    style={{ width:'100%', padding:'8px', borderRadius: 10, border:'1px solid rgba(200,50,58,0.25)', background:'transparent', color:'rgba(200,50,58,0.5)', fontSize:13, fontWeight:600, cursor:'pointer' }}
                     onClick={() => removeExtraShot(idx)}>✕ {extraShotName(idx)} 이후 삭제</button>
                 </div>
               </>)}
@@ -3191,10 +3049,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 <button
                   data-role="off-green-header"
                   onClick={() => setExpandedOffGreen(isOpen ? -1 : idx)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isOpen ? 'none' : '1px solid #0e1320' }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8, minHeight:44, padding:'12px 16px 8px', background:'none', border:'none', cursor:'pointer', borderBottom: isOpen ? 'none' : '1px solid #e5e8eb' }}
                 >
                   <div style={{ height:1, flex:1, background: hdr.line }} />
-                  <span style={{ fontSize:14, fontWeight:800, color: hdr.label, letterSpacing:'0.18em', flexShrink:0 }}>
+                  <span style={{ fontSize:14, fontWeight:800, color: hdr.label, letterSpacing:'0', flexShrink:0 }}>
                     {chip.onGreen != null && '✓ '}{title}
                   </span>
                   <div style={{ height:1, flex:1, background: hdr.line }} />
@@ -3203,12 +3061,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
                 {isOpen && (
                   <div data-role="off-green-card">
-                    <div style={{ padding:'0 16px 6px', fontSize:13, color:'#8896b0', lineHeight:1.5 }}>
+                    <div style={{ padding:'0 16px 6px', fontSize:13, color:'#4e5968', lineHeight:1.5 }}>
                       퍼트가 그린 밖으로 나간 뒤 친 칩 — 스코어에는 +1타, 퍼팅 수에는 들어가지 않아요
                     </div>
 
                     {/* 남은 거리 — 칩을 치는 자리에서 핀까지. 선택 입력(비워 둬도 된다) */}
-                    <div data-role="off-green-distance" style={{ padding:'8px 16px 14px', borderBottom:'1px solid #0e1320' }}>
+                    <div data-role="off-green-distance" style={{ padding:'8px 16px 14px', borderBottom:'1px solid #e5e8eb' }}>
                       <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>남은 거리</span></div>
                       <SwipeDistance kind="shot" value={chip.remainingDistance ?? null} start={OFF_GREEN_START_M} min={1} max={OFF_GREEN_MAX_M} sliderMax={OFF_GREEN_MAX_M}
                         onChange={v => updateOffGreenShot(idx, { remainingDistance: v })} />
@@ -3235,20 +3093,20 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       <div style={fLeft}><span style={fIcon}>⚑</span><span style={fLbl}>온그린</span></div>
                       <div style={{ display:'flex', gap:6, flex:1 }}>
                         <button
-                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen===true ? { border:'2px solid #3db87a', color:'#3db87a' } : {}) }}
+                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen===true ? { border:'2px solid #0a7f3f', color:'#0a7f3f' } : {}) }}
                           onClick={() => offGreenLanded(idx)}>성공</button>
                         <button
-                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen===false ? { border:'2px solid #ef5350', color:'#ef5350' } : {}) }}
+                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen===false ? { border:'2px solid #c8323a', color:'#c8323a' } : {}) }}
                           onClick={() => offGreenMissed(idx)}>실패</button>
                         <button
-                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen==='chip-in' ? { border:'2px solid #c9a228', color:'#c9a228' } : {}) }}
+                          style={{ ...fChipWide, flex:1, padding:'10px 8px', ...(chip.onGreen==='chip-in' ? { border:'2px solid #1b64da', color:'#1b64da' } : {}) }}
                           onClick={() => { if (chip.onGreen !== 'chip-in') offGreenHoledAt(idx); }}>칩인</button>
                       </div>
                     </div>
 
-                    <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #0e1320' }}>
+                    <div style={{ padding:'6px 16px 10px', borderBottom:'1px solid #e5e8eb' }}>
                       <button
-                        style={{ width:'100%', padding:'8px', borderRadius: 10, border:'1px solid rgba(239,83,80,0.25)', background:'transparent', color:'rgba(239,83,80,0.5)', fontSize:13, fontWeight:600, cursor:'pointer' }}
+                        style={{ width:'100%', padding:'8px', borderRadius: 10, border:'1px solid rgba(200,50,58,0.25)', background:'transparent', color:'rgba(200,50,58,0.5)', fontSize:13, fontWeight:600, cursor:'pointer' }}
                         onClick={() => removeOffGreenShot(idx)}>✕ {title} 삭제</button>
                     </div>
                   </div>
@@ -3268,10 +3126,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <button
             data-role="green-speed-bar"
             onClick={() => { setSpeedDraft(roundSpeed); setShowGreenSpeed(true); }}
-            style={{ ...fRow, width:'100%', background:'none', border:'none', borderBottom:'1px solid #0e1320', cursor:'pointer', textAlign:'left' }}
+            style={{ ...fRow, width:'100%', background:'none', border:'none', borderBottom:'1px solid #e5e8eb', cursor:'pointer', textAlign:'left' }}
           >
             <div style={fLeft}><span style={fIcon}>≋</span><span style={fLbl}>그린 스피드</span></div>
-            <span style={{ fontSize:14, fontWeight:700, color: roundSpeed != null ? '#e8edf8' : '#c9a228' }}>
+            <span style={{ fontSize:14, fontWeight:700, color: roundSpeed != null ? '#191f28' : '#1b64da' }}>
               {roundSpeed != null ? speedLabel(roundSpeed, readSpeedUnit()) : '설정하기'} ›
             </span>
           </button>
@@ -3294,7 +3152,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* 핀 위치 - PAR4+ 전용 (PAR3는 티샷에서 입력). 선택 입력 */}
         {hole.par > 3 && (
-        <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #0e1320' }}>
+        <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #e5e8eb' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
             <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
           </div>
@@ -3338,25 +3196,25 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   style={{
                     width:'100%', display:'flex', alignItems:'center', gap:8,
                     minHeight:44, padding:'10px 16px', background:'none', border:'none', cursor:'pointer',
-                    borderBottom: isOpen || puttRowText(putt) ? 'none' : '1px solid #0e1320',
+                    borderBottom: isOpen || puttRowText(putt) ? 'none' : '1px solid #e5e8eb',
                   }}
                 >
                   {(() => { const done = !isOpen && !!putt.holein; return (<>
-                    <div style={{ height:1, flex:1, background: done ? 'rgba(201,162,40,0.55)' : '#151e32' }} />
-                    <span style={{ fontSize:13, fontWeight:700, color: isOpen || done ? '#c9a228' : '#8896b0', letterSpacing:'0.18em' }}>
+                    <div style={{ height:1, flex:1, background: done ? 'rgba(27,100,218,0.55)' : '#eef1f4' }} />
+                    <span style={{ fontSize:13, fontWeight:700, color: isOpen || done ? '#1b64da' : '#4e5968', letterSpacing:'0' }}>
                       PUTT {puttIdx + 1}
                     </span>
-                    <div style={{ height:1, flex:1, background: done ? 'rgba(201,162,40,0.55)' : '#151e32' }} />
-                    <span style={{ fontSize:13, color: isOpen || done ? '#c9a228' : '#5a6a88' }}>{isOpen ? '▲' : '▼'}</span>
+                    <div style={{ height:1, flex:1, background: done ? 'rgba(27,100,218,0.55)' : '#eef1f4' }} />
+                    <span style={{ fontSize:13, color: isOpen || done ? '#1b64da' : '#5b6572' }}>{isOpen ? '▲' : '▼'}</span>
                   </>); })()}
                 </button>
 
                 {/* 접힌 퍼트의 한 줄 요약 — 거리 · 라이 · 미스 방향 · 남은 거리 · 결과 */}
                 {!isOpen && puttRowText(putt) && (
-                  <div data-role="putt-summary" style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, lineHeight:1.5, color:'#a9b8d6', borderBottom:'1px solid #0e1320' }}>
+                  <div data-role="putt-summary" style={{ padding:'0 16px 10px', textAlign:'center', fontSize:13, lineHeight:1.5, color:'#333d4b', borderBottom:'1px solid #e5e8eb' }}>
                     {puttRowText(putt)}
-                    {putt.holein === 'success' && <span style={{ color:'#3db87a', fontWeight:700 }}> · 홀인</span>}
-                    {putt.holein === 'offgreen' && <span style={{ color:'#e6b94a', fontWeight:700 }}> · 그린 밖</span>}
+                    {putt.holein === 'success' && <span style={{ color:'#0a7f3f', fontWeight:700 }}> · 홀인</span>}
+                    {putt.holein === 'offgreen' && <span style={{ color:'#a85b00', fontWeight:700 }}> · 그린 밖</span>}
                   </div>
                 )}
 
@@ -3365,29 +3223,29 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   {puttIdx > 0 && puttDetails[puttIdx - 1]?.holein !== 'offgreen' && (
                     <div style={{ display:'flex', justifyContent:'flex-end', padding:'0 16px 2px' }}>
                       <button data-role="putt-undo" onClick={() => undoPutt(puttIdx)}
-                        style={{ fontSize:12, color:'#8896b0', background:'none', border:'1px solid #252f4a', borderRadius:8, padding:'0 12px', minHeight:36, cursor:'pointer' }}>↩ 되돌리기</button>
+                        style={{ fontSize:12, color:'#4e5968', background:'none', border:'1px solid #d1d6db', borderRadius:8, padding:'0 12px', minHeight:36, cursor:'pointer' }}>↩ 되돌리기</button>
                     </div>
                   )}
 
                   {/* 라이 — 선택 입력. 9개를 한눈에, 복합(S자)은 접어 둔다. 고르지 않아도 거리·결과를 바로 누를 수 있다 */}
-                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  <div style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
                       <span style={fIcon}>〜</span><span style={fLbl}>라이</span>
-                      {lieIdOf(putt.lie) == null && <span style={{ fontSize:12, color:'#8896b0' }}>선택 입력</span>}
+                      {lieIdOf(putt.lie) == null && <span style={{ fontSize:12, color:'#4e5968' }}>선택 입력</span>}
                     </div>
                     <PuttLieGrid key={`lie-${holeIdx}-${activePlayer}-${puttIdx}`} value={putt.lie} onPick={(id) => pickPuttLie(puttIdx, id)} />
                   </div>
 
-                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #0e1320', animation:'fadeIn 0.18s ease-out' }}>
+                  <div style={{ padding:'6px 16px 12px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
                     <div style={{ ...fLeft, marginBottom:10 }}><span style={fIcon}>↔</span><span style={fLbl}>퍼팅 거리</span></div>
                     <SwipeDistance kind="putt" value={putt.distance ?? null} start={puttDefaultDistance(puttIdx)} min={PUTT_MIN_M} max={PUTT_MAX_M} sliderMax={PUTT_MAX_M} step={PUTT_STEP_M} decimals={1} onChange={v => setPuttDistance(puttIdx, v)} />
                     {putt.distanceAuto === true && (
-                      <div data-role="putt-distance-auto" style={{ textAlign:'center', fontSize:12, color:'#c9a228', marginTop:6, lineHeight:1.5 }}>직전 퍼트가 멈춘 곳에서 자동으로 넣었어요 · 다르면 고쳐 주세요</div>
+                      <div data-role="putt-distance-auto" style={{ textAlign:'center', fontSize:12, color:'#1b64da', marginTop:6, lineHeight:1.5 }}>직전 퍼트가 멈춘 곳에서 자동으로 넣었어요 · 다르면 고쳐 주세요</div>
                     )}
                   </div>
 
                   {/* 미스 위치 — 공이 멈춘 곳을 탭하면 롱·숏, 좌·우, 하이·로우사이드와 남은 거리가 정해진다 (선택 입력) */}
-                  <div data-role="putt-miss" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #0e1320' }}>
+                  <div data-role="putt-miss" style={{ padding:'8px 16px 12px', borderBottom:'1px solid #e5e8eb' }}>
                     <PuttBoard
                       key={`board-${holeIdx}-${activePlayer}-${puttIdx}`}
                       distance={putt.distance ?? null} order={puttIdx + 1} brk={lieShape(putt.lie)} frame={puttFrame(puttIdx)}
@@ -3399,7 +3257,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   {/* 그린 밖 — 칩으로 이어진다. 자주 쓰지 않아 카드 안에 두고, 결과 버튼만 아래에 붙인다 */}
                   <div style={{ padding:'8px 16px 12px' }}>
                     <button type="button" data-role="off-green" onClick={() => markOffGreen(puttIdx)}
-                      style={{ ...fChipWide, width:'100%', padding:'12px 0', ...(putt.holein === 'offgreen' ? { border:'2px solid #e6b94a', color:'#e6b94a' } : {}) }}>
+                      style={{ ...fChipWide, width:'100%', padding:'12px 0', ...(putt.holein === 'offgreen' ? { border:'2px solid #a85b00', color:'#a85b00' } : {}) }}>
                       {putt.holein === 'offgreen' ? '✓ 그린 밖으로 나갔어요 (다시 누르면 취소)' : '그린 밖으로 나갔어요'}
                     </button>
                   </div>
@@ -3416,12 +3274,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                       <div data-role="putt-actions" style={PUTT_BAR}>
                         <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:10 }}>
                           <button type="button" data-role="putt-primary" disabled={!primaryEnabled} onClick={() => (miss == null ? holeOutAt(puttIdx) : tapInAt(puttIdx))}
-                            style={{ minHeight:54, padding:'0 6px', borderRadius:14, border:`1.5px solid ${primaryEnabled ? '#3db87a' : '#252f4a'}`, background: primaryEnabled ? (holed ? '#173a2a' : '#10261d') : '#0e1424', color: primaryEnabled ? '#3db87a' : '#8896b0', fontFamily:'inherit', cursor: primaryEnabled ? 'pointer' : 'not-allowed', opacity: primaryEnabled ? 1 : 0.55, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, wordBreak:'keep-all' }}>
+                            style={{ minHeight:54, padding:'0 6px', borderRadius:14, border:`1.5px solid ${primaryEnabled ? '#0a7f3f' : '#d1d6db'}`, background: primaryEnabled ? (holed ? '#eaf6ee' : '#eaf6ee') : '#f2f4f6', color: primaryEnabled ? '#0a7f3f' : '#4e5968', fontFamily:'inherit', cursor: primaryEnabled ? 'pointer' : 'not-allowed', opacity: primaryEnabled ? 1 : 0.55, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1, wordBreak:'keep-all' }}>
                             <span style={{ fontSize:16, fontWeight:900, lineHeight:1.25 }}>{holed && miss == null ? '✓ ' : ''}{primaryLabel}</span>
                             {primarySub && <span style={{ fontSize:12, fontWeight:700, lineHeight:1.25 }}>{primarySub}</span>}
                           </button>
                           <button type="button" data-role="putt-next" onClick={() => goNextPutt(puttIdx)}
-                            style={{ minHeight:54, borderRadius:14, border:'1.5px solid #c9a228', background:'#c9a228', color:'#0b0e18', fontFamily:'inherit', fontSize:17, fontWeight:900, cursor:'pointer' }}>
+                            style={{ minHeight:54, borderRadius:14, border:'1.5px solid #1b64da', background:'#1b64da', color:'#ffffff', fontFamily:'inherit', fontSize:17, fontWeight:900, cursor:'pointer' }}>
                             PUTT {puttIdx + 2} →
                           </button>
                         </div>
@@ -3442,15 +3300,15 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   const firstIdx = offGreenList.findIndex(r => r.after === puttIdx);
                   const openIdx = pending ? firstIdx + chain.length - 1 : firstIdx;
                   return (
-                    <div data-role="off-green-chip" style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', borderBottom:'1px solid #0e1320', background:'rgba(230,185,74,0.05)' }}>
+                    <div data-role="off-green-chip" style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', borderBottom:'1px solid #e5e8eb', background:'rgba(168,91,0,0.05)' }}>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:14, fontWeight:700, color:'#e6b94a' }}>그린 밖 → 칩 {chain.length}타 · {resultText}</div>
-                        <div style={{ fontSize:13, color:'#8896b0', marginTop:2, lineHeight:1.5 }}>
+                        <div style={{ fontSize:14, fontWeight:700, color:'#a85b00' }}>그린 밖 → 칩 {chain.length}타 · {resultText}</div>
+                        <div style={{ fontSize:13, color:'#4e5968', marginTop:2, lineHeight:1.5 }}>
                           {clubs.length ? clubs.join(' → ') : '클럽 미입력'} · 퍼팅 수에는 들어가지 않아요
                         </div>
-                        {pending && <div style={{ fontSize:13, color:'#c4cfe0', marginTop:2 }}>칩이 그린에 오르면 다음 퍼트를 기록해요</div>}
+                        {pending && <div style={{ fontSize:13, color:'#333d4b', marginTop:2 }}>칩이 그린에 오르면 다음 퍼트를 기록해요</div>}
                       </div>
-                      <button style={{ ...fChipWide, minWidth:0, padding:'8px 12px', fontSize:14, ...(pending ? { border:'2px solid #e6b94a', color:'#e6b94a' } : {}) }}
+                      <button style={{ ...fChipWide, minWidth:0, padding:'8px 12px', fontSize:14, ...(pending ? { border:'2px solid #a85b00', color:'#a85b00' } : {}) }}
                         onClick={() => openOffGreenCard(openIdx)}>{pending ? '칩 결과 입력' : '수정'}</button>
                     </div>
                   );
@@ -3464,15 +3322,15 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
         {/* 퍼팅이 0개면 카드가 없다 — 빈 화면으로 두지 않고 왜 비었는지와 다음에 할 일을 알려 준다 */}
         {!(playerScore.putts > 0) && (
-          <div data-role="putts-zero-note" style={{ padding:'20px 16px 24px', textAlign:'center', borderBottom:'1px solid #0e1320' }}>
-            <div style={{ fontSize:14, color:'#a9b8d6', lineHeight:1.6, marginBottom: isHoledOut(playerScore) ? 0 : 14, wordBreak:'keep-all' }}>
+          <div data-role="putts-zero-note" style={{ padding:'20px 16px 24px', textAlign:'center', borderBottom:'1px solid #e5e8eb' }}>
+            <div style={{ fontSize:14, color:'#333d4b', lineHeight:1.6, marginBottom: isHoledOut(playerScore) ? 0 : 14, wordBreak:'keep-all' }}>
               {isHoledOut(playerScore)
                 ? '칩인(홀인원)으로 끝난 홀이라 퍼팅이 없어요'
                 : '퍼팅 수가 0개예요 · 퍼팅을 했다면 아래 버튼으로 입력하세요'}
             </div>
             {!isHoledOut(playerScore) && (
               <button type="button" data-role="putts-add" onClick={() => updatePuttsCount(1)}
-                style={{ ...fChipWide, minWidth:160, padding:'12px 18px', color:'#c9a228', border:'1.5px solid rgba(201,162,40,0.5)', fontSize:15, fontWeight:800 }}>퍼팅 입력하기</button>
+                style={{ ...fChipWide, minWidth:160, padding:'12px 18px', color:'#1b64da', border:'1.5px solid rgba(27,100,218,0.5)', fontSize:15, fontWeight:800 }}>퍼팅 입력하기</button>
             )}
           </div>
         )}
@@ -3480,87 +3338,184 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
       </div>}
 
-      {/* Scoring Bottom Bar */}
-      <div style={styles.tabBar}>
-        <div style={styles.tabBarInner}>
+      {/* 전체 스코어 — 홀 이동 · 누적. 입력 아래로 내려 한 화면에는 지금 홀만 남긴다 */}
+      <div data-role="overview" style={{ paddingTop: 28 }}>
+        <div style={{ padding: '0 4px 10px', fontSize: 16, fontWeight: 800, color: '#191f28' }}>전체 스코어</div>
+      {/* Running Score */}
+      {isSimpleMode ? (() => {
+        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
+        const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
+        return (
+          <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
+            {round.players.map((player, pi) => {
+              const th = round.holes.filter(h => doneFor(h, player));
+              const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
+              const pp = th.reduce((s,h) => s+h.par, 0);
+              const pd = ps-pp;
+              // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
+              const nineStats = nines.map(n => {
+                const done = n.holes.map(x => x.hole).filter(h => doneFor(h, player));
+                return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[player].strokes-h.par,0) };
+              });
+              const isLast = pi === round.players.length - 1;
+              return (
+                <div key={player} style={{ display:'flex', alignItems:'center', gap:8, paddingTop:6, paddingBottom:6, borderBottom: isLast?'none':'1px solid rgba(25,31,40,0.04)' }}>
+                  <div style={{ width:20, height:20, borderRadius:'50%', background:'#eef1f4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <span style={{ fontSize:12, fontWeight:800, color:'#1b64da' }}>{pi+1}</span>
+                  </div>
+                  <span style={{ flex:1, fontSize:14, fontWeight:700, color:'#333d4b', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    {nineStats.map(ns => (
+                      <div key={ns.key} style={{ textAlign:'center', minWidth:28 }}>
+                        <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0', color:'#4e5968', marginBottom:1 }}>{ns.label}</div>
+                        <div style={{ fontSize:14, fontWeight:800, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</div>
+                      </div>
+                    ))}
+                    <div style={{ display:'flex', alignItems:'baseline', gap:2, minWidth:60, justifyContent:'flex-end' }}>
+                      <span style={{ fontSize:22, fontWeight:900, color:'#191f28', lineHeight:1 }}>{ps||0}</span>
+                      {th.length > 0 && <span style={{ fontSize:14, fontWeight:800, color: fmtC(pd,true), lineHeight:1 }}>({fmt(pd,true)})</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })() : (() => {
+        const th = round.holes.filter(h => doneFor(h, activePlayer));
+        const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
+        const pp = th.reduce((s,h) => s+h.par, 0);
+        const pu = th.reduce((s,h) => s+(h.scores[activePlayer]?.putts||0), 0);
+        const pd = ps-pp;
+        // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
+        const nineStats = nines.map(n => {
+          const done = n.holes.map(x => x.hole).filter(h => doneFor(h, activePlayer));
+          return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[activePlayer].strokes-h.par,0) };
+        });
+        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
+        const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
+        return (
+          <div style={styles.runningScore}>
+            <div style={styles.runningScoreMain}>
+              <div style={styles.runningScoreLabel}>스코어</div>
+              <div style={styles.runningScoreValues}>
+                <span style={styles.runningScoreNumber}>{ps}</span>
+                {th.length > 0 && <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,true) }}>({fmt(pd,true)})</span>}
+              </div>
+            </div>
+            <div style={styles.runningScoreDivider} />
+            <div style={styles.runningScoreStats}>
+              {nineStats.map(ns => (
+                <div key={ns.key} style={styles.runningScoreStat}>
+                  <span style={{ ...styles.runningScoreStatLabel, fontSize: '12px' }}>{ns.label}</span>
+                  <span style={{ ...styles.runningScoreStatValue, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</span>
+                </div>
+              ))}
+              <div style={styles.runningScoreStat}>
+                <span style={styles.runningScoreStatLabel}>퍼트</span>
+                <span style={styles.runningScoreStatValue}>{pu||'—'}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
-          {/* 이전 홀 */}
+      {/* Hole Navigator */}
+      <div style={styles.holeNavigator}>
+        {/* 18홀은 OUT·IN 두 줄, 9홀은 치는 9홀 한 줄. offset = 그 묶음의 첫 홀이 round.holes 에서 차지하는 위치 */}
+        {nines.map(({ label, holes: items }) => ({ label, holes: items.map(x => x.hole), offset: items[0].index })).map(({ label, holes, offset }) => (
+          <div key={label} style={styles.holeNavTable}>
+            <div style={styles.holeNavTableRow}>
+              <div style={{ ...styles.holeNavRowLabel, ...styles.holeNavRowLabelHeader, fontSize: getNavLabelFontSize(label) }}>{label}</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; return <button key={i} style={{ ...styles.holeNavHoleCell, background: ic?'#1b64da':'transparent', color: ic?'#ffffff':'#4e5968' }} onClick={()=>goToHole(i)}>{h.holeNumber ?? i+1}</button>; })}
+              </div>
+            </div>
+            <div style={styles.holeNavTableRow}>
+              <div style={styles.holeNavRowLabel}>파</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#b45309':'#b45309'):h.par===5?(ic?'#0a7f3f':'#0a7f3f'):(ic?'#1b64da':'#4e5968'); const pb=ic?(h.par===3?'rgba(217,119,6,0.22)':h.par===5?'rgba(10,127,63,0.18)':'#e8ebee'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
+              </div>
+            </div>
+            {isSimpleMode ? round.players.map((player, pi) => {
+              const isLastPlayer = pi === round.players.length - 1;
+              const shortName = player.length > 4 ? player.slice(0,4) : player;
+              return (
+                <div key={player} data-role="nav-score" style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(25,31,40,0.032)' }}>
+                  <div style={{ ...styles.holeNavRowLabel, color:'#1b64da', fontSize: 12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
+                  <div style={styles.holeNavTableCells}>
+                    {holes.map((h,li) => {
+                      const i=offset+li; const done=doneFor(h, player); const ic=i===holeIdx;
+                      const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
+                      let ms={};
+                      if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
+                      return (
+                        <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
+                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#ffffff':done?(diff<=-1?'#0a7f3f':diff>=1?'#c8323a':'#191f28'):(ic?'#1b64da':'#4e5968'), fontWeight: done?'700':'500' }}>
+                            {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }) : (<>
+            <div style={styles.holeNavTableRow} data-role="nav-score">
+              <div style={styles.holeNavRowLabel}>스코어</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => {
+                  const i=offset+li; const done=round.players.every(p=>doneFor(h, p)); const ic=i===holeIdx;
+                  const psc=h.scores[activePlayer]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
+                  let ms={};
+                  if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
+                  return (
+                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
+                      <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#ffffff':done?(diff<=-1?'#0a7f3f':diff>=1?'#c8323a':'#191f28'):(ic?'#1b64da':'#4e5968'), fontWeight: done?'700':'500' }}>
+                        {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* PUTT — 입력한 퍼트 수. 동반자와 함께 기록할 때는 퍼트를 입력하지 않으므로(스코어로 추정) 이 줄이 없다 */}
+            <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }} data-role="nav-putts">
+              <div style={styles.holeNavRowLabel}>퍼트</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => {
+                  const i=offset+li; const ic=i===holeIdx;
+                  const psc=h.scores[activePlayer]; const text=navPuttsText(psc, doneFor(h, activePlayer)); const has=text!==NAV_EMPTY;
+                  return (
+                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
+                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#333d4b':(ic?'#1b64da':'#4e5968'), fontWeight: has?'700':'500' }}>{text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            </>)}
+          </div>
+        ))}
+      </div>
+
+      </div>
+
+      {/* Scoring Bottom Bar — 이전 · 다음 홀 (코스맵 · 메모는 위쪽 머리줄로 옮겼다) */}
+      <div style={{ ...styles.tabBar, background: '#ffffff', borderTop: '1px solid #f2f4f6', boxShadow: 'none' }}>
+        <div style={{ display: 'flex', gap: 8, padding: '12px 20px' }}>
           <button
-            style={{ ...styles.tabBarBtn, color: holeIdx === 0 ? '#5b6988' : '#e8edf8' }}
+            data-role="prev-hole"
+            style={{ width: 96, height: 56, flexShrink: 0, borderRadius: 16, border: 'none', background: '#f2f4f6', color: holeIdx === 0 ? '#8b95a1' : '#4e5968', fontSize: 16, fontWeight: 700, cursor: holeIdx === 0 ? 'default' : 'pointer' }}
             onClick={() => goToHole(holeIdx - 1)}
             disabled={holeIdx === 0}
             aria-label="이전 홀"
-          >
-            <ChevronLeft size={20} strokeWidth={holeIdx === 0 ? 1.5 : 2} />
-            <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>이전</span>
-          </button>
-
-          {/* 홀 지도 */}
-          {(() => {
-            const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
-            return (
-          <button
-            data-role="map-button"
-            style={{
-              ...styles.tabBarBtn,
-              color: mapUsed ? '#c9a228' : '#f0c93a',
-              // 아직 지도를 안 썼으면 눌러 보라고 금색 테두리와 맥박 효과로 강조한다
-              ...(mapUsed ? {} : {
-                margin: '6px 4px', borderRadius: 12, minHeight: 44,
-                border: '1.5px solid rgba(240,201,58,0.7)', background: 'rgba(201,162,40,0.16)',
-                animation: 'goldPulse 1.8s ease-in-out infinite',
-              }),
-            }}
-            onClick={() => setShowHoleMap(true)}
-          >
-            <MapIcon size={mapUsed ? 20 : 22} strokeWidth={mapUsed ? 1.8 : 2.2} />
-            <span style={{ ...styles.tabBarLabel, fontWeight: mapUsed ? '500' : '800' }}>코스맵</span>
-          </button>
-            );
-          })()}
-
-          {/* 홈 */}
-          <button
-            style={{ ...styles.tabBarBtn, ...styles.tabBarBtnHome, color: '#e8edf8' }}
-            onClick={onGoHome}
-            aria-label="홈" title="홈"
-          >
-            <Home size={24} strokeWidth={1.8} />
-          </button>
-
-          {/* 메모 */}
-          <button
-            data-role="memo-button" data-has-memo={playerScore.memo ? '1' : '0'}
-            style={{ ...styles.tabBarBtn, color: playerScore.memo ? '#f0c93a' : '#e8edf8', position: 'relative' }}
-            onClick={() => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); }}
-            aria-label={playerScore.memo ? '메모 있음 — 열기' : '메모 쓰기'}
-          >
-            <Edit3 size={20} strokeWidth={playerScore.memo ? 2.4 : 1.8} />
-            <span style={{ ...styles.tabBarLabel, fontWeight: playerScore.memo ? '800' : '500' }}>메모</span>
-            {playerScore.memo && (
-              <div data-role="memo-dot" style={{ position: 'absolute', top: 7, right: 'calc(50% - 15px)', width: 10, height: 10, borderRadius: '50%', background: '#f0c93a', border: '2px solid #0f1520' }} />
-            )}
-          </button>
-
-          {/* 다음 홀 / 라운딩 완료 */}
+          >이전</button>
           {isLastHole ? (
-            <button
-              style={{ ...styles.tabBarBtn, color: '#c9a228' }}
-              onClick={handleFinishClick}
-            >
-              <Flag size={20} strokeWidth={2} />
-              <span style={{ ...styles.tabBarLabel, fontWeight: '700' }}>완료</span>
-            </button>
+            <button data-role="finish-round" style={{ flex: 1, height: 56, borderRadius: 16, border: 'none', background: '#1b64da', color: '#ffffff', fontSize: 17, fontWeight: 700, cursor: 'pointer' }} onClick={handleFinishClick}>라운드 완료</button>
           ) : (
-            <button
-              style={{ ...styles.tabBarBtn, color: '#e8edf8' }}
-              onClick={handleNext}
-            >
-              <ChevronRight size={20} strokeWidth={2} />
-              <span style={{ ...styles.tabBarLabel, fontWeight: '500' }}>다음</span>
-            </button>
+            <button data-role="next-hole" style={{ flex: 1, height: 56, borderRadius: 16, border: 'none', background: '#1b64da', color: '#ffffff', fontSize: 17, fontWeight: 700, cursor: 'pointer' }} onClick={handleNext}>다음 홀</button>
           )}
-
         </div>
       </div>
 
@@ -3638,7 +3593,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {/* 왜 벌타가 났나 — 선택 입력. 누른 뒤 구제 방식을 고르면 함께 기록된다 */}
             {asksReason(penaltyChoice.type) && (
               <div data-role="penalty-reason-ask" style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#a9b8d6', marginBottom: 6, textAlign: 'left' }}>어떤 미스였나요? <span style={{ fontWeight: 500, color: '#8896b0' }}>(선택)</span></div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#333d4b', marginBottom: 6, textAlign: 'left' }}>어떤 미스였나요? <span style={{ fontWeight: 500, color: '#4e5968' }}>(선택)</span></div>
                 <div style={{ display:'flex', gap:6 }}>
                   {PENALTY_REASONS.map((r) => (
                     <button key={r.id} type="button" aria-pressed={penaltyChoice.reason === r.id} data-role={`penalty-ask-${r.id}`}
@@ -3697,7 +3652,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               {holeNo}번 홀{checkPutts && !checkInfo ? ` · 온그린까지 ${strokesToGreen(playerScore, hole.par)}타` : ''}
               {checkInfo && (
                 <>
-                  <div style={{ margin: '6px 0', color: '#e8edf8', fontWeight: 700, lineHeight: 1.6 }}>
+                  <div style={{ margin: '6px 0', color: '#191f28', fontWeight: 700, lineHeight: 1.6 }}>
                     {infoGaps.map(g => (
                       <div key={g.slot} data-role="info-ask-gap">{shortShotName(g.slot)} · {g.missing.join(' · ')}</div>
                     ))}
@@ -3708,15 +3663,15 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             </div>
             {checkPutts && (
               <div data-role="putt-ask" style={{ marginBottom: 10 }}>
-                {checkInfo && <div style={{ fontSize: 14, fontWeight: 800, color: '#e8edf8', textAlign: 'center', marginBottom: 6 }}>퍼팅을 몇 번 했나요? <span style={{ fontSize: 13, fontWeight: 500, color: '#8896b0' }}>온그린까지 {strokesToGreen(playerScore, hole.par)}타</span></div>}
+                {checkInfo && <div style={{ fontSize: 14, fontWeight: 800, color: '#191f28', textAlign: 'center', marginBottom: 6 }}>퍼팅을 몇 번 했나요? <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5968' }}>온그린까지 {strokesToGreen(playerScore, hole.par)}타</span></div>}
                 <div style={{ display:'flex', gap:6 }}>
                   {[0, 1, 2, 3, 4, 5].map(n => (
                     <button key={n} data-role={`putt-ask-${n}`}
-                      style={{ flex:1, height:48, borderRadius:10, border:'1.5px solid #3a4e72', background:'#1a2235', color:'#e8edf8', fontSize:18, fontWeight:900, cursor:'pointer' }}
+                      style={{ flex:1, height:48, borderRadius:10, border:'1.5px solid #b0b8c1', background:'#e8ebee', color:'#191f28', fontSize:18, fontWeight:900, cursor:'pointer' }}
                       onClick={() => goOnFromCheck(n)}>{n}</button>
                   ))}
                 </div>
-                {checkInfo && <div style={{ fontSize: 13, color: '#8aa0c4', textAlign: 'center', marginTop: 6 }}>숫자를 누르면 샷 정보는 비운 채 {holeCheck.finish ? '완료' : '다음 홀로 이동'}해요</div>}
+                {checkInfo && <div style={{ fontSize: 13, color: '#4e5968', textAlign: 'center', marginTop: 6 }}>숫자를 누르면 샷 정보는 비운 채 {holeCheck.finish ? '완료' : '다음 홀로 이동'}해요</div>}
               </div>
             )}
             <div style={styles.modalActions}>
@@ -3735,7 +3690,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           <div style={styles.modalCard} onClick={e=>e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
             <div style={styles.modalTitle}>라운드를 그만두시겠어요?</div>
-            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#ef5350' }}>삭제</b>해요</div>
+            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#c8323a' }}>삭제</b>해요</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 기록하기</button>
               <button style={styles.modalBtnCancel} onClick={()=>{ setShowExitConfirm(false); onGoHome(); }}>기록 유지하고 홈으로</button>
@@ -3748,23 +3703,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
       {/* 홀인 성공 모달 */}
       {showHoleInModal && holeInModalData && (
-        <div style={{ position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.78)', animation:'modalFadeIn 0.25s ease-out' }}>
-          <div style={{ animation:'modalSlideUp 0.38s cubic-bezier(0.16,1,0.3,1)', display:'flex', flexDirection:'column', alignItems:'center', gap:14, padding:'36px 44px', borderRadius:20, background:'rgba(8,14,26,0.97)', border:`1.5px solid ${holeInModalData.scoreName?.color ? holeInModalData.scoreName.color + '55' : 'rgba(201,162,40,0.35)'}`, boxShadow:'0 8px 48px rgba(0,0,0,0.65)', minWidth:220, textAlign:'center' }}>
+        <div style={{ position:'fixed', inset:0, zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(25,31,40,0.55)', animation:'modalFadeIn 0.25s ease-out' }}>
+          <div style={{ animation:'modalSlideUp 0.38s cubic-bezier(0.16,1,0.3,1)', display:'flex', flexDirection:'column', alignItems:'center', gap:14, padding:'36px 44px', borderRadius:20, background:'rgba(255,255,255,0.97)', border:`1.5px solid ${holeInModalData.scoreName?.color ? holeInModalData.scoreName.color + '55' : 'rgba(27,100,218,0.35)'}`, boxShadow:'0 8px 48px rgba(0,0,0,0.227)', minWidth:220, textAlign:'center' }}>
             <div style={{ fontSize:32 }}>⛳</div>
-            <div style={{ fontSize:14, fontWeight:700, color:'#8896b0', letterSpacing:'0.2em', textTransform:'uppercase' }}>홀인 성공</div>
-            <div style={{ fontSize:26, fontWeight:900, color: holeInModalData.scoreName?.color || '#c9a228', letterSpacing:'0.04em' }}>
+            <div style={{ fontSize:14, fontWeight:700, color:'#4e5968', letterSpacing:'0', textTransform:'none' }}>홀인 성공</div>
+            <div style={{ fontSize:26, fontWeight:900, color: holeInModalData.scoreName?.color || '#1b64da', letterSpacing:'0.04em' }}>
               {holeInModalData.scoreName?.name || `${holeInModalData.strokes}타`}
             </div>
-            <div style={{ width:40, height:1, background:'rgba(255,255,255,0.1)' }} />
-            <div style={{ fontSize:15, fontWeight:600, color:'#c4cfe0', letterSpacing:'0.08em' }}>
+            <div style={{ width:40, height:1, background:'rgba(25,31,40,0.08)' }} />
+            <div style={{ fontSize:15, fontWeight:600, color:'#333d4b', letterSpacing:'0' }}>
               {holeInModalData.onCount} 온 &nbsp;/&nbsp; {holeInModalData.putts} 펏
             </div>
-            <div style={{ fontSize:13, color:'#8896b0', letterSpacing:'0.12em', marginTop:4 }}>
+            <div style={{ fontSize:13, color:'#4e5968', letterSpacing:'0', marginTop:4 }}>
               {holeInModalData.isLastHole ? '라운드 완료!' : '다음 홀로 이동해요.'}
             </div>
             <button
               onClick={cancelHoleIn}
-              style={{ marginTop:6, padding:'10px 22px', borderRadius:9, border:'1px solid #3a4e72', background:'transparent', color:'#c4cfe0', fontSize:14, fontWeight:700, cursor:'pointer' }}
+              style={{ marginTop:6, padding:'10px 22px', borderRadius:9, border:'1px solid #b0b8c1', background:'transparent', color:'#333d4b', fontSize:14, fontWeight:700, cursor:'pointer' }}
             >취소 (잘못 눌렀어요)</button>
           </div>
         </div>
@@ -3775,12 +3730,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         <div style={styles.modalOverlay} onClick={()=>setShowParEditModal(false)}>
           <div style={{ ...styles.modalCard, maxWidth:400, width:'calc(100% - 32px)', padding:'20px 16px 24px', maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-              <div style={{ fontSize:17, fontWeight:700, color:'#e8edf8' }}>라운드 수정</div>
-              <button style={{ background:'none', border:'none', color:'#8896b0', cursor:'pointer', padding:4 }} onClick={()=>setShowParEditModal(false)}><X size={18} /></button>
+              <div style={{ fontSize:17, fontWeight:700, color:'#191f28' }}>라운드 수정</div>
+              <button style={{ background:'none', border:'none', color:'#4e5968', cursor:'pointer', padding:4 }} onClick={()=>setShowParEditModal(false)}><X size={18} /></button>
             </div>
-            <div style={{ fontSize:15, fontWeight:800, color:'#e8edf8', marginBottom:8, textAlign:'left' }}>파</div>
+            <div style={{ fontSize:15, fontWeight:800, color:'#191f28', marginBottom:8, textAlign:'left' }}>파</div>
             <div style={{ ...styles.parSummary, marginBottom:12 }}>
-              <div style={styles.parSummaryMain}><div style={styles.parSummaryLabel}>TOTAL PAR</div><div style={styles.parSummaryValue}>{parDraft.reduce((a,b)=>a+b,0)}</div></div>
+              <div style={styles.parSummaryMain}><div style={styles.parSummaryLabel}>전체 파</div><div style={styles.parSummaryValue}>{parDraft.reduce((a,b)=>a+b,0)}</div></div>
               {nines.length > 1 && (<>
                 <div style={styles.parSummaryDivider} />
                 <div style={styles.parSummaryNines}>
@@ -3791,11 +3746,11 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
               </>)}
             </div>
             <ParTable pars={parDraft} groups={nines.map(n => ({ label:n.label, start:n.holes[0].index, end:n.holes[n.holes.length-1].index+1 }))} holeNo={(i) => holeNoOf(round, i)} onSetPar={updateParDraft} markHole={holeIdx} />
-            <div style={{ fontSize:13, color:'#8896b0', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지돼요.<br/>* 미입력 홀은 변경된 파 기준으로 초기화돼요.</div>
+            <div style={{ fontSize:13, color:'#4e5968', marginTop:10, marginBottom:16, lineHeight:1.5 }}>* 이미 입력된 홀의 스코어는 유지돼요.<br/>* 미입력 홀은 변경된 파 기준으로 초기화돼요.</div>
             {round.players.length === 1 && (
-              <div data-role="edit-green-speed" style={{ borderTop:'1px solid #1b2744', paddingTop:14, marginBottom:16 }}>
-                <div style={{ fontSize:15, fontWeight:800, color:'#e8edf8', marginBottom:4, textAlign:'left' }}>그린 스피드</div>
-                <div style={{ fontSize:13, color:'#8896b0', lineHeight:1.5, marginBottom:12, wordBreak:'keep-all', textAlign:'left' }}>그린이 달라졌거나 단위(미터·피트)를 바꾸고 싶을 때 여기서 바꿔요. 퍼팅 분석에 반영돼요</div>
+              <div data-role="edit-green-speed" style={{ borderTop:'1px solid #e5e8eb', paddingTop:14, marginBottom:16 }}>
+                <div style={{ fontSize:15, fontWeight:800, color:'#191f28', marginBottom:4, textAlign:'left' }}>그린 스피드</div>
+                <div style={{ fontSize:13, color:'#4e5968', lineHeight:1.5, marginBottom:12, wordBreak:'keep-all', textAlign:'left' }}>그린이 달라졌거나 단위(미터·피트)를 바꾸고 싶을 때 여기서 바꿔요. 퍼팅 분석에 반영돼요</div>
                 <GreenSpeedPicker value={parEditSpeed} onChange={setParEditSpeed} />
               </div>
             )}
@@ -3834,8 +3789,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       {showGreenSpeed && (
         <div style={styles.modalOverlay} onClick={() => setShowGreenSpeed(false)} data-role="green-speed-modal">
           <div style={styles.modalCard} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:17, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:4 }}>그린 스피드</div>
-            <div style={{ fontSize:14, color:'#8896b0', textAlign:'center', lineHeight:1.5, marginBottom:14, wordBreak:'keep-all' }}>
+            <div style={{ fontSize:17, fontWeight:800, color:'#191f28', textAlign:'center', marginBottom:4 }}>그린 스피드</div>
+            <div style={{ fontSize:14, color:'#4e5968', textAlign:'center', lineHeight:1.5, marginBottom:14, wordBreak:'keep-all' }}>
               오늘 그린의 빠르기를 고르면 퍼팅 분석에 반영돼요
             </div>
             <GreenSpeedPicker value={speedDraft} onChange={setSpeedDraft} />
@@ -3852,8 +3807,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         <div style={styles.modalOverlay} onClick={()=>setShowMemoModal(false)}>
           <div style={styles.memoModalCard} onClick={e=>e.stopPropagation()}>
             <div style={styles.memoModalHeader}>
-              <div style={styles.memoModalTitle}>HOLE {holeNo} 메모</div>
-              <div style={styles.memoModalSub}>PAR {hole.par} · 이 홀에서 기억하고 싶은 내용을 적어보세요</div>
+              <div style={styles.memoModalTitle}>{holeNo}번 홀 메모</div>
+              <div style={styles.memoModalSub}>파 {hole.par} · 이 홀에서 기억하고 싶은 내용을 적어보세요</div>
             </div>
             <textarea style={styles.memoTextarea} value={memoDraft} onChange={e=>setMemoDraft(e.target.value)} placeholder="예: 티샷이 좌측 러프로 빠짐..." maxLength={500} autoFocus rows={8} />
             <div style={styles.memoCharCount}>{memoDraft.length} / 500</div>
@@ -3872,49 +3827,49 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
 // 샷 섹션 헤더 색 — active(지금 차례) · done(입력 완료) · idle(아직)
 const HDR = {
-  active: { line: 'rgba(201,162,40,0.6)', label: '#e8c45a', arrow: '#c9a228' },
-  done:   { line: 'rgba(61,184,122,0.3)', label: '#3db87a', arrow: '#3db87a' },
-  idle:   { line: '#252f4a',              label: '#8aa0c4', arrow: '#5a6a88' },
+  active: { line: 'rgba(27,100,218,0.6)', label: '#b45309', arrow: '#1b64da' },
+  done:   { line: 'rgba(10,127,63,0.3)', label: '#0a7f3f', arrow: '#0a7f3f' },
+  idle:   { line: '#d1d6db',              label: '#4e5968', arrow: '#5b6572' },
 };
 
 // flexWrap: 좁은 폰(320px)에서 라벨(130px) 옆에 칩이 다 들어가지 않으면 칩이 아랫줄로 내려간다
-const fRow = { display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid #0e1320', minHeight:54, gap:'8px 12px' };
+const fRow = { display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', borderBottom:'1px solid #e5e8eb', minHeight:54, gap:'8px 12px' };
 const fLeft = { display:'flex', alignItems:'center', gap:8, flexShrink:0, minWidth:130 };
-const fIcon = { fontSize:15, width:18, textAlign:'center', color:'#8896b0', flexShrink:0 };
-const fLbl  = { fontSize:13, fontWeight:700, color:'#8ca4bc', letterSpacing:'0.15em', textTransform:'uppercase' };
+const fIcon = { fontSize:15, width:18, textAlign:'center', color:'#4e5968', flexShrink:0 };
+const fLbl  = { fontSize:13, fontWeight:700, color:'#4e5968', letterSpacing:'0', textTransform:'none' };
 
-const fChip = { minHeight:44, padding:'5px 9px', borderRadius: 10, border:'1.5px solid #252f4a', background:'#1a2235', color:'#e8edf8', fontSize:13, fontWeight:600, cursor:'pointer' };
-const fChipOn = { border:'2px solid #c9a228', background:'rgba(201,162,40,0.18)', color:'#c9a228' };
-const fChipWide = { minWidth:52, minHeight:44, padding:'7px 12px', borderRadius:8, border:'1.5px solid #252f4a', background:'#1a2235', color:'#8896b0', fontSize:14, fontWeight:700, cursor:'pointer' };
+const fChip = { minHeight:44, padding:'5px 9px', borderRadius: 10, border:'1.5px solid #d1d6db', background:'#e8ebee', color:'#191f28', fontSize:13, fontWeight:600, cursor:'pointer' };
+const fChipOn = { border:'2px solid #1b64da', background:'rgba(27,100,218,0.18)', color:'#1b64da' };
+const fChipWide = { minWidth:52, minHeight:44, padding:'7px 12px', borderRadius:8, border:'1.5px solid #d1d6db', background:'#e8ebee', color:'#4e5968', fontSize:14, fontWeight:700, cursor:'pointer' };
 
 // 퍼팅 결과 버튼 줄 — 카드가 화면보다 길어도 아래 탭바 바로 위에 붙어 있다 (탭바 높이 ≈ 75px + 아이폰 아래 여백).
 // 줄이 속한 상자(putt-cards)가 화면에 보이는 동안만 붙고, 퍼팅 칸이 아직 아래에 있으면 상자와 함께 내려가 있다.
-const PUTT_BAR = { position:'sticky', bottom:'calc(76px + env(safe-area-inset-bottom, 0px))', zIndex:20, margin:'0 -16px', padding:'10px 16px', background:'#0b0e18', borderTop:'1px solid #1b2238', boxShadow:'0 -10px 14px -6px rgba(0,0,0,0.5)' };
+const PUTT_BAR = { position:'sticky', bottom:'calc(80px + env(safe-area-inset-bottom, 0px))', zIndex:20, margin:'0 -16px', padding:'10px 16px', background:'#ffffff', borderTop:'1px solid #e5e8eb', boxShadow:'0 -10px 14px -6px rgba(0,0,0,0.175)' };
 
 // 벌타 구제 방식 카드 — 왼쪽: 정식 명칭(영문) · 근거/벌타 · 설명, 오른쪽: 다음 샷 번호 (모든 카드에서 같은 너비로 줄을 맞춘다)
 const reliefCard = {
   display: 'flex', alignItems: 'stretch', gap: 12, width: '100%', boxSizing: 'border-box',
-  padding: '11px 11px 11px 14px', background: '#1a2235', border: '1px solid #2c3a5c', borderRadius: 10,
-  textAlign: 'left', cursor: 'pointer', color: '#e8edf8', fontFamily: 'inherit',
+  padding: '11px 11px 11px 14px', background: '#e8ebee', border: '1px solid #cdd3d8', borderRadius: 10,
+  textAlign: 'left', cursor: 'pointer', color: '#191f28', fontFamily: 'inherit',
 };
 const reliefKoRow = { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 };
-const reliefKo = { fontSize: 17, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.01em', color: '#e8edf8' };
-const reliefEn = { fontSize: 14, fontWeight: 600, lineHeight: 1.3, marginTop: 2, color: '#8896b0' };
+const reliefKo = { fontSize: 17, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.01em', color: '#191f28' };
+const reliefEn = { fontSize: 14, fontWeight: 600, lineHeight: 1.3, marginTop: 2, color: '#4e5968' };
 const reliefMeta = { display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 };
 const reliefChip = {
   fontSize: 13, fontWeight: 700, lineHeight: 1.2, padding: '3px 7px', borderRadius: 999,
-  color: '#a9b8d6', background: 'rgba(255,255,255,0.04)', border: '1px solid #33425f', whiteSpace: 'nowrap',
+  color: '#333d4b', background: 'rgba(25,31,40,0.032)', border: '1px solid #1b64da', whiteSpace: 'nowrap',
 };
-const reliefChipPen = { color: '#ef8a87', background: 'rgba(239,83,80,0.10)', border: '1px solid rgba(239,83,80,0.38)' };
-const reliefChipTag = { color: '#e6b94a', background: 'rgba(230,185,74,0.10)', border: '1px solid rgba(230,185,74,0.38)' };
-const reliefWhere = { marginTop: 7, fontSize: 14, fontWeight: 500, lineHeight: 1.5, color: '#9aa8c4', wordBreak: 'keep-all', textWrap: 'balance' };
+const reliefChipPen = { color: '#c8323a', background: 'rgba(200,50,58,0.1)', border: '1px solid rgba(200,50,58,0.38)' };
+const reliefChipTag = { color: '#a85b00', background: 'rgba(168,91,0,0.1)', border: '1px solid rgba(168,91,0,0.38)' };
+const reliefWhere = { marginTop: 7, fontSize: 14, fontWeight: 500, lineHeight: 1.5, color: '#4e5968', wordBreak: 'keep-all', textWrap: 'balance' };
 const reliefNext = {
   flex: '0 0 68px', width: 68, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
   gap: 1, padding: '8px 4px', borderRadius: 9, boxSizing: 'border-box',
-  background: 'rgba(201,162,40,0.13)', border: '1px solid rgba(201,162,40,0.55)',
+  background: 'rgba(27,100,218,0.13)', border: '1px solid rgba(27,100,218,0.55)',
 };
-const reliefNextLabel = { fontSize: 13, fontWeight: 700, color: '#d8b640', letterSpacing: '0.02em' };
-const reliefNextNum = { fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: '#f3d36b', fontVariantNumeric: 'tabular-nums' };
-const reliefNextUnit = { fontSize: 13, fontWeight: 700, color: '#d8b640' };
-const reliefNote = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
+const reliefNextLabel = { fontSize: 13, fontWeight: 700, color: '#1b64da', letterSpacing: '0.02em' };
+const reliefNextNum = { fontSize: 32, fontWeight: 900, lineHeight: 1.05, color: '#1b64da', fontVariantNumeric: 'tabular-nums' };
+const reliefNextUnit = { fontSize: 13, fontWeight: 700, color: '#1b64da' };
+const reliefNote = { fontSize: 13, color: '#4e5968', lineHeight: 1.6, marginTop: 10, textAlign: 'left', wordBreak: 'keep-all' };
 

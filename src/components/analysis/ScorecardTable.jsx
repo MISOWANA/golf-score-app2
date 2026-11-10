@@ -38,7 +38,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
                   onClick={onSelectHole ? () => onSelectHole(idx) : undefined}
                   style={{
                     ...styles.scorecardHeaderCell,
-                    ...(onSelectHole ? { cursor: 'pointer', color: '#c9a228' } : {}),
+                    ...(onSelectHole ? { cursor: 'pointer', color: '#1b64da' } : {}),
                   }}
                 >
                   {h.holeNumber ?? idx + 1}
@@ -52,7 +52,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
         </div>
 
         <div style={styles.scorecardTableRow}>
-          <div style={styles.scorecardRowLabel}>PAR</div>
+          <div style={styles.scorecardRowLabel}>파</div>
           <div style={styles.scorecardTableCells}>
             {holes.map((h, localIdx) => (
               <div key={offset + localIdx} style={styles.scorecardParCell}>
@@ -64,7 +64,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
         </div>
 
         <div style={styles.scorecardTableRow}>
-          <div style={styles.scorecardRowLabel}>SCORE</div>
+          <div style={styles.scorecardRowLabel}>스코어</div>
           <div style={styles.scorecardTableCells}>
             {holes.map((h, localIdx) => {
               const strokes = h.scores[player]?.strokes;
@@ -73,7 +73,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
 
               // 글자색은 표식 스타일(팔레트)이 정한다 — 입력 화면의 스코어카드와 같은 색. 입력하지 않은 홀('—')만 흐리게.
               let markerStyle = styles.markerPar;
-              if (diff === null) markerStyle = { color: '#8896b0' };
+              if (diff === null) markerStyle = { color: '#4e5968' };
               else if (isHoleInOne) markerStyle = styles.markerHoleInOne;
               else if (diff <= -2) markerStyle = styles.markerEagle;
               else if (diff === -1) markerStyle = styles.markerBirdie;
@@ -92,7 +92,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
           </div>
           <div style={{
             ...styles.scorecardTotalCell,
-            color: diffSum > 0 ? '#ef5350' : diffSum < 0 ? '#3db87a' : '#e8edf8',
+            color: diffSum > 0 ? '#c8323a' : diffSum < 0 ? '#0a7f3f' : '#191f28',
             fontWeight: '700',
           }}>
             {strokesSum}
@@ -101,7 +101,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
         </div>
 
         <div style={{ ...styles.scorecardTableRow, borderBottom: 'none' }}>
-          <div style={styles.scorecardRowLabel}>PUTT</div>
+          <div style={styles.scorecardRowLabel}>퍼트</div>
           <div style={styles.scorecardTableCells}>
             {holes.map((h, localIdx) => {
               const putts = h.scores[player]?.putts;
@@ -132,7 +132,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
 
       <div style={styles.scorecardGrandTotal}>
         <div style={styles.scorecardGrandRow}>
-          <span style={styles.scorecardGrandLabel}>TOTAL</span>
+          <span style={styles.scorecardGrandLabel}>합계</span>
           <div style={styles.scorecardGrandValues}>
             <span style={styles.scorecardGrandItem}>
               <span style={styles.scorecardGrandItemLabel}>Par</span>
@@ -142,7 +142,7 @@ export default function ScorecardTable({ round, player, onSelectHole }) {
               <span style={styles.scorecardGrandItemLabel}>Score</span>
               <span style={{
                 ...styles.scorecardGrandItemValue,
-                color: totalDiff > 0 ? '#ef5350' : totalDiff < 0 ? '#3db87a' : '#e8edf8',
+                color: totalDiff > 0 ? '#c8323a' : totalDiff < 0 ? '#0a7f3f' : '#191f28',
               }}>
                 {totalStrokes} ({totalDiff === 0 ? 'E' : totalDiff > 0 ? `+${totalDiff}` : totalDiff})
               </span>

@@ -8,8 +8,8 @@ import { fmtPutt } from '../../engine/units.js';
 //   이번 라운드: 오늘 그린의 속도 · 퍼트 · 3퍼트 · 비교 · 요령
 //   누적: 느림·보통·빠름·매우 빠름 구간별 평균 (속도를 기록한 라운드만)
 
-const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
-const dim = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6 };
+const card = { background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 16, padding: '12px 14px' };
+const dim = { fontSize: 13, color: '#4e5968', lineHeight: 1.6 };
 
 // 라운드 수가 쌓인 만큼의 신뢰도 (stats.js 의 low/mid/high 와 같은 이름)
 const roundsTier = (n) => (n >= 5 ? 'high' : n >= 3 ? 'mid' : 'low');
@@ -19,8 +19,8 @@ const sgText = (v) => (v == null ? '–' : (v >= 0 ? '+' : '') + v.toFixed(2));
 function Stat({ label, value }) {
   return (
     <div style={{ flex: 1, textAlign: 'center' }}>
-      <div style={{ fontSize: 12, color: '#8896b0', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: '#e8edf8', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#4e5968', marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#191f28', fontVariantNumeric: 'tabular-nums' }}>{value}</div>
     </div>
   );
 }
@@ -33,7 +33,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
     return (
       <div style={card} data-role="green-speed-panel">
         {report.speedRounds === 0 ? (
-          <div data-role="gs-empty" style={{ fontSize: 14, color: '#8896b0', lineHeight: 1.6 }}>
+          <div data-role="gs-empty" style={{ fontSize: 14, color: '#4e5968', lineHeight: 1.6 }}>
             그린 스피드를 기록한 라운드가 아직 없어요.
             <InfoNote title="그린 스피드 기록하기">
               라운드를 시작할 때(또는 퍼팅 화면·지난 라운드 수정에서) 그날의 그린 스피드를 정해 두면 빠른 날과 느린 날의 퍼팅을 나눠 비교해 드려요.
@@ -41,7 +41,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', fontSize: 12, color: '#8aa0c4', padding: '0 0 6px', borderBottom: '1px solid #1b2238' }}>
+            <div style={{ display: 'flex', fontSize: 12, color: '#4e5968', padding: '0 0 6px', borderBottom: '1px solid #e5e8eb' }}>
               <div style={{ flex: '1 1 78px' }}>
                 구간
                 <InfoNote title="구간별 평균 보는 법">
@@ -56,17 +56,17 @@ export default function GreenSpeedPanel({ report, past = false }) {
               <div style={{ width: 48, textAlign: 'right' }}>퍼팅SG</div>
             </div>
             {report.bands.map((b) => (
-              <div key={b.id} data-role={`gs-band-${b.id}`} style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#e8edf8', padding: '8px 0', borderBottom: '1px solid #151c30', fontVariantNumeric: 'tabular-nums' }}>
+              <div key={b.id} data-role={`gs-band-${b.id}`} style={{ display: 'flex', alignItems: 'center', fontSize: 14, color: '#191f28', padding: '8px 0', borderBottom: '1px solid #e5e8eb', fontVariantNumeric: 'tabular-nums' }}>
                 <div style={{ flex: '1 1 78px', display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span style={{ fontWeight: 700 }}>{b.label}</span>
                   <ConfidenceBadge tier={roundsTier(b.rounds)} />
                 </div>
-                <div style={{ width: 28, textAlign: 'right', color: '#8896b0' }}>{b.rounds}</div>
+                <div style={{ width: 28, textAlign: 'right', color: '#4e5968' }}>{b.rounds}</div>
                 <div style={{ width: 42, textAlign: 'right' }}>{b.putts.toFixed(1)}</div>
                 <div style={{ width: 42, textAlign: 'right' }}>{b.three.toFixed(1)}</div>
                 <div style={{ width: 42, textAlign: 'right' }}>{b.one.toFixed(1)}</div>
                 <div style={{ width: 48, textAlign: 'right' }}>{b.firstDist != null ? fmtPutt(b.firstDist, { digits: 1 }) : '–'}</div>
-                <div style={{ width: 48, textAlign: 'right', color: b.sgPutting == null ? '#8aa0c4' : b.sgPutting >= 0 ? '#3db87a' : '#ef5350' }}>{sgText(b.sgPutting)}</div>
+                <div style={{ width: 48, textAlign: 'right', color: b.sgPutting == null ? '#4e5968' : b.sgPutting >= 0 ? '#0a7f3f' : '#c8323a' }}>{sgText(b.sgPutting)}</div>
               </div>
             ))}
             {report.unsetRounds > 0 && (
@@ -85,7 +85,7 @@ export default function GreenSpeedPanel({ report, past = false }) {
   return (
     <div style={card} data-role="green-speed-panel">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 14, color: '#8896b0' }}>
+        <div style={{ fontSize: 14, color: '#4e5968' }}>
           {past ? '그날' : '오늘'} 그린
           {r.speed == null && (
             <InfoNote title="그린 스피드 기록하기">
@@ -93,23 +93,23 @@ export default function GreenSpeedPanel({ report, past = false }) {
             </InfoNote>
           )}
         </div>
-        <div data-role="gs-latest" style={{ fontSize: 14, fontWeight: 800, color: r.speed != null ? '#c9a228' : '#8aa0c4' }}>
+        <div data-role="gs-latest" style={{ fontSize: 14, fontWeight: 800, color: r.speed != null ? '#1b64da' : '#4e5968' }}>
           {r.speed != null ? speedLabel(r.speed, readSpeedUnit()) : '설정 안 함'}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 4, paddingBottom: 10, borderBottom: '1px solid #1b2238' }}>
+      <div style={{ display: 'flex', gap: 4, paddingBottom: 10, borderBottom: '1px solid #e5e8eb' }}>
         <Stat label="퍼트" value={r.putts} />
         <Stat label="3퍼트+" value={r.three} />
         <Stat label="1퍼트" value={r.one} />
         <Stat label="첫 퍼트 평균" value={r.firstDist != null ? fmtPutt(r.firstDist, { digits: 1 }) : '–'} />
       </div>
       {report.compare && (
-        <div data-role="gs-compare" style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginTop: 8 }}>
-          {report.compare.label} 평균 대비 퍼트 <b style={{ color: report.compare.dPutts > 0 ? '#ef8a87' : report.compare.dPutts < 0 ? '#3db87a' : '#e8edf8' }}>{signed(report.compare.dPutts)}</b>개 ·
-          3퍼트 <b style={{ color: report.compare.dThree > 0 ? '#ef8a87' : report.compare.dThree < 0 ? '#3db87a' : '#e8edf8' }}>{signed(report.compare.dThree)}</b>회
+        <div data-role="gs-compare" style={{ fontSize: 14, color: '#333d4b', lineHeight: 1.6, marginTop: 8 }}>
+          {report.compare.label} 평균 대비 퍼트 <b style={{ color: report.compare.dPutts > 0 ? '#c8323a' : report.compare.dPutts < 0 ? '#0a7f3f' : '#191f28' }}>{signed(report.compare.dPutts)}</b>개 ·
+          3퍼트 <b style={{ color: report.compare.dThree > 0 ? '#c8323a' : report.compare.dThree < 0 ? '#0a7f3f' : '#191f28' }}>{signed(report.compare.dThree)}</b>회
         </div>
       )}
-      {report.tip && <div data-role="gs-tip" style={{ ...dim, marginTop: 8, color: '#8ca4bc' }}>{report.tip}</div>}
+      {report.tip && <div data-role="gs-tip" style={{ ...dim, marginTop: 8, color: '#4e5968' }}>{report.tip}</div>}
     </div>
   );
 }

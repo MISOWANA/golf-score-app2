@@ -29,10 +29,10 @@ describe('신뢰도 배지', () => {
 });
 
 describe('섹션 제목 — 부모의 가운데 정렬을 물려받지 않는다', () => {
-  it('한글 줄과 영문 줄이 모두 왼쪽 정렬이다', () => {
+  it('제목은 왼쪽 정렬이고, 영문 이름 줄은 없다', () => {
     const { container } = render(<div style={{ textAlign: 'center' }}><KoEnTitle en="STRENGTHS" ko="잘한 점" /></div>);
     expect(container.querySelector('[data-role="title-ko"]').style.textAlign).toBe('left');
-    expect(container.querySelector('[data-role="title-en"]').style.textAlign).toBe('left');
+    expect(container.querySelector('[data-role="title-en"]')).toBeNull();
   });
 });
 
@@ -119,7 +119,7 @@ describe('결과 스코어카드 — 글자색은 팔레트 색이다 (어두운
     const { container } = render(<ScorecardTable round={r} player={ME} />);
     const dash = [...container.querySelectorAll('span')].find((s) => s.textContent.trim() === '—' && s.style.width === '26px');
     expect(dash).toBeTruthy();
-    expect(dash.style.color).toBe(rgb('#8896b0'));   // #8896b0 on #111827 ≈ 5.4:1
+    expect(dash.style.color).toBe(rgb('#4e5968'));   // #8896b0 on #111827 ≈ 5.4:1
   });
 });
 

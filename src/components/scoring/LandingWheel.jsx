@@ -27,8 +27,8 @@ export default function LandingWheel({ value, onChange }) {
     >
       <defs>
         <linearGradient id={`${uid}-gold`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f8e08a" />
-          <stop offset="1" stopColor="#c9a228" />
+          <stop offset="0" stopColor="#4a8df0" />
+          <stop offset="1" stopColor="#1b64da" />
         </linearGradient>
         <filter id={`${uid}-glow`} x="-60%" y="-60%" width="220%" height="220%">
           <feGaussianBlur stdDeviation="3.2" result="b" />
@@ -41,46 +41,46 @@ export default function LandingWheel({ value, onChange }) {
         const on = selQuadrant === q, c = QUADRANT_CENTER[q];
         return (
           <path key={q} d={arcPath(WO + 12, c - 42, c + 42)} fill="none" strokeWidth="3" strokeLinecap="round"
-            stroke={on ? '#f3d36b' : '#252f4a'} filter={on ? `url(#${uid}-glow)` : undefined} />
+            stroke={on ? '#1b64da' : '#d1d6db'} filter={on ? `url(#${uid}-glow)` : undefined} />
         );
       })}
 
       {LANDING_HOURS.map((h) => {
         const d = hourAngle(h), on = sel === h, key = !!KEY_NAME[h];
-        const fill = on ? `url(#${uid}-gold)` : key ? '#1a2644' : '#131b2f';
+        const fill = on ? `url(#${uid}-gold)` : key ? '#dfe9fb' : '#eef1f4';
         const p = pol((WI + WO) / 2, d);
         return (
           <g key={h}>
             <path d={sectorPath(WI + 3, WO - 3, d - 12.6, d + 12.6)} fill={fill}
-              stroke={on ? '#e8c64e' : key ? '#1a2644' : '#131b2f'} strokeWidth="6" strokeLinejoin="round"
+              stroke={on ? '#1b64da' : key ? '#dfe9fb' : '#eef1f4'} strokeWidth="6" strokeLinejoin="round"
               filter={on ? `url(#${uid}-glow)` : undefined} />
             {key ? (
               <>
                 <text x={fix(p[0])} y={fix(p[1] - 6)} textAnchor="middle" dominantBaseline="central" fontSize="13" fontWeight="900"
-                  letterSpacing="0.06em" fill={on ? '#1a1405' : '#e8edf8'}>{KEY_NAME[h]}</text>
+                  letterSpacing="0.06em" fill={on ? '#ffffff' : '#1b64da'}>{KEY_NAME[h]}</text>
                 <text x={fix(p[0])} y={fix(p[1] + 9)} textAnchor="middle" dominantBaseline="central" fontSize="12"
-                  fill={on ? 'rgba(26,20,5,0.7)' : '#8aa0c4'}>{h}시</text>
+                  fill={on ? 'rgba(255,255,255,0.9)' : '#4e5968'}>{h}시</text>
               </>
             ) : (
               <text x={fix(p[0])} y={fix(p[1])} textAnchor="middle" dominantBaseline="central" fontSize="17" fontWeight="900"
-                fill={on ? '#1a1405' : '#8896b0'}>{h}</text>
+                fill={on ? '#ffffff' : '#4e5968'}>{h}</text>
             )}
           </g>
         );
       })}
 
       {/* 가운데: 고른 시각, 아직 없으면 깃발 */}
-      <circle cx={CENTER} cy={CENTER} r={WI - 9} fill="#0e1c14" stroke="rgba(61,184,122,0.55)" strokeWidth="1.5" />
+      <circle cx={CENTER} cy={CENTER} r={WI - 9} fill="#eaf6ee" stroke="rgba(10,127,63,0.55)" strokeWidth="1.5" />
       {sel ? (
         <>
-          <text x={CENTER} y="163" textAnchor="middle" dominantBaseline="central" fontSize="25" fontWeight="900" fill="#f3d36b"
+          <text x={CENTER} y="163" textAnchor="middle" dominantBaseline="central" fontSize="25" fontWeight="900" fill="#1b64da"
             data-role="landing-wheel-hour">{sel}시</text>
-          <text x={CENTER} y="187" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" letterSpacing="0.06em" fill="#8896b0">{nameOf(sel)}</text>
+          <text x={CENTER} y="187" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" letterSpacing="0.06em" fill="#4e5968">{nameOf(sel)}</text>
         </>
       ) : (
         <>
           <FlagMark x={163} y={166} k={1.05} />
-          <text x={CENTER} y="203" textAnchor="middle" fontSize="12" fill="#8aa0c4">탭해서 선택</text>
+          <text x={CENTER} y="203" textAnchor="middle" fontSize="12" fill="#4e5968">탭해서 선택</text>
         </>
       )}
 

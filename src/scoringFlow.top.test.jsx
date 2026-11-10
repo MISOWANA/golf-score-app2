@@ -2,21 +2,19 @@
 // 스코어 상세 입력 — 윗칸(스코어 · 퍼팅 수 · 벌타 합계)과 샷 입력이 서로 같은 숫자를 보여 주는지 확인한다.
 // 방식은 test/flowKit.jsx 머리말 참고.
 import { describe, it, expect, vi } from 'vitest';
-import { find, tap, tapTab, currentTab, tabInfo, scoreNow, puttsPicked, stored, text, newHole, installHooks, buttons, labelOf } from './test/flowKit.jsx';
+import { find, tap, tapTab, currentTab, tabInfo, scoreNow, puttsPicked, stored, text, newHole, installHooks, area } from './test/flowKit.jsx';
 
 vi.setConfig({ testTimeout: 40000 });
 installHooks();
 
-// 윗칸 스코어 "−" / "+" (스코어 막대의 왼쪽·오른쪽 반쪽) — 라벨이 −/+ 인 버튼은 여러 개라 위치로 찾는다
-const scoreMinus = () => buttons().filter((b) => labelOf(b) === '−')[0];
-const scorePlus = () => buttons().filter((b) => labelOf(b) === '+')[0];
-// 윗칸 퍼팅 수 버튼 (0~4, 글자 18px)
-const puttsBtn = (n) => buttons().find((b) => b.style.fontSize === '18px' && /^\d\+?$/.test(labelOf(b)) && (labelOf(b) === String(n) || (n === 4 && labelOf(b) === '4+') || (n >= 5 && labelOf(b) === `${n}+`)));
-// 벌타 합계 칸 — 라벨(해저드 · OB · 언플레이어블) 아래의 − / + 두 버튼
-const penaltyBox = (label) => {
-  const lab = [...document.querySelectorAll('div')].find((d) => d.textContent.trim() === label && d.style.letterSpacing === '0.15em');
-  return lab.nextElementSibling;
-};
+// 윗칸 스코어 "−" / "+" (큰 동그라미 버튼)
+const scoreMinus = () => area('score-minus');
+const scorePlus = () => area('score-plus');
+// 윗칸 퍼팅 수 버튼 (0~4)
+const puttsBtn = (n) => area(`putts-${n}`);
+// 벌타 — "벌타 ›" 줄을 눌러 열면 해저드 · OB · 언플레이어블 칸이 나온다. 칸마다 − / + 두 버튼
+const openPenalty = async () => { if (!area('penalty-panel')) await tap(area('penalty-toggle'), '벌타 열기'); };
+const penaltyBox = (label) => area(`penalty-${label}`);
 const penMinus = (label) => penaltyBox(label).querySelectorAll('button')[0];
 const penPlus = (label) => penaltyBox(label).querySelectorAll('button')[1];
 
@@ -26,7 +24,7 @@ describe('윗칸 스코어 — 샷을 입력하기 전', () => {
     expect(scoreNow().n).toBe(4);
     await tap(scorePlus());
     expect(scoreNow().n).toBe(5);
-    expect(text()).toContain('+1');                                    // 홀 머리글의 파 대비
+    expect(text()).toContain('보기');                                   // 큰 숫자 아래의 스코어 이름 (파 대비 +1)
     await tap(scorePlus()); await tap(scorePlus());
     expect(scoreNow().n).toBe(7);
     await tap(scoreMinus());
@@ -82,7 +80,7 @@ describe('윗칸 퍼팅 수', () => {
     expect(puttsPicked()).toBe('4+');
     await tap(puttsBtn(4));                                             // 4+ 를 다시 누르면 더 큰 숫자 선택
     for (const n of [5, 6, 7, 8]) expect(find(String(n)).length, `${n} 선택지`).toBeGreaterThan(0);
-    await tap(find('6').find((b) => b.style.height === '38px'));
+    await tap(find('6').find((b) => b.getAttribute('aria-pressed') != null));
     expect(puttsPicked()).toBe('6+');
     expect((await stored()).s.putts).toBe(6);
   });
@@ -111,6 +109,7 @@ describe('윗칸 벌타 합계', () => {
     await tap('DRIVER'); await tap(puttsBtn(2));
     expect(scoreNow().n).toBe(4);
     expect(find('초기화').length).toBe(1);                              // 퍼팅 줄의 것뿐
+    await openPenalty();
     await tap(penPlus('OB'));
     expect(scoreNow().n).toBe(6);                                       // OB 1회 = +2타
     expect(find('초기화').length).toBe(2);                              // 벌타 줄에도 초기화가 생겼다
@@ -123,6 +122,7 @@ describe('윗칸 벌타 합계', () => {
   it('해저드 · 언플레이어블은 +1타씩, 최대 5회까지, 초기화로 모두 지운다', async () => {
     await newHole();
     await tap('DRIVER'); await tap(puttsBtn(2));
+    await openPenalty();
     await tap(penPlus('해저드'));
     expect(scoreNow().n).toBe(5);
     await tap(penPlus('언플레이어블'));
@@ -137,8 +137,9 @@ describe('윗칸 벌타 합계', () => {
   it('위쪽에서 OB 를 넣은 뒤 티샷의 OB 칩을 누르면 두 번 세지 않는다', async () => {
     await newHole();
     await tap('DRIVER'); await tap(puttsBtn(2));
+    await openPenalty();
     await tap(penPlus('OB'));
-    await tap(find('OB')[0]);                                           // 티샷 줄 OB
+    await tap(find('OB').filter((b) => !penaltyBox('OB').contains(b))[0]);                                           // 티샷 줄 OB
     await tap(find(/번째 샷/).find((b) => b.textContent.includes('다음 샷')));
     expect((await stored()).s.ob).toBe(1);
   });
@@ -148,6 +149,7 @@ describe('윗칸 벌타 합계', () => {
     await tap('DRIVER'); await tap(puttsBtn(2));
     await tap(find('OB')[0]);
     await tap(find(/번째 샷/).find((b) => b.textContent.includes('다음 샷')));
+    await openPenalty();
     expect(penaltyBox('OB').textContent).toContain('1');
     if (currentTab() !== '티샷') await tapTab('tee');
     await tap(find(/^OB.*✕$/)[0]);

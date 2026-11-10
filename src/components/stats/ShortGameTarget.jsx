@@ -46,31 +46,31 @@ export default function ShortGameTarget({ pattern }) {
         </filter>
       </defs>
 
-      <circle cx={C} cy={C} r={R + 8} fill="#0b1120" stroke="#252f4a" strokeWidth="1.5" />
+      <circle cx={C} cy={C} r={R + 8} fill="#f2f4f6" stroke="#d1d6db" strokeWidth="1.5" />
       {scale.rings.map((m) => (
         <g key={m} data-role="short-ring" data-m={m}>
-          <circle cx={C} cy={C} r={fix(m * k)} fill="none" stroke="rgba(255,255,255,0.1)" strokeDasharray={m === scale.max ? undefined : '2 5'} />
-          <text x={fix(C + m * k * 0.7071 + 3)} y={fix(C - m * k * 0.7071 - 3)} fontSize="14" fill="#8aa0c4">{ringText(m)}</text>
+          <circle cx={C} cy={C} r={fix(m * k)} fill="none" stroke="#4e5968" strokeDasharray={m === scale.max ? undefined : '2 5'} />
+          <text x={fix(C + m * k * 0.7071 + 3)} y={fix(C - m * k * 0.7071 - 3)} fontSize="14" fill="#4e5968">{ringText(m)}</text>
         </g>
       ))}
-      <path d={`M${C} ${C - R - 8}V${C + R + 8}M${C - R - 8} ${C}H${C + R + 8}`} stroke="rgba(255,255,255,0.07)" />
+      <path d={`M${C} ${C - R - 8}V${C + R + 8}M${C - R - 8} ${C}H${C + R + 8}`} stroke="#4e5968" />
 
       {spread && n >= 5 && spread.x != null && spread.y != null && (
         <ellipse data-role="short-spread" cx={fix(mx)} cy={fix(my)} rx={fix(Math.max(2, spread.x * k))} ry={fix(Math.max(2, spread.y * k))}
-          fill="rgba(201,162,40,0.1)" stroke="rgba(243,211,107,0.75)" strokeWidth="1.5" strokeDasharray="5 4" />
+          fill="rgba(27,100,218,0.1)" stroke="rgba(27,100,218,0.75)" strokeWidth="1.5" strokeDasharray="5 4" />
       )}
 
       {shots.map((s, i) => {
         const [x, y] = place(s.x, s.y);
-        return <circle key={i} data-role="short-dot" data-hour={s.hour} cx={fix(x)} cy={fix(y)} r="5.5" fill="rgba(125,180,230,0.9)" stroke="#0b1120" strokeWidth="1.2" />;
+        return <circle key={i} data-role="short-dot" data-hour={s.hour} cx={fix(x)} cy={fix(y)} r="5.5" fill="rgba(27,100,218,0.9)" stroke="#f2f4f6" strokeWidth="1.2" />;
       })}
 
       <g data-role="short-mean">
-        <path d={`M${C} ${C}L${fix(mx)} ${fix(my)}`} stroke="rgba(255,255,255,0.7)" strokeWidth="1.4" strokeDasharray="3 4" />
-        <circle cx={fix(mx)} cy={fix(my)} r="8" fill="#fff" stroke="#c9a228" strokeWidth="3.5" filter={`url(#${uid}-glow)`} />
+        <path d={`M${C} ${C}L${fix(mx)} ${fix(my)}`} stroke="#ffffff" strokeWidth="1.4" strokeDasharray="3 4" />
+        <circle cx={fix(mx)} cy={fix(my)} r="8" fill="#ffffff" stroke="#1b64da" strokeWidth="3.5" filter={`url(#${uid}-glow)`} />
       </g>
       {/* 핀 */}
-      <circle cx={C} cy={C} r="5" fill="#0b1120" stroke="#3db87a" strokeWidth="2" />
+      <circle cx={C} cy={C} r="5" fill="#f2f4f6" stroke="#0a7f3f" strokeWidth="2" />
 
       {DIRS.map((d) => {
         const on = d.id === top;

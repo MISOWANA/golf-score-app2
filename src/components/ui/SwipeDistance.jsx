@@ -3,7 +3,7 @@ import EmptyValue from './EmptyValue.jsx';
 import { useSwipeAdjust, SWIPE_STYLE } from './useSwipeAdjust.js';
 import { isYards, unitInfo, unitLabel, fromDisplay } from '../../engine/units.js';
 
-const fMiniBtn = { width:44, height:44, borderRadius: 12, border:'1px solid #252f4a', background:'#111827', color:'#e8edf8', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink: 0, touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' };
+const fMiniBtn = { width:44, height:44, borderRadius: 12, border:'1px solid #d1d6db', background:'#f2f4f6', color:'#191f28', fontSize:18, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink: 0, touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' };
 
 // 거리 칸 −/+ 버튼 — 한 번 누르면 한 칸, 길게 누르면 계속 바뀐다 (처음 0.45초는 한 칸만, 그 뒤 0.09초마다 · 오래 누를수록 큰 폭으로).
 // onStep(cur) 은 지금 값(cur)에서 한 칸 옮긴 값을 돌려주고, 더 못 가면(끝) 같은 값을 돌려준다 — 그러면 반복을 멈춘다.
@@ -140,7 +140,7 @@ export default function SwipeDistance({ value: valueM, start: startM, min: minM 
   const withSlider = sliderMax != null && sliderMax > min;
   // 슬라이더가 있을 때 힌트 줄은 손가락이 닿기 쉽게 44px 높이로 — 탭하면 출발값이 들어간다
   const hint = empty && (
-    <div data-role="dist-hint" style={{ fontSize: 13, color: '#8896b0', marginTop: withSlider ? 0 : 4, padding: withSlider ? '0 0 4px' : 0, textAlign: 'center', ...(withSlider ? { ...SWIPE_STYLE, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' } : null) }}
+    <div data-role="dist-hint" style={{ fontSize: 13, color: '#4e5968', marginTop: withSlider ? 0 : 4, padding: withSlider ? '0 0 4px' : 0, textAlign: 'center', ...(withSlider ? { ...SWIPE_STYLE, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' } : null) }}
       {...(withSlider ? bind : null)}>
       탭하면 {clamp(base)}{unit}부터 · 밀어서 조정
     </div>
@@ -153,12 +153,12 @@ export default function SwipeDistance({ value: valueM, start: startM, min: minM 
         <RepeatButton label="줄이기" dir={-1} {...adjust} />
         <div
           data-role="dist-value"
-          style={{ flex: 1, minWidth: 0, textAlign: 'center', padding: '8px 0', ...SWIPE_STYLE, background: active ? 'rgba(201,162,40,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
+          style={{ flex: 1, minWidth: 0, textAlign: 'center', padding: '8px 0', ...SWIPE_STYLE, background: active ? 'rgba(27,100,218,0.06)' : 'transparent', borderRadius: 8, transition: 'background 0.15s' }}
           {...bind}
         >
           {empty
             ? <EmptyValue />
-            : <><span style={{ fontSize: 34, fontWeight: 900, color: '#e8edf8', lineHeight: 1 }}>{display}</span><span style={{ fontSize: 14, color: '#8896b0', marginLeft: 4 }}>{unit}</span></>}
+            : <><span style={{ fontSize: 34, fontWeight: 900, color: '#191f28', lineHeight: 1 }}>{display}</span><span style={{ fontSize: 14, color: '#4e5968', marginLeft: 4 }}>{unit}</span></>}
           {!withSlider && hint}
         </div>
         <RepeatButton label="늘리기" dir={1} {...adjust} />

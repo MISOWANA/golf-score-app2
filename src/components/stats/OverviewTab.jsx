@@ -76,7 +76,7 @@ export default function OverviewTab({ report, onGo }) {
               return (
                 <div key={t.id ?? i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: last ? COLOR.goldHi : COLOR.muted, marginBottom: 3 }}>{t.total}</div>
-                  <div style={{ width: '70%', maxWidth: 22, height: `${h}%`, borderRadius: '4px 4px 0 0', background: last ? COLOR.gold : 'rgba(201,162,40,0.4)' }} />
+                  <div style={{ width: '70%', maxWidth: 22, height: `${h}%`, borderRadius: '4px 4px 0 0', background: last ? COLOR.gold : 'rgba(27,100,218,0.4)' }} />
                   <div data-role="trend-date" style={{ fontSize: 12, color: COLOR.faint, marginTop: 4, whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.3 }}>{roundDateParts(t.date).md}<br />{roundDateParts(t.date).year}</div>
                 </div>
               );
@@ -87,7 +87,7 @@ export default function OverviewTab({ report, onGo }) {
         <Takeaway tone={scoreTake.tone}>{scoreTake.text}</Takeaway>
       </Card>
 
-      <Card id="skills" title="MY GAME" info={<>
+      <Card id="skills" title="내 게임" info={<>
         <p>영역마다 대표 숫자 하나만 보여요. 누르면 그 영역의 자세한 숫자로 넘어가요.</p>
         <p>"최근"은 최근 5라운드가 그 이전보다 좋아졌는지예요. 표본이 적으면 표시하지 않아요.</p>
         <p>강점·약점은 투어 평균과 비교한 샷별 손익(측정된 샷이 충분할 때) 또는 스코어 기준 손실로 정해요.</p>
@@ -98,9 +98,9 @@ export default function OverviewTab({ report, onGo }) {
             const c = tag === 'weak' ? COLOR.red : tag === 'strong' ? COLOR.green : COLOR.gold;
             return (
               <button key={t.id} type="button" data-role={`skill-${t.id}`} data-tag={tag ?? ''} onClick={() => onGo(t.id === 'shortGame' ? 'short' : t.id)}
-                style={{ ...tintWash(c, { strength: tag ? 0.14 : 0.08, border: tag ? 0.5 : 0.2, base: '#111827' }), borderRadius: 14, padding: '11px 12px 10px', textAlign: 'left', cursor: 'pointer', color: COLOR.text, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                style={{ ...tintWash(c, { strength: tag ? 0.14 : 0.08, border: tag ? 0.5 : 0.2, base: '#f2f4f6' }), borderRadius: 14, padding: '11px 12px 10px', textAlign: 'left', cursor: 'pointer', color: COLOR.text, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: '#c4cfe0' }}>{SKILL_LABEL[t.id]}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: '#333d4b' }}>{SKILL_LABEL[t.id]}</span>
                   {tag && <span data-role={`tag-${tag}`} style={{ fontSize: 12, fontWeight: 800, color: c, border: `1px solid ${c}`, borderRadius: 999, padding: '1px 7px' }}>{tag === 'weak' ? '약점' : '강점'}</span>}
                 </div>
                 <Metric value={t.value} unit={t.unit} label={t.label} sub={t.sub} />
@@ -150,7 +150,7 @@ export default function OverviewTab({ report, onGo }) {
             <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
               {composition.byPar.map((p) => (
                 <div key={p.par} data-role={`par-${p.par}`} style={{ flex: 1, textAlign: 'center', padding: '10px 4px', background: COLOR.track, borderRadius: 12, border: `1px solid ${p === parWorst && composition.byPar.length > 1 ? COLOR.red : 'transparent'}` }}>
-                  <div style={{ fontSize: 12, color: COLOR.muted, fontWeight: 700, letterSpacing: '0.06em' }}>PAR {p.par}</div>
+                  <div style={{ fontSize: 12, color: COLOR.muted, fontWeight: 700, letterSpacing:'0' }}>파 {p.par}</div>
                   <div style={{ fontSize: 18, fontWeight: 900, marginTop: 3, color: p === parWorst && composition.byPar.length > 1 ? COLOR.red : COLOR.text }}>{fmtSigned(p.avgDiff, 2)}</div>
                   <div style={{ fontSize: 12, color: COLOR.faint, marginTop: 2 }}>{p.count}홀 평균</div>
                 </div>

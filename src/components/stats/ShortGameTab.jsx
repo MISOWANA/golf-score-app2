@@ -31,7 +31,7 @@ export default function ShortGameTab({ report }) {
         <ConfidenceBadge tier={row.tier} />
       </div>
       {/* 항목 단위로만 줄이 바뀐다 — 줄 끝에 "0.6m" 만 떨어져 남지 않게 */}
-      <div style={{ fontSize: 14, color: '#c4cfe0', marginTop: 4, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14, color: '#333d4b', marginTop: 4, lineHeight: 1.6 }}>
         <span style={{ whiteSpace: 'nowrap' }}>첫 퍼트 <b style={{ color: COLOR.text }}>{fmtPuttMeters(row.medianDist, 1)}</b></span>
         <span aria-hidden="true" style={{ color: COLOR.faint }}> · </span>
         <span style={{ whiteSpace: 'nowrap' }}>평균 위치 <b style={{ color: COLOR.text }}>{alongText(row.mean.y)}</b></span>

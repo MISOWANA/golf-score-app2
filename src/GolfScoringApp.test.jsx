@@ -42,6 +42,8 @@ async function setup({ rounds = [], active = null, backupAtRounds = null, trashe
 }
 
 beforeEach(() => {
+  // 샷 기록 구역을 열어 둔 채로 — 예전 상세 입력 흐름 테스트가 그대로 돈다 (기본 모습은 scoringFlow.simple 에서 따로 본다)
+  try { localStorage.setItem('bb-shot-detail', '1'); } catch { /* 없으면 기본 */ }
   // jsdom 에 없는 브라우저 기능
   window.scrollTo = () => {};
   Element.prototype.scrollIntoView = () => {};
@@ -50,11 +52,17 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const tab = (label) => fireEvent.click(screen.getByTitle(label));
+// 화면 제목 — 아래 탭 이름과 같은 글자라서, 버튼 밖에 있는 글자만 제목으로 본다
+const pageTitle = (name) => waitFor(() => {
+  const el = screen.queryAllByText(name).find((e) => !e.closest('button'));
+  expect(el, `제목 "${name}"`).toBeTruthy();
+  return el;
+});
 
 async function openReportFromHistory(courseName) {
   tab('히스토리');
   fireEvent.click(await screen.findByText(courseName));
-  await screen.findByText('Round Report');
+  await pageTitle('라운드 리포트');
 }
 
 describe('진행 중인 라운드 보호', () => {
@@ -65,7 +73,7 @@ describe('진행 중인 라운드 보호', () => {
     fireEvent.click(screen.getByText('새 라운드 시작'));
 
     expect(await screen.findByText('진행 중인 라운드가 있어요')).toBeTruthy();
-    expect(screen.queryByText('New Round')).toBeNull();                              // 설정 화면으로 바로 가지 않았다
+    expect(screen.queryByPlaceholderText('골프장 이름 검색...')).toBeNull();                              // 설정 화면으로 바로 가지 않았다
     expect((await db.loadActiveRound([user.userId])).courseName).toBe('진행중CC');   // 진행 중 라운드 그대로
   });
 
@@ -86,7 +94,7 @@ describe('진행 중인 라운드 보호', () => {
     // 다시 눌러 확정하면 지우고 설정 화면으로
     fireEvent.click(screen.getByText('기존 기록 삭제하고 새 라운드'));
     fireEvent.click(await screen.findByText('삭제하고 새 라운드'));
-    await screen.findByText('New Round');
+    await screen.findByPlaceholderText('골프장 이름 검색...');
     expect(await db.loadActiveRound([user.userId])).toBeNull();
   });
 
@@ -108,11 +116,11 @@ describe('pars 가 없는 예전 백업 라운드', () => {
     await setup({ rounds: [makeFullRound(1), makeNoParsRound(2)] });
 
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     expect(screen.queryByText('화면을 표시하지 못했어요')).toBeNull();
 
     tab('인사이트');
-    await screen.findByText('Insights');
+    await pageTitle('인사이트');
     expect(screen.queryByText('화면을 표시하지 못했어요')).toBeNull();
 
     await openReportFromHistory('예전백업CC');
@@ -128,7 +136,7 @@ describe('입력하지 않은 홀이 있는 라운드의 리포트', () => {
     await openReportFromHistory('9홀연습장');
     expect(s.playedCount).toBe(9);
     expect(screen.getByText(`${s.girHoles}/9 holes`)).toBeTruthy();
-    expect(screen.queryByText(/\/18 holes/)).toBeNull();
+    expect(screen.queryByText(/\/18홀/)).toBeNull();
   });
 });
 
@@ -188,7 +196,7 @@ describe('스탯 숏게임 탭', () => {
     });
     return r;
   };
-  const openStats = async () => { tab('스탯'); await screen.findByText('Stats'); };
+  const openStats = async () => { tab('스탯'); await pageTitle('스탯'); };
 
   it('스탯 탭이 여섯 개이고, 숏게임은 어프로치와 퍼팅 사이에 있다', async () => {
     await setup({ rounds: [withChips()] });
@@ -272,7 +280,7 @@ describe('그린 놓친 방향 입력', () => {
   const savedMiss = async () => (await db.loadActiveRound([user.userId])).holes[0].scores[ME].greenMiss;
   const openFieldStage = async () => {
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     fireEvent.click(screen.getAllByText('필드샷').find((el) => el.closest('button')).closest('button'));
   };
 
@@ -320,14 +328,14 @@ describe('9홀 라운드', () => {
   it('설정에서 후반 9홀을 고르면 홀 번호는 1~9 이다 (10~18 을 보여 주지 않는다)', async () => {
     await setup();
     fireEvent.click(screen.getByText('시작하기'));
-    await screen.findByText('New Round');
+    await screen.findByPlaceholderText('골프장 이름 검색...');
 
     fireEvent.click(screen.getByRole('radio', { name: /후반 9홀/ }));
     expect(screen.getByRole('radio', { name: /후반 9홀/ }).getAttribute('aria-checked')).toBe('true');
     // 파 표는 9홀만 — OUT 표는 없고 홀 번호 칸은 1~9
     expect(screen.queryByText('FRONT')).toBeNull();
     expect(document.querySelectorAll('[data-role="par-cell"]')).toHaveLength(9);   // 파 칸 9개 (후반 9홀만)
-    const headerRow = screen.getByText('TOT').parentElement;
+    const headerRow = screen.getByText('합계').parentElement;
     expect(headerRow.textContent).toContain('123456789');
     expect(headerRow.textContent).not.toMatch(/10|18/);
 
@@ -335,9 +343,9 @@ describe('9홀 라운드', () => {
     fireEvent.click(screen.getByText('화이트'));
     fireEvent.click(screen.getByText('라운드 시작하기'));
 
-    await screen.findByText('HOLE 1');
-    expect(screen.queryByText('HOLE 10')).toBeNull();
-    expect(screen.getByText(/\/ 9 holes/)).toBeTruthy();
+    await screen.findByText('1번 홀');
+    expect(screen.queryByText('10번 홀')).toBeNull();
+    expect(screen.getByText(/\/9홀/)).toBeTruthy();
     const active = await db.loadActiveRound([user.userId]);
     expect(active.nine).toBe('in');
     expect(holeNumbersOf(active)).toEqual(ONE_TO_NINE);
@@ -347,13 +355,13 @@ describe('9홀 라운드', () => {
   it('설정에서 18홀(기본)을 고르면 예전처럼 18홀이다', async () => {
     await setup();
     fireEvent.click(screen.getByText('시작하기'));
-    await screen.findByText('New Round');
+    await screen.findByPlaceholderText('골프장 이름 검색...');
     expect(screen.getByRole('radio', { name: /^18홀/ }).getAttribute('aria-checked')).toBe('true');
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '직접입력CC' } });
     fireEvent.click(screen.getByText('화이트'));
     fireEvent.click(screen.getByText('라운드 시작하기'));
-    await screen.findByText('HOLE 1');
-    expect(screen.getByText(/\/ 18 holes/)).toBeTruthy();
+    await screen.findByText('1번 홀');
+    expect(screen.getByText(/\/18홀/)).toBeTruthy();
     expect((await db.loadActiveRound([user.userId])).holes).toHaveLength(18);
   });
 
@@ -365,18 +373,18 @@ describe('9홀 라운드', () => {
     await setup({ active });
 
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 9');
+    await screen.findByText('9번 홀');
     fireEvent.click(screen.getByRole('button', { name: /완료/ }));
 
     // 입력하지 않은 홀 확인 — 9번 홀이 비어 있다고 알려 준다
     expect(await screen.findByText(/입력하지 않은 홀이 있어요/)).toBeTruthy();
     expect(document.querySelector('[data-role="nine-finish-note"]')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /그대로 완료/ }));
-    await screen.findByText('Round Report');
+    await pageTitle('라운드 리포트');
     const tag = document.querySelector('[data-role="nine-tag"]').textContent;
     expect(tag).toContain('9홀');
     expect(tag).not.toMatch(/후반|전반/);
-    expect(screen.queryByText('FRONT 9')).toBeNull();
+    expect(screen.queryByText('전반 9홀')).toBeNull();
     expect(screen.queryByText('BACK 9')).toBeNull();
     expect(screen.getByText(/점선 칸 1개/)).toBeTruthy();
 
@@ -391,7 +399,7 @@ describe('9홀 라운드', () => {
   it.each(['out', 'in'])('18홀로 시작해 한쪽(%s) 9홀만 입력하고 끝내면 "9홀로 완료" — 9홀 라운드(1~9번)로 저장된다', async (side) => {
     await setup({ active: partialActive(side) });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 18');
+    await screen.findByText('18번 홀');
     fireEvent.click(screen.getByRole('button', { name: /완료/ }));
 
     expect(await screen.findByText('9홀만 입력했어요')).toBeTruthy();
@@ -402,7 +410,7 @@ describe('9홀 라운드', () => {
     expect((await db.loadRoundsByUser([user.userId])).length).toBe(0);   // 확인 전에는 저장하지 않았다
 
     fireEvent.click(screen.getByRole('button', { name: '9홀로 완료' }));
-    await screen.findByText('Round Report');
+    await pageTitle('라운드 리포트');
     expect(document.querySelector('[data-role="nine-tag"]').textContent).toContain('9홀');
     expect(screen.queryByText('BACK 9')).toBeNull();
 
@@ -465,7 +473,7 @@ describe('9홀 라운드', () => {
     it('변환된 라운드는 스탯에서 빠지고, 안내 문구가 그 수를 알려 준다 (18홀 평균이 바뀌지 않는다)', async () => {
       await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeHalfRound(3)] });
       tab('스탯');
-      await screen.findByText('Stats');
+      await pageTitle('스탯');
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 1개는 집계에서 제외돼요/);
       expect(document.querySelector('[data-role="score-empty"]')).toBeNull();        // 18홀 2개로 평균을 낸다
     });
@@ -475,7 +483,7 @@ describe('9홀 라운드', () => {
     it('스탯 위에 9홀 제외 안내가 뜬다', async () => {
       await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeNineRound(3, 'in')] });
       tab('스탯');
-      await screen.findByText('Stats');
+      await pageTitle('스탯');
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 1개는 집계에서 제외돼요/);
       expect(document.querySelector('[data-role="multi-excluded"]')).toBeNull();
     });
@@ -483,20 +491,20 @@ describe('9홀 라운드', () => {
     it('인사이트 위에도 같은 안내가 뜬다', async () => {
       await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeNineRound(3, 'out')] });
       tab('인사이트');
-      await screen.findByText('Insights');
+      await pageTitle('인사이트');
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 1개는 집계에서 제외돼요/);
     });
 
     it('9홀 라운드만 있으면 스탯·인사이트는 빈 화면과 안내를 보여 주고 죽지 않는다', async () => {
       await setup({ rounds: [makeNineRound(1, 'out'), makeNineRound(2, 'in')] });
       tab('스탯');
-      await screen.findByText('Stats');
+      await pageTitle('스탯');
       expect(screen.getByText('아직 통계가 없어요')).toBeTruthy();
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 2개는 집계에서 제외돼요/);
       expect(screen.queryByText('화면을 표시하지 못했어요')).toBeNull();
 
       tab('인사이트');
-      await screen.findByText('Insights');
+      await pageTitle('인사이트');
       expect(screen.getByText('아직 분석할 라운드가 없어요')).toBeTruthy();
       expect(document.querySelector('[data-role="nine-excluded"]').textContent).toMatch(/9홀 라운드 2개는 집계에서 제외돼요/);
       expect(screen.queryByText('화면을 표시하지 못했어요')).toBeNull();
@@ -517,7 +525,7 @@ describe('스탯 어프로치 — 그린을 놓친 방향', () => {
   };
   const openApproach = async () => {
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     fireEvent.click(document.querySelector('[data-role="stats-tab-approach"]'));
   };
 
@@ -558,14 +566,14 @@ describe('스코어 입력 — 홀 표의 SCORE · PUTT 줄', () => {
   const resume = async (active) => {
     await setup({ active });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText(/^HOLE \d+$/);
+    await screen.findByText(/^\d+번 홀$/);
   };
 
-  it('SCORE 줄 아래에 PUTT 줄이 있고, 입력한 홀은 숫자 · 입력하지 않은 홀은 - 로 보인다', async () => {
+  it('스코어 줄 아래에 퍼트 줄이 있고, 입력한 홀은 숫자 · 입력하지 않은 홀은 - 로 보인다', async () => {
     const active = makeActiveRound();
     await resume(active);
     const [out, inn] = navTables();
-    expect([out.scoreLabel, out.puttLabel]).toEqual(['SCORE', 'PUTT']);
+    expect([out.scoreLabel, out.puttLabel]).toEqual(['스코어', '퍼트']);
 
     const entered = (key) => active.holes.slice(0, 3).map((h) => String(h.scores[ME][key]));
     expect(out.score).toEqual([...entered('strokes'), ...Array(6).fill('-')]);       // 1~3번 홀만 입력 — 나머지는 기본값(파)이 아니라 -
@@ -615,10 +623,11 @@ describe('스코어 입력 — 홀 표의 SCORE · PUTT 줄', () => {
 describe('인사이트 — 제목 · 상태 표시', () => {
   const openInsights = async (chapter) => {
     tab('인사이트');
-    await screen.findByText('Insights');
+    await pageTitle('인사이트');
     if (chapter) fireEvent.click(document.querySelector(`[data-role="insights-tab-${chapter}"]`));
   };
   const titles = () => [...document.querySelectorAll('[data-role="title-ko"]')].map((ko) => ({ ko: ko.firstChild.textContent, en: ko.nextElementSibling?.textContent }));
+  const koTitles = () => titles().map((t) => t.ko);
 
   it('상태 칩은 기호 없이 글자만 보인다 (심각 · 주의 · 참고 · 좋은 점)', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
@@ -628,24 +637,24 @@ describe('인사이트 — 제목 · 상태 표시', () => {
     chips.forEach((t) => expect(t).toMatch(/^(심각|주의|참고|좋은 점)$/));
   });
 
-  it('섹션 제목은 한글이 위 줄, 영문이 아래 줄이다 (개선 포인트 · 스코어 기준 손실 등)', async () => {
+  it('섹션 제목은 한글 한 줄만 보인다 (영문 이름 줄은 없다)', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
     await openInsights();
-    expect(titles()).toContainEqual({ ko: '잘한 점', en: 'STRENGTHS' });
-    expect(titles()).toContainEqual({ ko: '개선 포인트', en: 'IMPROVE' });
+    expect(koTitles()).toContain('잘한 점');
+    expect(koTitles()).toContain('개선 포인트');
+    expect(document.querySelector('[data-role="title-en"]')).toBeNull();
 
     fireEvent.click(document.querySelector('[data-role="insights-tab-strokes"]'));
-    await waitFor(() => expect(titles().some((t) => t.en === 'SCORE BREAKDOWN')).toBe(true));
-    expect(titles()).toContainEqual({ ko: '스코어 기준 손실 (파 대비)', en: 'SCORE BREAKDOWN' });
-    // 한 줄 "영문 · 한글" 제목이 남아 있지 않다
-    expect(document.body.textContent).not.toMatch(/SCORE BREAKDOWN · /);
+    await waitFor(() => expect(koTitles()).toContain('스코어 기준 손실 (파 대비)'));
+    // 영문 대문자 이름이 어디에도 붙어 있지 않다
+    expect(document.body.textContent).not.toMatch(/SCORE BREAKDOWN|STRENGTHS|IMPROVE/);
   });
 
-  it('(!) 설명 버튼은 한글 줄 끝에 붙는다', async () => {
+  it('(!) 설명 버튼은 제목 줄 끝에 붙는다', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
     await openInsights('strokes');
-    await waitFor(() => expect(titles().some((t) => t.en === 'SCORE BREAKDOWN')).toBe(true));
-    const ko = [...document.querySelectorAll('[data-role="title-ko"]')].find((el) => el.nextElementSibling?.textContent === 'SCORE BREAKDOWN');
+    await waitFor(() => expect(koTitles()).toContain('스코어 기준 손실 (파 대비)'));
+    const ko = [...document.querySelectorAll('[data-role="title-ko"]')].find((el) => el.firstChild.textContent === '스코어 기준 손실 (파 대비)');
     expect(ko.querySelector('[data-role="info-note"]')).toBeTruthy();
   });
 });
@@ -653,7 +662,7 @@ describe('인사이트 — 제목 · 상태 표시', () => {
 describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
   // makeFullRound(i) 의 날짜는 2026-09-(1 + 3i) → 1번 9.4 · 2번 9.7 · 3번 9.10 (모두 2026년)
   const YMD = /^\d{4}\.\d{1,2}\.\d{1,2}$/;
-  const openInsights = async () => { tab('인사이트'); await screen.findByText('Insights'); };
+  const openInsights = async () => { tab('인사이트'); await pageTitle('인사이트'); };
   // 장(탭)을 차례로 열어 가며 찾는 요소가 나올 때까지
   const findInChapters = async (selector) => {
     for (const t of [...document.querySelectorAll('[data-role^="insights-tab-"]')]) {
@@ -750,7 +759,7 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
   it('스탯 어프로치의 LANDING 카드도 인사이트 분포와 같은 80m 밖 샷만 센다', async () => {
     await setup({ rounds: [chipRound(SPEC)] });
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-approach"]'); expect(t).toBeTruthy(); return t; }));
     const card = await waitFor(() => { const c = document.querySelector('[data-role="card-landing"]'); expect(c).toBeTruthy(); return c; });
     expect(card.textContent).toContain('3번');                                                  // 숏 3 (6시 3홀)
@@ -762,7 +771,7 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
   it('야드 모드 — 그 아래 "80m 안 샷으로 올린 …" 안내도 야드로 보인다 (미터가 남지 않는다)', async () => {
     await setup({ rounds: [chipRound(SPEC)], prefs: { unit: 'yd' } });
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-approach"]'); expect(t).toBeTruthy(); return t; }));
     const note = await waitFor(() => { const n = document.querySelector('[data-role="landing-short-note"]'); expect(n).toBeTruthy(); return n; });
     expect(note.textContent).toBe('87야드 안 샷으로 올린 5홀은 숏게임 탭의 핀 기준 탄착에서 봐요.');   // 80m = 87야드
@@ -777,7 +786,7 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
   it('스탯 종합 — 스코어 추이 막대 밑에 월/일과 연도가 두 줄로 보인다', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     const ticks = await waitFor(() => { const t = [...document.querySelectorAll('[data-role="trend-date"]')]; expect(t.length).toBeGreaterThan(1); return t; });
     expect(ticks.map((t) => t.textContent)).toContain('9/42026');       // <br/> 로 나뉜 두 줄 — 월/일 다음에 연도
     ticks.forEach((t) => expect(t.querySelector('br')).toBeTruthy());
@@ -787,7 +796,7 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     const at = (i) => makeFullRound(i, ME, { courseName: '남서울CC', id: `ns${i}` });
     await setup({ rounds: [at(1), at(2)] });
     fireEvent.click(screen.getByText('시작하기'));
-    await screen.findByText('New Round');
+    await screen.findByPlaceholderText('골프장 이름 검색...');
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '남서울CC' } });
     const card = await waitFor(() => { const c = document.querySelector('[data-role="course-history"]'); expect(c).toBeTruthy(); return c; });
     expect(card.querySelector('[data-role="course-recent"]').textContent).toMatch(/2026\.9\.7.*2026\.9\.4/);
@@ -806,7 +815,7 @@ describe('퍼팅 상세 분석 — 거리 · 라이 · 미스 위치', () => {
   const rs = () => [puttRound(2, 6), puttRound(1, 0)];
   const openPutting = async () => {
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="stats-tab-putting"]'); expect(t).toBeTruthy(); return t; }));
     await waitFor(() => expect(document.querySelector('[data-role="tab-putting"]')).toBeTruthy());
   };
@@ -967,7 +976,7 @@ describe('홈 — 핸디캡 · 내 폼', () => {
     expect(form).toBeTruthy();
     expect(document.querySelector('[data-role="form-avg"]').textContent).toMatch(/^\d+\.\d타$/);
     fireEvent.click(form);
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
   });
 });
 
@@ -1007,7 +1016,7 @@ describe('홈 — 백업 안내', () => {
   it('"자세히"는 설정 화면을 연다', async () => {
     await setup({ rounds: rounds18(2) });
     fireEvent.click(document.querySelector('[data-role="nudge-settings"]'));
-    await screen.findByText('Settings');
+    await pageTitle('설정');
     expect(document.querySelector('[data-role="settings-view"]')).toBeTruthy();
   });
 });
@@ -1015,7 +1024,7 @@ describe('홈 — 백업 안내', () => {
 describe('설정 화면', () => {
   const openSettings = async () => {
     fireEvent.click(document.querySelector('[data-role="open-settings"]'));
-    await screen.findByText('Settings');
+    await pageTitle('설정');
   };
 
   it('홈 위쪽 톱니 버튼으로 열고 뒤로 가면 홈으로 돌아온다', async () => {
@@ -1124,15 +1133,15 @@ describe('설정 화면', () => {
 });
 
 describe('라운드 요약 카드 (Round Report 맨 위)', () => {
-  it('리포트를 열면 카드가 점수 · KEY STATS 보다 먼저 나온다', async () => {
+  it('리포트를 열면 카드가 점수 · 핵심 기록 보다 먼저 나온다', async () => {
     const rounds = rounds18(4);
     await setup({ rounds });
     await openReportFromHistory(rounds[3].courseName);
     const card = document.querySelector('[data-role="round-card"]');
     expect(card).toBeTruthy();
     expect(card.textContent).toContain('라운드 요약');
-    expect(card.compareDocumentPosition(screen.getByText('KEY STATS')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(card.compareDocumentPosition(screen.getByText('FRONT 9')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(card.compareDocumentPosition(screen.getByText('핵심 기록')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(card.compareDocumentPosition(screen.getByText('전반 9홀')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('총평 문장과 점수는 리포트·엔진과 같다 (화면 간 일치)', async () => {
@@ -1195,9 +1204,9 @@ describe('라운드 요약 카드 (Round Report 맨 위)', () => {
     active.currentHole = 17;
     await setup({ rounds, active });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 18');
+    await screen.findByText('18번 홀');
     fireEvent.click(screen.getByRole('button', { name: /완료/ }));
-    await screen.findByText('Round Report');
+    await pageTitle('라운드 리포트');
     expect(document.querySelector('[data-role="round-card"]')).toBeTruthy();
   });
 
@@ -1261,7 +1270,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     return round;
   };
   const saved = async (hole = 0) => (await db.loadActiveRound([user.userId])).holes[hole].scores[ME];
-  const resume = async (active, label = 'HOLE 1') => {
+  const resume = async (active, label = '1번 홀') => {
     await setup({ active });
     fireEvent.click(screen.getByText('이어서'));
     await screen.findByText(label);
@@ -1270,7 +1279,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     const tab = await waitFor(() => { const t = document.querySelector(`[data-role="shot-tab-${name}"]`); expect(t).toBeTruthy(); return t; });
     fireEvent.click(tab);
   };
-  const nextButton = () => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '다음');
+  const nextButton = () => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '다음 홀');
   const second = { secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150 };
 
   it('티샷 클럽만 골라도 필드샷 탭이 열린다 (구질 · 페어웨이 · 랜딩은 선택)', async () => {
@@ -1444,7 +1453,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
         await waitFor(async () => expect(await saved()).toMatchObject({ secondSurface: 'rough', secondSurfaceAuto: false, fairway: false, fairwayDerived: true }));
         await openTee();
         expect(document.querySelector('[data-role="tee-fairway-derived"]').textContent).toMatch(/페어웨이가 아니라 X 로 자동 선택/);
-        expect(document.querySelector('[data-role="tee-fairway-miss"]').style.color).toBe('rgb(239, 83, 80)');   // X 가 눌린 모양
+        expect(document.querySelector('[data-role="tee-fairway-miss"]').style.color).toBe('rgb(200, 50, 58)');   // X 가 눌린 모양
       });
 
       it('티샷 X 로 둔 뒤 세컨샷 지형을 페어웨이로 바꾸면 O 가 되고, 다시 티샷 O/X 를 누르면 직접 고른 값으로 돌아간다', async () => {
@@ -1610,7 +1619,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
         await waitFor(async () => expect((await saved()).extraShots).toHaveLength(1));
         expect((await screen.findAllByText(/써드샷 \( 3rd \)/)).length).toBeGreaterThan(0);
         expect(document.querySelector('[data-role="second-result"]')).toBeTruthy();                 // 줄이 사라지지 않는다
-        expect(missColor()).toBe('rgb(239, 83, 80)');                                               // 실패 쪽이 눌려 있다
+        expect(missColor()).toBe('rgb(200, 50, 58)');                                               // 실패 쪽이 눌려 있다
 
         click('second-result-on');
         await waitFor(async () => expect(await saved()).toMatchObject({ onGreen: true, gir: true, girAuto: false, extraShots: [] }));
@@ -1658,7 +1667,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       });
 
       it('파5: 2온도 같다 — 레이업(실패)으로 써드샷이 생겨도 2온 성공으로 고치면 지워진다', async () => {
-        await resume(shotRound({ ...second, onGreen: null, gir: null }, 3), 'HOLE 4');
+        await resume(shotRound({ ...second, onGreen: null, gir: null }, 3), '4번 홀');
         await open();
         click('second-result-miss');
         await waitFor(async () => expect((await saved(3)).extraShots).toHaveLength(1));
@@ -1668,7 +1677,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       });
 
       it('파3: 티샷을 놓친 뒤 세컨샷 실패 → 온그린 성공으로 고치면 써드샷이 지워진다', async () => {
-        await resume(shotRound({ teeClub: 'iron', teeOnGreen: false, secondClub: 'wedge', secondClubSub: '52', remainingDistance: 20, onGreen: null, gir: false, girAuto: false }, 2), 'HOLE 3');
+        await resume(shotRound({ teeClub: 'iron', teeOnGreen: false, secondClub: 'wedge', secondClubSub: '52', remainingDistance: 20, onGreen: null, gir: false, girAuto: false }, 2), '3번 홀');
         await open();
         click('second-result-miss');
         await waitFor(async () => expect((await saved(2)).extraShots).toHaveLength(1));
@@ -1716,7 +1725,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       expect(ask.textContent).toContain('샷 정보가 비어 있어요');
       expect([...ask.querySelectorAll('[data-role="info-ask-gap"]')].map((g) => g.textContent)).toEqual([expect.stringMatching(/세컨샷.*라이 · 지형$/)]);
       fireEvent.click(screen.getByRole('button', { name: '그대로 다음 홀' }));
-      await screen.findByText('HOLE 2');
+      await screen.findByText('2번 홀');
     });
 
     it('"입력하러 가기"는 비어 있는 샷의 필드샷 탭을 연다', async () => {
@@ -1737,12 +1746,12 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     it('모두 채우면 확인 없이 다음 홀로 간다 (구질 · 랜딩 · 그린 랜딩 방향이 없어도)', async () => {
       await resume(shotRound({ ...filled }));
       fireEvent.click(nextButton());
-      await screen.findByText('HOLE 2');
+      await screen.findByText('2번 홀');
       expect(document.querySelector('[data-role="hole-check"]')).toBeNull();
     });
 
     it('파3: 티샷 거리가 비어 있으면 알려 준다', async () => {
-      await resume(shotRound({ teeClub: 'iron', teeOnGreen: true, onGreen: null, gir: true }, 2), 'HOLE 3');
+      await resume(shotRound({ teeClub: 'iron', teeOnGreen: true, onGreen: null, gir: true }, 2), '3번 홀');
       fireEvent.click(nextButton());
       const ask = await waitFor(() => { const a = document.querySelector('[data-role="hole-check"]'); expect(a).toBeTruthy(); return a; });
       expect(ask.querySelector('[data-role="info-ask-gap"]').textContent).toMatch(/^티샷 · 거리$/);
@@ -1789,7 +1798,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     });
 
     it('파3: 티샷 탭의 핀 위치도 펼쳐져 있다', async () => {
-      await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), 'HOLE 3');
+      await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), '3번 홀');
       await openTab('tee');
       await waitFor(() => expect(document.querySelector('[data-role="pin-position"]')).toBeTruthy());
       expect(pinOptions()).toEqual(expect.arrayContaining(['선택입력▲', '센터', '프론트']));
@@ -1927,7 +1936,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     });
 
     it('파3 티샷 거리: 50~250m 슬라이더로 맞춘다', async () => {
-      await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), 'HOLE 3');
+      await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), '3번 홀');
       await openTab('tee');
       const s = await waitFor(() => { const x = sliders()[0]; expect(x).toBeTruthy(); return x; });
       expect([s.min, s.max]).toEqual(['50', '250']);
@@ -1960,7 +1969,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     const resumeWith = async (active, prefs) => {
       await setup({ active, prefs });
       fireEvent.click(screen.getByText('이어서'));
-      await screen.findByText('HOLE 1');
+      await screen.findByText('1번 홀');
     };
     const pickPutts = (n) => fireEvent.click([...document.querySelectorAll('button')].find((b) => b.textContent === String(n) && b.parentElement.children.length === 5));
     const savedPutts = async () => (await saved()).puttDetails;
@@ -2053,7 +2062,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
   describe('설정 — 첫 퍼팅 기본 거리 고르기', () => {
     const openSettings = async () => {
       fireEvent.click(document.querySelector('[data-role="open-settings"]'));
-      await screen.findByText('Settings');
+      await pageTitle('설정');
     };
     const slider = () => document.querySelector('[data-role="first-putt-input"] [data-role="dist-slider"]');
     const note = () => document.querySelector('[data-role="first-putt-note"]').textContent;
@@ -2388,7 +2397,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       const bar = document.querySelector('[data-role="putt-actions"]');
       expect(bar.closest('[data-role="putt-cards"]')).toBeTruthy();                      // 퍼팅 카드들을 담은 상자 안에서 붙는다
       expect(bar.style.position).toBe('sticky');
-      expect(bar.style.bottom).toContain('76px');                                        // 아래 탭바 바로 위
+      expect(bar.style.bottom).toContain('80px');                                        // 아래 탭바 바로 위
       expect(bar.contains(document.querySelector('[data-role="putt-primary"]'))).toBe(true);
       expect(bar.contains(document.querySelector('[data-role="putt-next"]'))).toBe(true);
       expect(bar.contains(document.querySelector('[data-role="off-green"]'))).toBe(false);
@@ -2455,7 +2464,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
 });
 
 describe('삭제 되돌리기 (휴지통)', () => {
-  const openHistory = async () => { tab('히스토리'); await screen.findByText('History'); };
+  const openHistory = async () => { tab('히스토리'); await pageTitle('히스토리'); };
   const deleteRoundNamed = async (name) => {
     const card = (await screen.findByText(name)).closest('div[style*="border-radius"]');
     fireEvent.click(card.querySelector('button[aria-label="라운드 삭제"]'));
@@ -2705,14 +2714,14 @@ describe('다음 라운드 목표', () => {
     it('라운드 설정 화면에 오늘의 목표가 한 줄 보인다', async () => {
       await setup({ rounds: rounds18(2), goals: [G('threePutts', 2)] });
       fireEvent.click(screen.getByText('시작하기'));
-      await screen.findByText('New Round');
+      await screen.findByPlaceholderText('골프장 이름 검색...');
       expect(document.querySelector('[data-role="goal-line"]').textContent).toContain('오늘의 목표 · 3퍼트 2회 이하');
     });
 
     it('목표가 없으면 아무것도 보이지 않는다', async () => {
       await setup({ rounds: rounds18(2) });
       fireEvent.click(screen.getByText('시작하기'));
-      await screen.findByText('New Round');
+      await screen.findByPlaceholderText('골프장 이름 검색...');
       expect(document.querySelector('[data-role="goal-line"]')).toBeNull();
     });
 
@@ -2721,7 +2730,7 @@ describe('다음 라운드 목표', () => {
       active.holes.slice(0, 3).forEach((h) => { h.scores[ME] = played(h.par, { strokes: h.par + 1, putts: 3 }); });
       await setup({ active, goals: [G('threePutts', 2), G('birdies', 1)] });
       fireEvent.click(screen.getByText('이어서'));
-      await screen.findByText('HOLE 4');
+      await screen.findByText('4번 홀');
       const items = [...document.querySelectorAll('[data-role="goal-line-item"]')];
       expect(items).toHaveLength(2);
       expect(items[0].textContent).toContain('3퍼트 2회 이하');
@@ -2734,7 +2743,7 @@ describe('다음 라운드 목표', () => {
     it('인사이트의 다음 라운드 포커스에서도 목표로 정할 수 있다', async () => {
       await setup({ rounds: rounds18(4) });
       tab('인사이트');
-      await screen.findByText('Insights');
+      await pageTitle('인사이트');
       fireEvent.click(document.querySelector('[data-role="insights-tab-next"]'));
       const btn = await waitFor(() => { const b = document.querySelector('[data-role="focus-set-goal"]'); expect(b).toBeTruthy(); return b; });
       fireEvent.click(btn);
@@ -2762,7 +2771,7 @@ describe('같은 코스 과거 기록 카드 (라운드 설정)', () => {
     r.holes.forEach((h, idx) => { h.scores[ME] = played(h.par, { strokes: h.par + (idx === 3 ? 2 : idx === 11 ? 1 : 0), putts: 2, memo: idx === 6 && i === 3 ? '왼쪽 OB 조심' : '' }); });
     return r;
   };
-  const openSetup = async () => { fireEvent.click(screen.getByText('시작하기')); await screen.findByText('New Round'); };
+  const openSetup = async () => { fireEvent.click(screen.getByText('시작하기')); await screen.findByPlaceholderText('골프장 이름 검색...'); };
   const typeCourse = (name) => fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: name } });
   const card = () => document.querySelector('[data-role="course-history"]');
 
@@ -2900,19 +2909,19 @@ describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
     return round;
   };
   const filled = { secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, terrainCondition: 'flat', secondSurface: 'fairway' };
-  const resume = async (active, label = 'HOLE 1') => {
+  const resume = async (active, label = '1번 홀') => {
     await setup({ active });
     fireEvent.click(screen.getByText('이어서'));
     await screen.findByText(label);
   };
-  const nextButton = () => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '다음');
+  const nextButton = () => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '다음 홀');
   const checks = () => document.querySelectorAll('[data-role="hole-check"]');
   const saved = async (hole = 0) => (await db.loadActiveRound([user.userId])).holes[hole].scores[ME];
 
   it('확인할 게 없으면 창 없이 바로 다음 홀로 간다', async () => {
     await resume(shotRound({ ...filled }));
     fireEvent.click(nextButton());
-    await screen.findByText('HOLE 2');
+    await screen.findByText('2번 홀');
     expect(checks()).toHaveLength(0);
   });
 
@@ -2925,7 +2934,7 @@ describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
     expect(box.textContent).toContain('퍼팅을 몇 번 했나요?');
     expect(box.querySelector('[data-role="info-ask-gap"]')).toBeNull();
     fireEvent.click(box.querySelector('[data-role="putt-ask-3"]'));
-    await screen.findByText('HOLE 2');
+    await screen.findByText('2번 홀');
     expect(checks()).toHaveLength(0);
     expect((await saved(0))).toMatchObject({ putts: 3, puttsManual: true, confirmed: true });
   });
@@ -2938,7 +2947,7 @@ describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
     expect(box.getAttribute('data-putts')).toBe('0');
     expect(box.querySelector('[data-role="putt-ask"]')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '그대로 다음 홀' }));
-    await screen.findByText('HOLE 2');
+    await screen.findByText('2번 홀');
     expect(checks()).toHaveLength(0);                                       // 연속으로 다른 창이 뜨지 않는다
   });
 
@@ -2953,7 +2962,7 @@ describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
     expect(box.querySelector('[data-role="putt-ask"]')).toBeTruthy();
     expect(box.textContent).toMatch(/숫자를 누르면 샷 정보는 비운 채 다음 홀로 이동해요/);
     fireEvent.click(box.querySelector('[data-role="putt-ask-2"]'));
-    await screen.findByText('HOLE 2');
+    await screen.findByText('2번 홀');
     expect(checks()).toHaveLength(0);
     expect((await saved(0)).putts).toBe(2);
   });
@@ -2965,7 +2974,7 @@ describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
     await waitFor(() => expect(document.querySelector('[data-role="second-surface"]')).toBeTruthy());
     expect(checks()).toHaveLength(0);
     expect((await saved(0)).confirmed).toBe(false);                         // 아직 확정하지 않았다
-    expect(screen.queryByText('HOLE 2')).toBeNull();
+    expect(screen.queryByText('2번 홀')).toBeNull();
   });
 
   it('둘 다 해당할 때 "취소"는 아무것도 바꾸지 않고 닫는다', async () => {
@@ -2979,7 +2988,7 @@ describe('다음 · 완료 확인 창 통합 (샷 정보 + 퍼팅 수)', () => {
   it('마지막 홀 "완료"도 같은 한 창이다', async () => {
     const round = makeActiveRound(ME, { currentHole: 17 });
     round.holes[17].scores[ME] = played(4, { confirmed: false, teeClub: 'driver', putts: 2, puttsManual: false, strokes: 4, gir: true, girAuto: false, onGreen: true, secondClub: 'iron', remainingDistance: 150 });
-    await resume(round, 'HOLE 18');
+    await resume(round, '18번 홀');
     fireEvent.click(screen.getByRole('button', { name: /완료/ }));
     const box = await waitFor(() => { const b = document.querySelector('[data-role="hole-check"]'); expect(b).toBeTruthy(); return b; });
     expect(box.getAttribute('data-info')).toBe('1');
@@ -2994,14 +3003,14 @@ describe('홈', () => {
   it('최근 라운드를 누르면 그 라운드의 리포트가 열린다', async () => {
     await setup({ rounds: [makeFullRound(1)] });
     fireEvent.click(await screen.findByText('남서울CC'));
-    await screen.findByText('Round Report');
+    await pageTitle('라운드 리포트');
   });
 });
 
 describe('새 라운드 설정', () => {
   const goSetup = async () => {
     fireEvent.click(screen.getByText('시작하기'));
-    await screen.findByText('New Round');
+    await screen.findByPlaceholderText('골프장 이름 검색...');
   };
 
   it('시작할 수 없는 이유를 보여 주고, 채우면 사라진다', async () => {
@@ -3038,7 +3047,7 @@ describe('새 라운드 설정', () => {
 describe('거리 단위 (미터 · 야드)', () => {
   const openSettings = async () => {
     fireEvent.click(document.querySelector('[data-role="open-settings"]'));
-    await screen.findByText('Settings');
+    await pageTitle('설정');
   };
   const checked = (id) => document.querySelector(`[data-role="unit-${id}"]`).getAttribute('aria-checked');
   const IRON = [{ id: 'iron7', name: '7i', type: 'Iron', carry: 130, total: 140 }];   // 140m = 153야드
@@ -3068,7 +3077,7 @@ describe('거리 단위 (미터 · 야드)', () => {
 
   it('마이백: 야드 모드에서는 클럽 거리가 야드로 보이고, 야드로 고친 값은 미터(소수 한 자리)로 저장된다', async () => {
     await setup({ clubs: IRON, prefs: { unit: 'yd' } });
-    tab('MY BAG');
+    tab('마이백');
     const total = () => document.querySelector('[data-role="club-total-iron7"]').textContent;
     await waitFor(() => expect(total()).toBe('153'));
     expect(document.querySelector('[data-role="club-carry-iron7"]').textContent).toBe('142');   // 130m
@@ -3087,7 +3096,7 @@ describe('거리 단위 (미터 · 야드)', () => {
 
   it('마이백: 같은 클럽을 미터로 보면 미터로 보인다 (소수 미터는 반올림)', async () => {
     await setup({ clubs: [{ ...IRON[0], total: 144.5 }] });
-    tab('MY BAG');
+    tab('마이백');
     await waitFor(() => expect(document.querySelector('[data-role="club-total-iron7"]').textContent).toBe('145'));
   });
 
@@ -3103,7 +3112,7 @@ describe('거리 단위 (미터 · 야드)', () => {
     return r;
   };
   const openBagChart = async () => {
-    tab('MY BAG');
+    tab('마이백');
     fireEvent.click(await screen.findByText('거리표'));
   };
 
@@ -3138,7 +3147,7 @@ describe('거리 단위 (미터 · 야드)', () => {
 
   it('보이는 값 그대로 다시 입력하면 저장된 미터 값을 건드리지 않는다 (변경으로 치지 않는다)', async () => {
     await setup({ clubs: IRON, prefs: { unit: 'yd' } });
-    tab('MY BAG');
+    tab('마이백');
     fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="club-open-iron7"]'); expect(b).toBeTruthy(); return b; }));
     const input = await waitFor(() => { const i = document.querySelector('[data-role="total-input"]'); expect(i).toBeTruthy(); return i; });
     fireEvent.focus(input);
@@ -3156,7 +3165,7 @@ describe('거리 단위 (미터 · 야드)', () => {
     round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
     await setup({ active: round, prefs: { unit: 'yd' } });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     await waitFor(() => expect(document.body.textContent).toContain('슬라이드로 1yd 단위 조정'));
     expect(document.body.textContent).toContain('164');   // 150m = 164야드
@@ -3166,7 +3175,7 @@ describe('거리 단위 (미터 · 야드)', () => {
     round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
     await setup({ active: round, prefs: { unit: 'yd' } });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     const shown = await waitFor(() => { const s = [...document.querySelectorAll('span')].find((x) => x.textContent === '164'); expect(s).toBeTruthy(); return s; });
     const plus = [...shown.closest('[data-role="dist-value"]').parentElement.parentElement.querySelectorAll('button')].find((b) => b.textContent === '+');
@@ -3179,7 +3188,7 @@ describe('거리 단위 (미터 · 야드)', () => {
     round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
     await setup({ active: round, prefs: { unit: 'yd' } });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     const slider = await waitFor(() => { const s = document.querySelector('[data-role="dist-slider"]'); expect(s).toBeTruthy(); return s; });
     expect(slider.value).toBe('164');                   // 150m = 164야드
@@ -3230,7 +3239,7 @@ describe('거리 단위 — 화면 전체 훑어보기', () => {
       fireEvent.click(await open(`insights-tab-${t}`));
       scan(`인사이트 ${t}`); openNotes(`인사이트 ${t}`);
     }
-    tab('MY BAG');
+    tab('마이백');
     await open('club-total-iron7');
     scan('마이백'); openNotes('마이백');
     await openReportFromHistory('테스트CC3');
@@ -3254,7 +3263,7 @@ describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 �
   const resume = async (active) => {
     await setup({ active });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 4');
+    await screen.findByText('4번 홀');
   };
   const openEdit = async () => {
     fireEvent.click(document.querySelector('[data-role="round-edit"]'));
@@ -3269,7 +3278,7 @@ describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 �
     await openEdit();
     expect(document.querySelector('[data-role="edit-green-speed"]')).toBeTruthy();
     expect(document.querySelector('[data-role="edit-green-speed"] [data-role="gs-preset-medium"]').getAttribute('aria-pressed')).toBe('true');   // 지금 값(보통)이 골라져 있다
-    expect(screen.getByText('TOTAL PAR')).toBeTruthy();
+    expect(screen.getByText('전체 파')).toBeTruthy();
   });
 
   it('그린 스피드를 바꿔 저장하면 라운드에 반영되고 퍼팅 화면의 줄에도 보인다', async () => {
@@ -3325,7 +3334,7 @@ describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 �
     const multi = { ...makeMultiRound(1), id: 'active-multi', completed: false, currentHole: 3 };
     await setup({ active: multi });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 4');
+    await screen.findByText('4번 홀');
     await openEdit();
     expect(document.querySelector('[data-role="edit-green-speed"]')).toBeNull();
   });
@@ -3337,7 +3346,7 @@ describe('스코어 입력 — 비어 있는 거리 칸', () => {
     round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: null, putts: 2, puttsManual: true });
     await setup({ active: round });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     const empty = await waitFor(() => { const e = document.querySelector('[data-role="empty-value"]'); expect(e).toBeTruthy(); return e; });
     const box = empty.parentElement;
@@ -3374,7 +3383,7 @@ describe('홈 — 진행 중인 라운드가 있으면 "이어서"가 주인공'
     fireEvent.click(screen.getByText('시작하기'));
     expect(await screen.findByText('진행 중인 라운드가 있어요')).toBeTruthy();
     fireEvent.click(screen.getByText('이어서 기록하기'));
-    expect(await screen.findByText('HOLE 4')).toBeTruthy();
+    expect(await screen.findByText('4번 홀')).toBeTruthy();
   });
 });
 
@@ -3382,29 +3391,28 @@ describe('스코어 입력 — 아래 막대의 메모', () => {
   const resume = async (active) => {
     await setup({ active });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 4');
+    await screen.findByText('4번 홀');
   };
   const memoBtn = () => document.querySelector('[data-role="memo-button"]');
 
   it('메모가 없어도 흐려 보이지 않는 일반 글자색이고, 이름이 있다', async () => {
     await resume(makeActiveRound(ME));
     expect(memoBtn().getAttribute('data-has-memo')).toBe('0');
-    expect(memoBtn().style.color).toBe('rgb(232, 237, 248)');          // #e8edf8 — 이전 · 다음과 같은 색
+    expect(memoBtn().querySelector('svg').getAttribute('stroke')).toBe('#4e5968');   // 메모가 없으면 평범한 회색 아이콘 (대비 4.5 이상)
     expect(memoBtn().getAttribute('aria-label')).toBe('메모 쓰기');
-    expect(memoBtn().textContent).toBe('메모');
+    expect(memoBtn().textContent).toBe('');                              // 머리줄의 아이콘 버튼 — 글자 없이 이름(aria-label)만
     expect(document.querySelector('[data-role="memo-dot"]')).toBeNull();
   });
 
-  it('메모를 저장하면 금색 점과 "메모 ●" 로 있다는 걸 알려 준다', async () => {
+  it('메모를 저장하면 파란 점과 파란 아이콘으로 있다는 걸 알려 준다', async () => {
     await resume(makeActiveRound(ME));
     fireEvent.click(memoBtn());
     fireEvent.change(await screen.findByPlaceholderText(/티샷이 좌측 러프로/), { target: { value: '왼쪽 OB 조심' } });
     fireEvent.click(screen.getAllByText('저장').pop());
     await waitFor(() => expect(memoBtn().getAttribute('data-has-memo')).toBe('1'));
     expect(document.querySelector('[data-role="memo-dot"]')).toBeTruthy();
-    expect(memoBtn().textContent).toBe('메모');
     expect(memoBtn().getAttribute('aria-label')).toBe('메모 있음 — 열기');
-    expect(memoBtn().style.color).toBe('rgb(240, 201, 58)');            // 금색
+    expect(memoBtn().querySelector('svg').getAttribute('stroke')).toBe('#1b64da');   // 파랑
   });
 });
 
@@ -3414,7 +3422,7 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true });
     await setup({ active: round });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     fireEvent.click(await waitFor(() => { const t = document.querySelector('[data-role="shot-tab-field"]'); expect(t).toBeTruthy(); return t; }));
     const plus = await waitFor(() => { const b = [...document.querySelectorAll('button')].find((x) => x.textContent === '+' && x.style.width === '44px'); expect(b).toBeTruthy(); return b; });
     expect([plus.style.width, plus.style.height]).toEqual(['44px', '44px']);
@@ -3425,7 +3433,7 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     round.holes[0].scores[ME] = played(round.holes[0].par, { confirmed: false, teeClub: 'driver', secondClub: 'iron', secondClubSub: '7I', remainingDistance: 150, putts: 2, puttsManual: true, onGreen: null, gir: null });
     await setup({ active: round });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('HOLE 1');
+    await screen.findByText('1번 홀');
     const h = (el) => el.style.minHeight;
     const tabs = ['tee', 'field', 'putt'].map((t) => document.querySelector(`[data-role="shot-tab-${t}"]`));
     tabs.forEach((t) => expect(h(t)).toBe('44px'));
@@ -3444,16 +3452,18 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     pin.forEach((b) => expect(h(b)).toBe('44px'));
   });
 
-  it('화면 위의 뒤로가기와 스코어 입력 아래의 홈 아이콘에는 이름이 있다', async () => {
+  it('스코어 입력 머리줄의 뒤로가기 · 코스맵 · 메모 · 라운드 수정 아이콘에는 이름이 있다', async () => {
     await setup({ rounds: rounds18(1), active: makeActiveRound(ME) });
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     expect(screen.getByRole('button', { name: '뒤로' })).toBeTruthy();
     tab('홈');
     fireEvent.click(await screen.findByText('이어서'));
-    await screen.findByText('HOLE 4');
+    await screen.findByText('4번 홀');
     expect(screen.getByRole('button', { name: '뒤로' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '홈' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '코스맵' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '메모 쓰기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '라운드 수정' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '이전 홀' })).toBeTruthy();
   });
 
@@ -3472,7 +3482,7 @@ describe('히스토리 찾기 · 걸러 보기 · 정렬', () => {
     R(5, '버치힐', { date: new Date(2025, 4, 10, 12).toISOString() }),
     makeNineRound(6, 'out', ME, { courseName: '아홉홀CC' }),
   ];
-  const openHistory = async (rounds) => { await setup({ rounds }); tab('히스토리'); await screen.findByText('History'); };
+  const openHistory = async (rounds) => { await setup({ rounds }); tab('히스토리'); await pageTitle('히스토리'); };
   const cardCourses = () => [...document.querySelectorAll('button[class~="bb-press"]')].map((b) => b.textContent).filter((t) => /CC|힐|크스/.test(t));
   const count = () => document.querySelector('[data-role="history-count"]').textContent;
 
@@ -3560,11 +3570,11 @@ describe('처음 쓰는 사람 — 빈 화면 대신 안내', () => {
   it('홈: 첫 라운드 기록 · 백업 단계 버튼도 각자 화면으로', async () => {
     await setup({});
     fireEvent.click(document.querySelector('[data-role="first-round"] button'));
-    expect(await screen.findByText('New Round')).toBeTruthy();
+    expect(await screen.findByPlaceholderText('골프장 이름 검색...')).toBeTruthy();
     cleanup();
     await setup({});
     fireEvent.click(document.querySelector('[data-role="first-backup"] button'));
-    expect(await screen.findByText('Settings')).toBeTruthy();
+    expect(await pageTitle('설정')).toBeTruthy();
   });
 
   it('홈: 라운드가 있거나 진행 중인 라운드가 있으면 안내는 없다', async () => {
@@ -3578,16 +3588,16 @@ describe('처음 쓰는 사람 — 빈 화면 대신 안내', () => {
   it('스탯 · 인사이트: 언제부터 무엇이 보이는지와 시작 버튼', async () => {
     await setup({});
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     const guide = document.querySelector('[data-role="stats-empty"]');
     expect(guide.textContent).toContain('아직 통계가 없어요');
     expect([...guide.querySelectorAll('[data-role^="milestone-"]')].map((e) => e.getAttribute('data-role'))).toEqual(['milestone-1', 'milestone-3', 'milestone-5', 'milestone-10']);
     expect(guide.querySelector('[data-role="milestone-1"]').getAttribute('data-state')).toBe('next');
     tab('인사이트');
-    await screen.findByText('Insights');
+    await pageTitle('인사이트');
     expect(document.querySelector('[data-role="insights-empty"]').textContent).toContain('아직 분석할 라운드가 없어요');
     fireEvent.click(document.querySelector('[data-role="insights-empty"] [data-role="empty-start"]'));
-    expect(await screen.findByText('New Round')).toBeTruthy();
+    expect(await screen.findByPlaceholderText('골프장 이름 검색...')).toBeTruthy();
   });
 });
 
@@ -3595,7 +3605,7 @@ describe('새 라운드 설정 — 아래에 고정된 시작 버튼', () => {
   const openSetup = async () => {
     await setup({});
     fireEvent.click(document.querySelector('[data-role="first-round"] button'));
-    await screen.findByText('New Round');
+    await screen.findByPlaceholderText('골프장 이름 검색...');
   };
 
   it('시작 버튼이 고정 막대 안에 있고, 못 누르는 이유가 그 위에 같이 보인다', async () => {
@@ -3616,18 +3626,18 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
   it('스탯 → 뒤로가기 → 홈', async () => {
     await setup({ rounds: [makeFullRound(1)] });
     tab('스탯');
-    await screen.findByText('Stats');
+    await pageTitle('스탯');
     back();
     await home();
-    expect(screen.queryByText('Stats')).toBeNull();
+    expect(screen.queryAllByText('스탯').filter((e) => !e.closest('button'))).toHaveLength(0);
   });
 
   it('아래 메뉴로 여러 화면을 옮겨 다녀도 기록은 한 칸만 쌓인다 (뒤로가기 한 번에 홈)', async () => {
     await setup({ rounds: [makeFullRound(1)] });
-    tab('스탯'); await screen.findByText('Stats');
-    tab('인사이트'); await screen.findByText('Insights');
-    tab('MY BAG'); await waitFor(() => expect(window.history.state.v).toBe('mybag'));
-    tab('스탯'); await screen.findByText('Stats');
+    tab('스탯'); await pageTitle('스탯');
+    tab('인사이트'); await pageTitle('인사이트');
+    tab('마이백'); await waitFor(() => expect(window.history.state.v).toBe('mybag'));
+    tab('스탯'); await pageTitle('스탯');
     expect(window.history.state).toEqual({ v: 'stats', d: 1 });     // 메뉴를 옮겨 다녀도 홈 위로 한 칸
     back();
     await home();
@@ -3636,7 +3646,7 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
   it('진행 중인 라운드를 입력하다 뒤로가기 → 홈 (라운드는 그대로, 이어서 기록할 수 있다)', async () => {
     await setup({ active: makeActiveRound() });
     fireEvent.click(screen.getByText('이어서'));
-    await screen.findByText('/ 18 holes');
+    await screen.findByText('/18홀');
     back();
     await home();
     expect(screen.getByText('진행 중인 라운드')).toBeTruthy();
@@ -3647,7 +3657,7 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
     await setup({ rounds: [makeFullRound(1)] });
     await openReportFromHistory('남서울CC');
     back();
-    await waitFor(() => expect(screen.queryByText('Round Report')).toBeNull());
+    await waitFor(() => expect(screen.queryAllByText('라운드 리포트').filter((e) => !e.closest('button'))).toHaveLength(0));
     expect(await screen.findByText('남서울CC')).toBeTruthy();           // 히스토리 목록
     back();
     await home();
@@ -3655,7 +3665,7 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
 
   it('홈 버튼으로 돌아가면 쌓인 기록도 함께 되감겨 홈이 맨 아래가 된다', async () => {
     await setup({ rounds: [makeFullRound(1)] });
-    tab('스탯'); await screen.findByText('Stats');
+    tab('스탯'); await pageTitle('스탯');
     tab('홈');
     await home();
     // 화면은 바로 바뀌지만 기록을 되감는 history.go(-n) 은 jsdom 에서 비동기다 — 기다려서 확인한다 (느린 CI 에서 어긋났던 자리)
@@ -3664,7 +3674,7 @@ describe('뒤로가기 — 앱이 꺼지지 않고 이전 화면으로', () => {
 
   it('열려 있던 목표 시트 같은 창은 화면과 함께 닫힌다', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
-    tab('스탯'); await screen.findByText('Stats');
+    tab('스탯'); await pageTitle('스탯');
     back();
     await home();
     expect(document.querySelector('[data-role="goal-sheet"]')).toBeNull();
@@ -3682,8 +3692,8 @@ describe('스탯과 인사이트는 같은 라운드에서 같은 숫자를 보�
   const q = (sel) => document.querySelector(sel);
   const find = (sel) => waitFor(() => { const e = q(sel); expect(e).toBeTruthy(); return e; });
   const flat = (el) => el.textContent.replace(/\s+/g, ' ');
-  const statsTab = async (id) => { tab('스탯'); await screen.findByText('Stats'); fireEvent.click(await find(`[data-role="stats-tab-${id}"]`)); };
-  const insightsChapter = async (chapter) => { tab('인사이트'); await screen.findByText('Insights'); fireEvent.click(await find(`[data-role="insights-tab-${chapter}"]`)); };
+  const statsTab = async (id) => { tab('스탯'); await pageTitle('스탯'); fireEvent.click(await find(`[data-role="stats-tab-${id}"]`)); };
+  const insightsChapter = async (chapter) => { tab('인사이트'); await pageTitle('인사이트'); fireEvent.click(await find(`[data-role="insights-tab-${chapter}"]`)); };
   afterEach(() => { try { window.sessionStorage.clear(); } catch { /* 저장소를 못 써도 테스트는 이어 간다 */ } });
 
   it('티샷: 인사이트 부문별 장과 스탯 티샷 탭이 같은 횟수 · 같은 문장이다', async () => {
@@ -3748,7 +3758,7 @@ describe('스탯과 인사이트는 같은 라운드에서 같은 숫자를 보�
 
   it('한 줄 요약에는 점수를 다시 적지 않는다 (위 범위 카드가 보여 준다)', async () => {
     await setup({ rounds: rounds3() });
-    tab('인사이트'); await screen.findByText('Insights');
+    tab('인사이트'); await pageTitle('인사이트');
     const score = (await find('[data-role="scope-score"]')).textContent;
     const headline = q('[data-role="report-headline"]').textContent;
     expect(headline.length).toBeGreaterThan(0);

@@ -48,8 +48,8 @@ export default function SectionCard({
               <span style={{
                 fontSize: '10px',
                 fontWeight: '700',
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
+                letterSpacing:'0',
+                textTransform:'none',
                 color: palette.textSecondary,
               }}>
                 {title}

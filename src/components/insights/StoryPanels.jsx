@@ -6,9 +6,9 @@ import { AWFUL_CONSISTENCY_LIMIT } from '../../engine/bookBenchmarks.js';
 
 // 리포트의 새 패널들 — 어디서 잃었나(구성비) · 빅 미스 · 부문별 SG 머리줄 · 연습 처방.
 
-const SKILL_COLOR = { tee: '#6b8cae', approach: '#8a6fb0', shortGame: '#d98e3e', putting: '#c9a228' };
-const card = { background: '#111827', border: '1px solid #1b2238', borderRadius: 16, padding: '12px 14px' };
-const dim = { fontSize: 13, color: '#8aa0c4', lineHeight: 1.6 };
+const SKILL_COLOR = { tee: '#8b95a1', approach: '#6b4fa0', shortGame: '#b45309', putting: '#1b64da' };
+const card = { background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 16, padding: '12px 14px' };
+const dim = { fontSize: 13, color: '#4e5968', lineHeight: 1.6 };
 const signed = (v, d = 2) => (v > 0 ? '+' : '') + Number(v).toFixed(d);
 
 // ── 2장: 투어 대비 잃은 타수의 구성 ──────────────────────────────────────────────
@@ -18,14 +18,14 @@ export function LossShareCard({ shares, coverage }) {
   const order = ['tee', 'approach', 'shortGame', 'putting'];
   return (
     <div style={{ ...card, marginBottom: 24 }} data-role="loss-shares">
-      <div style={{ fontSize: 13, fontWeight: 800, color: '#8ca4bc', letterSpacing: '0.14em', marginBottom: 10 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: '#4e5968', letterSpacing:'0', marginBottom: 10 }}>
         투어 대비 잃은 타수의 구성
         <InfoNote title="잃은 타수의 구성">
           <p>골퍼 사이의 스코어 격차는 약 2/3가 100야드 밖 샷(롱게임)에서, 퍼팅은 약 15%에서 나와요. 투어 상위권의 우위도 드라이빙 28% · 어프로치 40% · 숏게임 17% · 퍼팅 15%로 나뉘어요.</p>
           <p>퍼팅에 연습을 몰아주기 전에 내 구성을 먼저 확인하세요.</p>
         </InfoNote>
       </div>
-      <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: '#1b2238', marginBottom: 10 }}>
+      <div style={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden', background: '#e5e8eb', marginBottom: 10 }}>
         {order.map((id) => {
           const p = shares.parts.find((x) => x.id === id);
           return p.pct > 0 ? <div key={id} style={{ width: `${p.pct}%`, background: SKILL_COLOR[id] }} /> : null;
@@ -35,14 +35,14 @@ export function LossShareCard({ shares, coverage }) {
         {order.map((id) => {
           const p = shares.parts.find((x) => x.id === id);
           return (
-            <div key={id} data-role={`share-${id}`} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, color: '#b4c0d8' }}>
+            <div key={id} data-role={`share-${id}`} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, color: '#333d4b' }}>
               <span style={{ width: 9, height: 9, borderRadius: 3, background: SKILL_COLOR[id] }} />
-              {SG_LABEL[id]} <b style={{ color: '#e8edf8' }}>{Math.round(p.pct)}%</b>
+              {SG_LABEL[id]} <b style={{ color: '#191f28' }}>{Math.round(p.pct)}%</b>
             </div>
           );
         })}
       </div>
-      <div data-role="share-summary" style={{ fontSize: 14, color: '#e8edf8', lineHeight: 1.6, wordBreak: 'keep-all' }}>
+      <div data-role="share-summary" style={{ fontSize: 14, color: '#191f28', lineHeight: 1.6, wordBreak: 'keep-all' }}>
         롱게임(티샷+어프로치) <b>{Math.round(shares.longPct)}%</b> · 숏게임 <b>{Math.round(shares.shortPct)}%</b> · 퍼팅 <b>{Math.round(shares.puttingPct)}%</b>
       </div>
       {coverage != null && coverage < 0.5 && (
@@ -57,10 +57,10 @@ export function LossShareCard({ shares, coverage }) {
 // ── 3장: 빅 미스 ────────────────────────────────────────────────────────────────
 function Tile({ label, value, sub, warn, role }) {
   return (
-    <div style={{ flex: '1 1 45%', background: '#0e1424', border: '1px solid #1b2238', borderRadius: 12, padding: '10px 12px' }}>
-      <div style={{ fontSize: 12, color: '#8896b0', marginBottom: 4 }}>{label}</div>
-      <div data-role={role} style={{ fontSize: 20, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: warn ? '#ef5350' : '#e8edf8' }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#8aa0c4', marginTop: 2 }}>{sub}</div>}
+    <div style={{ flex: '1 1 45%', background: '#f2f4f6', border: '1px solid #e5e8eb', borderRadius: 12, padding: '10px 12px' }}>
+      <div style={{ fontSize: 12, color: '#4e5968', marginBottom: 4 }}>{label}</div>
+      <div data-role={role} style={{ fontSize: 20, fontWeight: 900, fontVariantNumeric: 'tabular-nums', color: warn ? '#c8323a' : '#191f28' }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: '#4e5968', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -83,7 +83,7 @@ export function BigMissesCard({ career, rounds, awful, awfulPoints, awfulOverLim
         <Tile label="3퍼트 이상" role="threeputt-value" value={per(threePutt)} sub={holes > 0 ? `전체 홀의 ${((threePutt / holes) * 100).toFixed(0)}%` : null} />
       </div>
       {awfulOverLimit && (
-        <div data-role="awful-warning" style={{ fontSize: 14, color: '#ef8a87', lineHeight: 1.6 }}>
+        <div data-role="awful-warning" style={{ fontSize: 14, color: '#c8323a', lineHeight: 1.6 }}>
           끔찍한 샷이 90타 전후 기준({AWFUL_CONSISTENCY_LIMIT}점)을 넘었어요 — 연습보다 빅 미스 줄이기가 먼저예요.
         </div>
       )}
@@ -96,7 +96,7 @@ export function BigMissesInfo({ career, awful, awfulPoints, teePen }) {
   return (
     <InfoNote title="빅 미스 읽는 법">
       <p>
-        <b style={{ color: '#e8edf8' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 세어요.
+        <b style={{ color: '#191f28' }}>끔찍한 샷</b> — OB는 2점, 해저드·언플레이어블은 1점으로 세어요.
         {career ? ` (${awful.rounds}라운드 합계, 라운드 평균 ${awfulPoints.toFixed(1)}점)` : ''} 페널티만 센 점수라 뒤땅·토핑 같은 미스샷은 빠져 있어요.
         {' '}90타 전후에서 {AWFUL_CONSISTENCY_LIMIT}점을 넘으면 연습보다 빅 미스 줄이기가 먼저예요.
       </p>
@@ -123,17 +123,17 @@ export function SkillHeader({ cat, sg, career }) {
   const measured = !!b && b.segments > 0;
   const value = measured ? b.sg / rounds : null;
   return (
-    <div data-role={`skill-${cat}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '0 0 12px', padding: '8px 10px', borderRadius: 8, background: '#0e1424', border: '1px solid #1b2238' }}>
-      <div style={{ fontSize: 14, color: '#8ca4bc', fontWeight: 700 }}>{SG_LABEL[cat]} 투어 대비 SG</div>
+    <div data-role={`skill-${cat}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, margin: '0 0 12px', padding: '8px 10px', borderRadius: 8, background: '#f2f4f6', border: '1px solid #e5e8eb' }}>
+      <div style={{ fontSize: 14, color: '#4e5968', fontWeight: 700 }}>{SG_LABEL[cat]} 투어 대비 SG</div>
       {measured ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <b data-role={`skill-sg-${cat}`} style={{ fontSize: 17, fontVariantNumeric: 'tabular-nums', color: value >= 0 ? '#3db87a' : '#ef5350' }}>
-            {signed(value)}<span style={{ fontSize: 12, fontWeight: 700, color: '#8896b0', marginLeft: 2 }}>{career ? '/R' : '타'}</span>
+          <b data-role={`skill-sg-${cat}`} style={{ fontSize: 17, fontVariantNumeric: 'tabular-nums', color: value >= 0 ? '#0a7f3f' : '#c8323a' }}>
+            {signed(value)}<span style={{ fontSize: 12, fontWeight: 700, color: '#4e5968', marginLeft: 2 }}>{career ? '/R' : '타'}</span>
           </b>
           <ConfidenceBadge tier={sgTier(b.strokes)} n={b.strokes} />
         </div>
       ) : (
-        <div data-role={`skill-pending-${cat}`} style={{ fontSize: 13, color: '#8aa0c4', textAlign: 'right' }}>
+        <div data-role={`skill-pending-${cat}`} style={{ fontSize: 13, color: '#4e5968', textAlign: 'right' }}>
           측정 전
           <InfoNote title={`${SG_LABEL[cat]} 계산 조건`}>{SKILL_HINT[cat]}</InfoNote>
         </div>
@@ -146,7 +146,7 @@ export function SkillHeader({ cat, sg, career }) {
 export function PracticeCard({ prescriptions }) {
   if (!prescriptions || prescriptions.cards.length === 0) {
     return (
-      <div style={{ ...card, fontSize: 14, color: '#8896b0', lineHeight: 1.6 }} data-role="practice">
+      <div style={{ ...card, fontSize: 14, color: '#4e5968', lineHeight: 1.6 }} data-role="practice">
         기록이 쌓이면 가장 약한 부문에 맞춘 연습 게임과 목표를 알려 드려요. 샷마다 남은 거리와 퍼트 거리를 입력하면 더 정확해져요.
       </div>
     );
@@ -154,7 +154,7 @@ export function PracticeCard({ prescriptions }) {
   const { primary, cards } = prescriptions;
   return (
     <div data-role="practice">
-      <div style={{ fontSize: 14, color: '#8896b0', marginBottom: 8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 14, color: '#4e5968', marginBottom: 8, lineHeight: 1.5 }}>
         {primary.skill === 'penalty'
           ? '스코어 기준 손실이 가장 큰 곳은 페널티예요.'
           : primary.basis === 'sg'
@@ -163,11 +163,11 @@ export function PracticeCard({ prescriptions }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {cards.map((c) => (
-          <div key={c.id} data-role={`practice-${c.skill}`} style={{ ...card, ...tintWash(SKILL_COLOR[c.skill] ?? '#ef5350', TINT_SOFT) }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', marginBottom: 6 }}>{c.title}</div>
-            {c.why && <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.6, marginBottom: 6, wordBreak: 'keep-all' }}>지금 기록: {c.why}</div>}
-            <div style={{ fontSize: 14, color: '#e8edf8', lineHeight: 1.6, wordBreak: 'keep-all' }}>{c.drill}</div>
-            <div style={{ marginTop: 8, display: 'inline-block', padding: '4px 9px', borderRadius: 8, background: 'rgba(61,184,122,0.1)', border: '1px solid rgba(61,184,122,0.3)', fontSize: 13, color: '#7fd4a6', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+          <div key={c.id} data-role={`practice-${c.skill}`} style={{ ...card, ...tintWash(SKILL_COLOR[c.skill] ?? '#c8323a', TINT_SOFT) }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#191f28', marginBottom: 6 }}>{c.title}</div>
+            {c.why && <div style={{ fontSize: 14, color: '#333d4b', lineHeight: 1.6, marginBottom: 6, wordBreak: 'keep-all' }}>지금 기록: {c.why}</div>}
+            <div style={{ fontSize: 14, color: '#191f28', lineHeight: 1.6, wordBreak: 'keep-all' }}>{c.drill}</div>
+            <div style={{ marginTop: 8, display: 'inline-block', padding: '4px 9px', borderRadius: 8, background: 'rgba(10,127,63,0.1)', border: '1px solid rgba(10,127,63,0.3)', fontSize: 13, color: '#0a7f3f', lineHeight: 1.5, wordBreak: 'keep-all' }}>
               목표 · {c.target}
             </div>
           </div>

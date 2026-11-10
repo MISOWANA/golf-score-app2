@@ -25,7 +25,7 @@ export default function DistanceField({ label, sub, value, onChange, id, color }
   const btn = (d, text) => (
     <button type="button" aria-label={`${label} ${d > 0 ? '+' : ''}${d}${u}`} data-role={`${id}-${d > 0 ? 'up' : 'down'}${Math.abs(d)}`}
       disabled={(d < 0 && v <= 0) || (d > 0 && v >= maxD)} onClick={() => step(d)}
-      style={{ width: 'clamp(30px, 9.5vw, 40px)', height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#131c30', color: COLOR.muted, fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0, padding: 0, opacity: (d < 0 && v <= 0) || (d > 0 && v >= maxD) ? 0.35 : 1 }}>{text}</button>
+      style={{ width: 'clamp(30px, 9.5vw, 40px)', height: 44, borderRadius: 10, border: `1px solid ${COLOR.line}`, background: '#eef1f4', color: COLOR.muted, fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0, padding: 0, opacity: (d < 0 && v <= 0) || (d > 0 && v >= maxD) ? 0.35 : 1 }}>{text}</button>
   );
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -34,7 +34,7 @@ export default function DistanceField({ label, sub, value, onChange, id, color }
         <div style={{ fontSize: 12, color: COLOR.faint, letterSpacing: '0.02em' }}>{sub}</div>
       </div>
       {btn(-5, '−5')}{btn(-1, '−1')}
-      <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2, height: 44, borderRadius: 10, background: '#0b0e18', border: `1px solid ${COLOR.line}` }}>
+      <label style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2, height: 44, borderRadius: 10, background: '#ffffff', border: `1px solid ${COLOR.line}` }}>
         <input type="text" inputMode="numeric" aria-label={`${label} 거리(${u})`} data-role={`${id}-input`}
           value={draft ?? String(v)}
           onFocus={(e) => { setDraft(String(v)); e.target.select(); }}

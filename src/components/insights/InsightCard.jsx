@@ -17,8 +17,8 @@ const stripHolePrefix = (t) => String(t).replace(/^\d+번 (?:파\d )?홀(?:\([^)
 
 export default function InsightCard({ insight, showContext = false, compact = false, highlight = '', hideHole = false, hideCategory = false }) {
   const summary = insight.holeNumber != null ? stripHolePrefix(insight.summary) : insight.summary;
-  const color = SEVERITY_COLOR[insight.severity] ?? '#8896b0';
-  const bg = SEVERITY_BG[insight.severity] ?? 'rgba(136,150,176,0.10)';
+  const color = SEVERITY_COLOR[insight.severity] ?? '#4e5968';
+  const bg = SEVERITY_BG[insight.severity] ?? 'rgba(25,31,40,0.06)';
   const hl = (text) => {
     if (!highlight) return text;
     const q = highlight.trim().split(/\s+/).filter(Boolean)[0];
@@ -28,32 +28,32 @@ export default function InsightCard({ insight, showContext = false, compact = fa
     return (
       <>
         {String(text).slice(0, i)}
-        <mark style={{ background: 'rgba(201,162,40,0.35)', color: '#f3d36b', borderRadius: 2, padding: '0 1px' }}>{String(text).slice(i, i + q.length)}</mark>
+        <mark style={{ background: 'rgba(27,100,218,0.35)', color: '#1b64da', borderRadius: 2, padding: '0 1px' }}>{String(text).slice(i, i + q.length)}</mark>
         {String(text).slice(i + q.length)}
       </>
     );
   };
   return (
     <div data-insight-id={insight.id} style={{
-      ...tintWash(color, TINT_SOFT), borderRadius: 14, padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+      ...tintWash(color, TINT_SOFT), borderRadius: 14, padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.105)',
     }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 7 }}>
         <span style={chip(color, bg)}>{SEVERITY_LABEL[insight.severity] ?? ''}</span>
-        {insight.category && !hideCategory && <span style={chip('#a9b8d6', 'rgba(255,255,255,0.05)')}>{INSIGHT_CATEGORY_LABEL[insight.category] ?? insight.category}</span>}
+        {insight.category && !hideCategory && <span style={chip('#333d4b', 'rgba(25,31,40,0.04)')}>{INSIGHT_CATEGORY_LABEL[insight.category] ?? insight.category}</span>}
         {insight.holeNumber != null && !hideHole && (
-          <span style={chip('#c9a228', 'rgba(201,162,40,0.10)')}>HOLE {insight.holeNumber}{insight.par ? ` · PAR ${insight.par}` : ''}</span>
+          <span style={chip('#1b64da', 'rgba(27,100,218,0.1)')}>{insight.holeNumber}번 홀{insight.par ? ` · PAR ${insight.par}` : ''}</span>
         )}
-        {insight.scope === 'round' && showContext && <span style={chip('#8ca4bc', 'rgba(140,164,188,0.10)')}>라운드 요약</span>}
-        {insight.scope === 'career' && <span style={chip('#8a6fb0', 'rgba(138,111,176,0.14)')}>누적 추세</span>}
+        {insight.scope === 'round' && showContext && <span style={chip('#4e5968', 'rgba(25,31,40,0.06)')}>라운드 요약</span>}
+        {insight.scope === 'career' && <span style={chip('#6b4fa0', 'rgba(25,31,40,0.084)')}>누적 추세</span>}
         {showContext && insight.courseName && (
-          <span data-role="insight-context" style={{ ...chip('#8ca4bc', 'rgba(140,164,188,0.10)'), maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block' }}>{dateLabel(insight.roundDate)} {insight.courseName}</span>
+          <span data-role="insight-context" style={{ ...chip('#4e5968', 'rgba(25,31,40,0.06)'), maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block' }}>{dateLabel(insight.roundDate)} {insight.courseName}</span>
         )}
-        {insight.count > 1 && <span style={chip('#e8edf8', 'rgba(255,255,255,0.08)')}>{insight.grouped ? `${insight.count}개 홀` : `×${insight.count}`}</span>}
+        {insight.count > 1 && <span style={chip('#191f28', 'rgba(25,31,40,0.064)')}>{insight.grouped ? `${insight.count}개 홀` : `×${insight.count}`}</span>}
       </div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: '#e8edf8', lineHeight: 1.35, marginBottom: 4 }}>{hl(insight.title)}</div>
-      <div style={{ fontSize: 14, color: '#b4c0d8', lineHeight: 1.55, wordBreak: 'keep-all' }}>{hl(summary)}</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#191f28', lineHeight: 1.35, marginBottom: 4 }}>{hl(insight.title)}</div>
+      <div style={{ fontSize: 14, color: '#333d4b', lineHeight: 1.55, wordBreak: 'keep-all' }}>{hl(summary)}</div>
       {!compact && insight.recommendation && (
-        <div style={{ fontSize: 14, color: '#7f8db0', lineHeight: 1.55, marginTop: 6, wordBreak: 'keep-all' }}>
+        <div style={{ fontSize: 14, color: '#4e5968', lineHeight: 1.55, marginTop: 6, wordBreak: 'keep-all' }}>
           <span style={{ color, fontWeight: 700 }}>제안 </span>{hl(insight.recommendation)}
         </div>
       )}

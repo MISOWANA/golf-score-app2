@@ -41,7 +41,7 @@ export default function ClubTab({ report }) {
             </div>
             <div style={{ position: 'relative', height: 8, borderRadius: 4, background: COLOR.track, marginTop: 8 }}>
               {r.q1 != null && r.q3 != null && r.q3 > r.q1 && (
-                <div style={{ position: 'absolute', top: 0, bottom: 0, left: at(r.q1), width: `calc(${at(r.q3)} - ${at(r.q1)})`, borderRadius: 4, background: 'rgba(201,162,40,0.35)' }} />
+                <div style={{ position: 'absolute', top: 0, bottom: 0, left: at(r.q1), width: `calc(${at(r.q3)} - ${at(r.q1)})`, borderRadius: 4, background: 'rgba(27,100,218,0.35)' }} />
               )}
               <div style={{ position: 'absolute', top: -2, left: `calc(${at(r.median)} - 3px)`, width: 6, height: 12, borderRadius: 3, background: COLOR.goldHi }} />
             </div>
@@ -68,7 +68,7 @@ export default function ClubTab({ report }) {
               <div key={c.key} data-role={`consistency-${c.key}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: `1px solid ${COLOR.line}` }}>
                 <span style={{ width: 70, fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
                 <div style={{ flex: 1, minWidth: 0, height: 6, borderRadius: 3, background: COLOR.track }}>
-                  <div style={{ height: '100%', width: `${Math.max(6, (c.spread / maxSpread) * 100)}%`, borderRadius: 3, background: 'rgba(201,162,40,0.65)' }} />
+                  <div style={{ height: '100%', width: `${Math.max(6, (c.spread / maxSpread) * 100)}%`, borderRadius: 3, background: 'rgba(27,100,218,0.65)' }} />
                 </div>
                 <span style={{ width: 62, textAlign: 'right', fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>폭 {fmtMeters(c.width)}</span>
               </div>

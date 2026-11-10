@@ -19,30 +19,30 @@ function TrashRow({ row, userName, onRestore, onPurge }) {
   const total = round.holes.reduce((s, h) => s + (h.scores?.[me]?.strokes || 0), 0);
   const left = trashDaysLeft(row.deletedAt);
   return (
-    <div data-role="trash-row" style={{ padding: '10px 12px', borderRadius: 12, background: '#111827', border: '1px solid #1b2238', marginBottom: 8 }}>
+    <div data-role="trash-row" style={{ padding: '10px 12px', borderRadius: 12, background: '#f2f4f6', border: '1px solid #e5e8eb', marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#e8edf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.courseName}</div>
-          <div style={{ fontSize: 13, color: '#8896b0' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#191f28', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.courseName}</div>
+          <div style={{ fontSize: 13, color: '#4e5968' }}>
             {new Date(round.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })} · {total}타 · {left}일 뒤 사라져요
           </div>
         </div>
         {!confirming && (
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button type="button" data-role="trash-restore" onClick={() => onRestore(round.id)}
-              style={{ padding: '8px 12px', borderRadius: 10, border: '1.5px solid rgba(61,184,122,0.5)', background: 'rgba(61,184,122,0.12)', color: '#3db87a', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>복원</button>
+              style={{ padding: '8px 12px', borderRadius: 10, border: '1.5px solid rgba(10,127,63,0.5)', background: 'rgba(10,127,63,0.12)', color: '#0a7f3f', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>복원</button>
             <button type="button" data-role="trash-purge" onClick={() => setConfirming(true)}
-              style={{ padding: '8px 10px', borderRadius: 10, border: '1.5px solid #2c3a5c', background: 'transparent', color: '#8896b0', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>삭제</button>
+              style={{ padding: '8px 10px', borderRadius: 10, border: '1.5px solid #cdd3d8', background: 'transparent', color: '#4e5968', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>삭제</button>
           </div>
         )}
       </div>
       {confirming && (
         <div data-role="trash-confirm" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 14, color: '#ef5350', flex: '1 1 140px' }}>영구 삭제하면 되돌릴 수 없어요</span>
+          <span style={{ fontSize: 14, color: '#c8323a', flex: '1 1 140px' }}>영구 삭제하면 되돌릴 수 없어요</span>
           <button type="button" onClick={() => setConfirming(false)}
-            style={{ padding: '8px 12px', borderRadius: 10, border: '1.5px solid #2c3a5c', background: 'transparent', color: '#e8edf8', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+            style={{ padding: '8px 12px', borderRadius: 10, border: '1.5px solid #cdd3d8', background: 'transparent', color: '#191f28', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>취소</button>
           <button type="button" data-role="trash-purge-confirm" onClick={() => onPurge(round.id)}
-            style={{ padding: '8px 12px', borderRadius: 10, border: '1.5px solid transparent', background: '#ef5350', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>영구 삭제</button>
+            style={{ padding: '8px 12px', borderRadius: 10, border: '1.5px solid transparent', background: '#c8323a', color: '#ffffff', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>영구 삭제</button>
         </div>
       )}
     </div>
@@ -93,7 +93,7 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
         <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
           <ChevronLeft size={22} />
         </button>
-        <div style={styles.pageTitle}>History</div>
+        <div style={styles.pageTitle}>히스토리</div>
         <div style={{ width: 44 }} />
       </header>
 
@@ -111,9 +111,9 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
               shown={shownRounds.length} total={rounds.length} filtered={filtered} onClear={clearFilters} />
           )}
           {shownRounds.length === 0 ? (
-            <div data-role="history-empty-result" style={{ textAlign: 'center', padding: '36px 16px', color: '#a9b8d6', fontSize: 15, lineHeight: 1.7 }}>
+            <div data-role="history-empty-result" style={{ textAlign: 'center', padding: '36px 16px', color: '#333d4b', fontSize: 15, lineHeight: 1.7 }}>
               조건에 맞는 라운드가 없어요
-              <div><button type="button" onClick={clearFilters} style={{ marginTop: 10, minHeight: 44, padding: '0 18px', borderRadius: 12, border: '1.5px solid rgba(201,162,40,0.6)', background: 'transparent', color: '#e6c35a', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>조건 지우기</button></div>
+              <div><button type="button" onClick={clearFilters} style={{ marginTop: 10, minHeight: 44, padding: '0 18px', borderRadius: 12, border: '1.5px solid rgba(27,100,218,0.6)', background: 'transparent', color: '#1b64da', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>조건 지우기</button></div>
             </div>
           ) : (
             <div style={styles.historyList}>
@@ -134,8 +134,8 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
       {trash.length > 0 && (
         <div data-role="trash" style={{ marginTop: 18 }}>
           <button type="button" data-role="trash-toggle" aria-expanded={trashOpen} onClick={() => setTrashOpen((o) => !o)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 14px', borderRadius: 12, border: '1px solid #1b2238', background: 'rgba(255,255,255,0.03)', color: '#a9b8d6', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-            <span>휴지통 {trash.length}개 <span style={{ fontSize: 13, color: '#8aa0c4', fontWeight: 500 }}>· {TRASH_KEEP_DAYS}일 보관</span></span>
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 14px', borderRadius: 12, border: '1px solid #e5e8eb', background: 'rgba(25,31,40,0.024)', color: '#333d4b', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            <span>휴지통 {trash.length}개 <span style={{ fontSize: 13, color: '#4e5968', fontWeight: 500 }}>· {TRASH_KEEP_DAYS}일 보관</span></span>
             <ChevronDown size={18} style={{ transform: trashOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
           </button>
           {trashOpen && (
@@ -153,7 +153,7 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
             <div style={styles.modalTitle}>라운드 삭제</div>
             <div style={styles.modalText}>
               {pendingDelete.courseName} 라운드를<br/>삭제할까요?<br/>
-              <span style={{ fontSize: 13, color: '#8896b0' }}>휴지통에 {TRASH_KEEP_DAYS}일 보관돼서 되돌릴 수 있어요</span>
+              <span style={{ fontSize: 13, color: '#4e5968' }}>휴지통에 {TRASH_KEEP_DAYS}일 보관돼서 되돌릴 수 있어요</span>
             </div>
             <div style={styles.modalActions}>
               <button
@@ -175,10 +175,10 @@ export default function HistoryView({ rounds, onBack, onSelect, onDelete, userNa
 
       {undo && (
         <div role="status" data-role="undo-toast"
-          style={{ position: 'fixed', left: 16, right: 16, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 14px', borderRadius: 14, background: '#1b2744', border: '1px solid #2c3a5c', boxShadow: '0 8px 28px rgba(0,0,0,0.5)' }}>
-          <span style={{ fontSize: 14, color: '#e8edf8', minWidth: 0, lineHeight: 1.4, wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{undo.courseName} 라운드를 삭제했어요</span>
+          style={{ position: 'fixed', left: 16, right: 16, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 14px', borderRadius: 14, background: '#e8ebee', border: '1px solid #cdd3d8', boxShadow: '0 8px 28px rgba(0,0,0,0.175)' }}>
+          <span style={{ fontSize: 14, color: '#191f28', minWidth: 0, lineHeight: 1.4, wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{undo.courseName} 라운드를 삭제했어요</span>
           <button type="button" data-role="undo-delete" onClick={undoDelete}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10, border: 'none', background: '#c9a228', color: '#0b0e18', fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10, border: 'none', background: '#1b64da', color: '#ffffff', fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}>
             <RotateCcw size={14} />되돌리기
           </button>
         </div>

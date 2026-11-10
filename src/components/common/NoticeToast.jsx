@@ -16,19 +16,19 @@ export default function NoticeToast({ notice, onClose }) {
   if (!notice) return null;
   const error = notice.tone === 'error';
   const Icon = error ? AlertTriangle : CheckCircle2;
-  const tone = error ? '#ef5350' : '#3db87a';
+  const tone = error ? '#c8323a' : '#0a7f3f';
   return (
     <div role={error ? 'alert' : 'status'} data-role="notice" data-tone={notice.tone}
       style={{
         position: 'fixed', left: 16, right: 16, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)', zIndex: 9500,
         maxWidth: 488, margin: '0 auto', boxSizing: 'border-box', display: 'flex', alignItems: 'flex-start', gap: 10,
-        padding: '12px 8px 12px 14px', borderRadius: 14, background: '#1b2744', border: `1.5px solid ${error ? 'rgba(239,83,80,0.65)' : 'rgba(61,184,122,0.55)'}`,
-        boxShadow: '0 8px 28px rgba(0,0,0,0.55)', textAlign: 'left',
+        padding: '12px 8px 12px 14px', borderRadius: 14, background: '#e8ebee', border: `1.5px solid ${error ? 'rgba(200,50,58,0.65)' : 'rgba(10,127,63,0.55)'}`,
+        boxShadow: '0 8px 28px rgba(0,0,0,0.193)', textAlign: 'left',
       }}>
       <Icon size={20} color={tone} style={{ flexShrink: 0, marginTop: 2 }} />
-      <div data-role="notice-text" style={{ flex: 1, minWidth: 0, fontSize: 15, lineHeight: 1.55, color: '#e8edf8', whiteSpace: 'pre-line', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{notice.text}</div>
+      <div data-role="notice-text" style={{ flex: 1, minWidth: 0, fontSize: 15, lineHeight: 1.55, color: '#191f28', whiteSpace: 'pre-line', wordBreak: 'keep-all', overflowWrap: 'anywhere' }}>{notice.text}</div>
       <button type="button" data-role="notice-close" onClick={onClose}
-        style={{ flexShrink: 0, minHeight: 44, minWidth: 52, padding: '0 10px', borderRadius: 10, border: 'none', background: 'transparent', color: error ? '#ff8a87' : '#7fd4a6', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>확인</button>
+        style={{ flexShrink: 0, minHeight: 44, minWidth: 52, padding: '0 10px', borderRadius: 10, border: 'none', background: 'transparent', color: error ? '#c8323a' : '#0a7f3f', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>확인</button>
     </div>
   );
 }

@@ -12,10 +12,10 @@ export default function GoalLine({ goals, round = null, margin = '0 0 10px' }) {
         const now = round ? goalValue(round, g.metric) : null;
         const over = now != null && m.better === 'down' && now > g.target;
         return (
-          <div key={g.id} data-role="goal-line-item" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: '#c9a228', fontWeight: 700 }}>
+          <div key={g.id} data-role="goal-line-item" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: '#1b64da', fontWeight: 700 }}>
             <Target size={14} style={{ flexShrink: 0 }} />
             <span style={{ minWidth: 0 }}>오늘의 목표 · {goalText(g)}</span>
-            {now != null && <span data-role="goal-now" style={{ color: over ? '#ef5350' : '#8896b0', fontWeight: 600, whiteSpace: 'nowrap' }}>· 지금 {now}{m.unit}{over ? ' (초과)' : ''}</span>}
+            {now != null && <span data-role="goal-now" style={{ color: over ? '#c8323a' : '#4e5968', fontWeight: 600, whiteSpace: 'nowrap' }}>· 지금 {now}{m.unit}{over ? ' (초과)' : ''}</span>}
           </div>
         );
       })}

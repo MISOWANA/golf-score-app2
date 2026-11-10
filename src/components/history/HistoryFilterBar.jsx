@@ -7,9 +7,9 @@ import { HISTORY_SORTS, HISTORY_KINDS } from '../../engine/historyFilter.js';
 //   showKinds  18홀 · 9홀 기록이 둘 다 있을 때만 종류 칩을 보인다
 const chip = (on) => ({
   minHeight: 44, padding: '0 14px', borderRadius: 999, cursor: 'pointer', whiteSpace: 'nowrap',
-  border: `1.5px solid ${on ? '#c9a228' : '#2c3a5c'}`,
-  background: on ? 'rgba(201,162,40,0.16)' : 'transparent',
-  color: on ? '#f3d36b' : '#c4cfe0', fontSize: 14, fontWeight: 700,
+  border: `1.5px solid ${on ? '#1b64da' : '#cdd3d8'}`,
+  background: on ? 'rgba(27,100,218,0.16)' : 'transparent',
+  color: on ? '#1b64da' : '#333d4b', fontSize: 14, fontWeight: 700,
 });
 const rowStyle = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 };
 
@@ -17,13 +17,13 @@ export default function HistoryFilterBar({ query, onQuery, year, onYear, years, 
   return (
     <div data-role="history-filter" style={{ marginBottom: 14 }}>
       <div style={{ position: 'relative' }}>
-        <Search size={18} color="#8aa0c4" style={{ position: 'absolute', left: 14, top: 14, pointerEvents: 'none' }} />
+        <Search size={18} color="#4e5968" style={{ position: 'absolute', left: 14, top: 14, pointerEvents: 'none' }} />
         <input type="text" data-role="history-search" value={query} onChange={(e) => onQuery(e.target.value)}
           placeholder="코스 · 메모로 찾기" aria-label="라운드 검색" autoComplete="off" spellCheck={false}
-          style={{ width: '100%', boxSizing: 'border-box', height: 46, padding: '0 44px 0 42px', fontSize: 16, borderRadius: 12, border: '1px solid #252f4a', background: '#1a2235', color: '#e8edf8', outline: 'none' }} />
+          style={{ width: '100%', boxSizing: 'border-box', height: 46, padding: '0 44px 0 42px', fontSize: 16, borderRadius: 12, border: '1px solid #d1d6db', background: '#e8ebee', color: '#191f28', outline: 'none' }} />
         {query && (
           <button type="button" data-role="history-search-clear" aria-label="검색어 지우기" onClick={() => onQuery('')}
-            style={{ position: 'absolute', right: 2, top: 1, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#a9b8d6', cursor: 'pointer' }}>
+            style={{ position: 'absolute', right: 2, top: 1, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: '#333d4b', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         )}
@@ -50,12 +50,12 @@ export default function HistoryFilterBar({ query, onQuery, year, onYear, years, 
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10, minHeight: 28 }}>
-        <span data-role="history-count" style={{ fontSize: 14, color: '#a9b8d6' }}>
-          {filtered ? <>전체 {total}개 중 <b style={{ color: '#e8edf8' }}>{shown}개</b></> : <>라운드 <b style={{ color: '#e8edf8' }}>{total}개</b></>}
+        <span data-role="history-count" style={{ fontSize: 14, color: '#333d4b' }}>
+          {filtered ? <>전체 {total}개 중 <b style={{ color: '#191f28' }}>{shown}개</b></> : <>라운드 <b style={{ color: '#191f28' }}>{total}개</b></>}
         </span>
         {filtered && (
           <button type="button" data-role="history-clear" onClick={onClear}
-            style={{ minHeight: 36, padding: '0 6px', background: 'none', border: 'none', color: '#e6c35a', fontSize: 14, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>
+            style={{ minHeight: 36, padding: '0 6px', background: 'none', border: 'none', color: '#1b64da', fontSize: 14, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>
             조건 지우기
           </button>
         )}

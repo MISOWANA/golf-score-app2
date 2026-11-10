@@ -24,7 +24,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0, nineExclu
       <button style={styles.iconBack} onClick={onBack} aria-label="뒤로">
         <ChevronLeft size={22} />
       </button>
-      <div style={styles.pageTitle}>Stats</div>
+      <div style={styles.pageTitle}>스탯</div>
       <div style={{ width: 44 }} />
     </header>
   );
@@ -52,7 +52,7 @@ export default function StatsView({ rounds, onBack, excludedCount = 0, nineExclu
       {tab === 'putting' && <PuttingTab report={report} />}
       {tab === 'club' && <ClubTab report={report} />}
       {tab !== 'overview' && (
-        <div data-role="badge-legend" style={{ fontSize: 12, color: '#8aa0c4', lineHeight: 1.6, textAlign: 'center', padding: '2px 12px 0', wordBreak: 'keep-all' }}>
+        <div data-role="badge-legend" style={{ fontSize: 12, color: '#4e5968', lineHeight: 1.6, textAlign: 'center', padding: '2px 12px 0', wordBreak: 'keep-all' }}>
           높음·중간·낮음은 그 숫자를 얼마나 믿어도 되는지예요. 기록이 쌓일수록 올라가요.
         </div>
       )}

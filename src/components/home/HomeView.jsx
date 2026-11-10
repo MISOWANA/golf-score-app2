@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, Flag } from 'lucide-react';
 import styles from '../../styles/styles';
 import RoundRow from './RoundRow';
 import { NewRoundCard, ActiveRoundCard, StatsPanel, BackupNudge, FormCard, FirstRunGuide } from './HomeCards';
@@ -53,25 +53,22 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
       <header style={styles.header}>
         <div style={styles.headerTop}>
           <div style={styles.logo}>
-            <div style={{ ...styles.logoMark, cursor: 'pointer' }} onClick={handleLogoClick} title="3번 연속 클릭하면 강력 새로고침">⛳</div>
-            <div>
-              <div style={styles.brandName}>Birdie</div>
-              <div style={styles.brandTagline}>Buddy</div>
-            </div>
+            <div style={{ ...styles.logoMark, cursor: 'pointer' }} onClick={handleLogoClick} title="3번 연속 클릭하면 강력 새로고침"><Flag size={18} strokeWidth={2.2} /></div>
+            <div style={styles.brandName}>Birdie Buddy</div>
           </div>
           <div style={styles.headerActions}>
             <button className="bb-press" style={styles.actionButton} data-role="open-settings" onClick={onOpenSettings}
               title="설정 · 백업" aria-label="설정 · 백업">
-              <span style={styles.actionCircle}><Settings size={16} /></span>
+              <Settings size={21} strokeWidth={1.8} />
             </button>
-            <div style={styles.userChip}>
-              <span style={styles.userName}>{currentUser.userName}</span>
-              <button style={styles.logoutButton} onClick={() => setShowLogoutConfirm(true)} title="다른 사용자로 로그인" aria-label="다른 사용자로 로그인">
-                <LogOut size={16} />
-              </button>
-            </div>
+            <button className="bb-press" style={styles.avatarButton} data-role="user-avatar" onClick={() => setShowLogoutConfirm(true)} title="다른 사용자로 로그인" aria-label="다른 사용자로 로그인">
+              {[...currentUser.userName][0]}
+            </button>
           </div>
         </div>
+        <h1 data-role="home-greeting" style={styles.greeting}>
+          <span data-role="user-name">{currentUser.userName}</span>님, {activeRound ? '이어서' : '오늘도'}<br />{activeRound ? '쳐 볼까요?' : '한 라운드 가볼까요?'}
+        </h1>
         <div style={styles.dateRow}>
           <div style={styles.dateLine}>
             {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
@@ -114,36 +111,36 @@ export default function HomeView({ rounds, currentUser, activeRound, onNewRound,
       )}
 
       {hardRefreshing && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(11,14,24,0.92)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, zIndex:10000 }}>
+        <div style={{ position:'fixed', inset:0, background:'rgba(255,255,255,0.92)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, zIndex:10000 }}>
           <div style={{ fontSize:32 }}>⛳</div>
-          <div style={{ fontSize:15, color:'#c9a228', fontWeight:700 }}>강력 새로고침 중...</div>
+          <div style={{ fontSize:15, color:'#1b64da', fontWeight:700 }}>강력 새로고침 중...</div>
         </div>
       )}
 
       {showLogoutConfirm && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, padding:'24px' }}
+        <div style={{ position:'fixed', inset:0, background:'rgba(25,31,40,0.55)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, padding:'24px' }}
           onClick={() => setShowLogoutConfirm(false)}>
-          <div style={{ background:'#0f1825', borderRadius:16, padding:'28px 22px', width:'100%', maxWidth:320, border:'1px solid #1b2744', boxShadow:'0 8px 40px rgba(0,0,0,0.6)' }}
+          <div style={{ background:'#ffffff', borderRadius:16, padding:'28px 22px', width:'100%', maxWidth:320, border:'1px solid #e5e8eb', boxShadow:'0 8px 40px rgba(0,0,0,0.21)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ fontSize:26, textAlign:'center', marginBottom:12 }}>⚠️</div>
-            <div style={{ fontSize:17, fontWeight:800, color:'#e8edf8', textAlign:'center', marginBottom:8 }}>사용자 전환하시겠어요?</div>
-            <div style={{ fontSize:14, color:'#8896b0', textAlign:'center', lineHeight:1.6, marginBottom: activeRound ? 6 : 20 }}>
+            <div style={{ fontSize:17, fontWeight:800, color:'#191f28', textAlign:'center', marginBottom:8 }}>사용자 전환하시겠어요?</div>
+            <div style={{ fontSize:14, color:'#4e5968', textAlign:'center', lineHeight:1.6, marginBottom: activeRound ? 6 : 20 }}>
               기록은 이 기기에 그대로 남아요.<br/>같은 이름으로 다시 들어오면 이어져요.
             </div>
             {activeRound && (
-              <div style={{ fontSize:14, color:'#ef5350', textAlign:'center', background:'rgba(239,83,80,0.08)', border:'1px solid rgba(239,83,80,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>
+              <div style={{ fontSize:14, color:'#c8323a', textAlign:'center', background:'rgba(200,50,58,0.08)', border:'1px solid rgba(200,50,58,0.25)', borderRadius:8, padding:'10px 14px', marginBottom:20, lineHeight:1.6 }}>
                 진행 중인 라운드도 보관돼요.<br/>
                 다시 로그인하면 이어서 기록할 수 있어요.
               </div>
             )}
             <div style={{ display:'flex', gap:8 }}>
               <button
-                style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #252f4a', background:'transparent', color:'#e8edf8', fontSize:15, fontWeight:600, cursor:'pointer' }}
+                style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid #d1d6db', background:'transparent', color:'#191f28', fontSize:15, fontWeight:600, cursor:'pointer' }}
                 onClick={() => setShowLogoutConfirm(false)}>
                 취소
               </button>
               <button
-                style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#ef5350', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}
+                style={{ flex:1, padding:'13px 8px', borderRadius:10, wordBreak:'keep-all', textWrap:'balance', border:'1.5px solid transparent', background:'#c8323a', color:'#ffffff', fontSize:15, fontWeight:700, cursor:'pointer' }}
                 onClick={() => { setShowLogoutConfirm(false); onSwitchUser(); }}>
                 나가기
               </button>

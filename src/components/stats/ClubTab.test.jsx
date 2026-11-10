@@ -18,7 +18,7 @@ describe('클럽 탭 — 클럽 간격 대신 거리 일관성', () => {
     expect(container.textContent).not.toMatch(/GAPPING|칠 클럽이 없어요|클럽을 줄여도|고르게 벌어져/);
     const card = container.querySelector('[data-role="card-club-consistency"]');
     expect(card).toBeTruthy();
-    expect(card.textContent).toContain('CONSISTENCY');
+    expect(card.textContent).toContain('거리 일관성');
   });
 
   it('가장 일정한 클럽과 가장 들쭉날쭉한 클럽을 알려 주고, 모든 클럽의 폭을 줄 세운다', () => {

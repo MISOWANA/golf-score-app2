@@ -124,7 +124,7 @@ describe('끝낸 홀을 다시 열어 고칠 때', () => {
     await goHole(1);
     expect(currentTab()).toBe('퍼팅');
     await tap(area('putt-lie-flat'));
-    await tap(one('다음'));
+    await tap(one('다음 홀'));
     expect(area('hole-check')).toBeNull();                                    // 이미 끝낸 홀은 다시 묻지 않는다
     expect(holeHeader().hole).toBe(2);
     expect((await stored(0)).s.puttDetails[0].lie).toBe('flat');
@@ -134,10 +134,10 @@ describe('끝낸 홀을 다시 열어 고칠 때', () => {
     await toPutting();
     await tap(area('putt-primary'));
     await waitForHole(2);
-    expect(text()).toMatch(/SCORE 3 - /);
-    expect(text()).toMatch(/PUTT 1 - /);
-    expect(text()).toMatch(/1 ?\/ ?18 holes/);
-    expect(text()).toMatch(/SCORE 3/);
+    expect(text()).toMatch(/스코어 3 - /);
+    expect(text()).toMatch(/퍼트 1 - /);
+    expect(text()).toMatch(/1 ?\/ ?18홀/);
+    expect(text()).toMatch(/스코어 3/);
   });
 });
 

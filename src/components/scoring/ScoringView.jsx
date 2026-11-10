@@ -921,6 +921,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   const extraShotTopRef = useRef(null);
   const puttTopRef = useRef(null);   // 퍼팅 영역의 맨 위 — 랜딩을 고르면 화면을 여기로 옮긴다
+  const pinTopRef = useRef(null);    // 퍼팅 탭의 핀 위치 칸 — 온그린 성공 뒤 화면이 먼저 오는 자리 (파4 이상)
   const landingTopRef = useRef(null); // 온그린 랜딩 방향 휠 자리 — 방향이 비어 있으면 퍼팅 단계에 들어올 때 화면을 여기로 옮긴다
   const offGreenTopRef = useRef(null);
   const prevExtraShotsLenRef = useRef(0);
@@ -2201,11 +2202,17 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   // 화면을 열었을 때와 퍼팅 단계로 넘어왔을 때 입력할 자리가 처음 화면 안에 있게 한다.
   //  · 처음 열었을 때(새 라운드 · 이어서): 맨 위는 스코어보드라, 탭 행이 맨 위에 오게 내린다. 퍼팅 단계라면 아래 둘 중 하나로.
-  //  · 퍼팅 단계로 넘어왔을 때(탭 · 샷 결과 버튼): 온그린 랜딩 방향이 비어 있으면 그 휠부터 보여 준다 — 고르면 PUTT 카드로 내려간다
-  //    (휠의 onChange → scrollToPutting). 이미 골랐으면 PUTT 카드부터. 그린 스피드 · 핀 위치는 위로 올리면 있다.
+  //  · 퍼팅 단계로 넘어왔을 때(탭 · 샷 결과 버튼): 아직 비어 있는 첫 칸으로 간다 — 핀 위치(파4 이상) → 온그린 랜딩 방향 → PUTT 카드.
+  //    핀 위치를 고르면 랜딩 휠로, 휠을 고르면 PUTT 카드로 내려간다 (각 onChange → scrollToStep / scrollToPutting).
+  //    파3 은 핀 위치를 티샷 탭에서 받으므로 랜딩 휠부터. 그린 스피드는 위로 올리면 있다.
   // 홀을 옮길 때의 스크롤은 confirmAndGoToHole(scrollToTabs)이 맡는다.
   const landingEmptyRef = useRef(false);
   useEffect(() => { landingEmptyRef.current = !playerScore.onGreenLanding; });
+  const pinEmptyRef = useRef(false);
+  useEffect(() => {
+    const pin = Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition;
+    pinEmptyRef.current = hole.par > 3 && !pin;
+  });
   const prevStageRef = useRef(null);
   useEffect(() => {
     const was = prevStageRef.current;
@@ -2215,7 +2222,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     if (!toPutt && !first) return;
     // 타이머는 되돌리지 않는다 — 개발 모드의 StrictMode 가 효과를 두 번 돌려도 첫 스크롤이 사라지지 않게
     setTimeout(() => {
-      const el = toPutt ? ((landingEmptyRef.current && landingTopRef.current) || puttTopRef.current) : tabsTopRef.current;
+      const el = toPutt
+        ? ((pinEmptyRef.current && pinTopRef.current) || (landingEmptyRef.current && landingTopRef.current) || puttTopRef.current)
+        : tabsTopRef.current;
       el?.scrollIntoView?.({ behavior: first ? 'auto' : 'smooth', block: 'start' });
     }, 80);
   }, [stage]);
@@ -2544,19 +2553,19 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         {/* PAR3 전용: 핀 위치 — 선택 입력. 고르지 않아도 다음 입력이 열린다 */}
         {hole.par === 3 && (
           <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #e5e8eb' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span><span style={{ fontSize:12, color:'#4e5968' }}>선택 입력</span>
             </div>
-            <RadialPicker centerId="center" centerLabel="센터" placeholder="선택 입력" dirs={PIN_DIRS}
+            <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS} alwaysOpen
               value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
-              onChange={v => updateField('pinPosition', v)}
+              onChange={v => { updateField('pinPosition', v); if (v) scrollToStep('tee-distance'); }}
             />
           </div>
         )}
 
         {/* PAR3 전용: 거리 */}
         {hole.par === 3 && (
-          <div style={{ padding:'8px 16px 14px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out' }}>
+          <div data-step="tee-distance" style={{ padding:'8px 16px 14px', borderBottom:'1px solid #e5e8eb', animation:'fadeIn 0.18s ease-out', scrollMarginTop: 72 }}>
             <div style={{ ...fLeft, marginBottom:10 }}>
               <span style={fIcon}>↔</span><span style={fLbl}>거리</span>
               {mapDistanceTag(measuredTee, playerScore.teeDistance, null,
@@ -3163,21 +3172,22 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         />
 
         {/* 핀 위치 - PAR4+ 전용 (PAR3는 티샷에서 입력). 선택 입력 */}
+        {/* 온그린 성공 뒤 맨 먼저 화면이 오는 자리. 고른 뒤에도 접지 않고 펼쳐 두고, 고르면 온그린 랜딩 방향으로 옮긴다. */}
         {hole.par > 3 && (
-        <div data-role="pin-position" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #e5e8eb' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-            <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span>
+        <div ref={pinTopRef} data-role="pin-position" data-step="putt-pin" style={{ padding:'8px 16px 4px', borderBottom:'1px solid #e5e8eb', scrollMarginTop: 72 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
+            <span style={fIcon}>📍</span><span style={fLbl}>핀 위치</span><span style={{ fontSize:12, color:'#4e5968' }}>선택 입력</span>
           </div>
-          <RadialPicker centerId="center" centerLabel="센터" placeholder="선택 입력" dirs={PIN_DIRS}
+          <RadialPicker centerId="center" centerLabel="센터" dirs={PIN_DIRS} alwaysOpen
             value={Array.isArray(playerScore.pinPosition) ? playerScore.pinPosition[0] : playerScore.pinPosition}
-            onChange={v => updateField('pinPosition', v)}
+            onChange={v => { updateField('pinPosition', v); if (v) scrollToStep('putt-landing'); }}
           />
         </div>
         )}
 
         {/* 온그린 랜딩 방향 (12-clock) — 선택 입력. 그린 어프로치 분석에 쓰이고, 비워 두어도 퍼팅 입력은 열려 있다.
             늘 펼쳐서 보여 준다 (값이 있어도) — 펼치려고 한 번 더 누르는 게 불편하다고 해서. 고르면 화면만 아래 퍼팅 입력으로 옮긴다. */}
-        <div ref={landingTopRef} data-role="landing-top" style={{ scrollMarginTop: 64 }}>
+        <div ref={landingTopRef} data-role="landing-top" data-step="putt-landing" style={{ scrollMarginTop: 64 }}>
           <OptionalSection
             key={`landing-${holeIdx}-${activePlayer}`}
             icon="⊙" label="온그린 랜딩 방향" enabled hint={null}
@@ -3191,7 +3201,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
 
         {/* 퍼팅 상세 */}
-        <div ref={puttTopRef} data-role="putting-top" style={{ scrollMarginTop: 64 }} />
+        <div ref={puttTopRef} data-role="putting-top" data-step="putt-top" style={{ scrollMarginTop: 64 }} />
         {secHdr('퍼 팅', null, turnState('putt', false))}
 
         {playerScore.putts > 0 && (<>

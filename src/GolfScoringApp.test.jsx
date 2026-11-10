@@ -1779,29 +1779,32 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
     const speedBar = async () => (await waitFor(() => { const b = document.querySelector('[data-role="green-speed-bar"]'); expect(b).toBeTruthy(); return b; })).textContent;
     const withSpeed = (over = {}, hole = 0) => { const r = shotRound(over, hole); r.greenSpeed = 9.8; return r; };
 
-    it('파4: 핀 위치를 아직 안 골랐으면 눌러서 펼치지 않아도 선택지가 보이고, 고르면 접혀서 결과만 남는다', async () => {
+    const PIN_NINE = ['백레프트', '백', '백라이트', '레프트', '센터', '라이트', '프론트레프트', '프론트', '프론트라이트'];
+
+    it('파4: 핀 위치는 눌러서 펼치지 않아도 선택지 9개가 보이고, 고른 뒤에도 접히지 않는다', async () => {
       await resume(shotRound({ putts: 2, puttsManual: true }));
       await openTab('putt');
       await waitFor(() => expect(document.querySelector('[data-role="pin-position"]')).toBeTruthy());
-      expect(pinOptions()).toEqual(expect.arrayContaining(['선택입력▲', '백레프트', '백', '백라이트', '레프트', '센터', '라이트', '프론트레프트', '프론트', '프론트라이트']));
+      expect(pinOptions().sort()).toEqual([...PIN_NINE].sort());
       fireEvent.click(screen.getAllByRole('button', { name: '센터' }).find((b) => b.closest('[data-role="pin-position"]')));
       await waitFor(async () => expect((await saved()).pinPosition).toBe('center'));
-      await waitFor(() => expect(pinOptions()).toEqual(['센터▼']));
+      expect(pinOptions().sort()).toEqual([...PIN_NINE].sort());      // 접히지 않고 그대로 펼쳐져 있다
     });
 
-    it('이미 고른 핀 위치는 접혀서 값만 보이고, 눌러서 다시 펼 수 있다', async () => {
+    it('이미 고른 핀 위치도 펼쳐져 있다 (접기 · 펼치기 버튼이 따로 없다)', async () => {
       await resume(shotRound({ putts: 2, puttsManual: true, pinPosition: 'back' }));
       await openTab('putt');
-      await waitFor(() => expect(pinOptions()).toEqual(['백▼']));
-      fireEvent.click(document.querySelector('[data-role="pin-position"] button'));
-      await waitFor(() => expect(pinOptions()).toContain('프론트레프트'));
+      await waitFor(() => expect(pinOptions().sort()).toEqual([...PIN_NINE].sort()));
     });
 
-    it('파3: 티샷 탭의 핀 위치도 펼쳐져 있다', async () => {
+    it('파3: 티샷 탭의 핀 위치도 펼쳐져 있고, 고른 뒤에도 접히지 않는다', async () => {
       await resume(shotRound({ teeClub: 'iron', onGreen: null, gir: null }, 2), '3번 홀');
       await openTab('tee');
       await waitFor(() => expect(document.querySelector('[data-role="pin-position"]')).toBeTruthy());
-      expect(pinOptions()).toEqual(expect.arrayContaining(['선택입력▲', '센터', '프론트']));
+      expect(pinOptions().sort()).toEqual([...PIN_NINE].sort());
+      fireEvent.click(screen.getAllByRole('button', { name: '프론트' }).find((b) => b.closest('[data-role="pin-position"]')));
+      await waitFor(async () => expect((await saved(2)).pinPosition).toBe('front'));
+      expect(pinOptions().sort()).toEqual([...PIN_NINE].sort());
     });
 
     it('그린 스피드는 미터가 앞, 피트는 괄호 — "3.0m (9.8ft) · 보통"', async () => {
@@ -1861,7 +1864,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       expect(document.querySelector('[data-role="landing-wheel"]')).toBeTruthy();
     });
 
-    // 퍼팅 단계에 들어올 때 화면이 어디로 가는가 — 랜딩 방향이 비어 있으면 휠부터, 골랐으면 PUTT 카드부터.
+    // 퍼팅 단계에 들어올 때 화면이 어디로 가는가 — 아직 비어 있는 첫 칸으로: 핀 위치(파4 이상) → 랜딩 방향 휠 → PUTT 카드.
     // jsdom 은 스크롤하지 않으므로 scrollIntoView 가 불린 요소(data-role)를 적어 둔다.
     describe('퍼팅 단계에 들어올 때의 스크롤 자리', () => {
       let scrolled;
@@ -1870,34 +1873,57 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
         Element.prototype.scrollIntoView = function () { scrolled.push(this.getAttribute('data-role')); };
       });
 
-      it('랜딩 방향이 비어 있으면 휠부터 보여 준다 (PUTT 카드로 바로 가지 않는다)', async () => {
+      it('핀 위치도 랜딩 방향도 비어 있으면 핀 위치부터 보여 준다 (휠 · PUTT 카드로 바로 가지 않는다)', async () => {
         await resume(shotRound({ onGreen: null, gir: null, ...second }));
         await openTab('putt');
         await screen.findByText('PUTT 1');
-        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        await waitFor(() => expect(scrolled).toContain('pin-position'));
+        expect(scrolled).not.toContain('landing-top');
         expect(scrolled).not.toContain('putting-top');
       });
 
-      it('필드샷에서 온그린 "성공"을 눌러도 휠부터 — 랜딩 방향이 비어 있을 때', async () => {
+      it('필드샷에서 온그린 "성공"을 누르면 핀 위치부터 — 핀 위치가 비어 있을 때', async () => {
         await resume(shotRound({ onGreen: null, gir: null, putts: 2, puttsManual: true, ...second }));
         await openTab('field');
         scrolled.length = 0;
         fireEvent.click(await waitFor(() => { const b = document.querySelector('[data-role="second-result-on"]'); expect(b).toBeTruthy(); return b; }));
         await screen.findByText('PUTT 1');
-        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        await waitFor(() => expect(scrolled).toContain('pin-position'));
+        expect(scrolled).not.toContain('landing-top');
         expect(scrolled).not.toContain('putting-top');
       });
 
-      it('이미 랜딩 방향을 골랐으면 PUTT 카드부터 보여 준다', async () => {
-        await resume(shotRound({ onGreen: null, gir: null, onGreenLanding: 6, ...second }));
+      it('핀 위치를 이미 골랐고 랜딩 방향이 비어 있으면 휠부터 보여 준다', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, pinPosition: 'center', ...second }));
+        await openTab('putt');
+        await screen.findByText('PUTT 1');
+        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        expect(scrolled).not.toContain('pin-position');
+        expect(scrolled).not.toContain('putting-top');
+      });
+
+      it('핀 위치와 랜딩 방향을 이미 골랐으면 PUTT 카드부터 보여 준다', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, pinPosition: 'center', onGreenLanding: 6, ...second }));
         await openTab('putt');
         await screen.findByText('PUTT 1');
         await waitFor(() => expect(scrolled).toContain('putting-top'));
         expect(scrolled).not.toContain('landing-top');
+        expect(scrolled).not.toContain('pin-position');
+      });
+
+      it('핀 위치를 고르면 접히지 않은 채 랜딩 휠로 간다', async () => {
+        await resume(shotRound({ onGreen: null, gir: null, ...second }));
+        await openTab('putt');
+        await waitFor(() => expect(scrolled).toContain('pin-position'));
+        scrolled.length = 0;
+        fireEvent.click(screen.getAllByRole('button', { name: '센터' }).find((b) => b.closest('[data-role="pin-position"]')));
+        await waitFor(() => expect(scrolled).toContain('landing-top'));
+        await waitFor(async () => expect((await saved()).pinPosition).toBe('center'));
+        expect(document.querySelectorAll('[data-role="pin-position"] button')).toHaveLength(9);
       });
 
       it('휠에서 방향을 고르면 PUTT 카드로 내려간다', async () => {
-        await resume(shotRound({ onGreen: null, gir: null, ...second }));
+        await resume(shotRound({ onGreen: null, gir: null, pinPosition: 'center', ...second }));
         await openTab('putt');
         await waitFor(() => expect(scrolled).toContain('landing-top'));
         scrolled.length = 0;
@@ -2404,26 +2430,28 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       expect(document.querySelector('[data-role="off-green"]').closest('[data-role="putt-cards"]')).toBeTruthy();
     });
 
-    it('퍼팅 단계가 열리면 화면을 옮긴다 — 랜딩 방향이 비었으면 휠 자리로, 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
+    it('퍼팅 단계가 열리면 화면을 옮긴다 — 핀 위치가 비었으면 핀 위치 자리로, 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       const targets = () => spy.mock.contexts.map((el) => el?.dataset?.role ?? '');
-      await resume(one());                                                               // 볼이 그린 위 → 퍼팅 단계로 열린다 (랜딩 방향은 비어 있다)
-      await waitFor(() => expect(targets()).toContain('landing-top'));
+      await resume(one());                                                               // 볼이 그린 위 → 퍼팅 단계로 열린다 (핀 위치 · 랜딩 방향은 비어 있다)
+      await waitFor(() => expect(targets()).toContain('pin-position'));
+      expect(targets()).not.toContain('landing-top');
       expect(targets()).not.toContain('putting-top');
       spy.mockClear();
       await openTab('field');
       await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());
       spy.mockClear();
       await openTab('putt');
-      await waitFor(() => expect(targets()).toContain('landing-top'));
+      await waitFor(() => expect(targets()).toContain('pin-position'));
     });
 
-    it('랜딩 방향을 이미 골랐으면 PUTT 카드 자리로 화면을 옮긴다 — 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
+    it('핀 위치와 랜딩 방향을 이미 골랐으면 PUTT 카드 자리로 화면을 옮긴다 — 처음 열었을 때도, 탭을 눌러 넘어왔을 때도', async () => {
       const spy = vi.spyOn(Element.prototype, 'scrollIntoView');
       const targets = () => spy.mock.contexts.map((el) => el?.dataset?.role ?? '');
-      await resume(shotRound({ putts: 1, puttsManual: true, onGreenLanding: 6, puttDetails: [{ distance: 4, aimDistance: 4, lie: [], holein: null }] }));
+      await resume(shotRound({ putts: 1, puttsManual: true, pinPosition: 'center', onGreenLanding: 6, puttDetails: [{ distance: 4, aimDistance: 4, lie: [], holein: null }] }));
       await waitFor(() => expect(targets()).toContain('putting-top'));
       expect(targets()).not.toContain('landing-top');
+      expect(targets()).not.toContain('pin-position');
       spy.mockClear();
       await openTab('field');
       await waitFor(() => expect(document.querySelector('[data-role="second-result"]')).toBeTruthy());

@@ -4,7 +4,7 @@
 // 화면 이동은 scrollIntoView 가 불린 칸의 data-step 이름으로 확인한다. 방식은 test/flowKit.jsx 머리말 참고.
 import { describe, it, expect, vi } from 'vitest';
 import { waitFor } from '@testing-library/react';
-import { tap, area, newHole, setPar, installHooks, setDistance, currentTab } from './test/flowKit.jsx';
+import { tap, tapTab, area, find, newHole, setPar, installHooks, setDistance, currentTab } from './test/flowKit.jsx';
 
 vi.setConfig({ testTimeout: 40000 });
 installHooks();
@@ -111,5 +111,72 @@ describe('필드샷 · 퍼팅 — 누르면 다음 칸으로', () => {
     w.reset();
     await tap(area('putt-next'));
     await w.lands('putt-card-1');
+  });
+
+  // 세컨샷 "성공"(온그린)까지 간 상태
+  const toGreen = async () => {
+    await toField();
+    await tap('IRON'); await tap('7I');
+    await setDistance(area('second-surface').parentElement, 150);
+    await tap(area('second-lie-flat'));
+  };
+  const pinButton = (label) => find(label, area('pin-position'))[0];
+
+  it('온그린 성공(파4) → 퍼팅 탭의 핀 위치가 화면 맨 위로 온다', async () => {
+    await toGreen();
+    const w = watchScroll();
+    await tap(area('second-result-on'));
+    expect(currentTab()).toBe('퍼팅');
+    await w.lands('putt-pin');
+  });
+
+  it('핀 위치를 고르면 접히지 않은 채 온그린 랜딩 방향으로 간다. 같은 방향을 다시 눌러 지울 때는 움직이지 않는다', async () => {
+    await toGreen();
+    const w = watchScroll();
+    await tap(area('second-result-on'));
+    await w.lands('putt-pin');                                           // 들어올 때의 이동이 끝난 뒤에 누른다 (타이머가 겹쳐 우연히 맞는 일이 없게)
+    w.reset();
+    await tap(pinButton('센터'));
+    await w.lands('putt-landing');
+    expect(find(/./, area('pin-position')).length).toBe(9);              // 선택지 9개가 그대로 펼쳐져 있다
+    w.reset();
+    await tap(pinButton('센터'));                                          // 해제
+    await new Promise((r) => setTimeout(r, 400));
+    expect(w.names()).toEqual([]);
+  });
+
+  it('핀 위치를 이미 골랐으면 퍼팅 탭에 다시 들어올 때는 랜딩 방향으로, 랜딩까지 골랐으면 PUTT 카드로 간다', async () => {
+    await toGreen();
+    const w = watchScroll();
+    await tap(area('second-result-on'));
+    await w.lands('putt-pin');
+    w.reset();
+    await tap(pinButton('센터'));
+    await w.lands('putt-landing');
+    await tapTab('field');
+    await new Promise((r) => setTimeout(r, 300));
+    w.reset();
+    await tapTab('putt');
+    await w.lands('putt-landing');
+    w.reset();
+    await tap(document.querySelector('[data-role="landing-zone"][data-hour="3"]'));
+    await w.lands('putt-top');
+  });
+});
+
+describe('파3 — 핀 위치 · 티샷 결과 → 퍼팅', () => {
+  it('핀 위치를 고르면 접히지 않은 채 거리 칸으로 가고, 티샷에서 그린 온이면 퍼팅 탭은 랜딩 방향부터 시작한다 (핀 위치는 티샷에서 이미 받았다)', async () => {
+    await newHole();
+    await setPar(0, 3);
+    const w = watchScroll();
+    await tap(find('센터', area('pin-position'))[0]);
+    await w.lands('tee-distance');
+    expect(find(/./, area('pin-position')).length).toBe(9);
+    await tap('DRIVER');
+    w.reset();
+    await tap(find('그린 온')[0]);
+    expect(currentTab()).toBe('퍼팅');
+    expect(area('pin-position')).toBeNull();                              // 퍼팅 탭에는 핀 위치가 없다
+    await w.lands('putt-landing');
   });
 });

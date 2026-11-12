@@ -10,7 +10,8 @@ import { isNineHoleRound } from '../../engine/nines.js';
 import { localizeDeep } from '../../engine/units.js';
 import { roundDateLabel as dateLabel } from '../../engine/dateLabel.js';   // 연도까지 — 2026.9.20
 
-const diffColor = (d) => (d <= -2 ? '#f0c93a' : d === -1 ? '#0a7f3f' : d === 0 ? '#191f28' : d === 1 ? '#c8323a' : '#c8323a');
+// 이글 이하는 파랑 — 예전 어두운 테마의 노랑(#f0c93a)이 남아 밝은 바탕에서 안 보였다
+const diffColor = (d) => (d <= -2 ? '#1b64da' : d === -1 ? '#0a7f3f' : d === 0 ? '#191f28' : d === 1 ? '#c8323a' : '#c8323a');
 const diffBg = (d) => (d <= -2 ? 'rgba(27,100,218,0.18)' : d === -1 ? 'rgba(10,127,63,0.16)' : d === 0 ? '#e8ebee' : d === 1 ? 'rgba(200,50,58,0.12)' : 'rgba(200,50,58,0.16)');
 const sign = (d) => (d > 0 ? `+${d}` : d === 0 ? 'E' : `${d}`);
 

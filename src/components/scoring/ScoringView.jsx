@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus, Home, Menu as MenuIcon, LogOut } from 'lucide-react';
 import styles from '../../styles/styles';
 import ParTable from '../ui/ParTable';
+import { koScoreName, koScoreNameTone } from '../ui/scoreTone.js';
 import GpsShotPoint from './GpsShotPoint';
 import HoleMapModal from './HoleMapModal';
 import { fieldShotCount as countFieldShots, haversine, isHoledOut, par3TeeOnGreen, pinDistances, saneRemaining, shotDistanceTrusted, SANE_REMAIN_M } from '../../engine/geo.js';
@@ -623,23 +624,6 @@ const PIN_DIRS = [
 const SHOT_DETAIL_KEY = 'bb-shot-detail';
 const readShotDetail = () => { try { return localStorage.getItem(SHOT_DETAIL_KEY) === '1'; } catch { return false; } };
 const writeShotDetail = (on) => { try { localStorage.setItem(SHOT_DETAIL_KEY, on ? '1' : '0'); } catch { /* 저장하지 못해도 이번 화면에서는 그대로 동작한다 */ } };
-
-// 스코어 이름 (한글) — 큰 숫자 아래 작은 알약에 보인다
-const koScoreName = (strokes, par) => {
-  if (!strokes) return null;
-  if (strokes === 1) return '홀인원';
-  const d = strokes - par;
-  if (d <= -3) return '알바트로스';
-  if (d === -2) return '이글';
-  if (d === -1) return '버디';
-  if (d === 0) return '파';
-  if (d === 1) return '보기';
-  if (d === 2) return '더블 보기';
-  if (d === 3) return '트리플 보기';
-  if (d === 4) return '쿼드러플 보기';
-  return `+${d}`;
-};
-const NAME_TONE = (strokes, par) => (strokes - par <= 0 ? { color: '#0a7f3f', bg: '#e6f6ec' } : { color: '#c8323a', bg: '#fdebec' });
 
 // 머리줄 아이콘 버튼 · 스코어 −/+ 큰 버튼 · 한 줄 목록 버튼
 // 아래 고정 막대(☰ · 이전 · 다음 홀) 자리 — 버튼(56px) 위 10px, 아래는 아이폰 홈 막대 자리(safe-area)에서 10px 를 덜어 버튼을 화면 아래로 붙인다
@@ -2501,7 +2485,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             {inProgress(playerScore) ? (
               <div data-role="score-name" style={{ display: 'inline-block', marginTop: 4, height: 26, lineHeight: '26px', padding: '0 12px', borderRadius: 13, background: '#f2f4f6', color: '#4e5968', fontSize: 13, fontWeight: 700 }}>진행 중</div>
             ) : scoreName && (
-              <div data-role="score-name" style={{ display: 'inline-block', marginTop: 4, height: 26, lineHeight: '26px', padding: '0 12px', borderRadius: 13, ...NAME_TONE(playerScore.strokes, hole.par), fontSize: 13, fontWeight: 700, opacity: playerScore.touched ? 1 : 0.65 }}>
+              <div data-role="score-name" style={{ display: 'inline-block', marginTop: 4, height: 26, lineHeight: '26px', padding: '0 12px', borderRadius: 13, ...koScoreNameTone(playerScore.strokes, hole.par), fontSize: 13, fontWeight: 700, opacity: playerScore.touched ? 1 : 0.65 }}>
                 {koScoreName(playerScore.strokes, hole.par)}
               </div>
             )}

@@ -87,7 +87,7 @@ describe('기본 모습 — 스코어와 퍼팅만', () => {
     expect(s.s).toMatchObject({ strokes: 5, putts: 2, confirmed: true });
     expect(s.s.teeClub ?? null).toBeNull();
     expect(area('progress-count').textContent).toBe('1/18홀');
-    expect(area('running-total').textContent).toContain('합계 5타 (+1)');
+    expect(area('running-total').textContent).toBe('5(+1)');   // 맨 위 전체 스코어 카드
   });
 });
 

@@ -68,6 +68,17 @@ describe('티샷 — 클럽', () => {
     expect((await stored()).s).toMatchObject({ teeClub: 'iron', teeClubSub: null });
     expect(looksOn(one('IRON'))).toBe(true);
   });
+
+  it('파3 에서 클럽을 고르기 전에 코스맵의 "＋ 샷"을 눌러도 잠긴 필드샷 탭이 열리지 않고 티샷 탭에 머문다', async () => {
+    await newHole();
+    await setPar(0, 3);
+    expect(tabInfo()['필드샷'].disabled).toBe(true);
+    await tap(area('map-button'));
+    await tap('＋ 샷');
+    expect((await stored()).s).toMatchObject({ teeOnGreen: false });   // 샷은 늘어난다 (티샷 그린 온 표시가 풀림)
+    expect(tabInfo()['필드샷'].disabled).toBe(true);                    // 클럽이 없으니 여전히 잠김
+    expect(currentTab()).toBe('티샷');                                  // 잠긴 탭의 내용을 보여 주지 않는다
+  });
 });
 
 describe('티샷 — 구질', () => {

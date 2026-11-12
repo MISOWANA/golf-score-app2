@@ -3480,7 +3480,7 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     pin.forEach((b) => expect(h(b)).toBe('44px'));
   });
 
-  it('스코어 입력 머리줄의 뒤로가기 · 코스맵 · 메모 · 라운드 수정 아이콘에는 이름이 있다', async () => {
+  it('스코어 입력 머리줄의 홈 · 코스맵 · 메모 · 라운드 수정 아이콘에는 이름이 있다', async () => {
     await setup({ rounds: rounds18(1), active: makeActiveRound(ME) });
     tab('스탯');
     await pageTitle('스탯');
@@ -3488,7 +3488,7 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     tab('홈');
     fireEvent.click(await screen.findByText('이어서'));
     await screen.findByText('4번 홀');
-    expect(screen.getByRole('button', { name: '뒤로' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '홈' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '코스맵' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '메모 쓰기' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '라운드 수정' })).toBeTruthy();

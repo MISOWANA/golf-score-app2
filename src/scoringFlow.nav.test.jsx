@@ -162,13 +162,21 @@ describe('아래 막대 — 메모', () => {
   });
 });
 
-describe('홈 · 뒤로 · 이어서', () => {
-  it('뒤로(<) → "기록 유지하고 홈으로"를 누르면 홈으로 가고 "이어서"로 같은 홀 같은 입력이 이어진다', async () => {
+describe('홈 · 라운드 그만두기 · 이어서', () => {
+  const homeBtn = () => area('go-home');
+  const openQuit = async () => {
+    await tap(area('round-edit'));
+    await tap(area('quit-round'));
+  };
+
+  it('머리줄 왼쪽 홈 버튼은 확인 창 없이 한 번에 홈으로 가고, "이어서"로 같은 홀 같은 입력이 이어진다', async () => {
     await newHole();
+    expect(homeBtn().getAttribute('aria-label')).toBe('홈');
+    expect(document.querySelector('[aria-label="뒤로"]')).toBeNull();      // 예전 뒤로(<) 버튼은 없다
     await tap('DRIVER'); await tap('X');
     await goHole(2);
-    await tap(document.querySelector('[aria-label="뒤로"]'));
-    await tap('기록 유지하고 홈으로');
+    await tap(homeBtn());
+    expect(text()).not.toContain('라운드를 그만두시겠어요?');
     await screen.findByText('새 라운드');
     expect(text()).toContain('진행 중인 라운드');
     expect(text()).toMatch(/2 ?번 홀 진행 중/);
@@ -179,24 +187,45 @@ describe('홈 · 뒤로 · 이어서', () => {
     expect(looksOn(area('tee-fairway-miss'))).toBe(true);                  // 1번 홀 입력이 남아 있다
   });
 
-  it('헤더의 뒤로(<)는 입력이 있으면 "라운드를 그만두시겠어요?" 4지선다를 보여 주고, 계속 기록하기로 닫을 수 있다', async () => {
+  it('입력이 전혀 없을 때도 홈 버튼은 홈으로 가고, 라운드는 남아 "이어서"로 돌아온다', async () => {
+    await newHole();
+    await tap(homeBtn());
+    await screen.findByText('새 라운드');
+    expect(text()).toContain('진행 중인 라운드');
+    await tap('이어서');
+    await screen.findByText(/^1번 홀$/);
+  });
+
+  it('라운드 수정(연필) 창 맨 아래 "라운드 그만두기"는 4지선다를 보여 주고, 계속 기록하기로 닫거나 기록을 둔 채 홈으로 갈 수 있다', async () => {
     await newHole();
     await tap('DRIVER');
-    await tap(document.querySelector('[aria-label="뒤로"]'));
-    expect(text()).toContain('라운드를 그만두시겠어요?');
+    await openQuit();
+    expect(text()).not.toContain('라운드 수정');                             // 연필 창은 닫히고
+    expect(text()).toContain('라운드를 그만두시겠어요?');                     // 확인 창만 남는다
     for (const b of ['계속 기록하기', '기록 유지하고 홈으로', '삭제하고 세팅 다시하기', '삭제하고 나가기']) expect(find(b).length, b).toBe(1);
     await tap('계속 기록하기');
     expect(text()).not.toContain('라운드를 그만두시겠어요?');
     expect(holeHeader().hole).toBe(1);
-    await tap(document.querySelector('[aria-label="뒤로"]'));
+    await openQuit();
     await tap('기록 유지하고 홈으로');
     await screen.findByText('새 라운드');
     expect(await stored(0)).toBeTruthy();                                   // 기록은 그대로
   });
 
-  it('입력이 전혀 없을 때 뒤로(<)는 확인 없이 설정 화면으로 간다', async () => {
+  it('"삭제하고 나가기"는 진행 중인 라운드를 지우고 홈으로 간다', async () => {
     await newHole();
-    await tap(document.querySelector('[aria-label="뒤로"]'));
+    await tap('DRIVER');
+    await openQuit();
+    await tap('삭제하고 나가기');
+    await screen.findByText('새 라운드');
+    expect(text()).not.toContain('진행 중인 라운드');
+  });
+
+  it('입력이 없을 때 "라운드 그만두기" → "삭제하고 세팅 다시하기"는 설정 화면으로 간다', async () => {
+    await newHole();
+    await openQuit();
+    expect(text()).toContain('아직 입력한 스코어는 없어요');
+    await tap('삭제하고 세팅 다시하기');
     await screen.findByPlaceholderText('골프장 이름 검색...');
   });
 });

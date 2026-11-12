@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus } from 'lucide-react';
+import { ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus, Home } from 'lucide-react';
 import styles from '../../styles/styles';
 import ParTable from '../ui/ParTable';
 import GpsShotPoint from './GpsShotPoint';
@@ -715,8 +715,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   // 진행률이 먼저 오르고 누적 스코어에 미리 들어가던 문제. 예전 진행 중 라운드는
   // 확정 기록이 없으므로 입력한(touched) 홀 기준 그대로 둔다.
   const doneFor = (h, p) => (round.trackConfirm ? h.scores[p]?.confirmed === true : h.scores[p]?.touched === true);
-
-  const handleBackClick = () => { if (hasProgress) setShowExitConfirm(true); else onGoToSetup(); };
 
   // offGreenChips: 퍼트가 그린 밖으로 나간 뒤 다시 친 칩 수 — 그린에 오른 뒤의 샷이라 GIR 계산에서 뺀다
   const calculateGir = (strokes, putts, par, offGreenChips = 0) => {
@@ -2238,6 +2236,9 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     if (teeComplete) setStage(ballOnGreen ? 'putt' : 'field');
     else if (!teeReady) setStage('tee');
   }
+  // 티샷 필수 항목(클럽 등)이 비어 있는 동안 필드샷·퍼팅 탭은 잠겨 있다 — 다른 버튼이 탭을 바꿔도(예: 클럽 없이 코스맵의 "＋ 샷")
+  // 잠긴 탭의 내용을 보여 주지 않고 티샷 탭에 둔다. 몽키 테스트(파3)에서 잠긴 필드샷 탭이 열린 채로 보인 일이 있었다.
+  if (!teeReady && stage !== 'tee') setStage('tee');
 
   // 미입력 홀 확인 모달에 보여 줄 홀 번호들
   const pendingMissing = pendingFinish ? untouchedHoles(pendingFinish) : [];
@@ -2249,9 +2250,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   return (
     <div style={styles.container}>
-      {/* Header — 뒤로 · 코스 이름 · 코스맵 · 메모 · 라운드 수정 */}
+      {/* Header — 홈 · 코스 이름 · 코스맵 · 메모 · 라운드 수정
+          왼쪽은 누르면 바로 홈으로 가는 버튼이다 (기록은 저장돼 있어 홈의 "이어서"로 같은 홀에 돌아온다).
+          예전엔 뒤로(<) → 확인 창 → "기록 유지하고 홈으로" 두 번을 눌러야 했다 (2026-11-12 사용자 요청).
+          라운드 삭제 · 세팅 다시하기는 실수로 누르지 않게 라운드 수정(연필) 창 맨 아래 "라운드 그만두기"로 옮겼다. */}
       <header style={{ ...styles.scoringHeader, padding: '4px 0 8px' }}>
-        <button style={{ ...styles.iconBack, background: 'transparent', border: 'none', color: '#191f28', flexShrink: 0 }} onClick={handleBackClick} aria-label="뒤로"><ChevronLeft size={24} /></button>
+        <button data-role="go-home" style={{ ...styles.iconBack, background: 'transparent', border: 'none', color: '#191f28', flexShrink: 0 }} onClick={onGoHome} aria-label="홈"><Home size={23} strokeWidth={2} /></button>
         <div style={{ ...styles.scoringCourse, fontSize: 16 }} title={round.courseName}>{round.courseName}</div>
         {(() => {
           const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
@@ -2273,20 +2277,16 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         <button style={HDR_BTN} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정"><Edit3 size={19} strokeWidth={1.8} color="#4e5968" /></button>
       </header>
 
-      {/* 진행 — 합계 · 퍼트 · 몇 홀째 */}
+      {/* 전체 스코어 — 화면 맨 위: 몇 홀째 · 누적 · 홀 표(눌러서 홀 이동). 사용자가 "맨 위에 있는 게 낫다"고 해서 입력 아래에서 올렸다 (2026-11-12) */}
+      <div data-role="overview">
+      {/* 제목 · 몇 홀째 · 진행 막대 — 합계·퍼트 숫자는 바로 아래 카드에 크게 있어 여기서 다시 쓰지 않는다 */}
       {(() => {
         const c = round.holes.filter(h => round.players.every(p => doneFor(h, p))).length;
-        const th = round.holes.filter(h => doneFor(h, activePlayer));
-        const ps = th.reduce((s, h) => s + (h.scores[activePlayer]?.strokes || 0), 0);
-        const pp = th.reduce((s, h) => s + h.par, 0);
-        const pu = th.reduce((s, h) => s + (h.scores[activePlayer]?.putts || 0), 0);
-        const pd = ps - pp;
-        const diffText = th.length === 0 ? '' : ` (${pd === 0 ? 'E' : pd > 0 ? `+${pd}` : pd})`;
         return (
           <div data-role="progress" style={{ margin: '4px 4px 0', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, fontSize: 13, color: '#4e5968', marginBottom: 6 }}>
-              <span data-role="running-total">{isSimpleMode ? `${round.players.length}명이 함께 쳐요` : `합계 ${ps}타${diffText}${pu ? `, 퍼트 ${pu}` : ''}`}</span>
-              <span data-role="progress-count"><b style={{ color: '#191f28', fontWeight: 800 }}>{c}</b>{`/${holeTotal}홀`}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#191f28' }}>전체 스코어</span>
+              <span data-role="progress-count" style={{ fontSize: 13, color: '#4e5968' }}><b style={{ color: '#191f28', fontWeight: 800 }}>{c}</b>{`/${holeTotal}홀`}</span>
             </div>
             <div style={{ height: 6, borderRadius: 3, background: '#e5e8eb', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${(c / holeTotal) * 100}%`, borderRadius: 3, background: '#1b64da', transition: 'width 0.3s ease' }} />
@@ -2295,7 +2295,168 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         );
       })()}
 
-      <GoalLine goals={goals} round={round} margin="8px 0 0" />
+      <GoalLine goals={goals} round={round} margin="10px 0 0" />
+
+      <div style={{ marginTop: 14 }}>
+      {/* Running Score */}
+      {isSimpleMode ? (() => {
+        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
+        const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
+        return (
+          <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
+            {round.players.map((player, pi) => {
+              const th = round.holes.filter(h => doneFor(h, player));
+              const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
+              const pp = th.reduce((s,h) => s+h.par, 0);
+              const pd = ps-pp;
+              // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
+              const nineStats = nines.map(n => {
+                const done = n.holes.map(x => x.hole).filter(h => doneFor(h, player));
+                return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[player].strokes-h.par,0) };
+              });
+              const isLast = pi === round.players.length - 1;
+              return (
+                <div key={player} style={{ display:'flex', alignItems:'center', gap:8, paddingTop:6, paddingBottom:6, borderBottom: isLast?'none':'1px solid rgba(25,31,40,0.04)' }}>
+                  <div style={{ width:20, height:20, borderRadius:'50%', background:'#eef1f4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <span style={{ fontSize:12, fontWeight:800, color:'#1b64da' }}>{pi+1}</span>
+                  </div>
+                  <span style={{ flex:1, fontSize:14, fontWeight:700, color:'#333d4b', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    {nineStats.map(ns => (
+                      <div key={ns.key} style={{ textAlign:'center', minWidth:28 }}>
+                        <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0', color:'#4e5968', marginBottom:1 }}>{ns.label}</div>
+                        <div style={{ fontSize:14, fontWeight:800, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</div>
+                      </div>
+                    ))}
+                    <div style={{ display:'flex', alignItems:'baseline', gap:2, minWidth:60, justifyContent:'flex-end' }}>
+                      <span style={{ fontSize:22, fontWeight:900, color:'#191f28', lineHeight:1 }}>{ps||0}</span>
+                      {th.length > 0 && <span style={{ fontSize:14, fontWeight:800, color: fmtC(pd,true), lineHeight:1 }}>({fmt(pd,true)})</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })() : (() => {
+        const th = round.holes.filter(h => doneFor(h, activePlayer));
+        const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
+        const pp = th.reduce((s,h) => s+h.par, 0);
+        const pu = th.reduce((s,h) => s+(h.scores[activePlayer]?.putts||0), 0);
+        const pd = ps-pp;
+        // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
+        const nineStats = nines.map(n => {
+          const done = n.holes.map(x => x.hole).filter(h => doneFor(h, activePlayer));
+          return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[activePlayer].strokes-h.par,0) };
+        });
+        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
+        const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
+        return (
+          <div style={styles.runningScore}>
+            <div style={styles.runningScoreMain}>
+              <div style={styles.runningScoreLabel}>스코어</div>
+              <div data-role="running-total" style={styles.runningScoreValues}>
+                <span style={styles.runningScoreNumber}>{ps}</span>
+                {th.length > 0 && <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,true) }}>({fmt(pd,true)})</span>}
+              </div>
+            </div>
+            <div style={styles.runningScoreDivider} />
+            <div style={styles.runningScoreStats}>
+              {nineStats.map(ns => (
+                <div key={ns.key} style={styles.runningScoreStat}>
+                  <span style={{ ...styles.runningScoreStatLabel, fontSize: '12px' }}>{ns.label}</span>
+                  <span style={{ ...styles.runningScoreStatValue, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</span>
+                </div>
+              ))}
+              <div style={styles.runningScoreStat}>
+                <span style={styles.runningScoreStatLabel}>퍼트</span>
+                <span style={styles.runningScoreStatValue}>{pu||'—'}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Hole Navigator */}
+      <div style={styles.holeNavigator}>
+        {/* 18홀은 OUT·IN 두 줄, 9홀은 치는 9홀 한 줄. offset = 그 묶음의 첫 홀이 round.holes 에서 차지하는 위치 */}
+        {nines.map(({ label, holes: items }) => ({ label, holes: items.map(x => x.hole), offset: items[0].index })).map(({ label, holes, offset }) => (
+          <div key={label} style={styles.holeNavTable}>
+            <div style={styles.holeNavTableRow}>
+              <div style={{ ...styles.holeNavRowLabel, ...styles.holeNavRowLabelHeader, fontSize: getNavLabelFontSize(label) }}>{label}</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; return <button key={i} style={{ ...styles.holeNavHoleCell, background: ic?'#1b64da':'transparent', color: ic?'#ffffff':'#4e5968' }} onClick={()=>goToHole(i)}>{h.holeNumber ?? i+1}</button>; })}
+              </div>
+            </div>
+            <div style={styles.holeNavTableRow}>
+              <div style={styles.holeNavRowLabel}>파</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#b45309':'#b45309'):h.par===5?(ic?'#0a7f3f':'#0a7f3f'):(ic?'#1b64da':'#4e5968'); const pb=ic?(h.par===3?'rgba(217,119,6,0.22)':h.par===5?'rgba(10,127,63,0.18)':'#e8ebee'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
+              </div>
+            </div>
+            {isSimpleMode ? round.players.map((player, pi) => {
+              const isLastPlayer = pi === round.players.length - 1;
+              const shortName = player.length > 4 ? player.slice(0,4) : player;
+              return (
+                <div key={player} data-role="nav-score" style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(25,31,40,0.032)' }}>
+                  <div style={{ ...styles.holeNavRowLabel, color:'#1b64da', fontSize: 12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
+                  <div style={styles.holeNavTableCells}>
+                    {holes.map((h,li) => {
+                      const i=offset+li; const done=doneFor(h, player); const ic=i===holeIdx;
+                      const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
+                      let ms={};
+                      if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
+                      return (
+                        <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
+                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#ffffff':done?(diff<=-1?'#0a7f3f':diff>=1?'#c8323a':'#191f28'):(ic?'#1b64da':'#4e5968'), fontWeight: done?'700':'500' }}>
+                            {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }) : (<>
+            <div style={styles.holeNavTableRow} data-role="nav-score">
+              <div style={styles.holeNavRowLabel}>스코어</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => {
+                  const i=offset+li; const done=round.players.every(p=>doneFor(h, p)); const ic=i===holeIdx;
+                  const psc=h.scores[activePlayer]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
+                  let ms={};
+                  if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
+                  return (
+                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
+                      <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#ffffff':done?(diff<=-1?'#0a7f3f':diff>=1?'#c8323a':'#191f28'):(ic?'#1b64da':'#4e5968'), fontWeight: done?'700':'500' }}>
+                        {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* PUTT — 입력한 퍼트 수. 동반자와 함께 기록할 때는 퍼트를 입력하지 않으므로(스코어로 추정) 이 줄이 없다 */}
+            <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }} data-role="nav-putts">
+              <div style={styles.holeNavRowLabel}>퍼트</div>
+              <div style={styles.holeNavTableCells}>
+                {holes.map((h,li) => {
+                  const i=offset+li; const ic=i===holeIdx;
+                  const psc=h.scores[activePlayer]; const text=navPuttsText(psc, doneFor(h, activePlayer)); const has=text!==NAV_EMPTY;
+                  return (
+                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
+                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#333d4b':(ic?'#1b64da':'#4e5968'), fontWeight: has?'700':'500' }}>{text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            </>)}
+          </div>
+        ))}
+      </div>
+      </div>
+      </div>
 
       {/* Hole Header — 몇 번 홀 · 파 몇 */}
       <div data-role="hole-header" style={{ padding: '22px 4px 0', textAlign: 'left' }}>
@@ -3361,169 +3522,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
       </div>}
 
-      {/* 전체 스코어 — 홀 이동 · 누적. 입력 아래로 내려 한 화면에는 지금 홀만 남긴다 */}
-      <div data-role="overview" style={{ paddingTop: 28 }}>
-        <div style={{ padding: '0 4px 10px', fontSize: 16, fontWeight: 800, color: '#191f28' }}>전체 스코어</div>
-      {/* Running Score */}
-      {isSimpleMode ? (() => {
-        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
-        const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
-        return (
-          <div style={{ ...styles.runningScore, flexDirection:'column', gap:0, padding:'8px 16px' }}>
-            {round.players.map((player, pi) => {
-              const th = round.holes.filter(h => doneFor(h, player));
-              const ps = th.reduce((s,h) => s+(h.scores[player]?.strokes||0), 0);
-              const pp = th.reduce((s,h) => s+h.par, 0);
-              const pd = ps-pp;
-              // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
-              const nineStats = nines.map(n => {
-                const done = n.holes.map(x => x.hole).filter(h => doneFor(h, player));
-                return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[player].strokes-h.par,0) };
-              });
-              const isLast = pi === round.players.length - 1;
-              return (
-                <div key={player} style={{ display:'flex', alignItems:'center', gap:8, paddingTop:6, paddingBottom:6, borderBottom: isLast?'none':'1px solid rgba(25,31,40,0.04)' }}>
-                  <div style={{ width:20, height:20, borderRadius:'50%', background:'#eef1f4', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <span style={{ fontSize:12, fontWeight:800, color:'#1b64da' }}>{pi+1}</span>
-                  </div>
-                  <span style={{ flex:1, fontSize:14, fontWeight:700, color:'#333d4b', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{player}</span>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    {nineStats.map(ns => (
-                      <div key={ns.key} style={{ textAlign:'center', minWidth:28 }}>
-                        <div style={{ fontSize: 12, fontWeight:700, letterSpacing:'0', color:'#4e5968', marginBottom:1 }}>{ns.label}</div>
-                        <div style={{ fontSize:14, fontWeight:800, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</div>
-                      </div>
-                    ))}
-                    <div style={{ display:'flex', alignItems:'baseline', gap:2, minWidth:60, justifyContent:'flex-end' }}>
-                      <span style={{ fontSize:22, fontWeight:900, color:'#191f28', lineHeight:1 }}>{ps||0}</span>
-                      {th.length > 0 && <span style={{ fontSize:14, fontWeight:800, color: fmtC(pd,true), lineHeight:1 }}>({fmt(pd,true)})</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })() : (() => {
-        const th = round.holes.filter(h => doneFor(h, activePlayer));
-        const ps = th.reduce((s,h) => s+(h.scores[activePlayer]?.strokes||0), 0);
-        const pp = th.reduce((s,h) => s+h.par, 0);
-        const pu = th.reduce((s,h) => s+(h.scores[activePlayer]?.putts||0), 0);
-        const pd = ps-pp;
-        // 9홀 묶음별 파 대비 — 18홀은 OUT·IN 두 칸, 9홀은 치는 9홀 한 칸
-        const nineStats = nines.map(n => {
-          const done = n.holes.map(x => x.hole).filter(h => doneFor(h, activePlayer));
-          return { key:n.key, label:n.label, has: done.length>0, d: done.reduce((s,h)=>s+h.scores[activePlayer].strokes-h.par,0) };
-        });
-        const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
-        const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
-        return (
-          <div style={styles.runningScore}>
-            <div style={styles.runningScoreMain}>
-              <div style={styles.runningScoreLabel}>스코어</div>
-              <div style={styles.runningScoreValues}>
-                <span style={styles.runningScoreNumber}>{ps}</span>
-                {th.length > 0 && <span style={{ ...styles.runningScoreDiff, color: fmtC(pd,true) }}>({fmt(pd,true)})</span>}
-              </div>
-            </div>
-            <div style={styles.runningScoreDivider} />
-            <div style={styles.runningScoreStats}>
-              {nineStats.map(ns => (
-                <div key={ns.key} style={styles.runningScoreStat}>
-                  <span style={{ ...styles.runningScoreStatLabel, fontSize: '12px' }}>{ns.label}</span>
-                  <span style={{ ...styles.runningScoreStatValue, color: fmtC(ns.d,ns.has) }}>{fmt(ns.d,ns.has)}</span>
-                </div>
-              ))}
-              <div style={styles.runningScoreStat}>
-                <span style={styles.runningScoreStatLabel}>퍼트</span>
-                <span style={styles.runningScoreStatValue}>{pu||'—'}</span>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Hole Navigator */}
-      <div style={styles.holeNavigator}>
-        {/* 18홀은 OUT·IN 두 줄, 9홀은 치는 9홀 한 줄. offset = 그 묶음의 첫 홀이 round.holes 에서 차지하는 위치 */}
-        {nines.map(({ label, holes: items }) => ({ label, holes: items.map(x => x.hole), offset: items[0].index })).map(({ label, holes, offset }) => (
-          <div key={label} style={styles.holeNavTable}>
-            <div style={styles.holeNavTableRow}>
-              <div style={{ ...styles.holeNavRowLabel, ...styles.holeNavRowLabelHeader, fontSize: getNavLabelFontSize(label) }}>{label}</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; return <button key={i} style={{ ...styles.holeNavHoleCell, background: ic?'#1b64da':'transparent', color: ic?'#ffffff':'#4e5968' }} onClick={()=>goToHole(i)}>{h.holeNumber ?? i+1}</button>; })}
-              </div>
-            </div>
-            <div style={styles.holeNavTableRow}>
-              <div style={styles.holeNavRowLabel}>파</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#b45309':'#b45309'):h.par===5?(ic?'#0a7f3f':'#0a7f3f'):(ic?'#1b64da':'#4e5968'); const pb=ic?(h.par===3?'rgba(217,119,6,0.22)':h.par===5?'rgba(10,127,63,0.18)':'#e8ebee'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
-              </div>
-            </div>
-            {isSimpleMode ? round.players.map((player, pi) => {
-              const isLastPlayer = pi === round.players.length - 1;
-              const shortName = player.length > 4 ? player.slice(0,4) : player;
-              return (
-                <div key={player} data-role="nav-score" style={{ ...styles.holeNavTableRow, borderBottom: isLastPlayer ? 'none' : '1px solid rgba(25,31,40,0.032)' }}>
-                  <div style={{ ...styles.holeNavRowLabel, color:'#1b64da', fontSize: 12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shortName}</div>
-                  <div style={styles.holeNavTableCells}>
-                    {holes.map((h,li) => {
-                      const i=offset+li; const done=doneFor(h, player); const ic=i===holeIdx;
-                      const psc=h.scores[player]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
-                      let ms={};
-                      if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
-                      return (
-                        <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
-                          <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#ffffff':done?(diff<=-1?'#0a7f3f':diff>=1?'#c8323a':'#191f28'):(ic?'#1b64da':'#4e5968'), fontWeight: done?'700':'500' }}>
-                            {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }) : (<>
-            <div style={styles.holeNavTableRow} data-role="nav-score">
-              <div style={styles.holeNavRowLabel}>스코어</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => {
-                  const i=offset+li; const done=round.players.every(p=>doneFor(h, p)); const ic=i===holeIdx;
-                  const psc=h.scores[activePlayer]; const diff=psc.strokes-h.par; const hio=done&&psc.strokes===1;
-                  let ms={};
-                  if(done) { if(hio) ms={...styles.markerHoleInOne}; else if(diff<=-2) ms={...styles.markerEagle}; else if(diff===-1) ms={...styles.markerBirdie}; else if(diff===0) ms={...styles.markerPar}; else if(diff===1) ms={...styles.markerBogey}; else ms={...styles.markerDouble}; }
-                  return (
-                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
-                      <span style={{ ...styles.scoreMarker, ...ms, color: hio?'#ffffff':done?(diff<=-1?'#0a7f3f':diff>=1?'#c8323a':'#191f28'):(ic?'#1b64da':'#4e5968'), fontWeight: done?'700':'500' }}>
-                        {hio&&<span style={styles.holeInOneStar}>★</span>}{navStrokesText(psc, done)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            {/* PUTT — 입력한 퍼트 수. 동반자와 함께 기록할 때는 퍼트를 입력하지 않으므로(스코어로 추정) 이 줄이 없다 */}
-            <div style={{ ...styles.holeNavTableRow, borderBottom: 'none' }} data-role="nav-putts">
-              <div style={styles.holeNavRowLabel}>퍼트</div>
-              <div style={styles.holeNavTableCells}>
-                {holes.map((h,li) => {
-                  const i=offset+li; const ic=i===holeIdx;
-                  const psc=h.scores[activePlayer]; const text=navPuttsText(psc, doneFor(h, activePlayer)); const has=text!==NAV_EMPTY;
-                  return (
-                    <button key={i} style={{ ...styles.holeNavScoreCell, background: ic?'#e8ebee':'transparent' }} onClick={()=>goToHole(i)}>
-                      <span style={{ ...styles.scoreMarker, height: 24, color: has?'#333d4b':(ic?'#1b64da':'#4e5968'), fontWeight: has?'700':'500' }}>{text}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            </>)}
-          </div>
-        ))}
-      </div>
-
-      </div>
-
       {/* Scoring Bottom Bar — 이전 · 다음 홀 (코스맵 · 메모는 위쪽 머리줄로 옮겼다) */}
       <div style={{ ...styles.tabBar, background: '#ffffff', borderTop: '1px solid #f2f4f6', boxShadow: 'none' }}>
         <div style={{ display: 'flex', gap: 8, padding: '12px 20px' }}>
@@ -3707,13 +3705,17 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
       )}
 
-      {/* Exit 확인 모달 */}
+      {/* 라운드 그만두기 확인 — 라운드 수정(연필) 창의 "라운드 그만두기"에서 연다 */}
       {showExitConfirm && (
         <div style={styles.modalOverlay} onClick={()=>setShowExitConfirm(false)}>
-          <div style={styles.modalCard} onClick={e=>e.stopPropagation()}>
+          <div data-role="quit-confirm" style={styles.modalCard} onClick={e=>e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
             <div style={styles.modalTitle}>라운드를 그만두시겠어요?</div>
-            <div style={styles.modalText}>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#c8323a' }}>삭제</b>해요</div>
+            <div style={styles.modalText}>
+              {hasProgress
+                ? <>아래 두 버튼은 지금까지 입력한<br/>이 라운드 기록을 <b style={{ color:'#c8323a' }}>삭제</b>해요</>
+                : <>아직 입력한 스코어는 없어요<br/>아래 두 버튼은 이 라운드 세팅을 지워요</>}
+            </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               <button style={styles.modalBtnCancel} onClick={()=>setShowExitConfirm(false)}>계속 기록하기</button>
               <button style={styles.modalBtnCancel} onClick={()=>{ setShowExitConfirm(false); onGoHome(); }}>기록 유지하고 홈으로</button>
@@ -3780,6 +3782,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ display:'flex', gap:8 }}>
               <button style={{ ...styles.modalBtnCancel, flex:1 }} onClick={()=>setShowParEditModal(false)}>취소</button>
               <button style={{ ...styles.memoSaveBtn, flex:2 }} onClick={saveParEdit}>저장</button>
+            </div>
+            {/* 라운드 그만두기 — 기록 삭제 · 세팅 다시하기는 여기서만 연다 (머리줄 왼쪽은 바로 홈으로 가는 버튼) */}
+            <div data-role="quit-section" style={{ borderTop:'1px solid #e5e8eb', marginTop:20, paddingTop:14, textAlign:'left' }}>
+              <button type="button" data-role="quit-round"
+                style={{ width:'100%', minHeight:48, borderRadius:12, border:'1.5px solid rgba(200,50,58,0.5)', background:'transparent', color:'#c8323a', fontSize:15, fontWeight:700, cursor:'pointer' }}
+                onClick={() => { setShowParEditModal(false); setShowExitConfirm(true); }}>라운드 그만두기</button>
+              <div style={{ fontSize:13, color:'#4e5968', marginTop:6, lineHeight:1.5, wordBreak:'keep-all' }}>이 라운드를 지우고 나가거나, 세팅부터 다시 할 수 있어요. 잠깐 홈에 다녀올 때는 왼쪽 위 홈 버튼을 쓰면 기록이 그대로 남아요.</div>
             </div>
           </div>
         </div>

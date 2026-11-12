@@ -2,6 +2,7 @@
 // 스코어 상세 입력 — 티샷 탭의 버튼들을 사용자 순서대로 눌러 본다. 방식은 test/flowKit.jsx 머리말 참고.
 import { describe, it, expect, vi } from 'vitest';
 import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, openPutts, scoreNow, stored, looksOn, on, text, newHole, setPar, installHooks } from './test/flowKit.jsx';
+import { setVWorldKey } from './engine/mapTiles.js';
 
 vi.setConfig({ testTimeout: 40000 });
 installHooks();
@@ -26,18 +27,30 @@ describe('티샷 — 클럽', () => {
     expect(scoreNow().pending).toBeNull();                             // 샷 기록이 없으니 '온그린까지 N타'도 사라진다
   });
 
-  it('티샷 클럽 버튼은 DRIVER · HYBRID · IRON 세 개다 (우드 · 웨지 버튼은 없다)', async () => {
+  it('티샷 클럽 버튼은 DRIVER WOOD / HYBRID IRON 네 개를 두 줄 두 칸(2×2)으로 놓는다 (웨지 버튼은 없다)', async () => {
     await newHole();
-    const row = ['DRIVER', 'HYBRID', 'IRON'].map((c) => one(c));
-    expect(row).toHaveLength(3);
-    expect(find('WOOD')).toHaveLength(0);
+    const grid = area('club-grid');
+    expect(grid.style.display).toBe('grid');
+    expect(grid.style.gridTemplateColumns).toBe('repeat(2, minmax(0, 1fr))');
+    expect([...grid.querySelectorAll(':scope > button')].map((b) => b.textContent.trim())).toEqual(['DRIVER', 'WOOD', 'HYBRID', 'IRON']);
     expect(find('WEDGE')).toHaveLength(0);
   });
 
-  it('파3 도 티샷 클럽 버튼은 DRIVER · HYBRID · IRON 이다', async () => {
+  it('티샷 WOOD 는 3W · 5W · 7W · 9W 중에서 고르고, 고른 번호가 버튼에 보인다', async () => {
+    await newHole();
+    await tap('WOOD');
+    for (const sub of ['3W', '5W', '7W', '9W']) expect(find(sub).length, `WOOD 세부 ${sub}`).toBe(1);
+    await tap('3W');
+    expect(looksOn(one('3W'))).toBe(true);
+    expect(find('5W')).toHaveLength(0);                                // 고르면 세부 줄은 접힌다
+    expect((await stored()).s).toMatchObject({ teeClub: 'wood', teeClubSub: '3W' });
+    expect(tabInfo()['필드샷'].disabled).toBe(false);                    // 클럽을 골랐으니 다음 탭이 열린다
+  });
+
+  it('파3 도 티샷 클럽 버튼은 DRIVER · WOOD · HYBRID · IRON 이다', async () => {
     await newHole();
     await setPar(0, 3);
-    for (const c of ['DRIVER', 'HYBRID', 'IRON']) expect(find(c), c).toHaveLength(1);
+    for (const c of ['DRIVER', 'WOOD', 'HYBRID', 'IRON']) expect(find(c), c).toHaveLength(1);
     expect(find('WEDGE')).toHaveLength(0);
     await tap('DRIVER');
     expect((await stored()).s).toMatchObject({ teeClub: 'driver' });
@@ -70,14 +83,21 @@ describe('티샷 — 클럽', () => {
   });
 
   it('파3 에서 클럽을 고르기 전에 코스맵의 "＋ 샷"을 눌러도 잠긴 필드샷 탭이 열리지 않고 티샷 탭에 머문다', async () => {
-    await newHole();
-    await setPar(0, 3);
-    expect(tabInfo()['필드샷'].disabled).toBe(true);
-    await tap(area('map-button'));
-    await tap('＋ 샷');
-    expect((await stored()).s).toMatchObject({ teeOnGreen: false });   // 샷은 늘어난다 (티샷 그린 온 표시가 풀림)
-    expect(tabInfo()['필드샷'].disabled).toBe(true);                    // 클럽이 없으니 여전히 잠김
-    expect(currentTab()).toBe('티샷');                                  // 잠긴 탭의 내용을 보여 주지 않는다
+    // 지도 인증키가 없으면 코스맵은 "인증키 입력" 화면만 보여 줘 ＋ 샷 버튼이 없다. 이 PC 는 .env 에 키가 있어 통과했지만
+    // 배포 서버(GitHub Actions)의 테스트 단계에는 키가 없어 실패했다 — 테스트용 가짜 키를 넣고 끝나면 지운다.
+    setVWorldKey('test-key');
+    try {
+      await newHole();
+      await setPar(0, 3);
+      expect(tabInfo()['필드샷'].disabled).toBe(true);
+      await tap(area('map-button'));
+      await tap('＋ 샷');
+      expect((await stored()).s).toMatchObject({ teeOnGreen: false });   // 샷은 늘어난다 (티샷 그린 온 표시가 풀림)
+      expect(tabInfo()['필드샷'].disabled).toBe(true);                    // 클럽이 없으니 여전히 잠김
+      expect(currentTab()).toBe('티샷');                                  // 잠긴 탭의 내용을 보여 주지 않는다
+    } finally {
+      setVWorldKey('');
+    }
   });
 });
 

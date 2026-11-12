@@ -333,7 +333,8 @@ function LieRow({ role, value, missing, onChange }) {
 
 // suggest: 마이백 거리로 만든 클럽 추천 { rec, onPick } — 칩을 누르면 클럽 종류와 세부 클럽이
 // 한 번에 입력된다. 아래 클럽 버튼에는 추천 클럽에 ★만 붙여 직접 고르는 흐름은 그대로 둔다.
-function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, suggest }) {
+// columns — 클럽 종류 버튼을 한 줄이 아니라 N칸 격자로 놓는다 (티샷: DRIVER WOOD / HYBRID IRON 2×2)
+function ClubSelector({ icon, label, categories, value, subValue, onCategory, onSub, stacked, suggest, columns = null }) {
   const [expandedId, setExpandedId] = useState(null);
 
   // 선택이 지워지면 펼친 세부 클럽도 접는다 — value 가 바뀐 그 렌더에서 바로 맞춘다
@@ -379,7 +380,9 @@ function ClubSelector({ icon, label, categories, value, subValue, onCategory, on
   const expandedSubs = (expandedId && expandedId === value) ? (CLUB_SUBS[expandedId] || []) : [];
 
   const categoryRow = (
-    <div style={{ display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
+    <div data-role={columns ? 'club-grid' : undefined} style={columns
+      ? { display:'grid', gridTemplateColumns:`repeat(${columns}, minmax(0, 1fr))`, gap: 8 }
+      : { display:'flex', gap: stacked ? 6 : 5, flex: stacked ? undefined : 1 }}>
       {categories.map(c => {
         const isSelected = value === c.id;
         const subs = CLUB_SUBS[c.id] || [];
@@ -1270,9 +1273,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
     updateFields(patch);
   };
 
-  // 티샷 클럽 버튼 — 파3이든 파4·5든 드라이버 · 하이브리드 · 아이언 세 개. 예전에 우드 · 웨지로 기록한 홀은 그 버튼이 하나 더 보여서 기록이 숨지 않는다.
-  const TEE_CLUBS = [{ id: 'driver', label: 'DRIVER' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
-  const LEGACY_TEE_CLUBS = { wood: { id: 'wood', label: 'WOOD' }, wedge: { id: 'wedge', label: 'WEDGE' } };
+  // 티샷 클럽 버튼 — 파3이든 파4·5든 DRIVER WOOD / HYBRID IRON 네 개를 2×2 로 (2026-11-12 사용자 요청으로 우드를 되살렸다).
+  // 예전에 웨지로 기록한 홀은 WEDGE 버튼이 하나 더 보여서 기록이 숨지 않는다.
+  const TEE_CLUBS = [{ id: 'driver', label: 'DRIVER' }, { id: 'wood', label: 'WOOD' }, { id: 'hybrid', label: 'HYBRID' }, { id: 'iron', label: 'IRON' }];
+  const LEGACY_TEE_CLUBS = { wedge: { id: 'wedge', label: 'WEDGE' } };
   const clubs = LEGACY_TEE_CLUBS[playerScore.teeClub] ? [...TEE_CLUBS, LEGACY_TEE_CLUBS[playerScore.teeClub]] : TEE_CLUBS;
 
   const secHdr = (label, onDelete, state = 'idle') => (
@@ -2747,6 +2751,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           onCategory={(v, hasSubs) => { updateFields({ teeClub: v, teeClubSub: null }); if (v && !hasSubs) scrollToStep('tee-shape'); }}
           onSub={v => { updateField('teeClubSub', v); if (v) scrollToStep('tee-shape'); }}
           stacked
+          columns={2}
           onInteractStart={() => setTeeClubInteracting(true)}
           onInteractEnd={() => setTeeClubInteracting(false)}
           suggest={clubSuggest(0, playerScore.teeDistance, (club, sub) => { updateFields({ teeClub: club, teeClubSub: sub }); if (club) scrollToStep('tee-shape'); })}

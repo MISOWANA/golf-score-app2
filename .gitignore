@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# graphify 지식 그래프 결과 (로컬에서 다시 만들 수 있다)
+graphify-out/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

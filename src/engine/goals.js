@@ -124,7 +124,9 @@ export function newGoal({ metric, target }, now = new Date()) {
 // 저장된 값 검사 — 알 수 없는 지표 · 숫자가 아닌 목표값은 버리고 최대 2개만 남긴다
 export function sanitizeGoals(list) {
   return (Array.isArray(list) ? list : [])
-    .filter((g) => g && typeof g.id === 'string' && metricOf(g.metric) && Number.isFinite(g.target) && g.createdAt)
+    // 만든 날짜는 날짜로 읽히는 글자만 — 조작된 백업 파일의 객체·숫자 값은 버린다
+    .filter((g) => g && typeof g.id === 'string' && metricOf(g.metric) && Number.isFinite(g.target)
+      && typeof g.createdAt === 'string' && !Number.isNaN(new Date(g.createdAt).getTime()))
     .map((g) => { const m = metricOf(g.metric); return { id: g.id, metric: g.metric, target: clamp(Math.round(g.target), m.min, m.max), createdAt: g.createdAt }; })
     .slice(0, MAX_GOALS);
 }

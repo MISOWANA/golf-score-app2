@@ -175,4 +175,10 @@ describe('newGoal · sanitizeGoals', () => {
     expect(out.length).toBeLessThanOrEqual(MAX_GOALS);
     expect(sanitizeGoals(undefined)).toEqual([]);
   });
+
+  it('만든 날짜가 날짜 글자가 아니면 버린다 (조작된 백업 파일)', () => {
+    const g = (id, createdAt) => ({ id, metric: 'threePutts', target: 2, createdAt });
+    const out = sanitizeGoals([g('a', '2026-10-01T00:00:00Z'), g('b', { toString: 'x' }), g('c', 12345), g('d', 'not a date'), g('e', '')]);
+    expect(out.map((x) => x.id)).toEqual(['a']);
+  });
 });

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { execSync } from 'node:child_process'
+import { cspPlugin } from './src/platform/csp.js'
 
 // GitHub Pages 배포 경로. manifest의 start_url/scope와 service worker의
 // navigateFallback이 모두 이 값을 기준으로 해야 한다.
@@ -35,6 +36,8 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    // 두 번째 안전장치 — 배포용으로 만들 때만 index.html 에 넣는다 (src/platform/csp.js)
+    cspPlugin(),
     VitePWA({
       // 배포(main push)마다 새 service worker가 즉시 적용된다. 라운드 데이터는
       // 입력할 때마다 saveActiveRound로 IndexedDB에 저장되고 앱 시작 시 복원되므로

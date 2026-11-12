@@ -187,6 +187,20 @@ describe('백업 가져오기', () => {
     expect(await db.loadRoundsByUser([kim.userId])).toHaveLength(1);
   });
 
+  it('조작된 백업 파일의 목표·설정은 검사를 거친 값만 저장된다', async () => {
+    const good = { id: 'g1', metric: 'threePutts', target: 2, createdAt: '2026-10-01T00:00:00Z' };
+    await db.importUserData('u_t', { data: {
+      rounds: [],
+      goals: [good, { id: 'g2', metric: '<img src=x onerror=alert(1)>', target: 1, createdAt: '2026-10-01' },
+        { id: 'g3', metric: 'gir', target: 'x', createdAt: '2026-10-01' }, { ...good, id: 'g4', createdAt: { evil: true } }, null, 'x'],
+      // 실제 파일처럼 JSON 글자에서 읽는다 — "__proto__" 가 자기 속성으로 들어온다
+      prefs: JSON.parse('{"unit":"<script>","firstPutt":"abc","extra":{"nested":true},"__proto__":{"polluted":true}}'),
+    } });
+    expect(await db.getGoals('u_t')).toEqual([good]);
+    expect(await db.getPrefs('u_t')).toEqual({ unit: 'm' });
+    expect({}.polluted).toBeUndefined();
+  });
+
   it('클럽: 파일에 빈 배열이면 기존 설정을 지우지 않는다', async () => {
     await db.saveClubsForUser('u1', [{ id: 'd', name: 'D' }]);
     await db.importUserData('u1', { data: { rounds: [], clubs: [] } });

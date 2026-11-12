@@ -225,9 +225,19 @@ export const setDistance = async (scope, value) => {
 export const waitForHole = (n) => screen.findByText(new RegExp(`^${n}번 홀$`), {}, { timeout: 8000 });
 export const newHole = async (prefs = null, options = {}) => { await openApp({ prefs }); await startRound(options); };
 
-// 라운드 수정(연필) → 파 표에서 n번째 홀의 칸을 눌러 고르고, 아래 버튼(파 3~7)으로 파를 바꾸고 저장한다
+// 아래 막대 ☰ 메뉴 — 홈으로(go-home) · 코스맵(map-button) · 메모(memo-button) · 라운드 수정(round-edit) · 라운드 그만두기(quit-round)
+export async function openMenu() { await tap(area('menu-button'), '☰ 메뉴 열기'); }
+// 메뉴를 열고(이미 열려 있으면 그대로) 그 안의 줄을 누른다. 누르면 메뉴는 닫히고 그 기능이 열린다
+export async function menuTap(role) {
+  if (!area('scoring-menu')) await openMenu();
+  const el = area(role);
+  if (!el) throw new Error(`☰ 메뉴에 [${role}] 이(가) 없다`);
+  await tap(el, `메뉴 ${role}`);
+}
+
+// ☰ 메뉴 → 라운드 수정 → 파 표에서 n번째 홀의 칸을 눌러 고르고, 아래 버튼(파 3~7)으로 파를 바꾸고 저장한다
 export async function setPar(holeIdx, par) {
-  await tap(area('round-edit'), '라운드 수정 열기');
+  await menuTap('round-edit');
   const title = await screen.findByText('라운드 수정');
   const modal = title.closest('div[style*="max-width"]') || title.parentElement.parentElement;
   const cell = modal.querySelector(`[data-role="par-cell"][data-hole="${holeIdx}"]`);

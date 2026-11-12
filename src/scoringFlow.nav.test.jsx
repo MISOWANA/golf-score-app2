@@ -3,7 +3,7 @@
 // 방식은 test/flowKit.jsx 머리말 참고.
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, holeHeader, stored, looksOn, text, newHole, setDistance, waitForHole, installHooks, buttons, labelOf } from './test/flowKit.jsx';
+import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, holeHeader, stored, looksOn, text, newHole, setDistance, waitForHole, installHooks, buttons, labelOf, openMenu, menuTap } from './test/flowKit.jsx';
 
 vi.setConfig({ testTimeout: 40000 });
 installHooks();
@@ -143,17 +143,21 @@ describe('홀 이동 — 홀 표와 이전 버튼', () => {
 });
 
 describe('아래 막대 — 메모', () => {
-  it('메모를 쓰고 저장하면 점이 생기고, 다시 열면 글이 그대로 있고, 취소하면 바뀌지 않는다', async () => {
+  it('☰ 메뉴의 메모를 쓰고 저장하면 ☰ 단추와 메모 줄에 점이 생기고, 다시 열면 글이 그대로 있고, 취소하면 바뀌지 않는다', async () => {
     await newHole();
-    expect(area('memo-dot')).toBeNull();
-    await tap(area('memo-button'));
+    expect(area('menu-memo-dot')).toBeNull();
+    await menuTap('memo-button');
+    expect(area('scoring-menu')).toBeNull();                                 // 줄을 누르면 메뉴는 닫힌다
     expect(text()).toMatch(/1 ?번 홀 ?메모/);
     const box = document.querySelector('textarea');
     fireEvent.change(box, { target: { value: '티샷이 좌측 러프로' } });
     expect(text()).toMatch(/9 ?\/ ?500|10 ?\/ ?500/);                        // 글자 수 표시
     await tap('저장');
-    expect(area('memo-dot')).toBeTruthy();
+    expect(area('menu-memo-dot')).toBeTruthy();                             // 아래 ☰ 단추에 점
     expect((await stored()).s.memo).toBe('티샷이 좌측 러프로');
+    await openMenu();
+    expect(area('memo-dot')).toBeTruthy();                                  // 메뉴의 메모 줄에도 점 · "메모 있음"
+    expect(area('memo-button').textContent).toContain('메모 있음');
     await tap(area('memo-button'));
     expect(document.querySelector('textarea').value).toBe('티샷이 좌측 러프로');
     fireEvent.change(document.querySelector('textarea'), { target: { value: '바꾸다 말았다' } });
@@ -162,20 +166,29 @@ describe('아래 막대 — 메모', () => {
   });
 });
 
-describe('홈 · 라운드 그만두기 · 이어서', () => {
-  const homeBtn = () => area('go-home');
-  const openQuit = async () => {
-    await tap(area('round-edit'));
-    await tap(area('quit-round'));
-  };
+describe('☰ 메뉴 — 홈 · 라운드 그만두기 · 이어서', () => {
+  const openQuit = () => menuTap('quit-round');
 
-  it('머리줄 왼쪽 홈 버튼은 확인 창 없이 한 번에 홈으로 가고, "이어서"로 같은 홀 같은 입력이 이어진다', async () => {
+  it('머리줄에는 코스 이름만 있고, 아래 막대는 ☰ · 이전 · 다음 홀이다. ☰ 메뉴에 다섯 줄이 있고 닫기로 닫힌다', async () => {
     await newHole();
-    expect(homeBtn().getAttribute('aria-label')).toBe('홈');
-    expect(document.querySelector('[aria-label="뒤로"]')).toBeNull();      // 예전 뒤로(<) 버튼은 없다
+    expect(area('scoring-header').querySelectorAll('button')).toHaveLength(0);
+    expect(document.querySelector('[aria-label="뒤로"]')).toBeNull();
+    const bar = area('scoring-bar');
+    expect([...bar.querySelectorAll('button')].map((b) => b.getAttribute('data-role'))).toEqual(['menu-button', 'prev-hole', 'next-hole']);
+    expect(area('scoring-menu')).toBeNull();
+    await openMenu();
+    expect([...area('scoring-menu').querySelectorAll('button[data-role]')].map((b) => b.getAttribute('data-role')))
+      .toEqual(['go-home', 'map-button', 'memo-button', 'round-edit', 'quit-round']);
+    await tap(buttons(area('scoring-menu')).find((b) => b.getAttribute('aria-label') === '닫기'));
+    expect(area('scoring-menu')).toBeNull();
+    expect(holeHeader().hole).toBe(1);
+  });
+
+  it('☰ → 홈으로는 확인 창 없이 홈으로 가고, "이어서"로 같은 홀 같은 입력이 이어진다', async () => {
+    await newHole();
     await tap('DRIVER'); await tap('X');
     await goHole(2);
-    await tap(homeBtn());
+    await menuTap('go-home');
     expect(text()).not.toContain('라운드를 그만두시겠어요?');
     await screen.findByText('새 라운드');
     expect(text()).toContain('진행 중인 라운드');
@@ -187,20 +200,20 @@ describe('홈 · 라운드 그만두기 · 이어서', () => {
     expect(looksOn(area('tee-fairway-miss'))).toBe(true);                  // 1번 홀 입력이 남아 있다
   });
 
-  it('입력이 전혀 없을 때도 홈 버튼은 홈으로 가고, 라운드는 남아 "이어서"로 돌아온다', async () => {
+  it('입력이 전혀 없을 때도 홈으로는 홈으로 가고, 라운드는 남아 "이어서"로 돌아온다', async () => {
     await newHole();
-    await tap(homeBtn());
+    await menuTap('go-home');
     await screen.findByText('새 라운드');
     expect(text()).toContain('진행 중인 라운드');
     await tap('이어서');
     await screen.findByText(/^1번 홀$/);
   });
 
-  it('라운드 수정(연필) 창 맨 아래 "라운드 그만두기"는 4지선다를 보여 주고, 계속 기록하기로 닫거나 기록을 둔 채 홈으로 갈 수 있다', async () => {
+  it('☰ → 라운드 그만두기는 4지선다를 보여 주고, 계속 기록하기로 닫거나 기록을 둔 채 홈으로 갈 수 있다', async () => {
     await newHole();
     await tap('DRIVER');
     await openQuit();
-    expect(text()).not.toContain('라운드 수정');                             // 연필 창은 닫히고
+    expect(area('scoring-menu')).toBeNull();                                 // 메뉴는 닫히고
     expect(text()).toContain('라운드를 그만두시겠어요?');                     // 확인 창만 남는다
     for (const b of ['계속 기록하기', '기록 유지하고 홈으로', '삭제하고 세팅 다시하기', '삭제하고 나가기']) expect(find(b).length, b).toBe(1);
     await tap('계속 기록하기');
@@ -258,8 +271,7 @@ describe('라운드 완료', () => {
 describe('코스맵 · 위치 찍기', () => {
   it('코스맵 버튼을 누르면 지도 창이 열리고 닫을 수 있다', async () => {
     await newHole();
-    expect(area('map-button')).toBeTruthy();
-    await tap(area('map-button'));
+    await menuTap('map-button');                                            // ☰ 메뉴 → 코스맵
     expect(text()).toMatch(/1번 홀/);
     const close = buttons().find((b) => b.getAttribute('aria-label') === '닫기' || /닫기|✕|×/.test(b.textContent));
     expect(close, '지도 창에 닫는 버튼이 있어야 한다').toBeTruthy();
@@ -293,6 +305,8 @@ describe('코스맵 · 위치 찍기', () => {
     await tapTab('field');
     await tap(find(/여기서 위치 찍기/)[0]);                                 // 세컨샷 지점
     await waitFor(() => expect(text()).toMatch(/티샷에서 1[45]\d ?m|티샷.*1[45]\d ?m/));
-    expect(area('map-button').style.animation).toBe('');                     // 지도를 써 봤으면 눌러 보라는 맥박 강조는 멈춘다
+    await openMenu();
+    expect(area('map-button').style.animation).toBe('');                     // 지도를 써 봤으면 눌러 보라는 맥박 강조는 없다
+    expect(area('map-button').textContent).toContain('찍은 위치 보기');         // 위치를 찍었으면 메뉴의 코스맵 줄이 알려 준다
   });
 });

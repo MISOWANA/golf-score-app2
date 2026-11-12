@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // 스코어 상세 입력 — 티샷 탭의 버튼들을 사용자 순서대로 눌러 본다. 방식은 test/flowKit.jsx 머리말 참고.
 import { describe, it, expect, vi } from 'vitest';
-import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, openPutts, scoreNow, stored, looksOn, on, text, newHole, setPar, installHooks } from './test/flowKit.jsx';
+import { one, find, tap, tapTab, area, currentTab, tabInfo, puttCards, openPutts, scoreNow, stored, looksOn, on, text, newHole, setPar, installHooks, menuTap } from './test/flowKit.jsx';
 import { setVWorldKey } from './engine/mapTiles.js';
 
 vi.setConfig({ testTimeout: 40000 });
@@ -90,7 +90,7 @@ describe('티샷 — 클럽', () => {
       await newHole();
       await setPar(0, 3);
       expect(tabInfo()['필드샷'].disabled).toBe(true);
-      await tap(area('map-button'));
+      await menuTap('map-button');
       await tap('＋ 샷');
       expect((await stored()).s).toMatchObject({ teeOnGreen: false });   // 샷은 늘어난다 (티샷 그린 온 표시가 풀림)
       expect(tabInfo()['필드샷'].disabled).toBe(true);                    // 클럽이 없으니 여전히 잠김

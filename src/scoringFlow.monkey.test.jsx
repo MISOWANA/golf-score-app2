@@ -16,7 +16,7 @@ const rng = (seed) => () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t =
 
 // 눌러도 되는 것만: 이 화면을 떠나거나(홈 · 뒤로 · 완료 · 나가기) 2.5초 연출을 거치는 것(홀인 · 칩인)은 따로 테스트한다
 const SKIP = /^(홈|뒤로|완료|라운드 완료|삭제하고 나가기|삭제하고 세팅 다시하기|기록 유지하고 홈으로|그대로 완료|9홀로 완료|홀인 성공|✓ 홀인 성공|칩인|홀인원|취소 \(잘못 눌렀어요\)|저장)$/;
-const SKIP_ROLES = new Set(['putt-primary', 'putt-board-hole', 'round-edit']);
+const SKIP_ROLES = new Set(['putt-primary', 'putt-board-hole', 'round-edit', 'go-home', 'quit-round']);   // ☰ 메뉴의 홈으로 · 라운드 그만두기는 화면을 떠난다
 
 // 입력 영역의 버튼에 무게를 둔다 — 홀 표 칸(36개)이 후보의 대부분이라 그대로 두면 입력 버튼은 거의 안 눌린다.
 // 탭 · 성공/실패 · 다음 퍼트처럼 상태를 깊게 끌고 가는 버튼은 무게를 더 준다.

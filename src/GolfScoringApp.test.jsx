@@ -2423,7 +2423,7 @@ describe('샷 정보 — 라이 · 지형 · 거리 · 클럽은 필수, 나머�
       const bar = document.querySelector('[data-role="putt-actions"]');
       expect(bar.closest('[data-role="putt-cards"]')).toBeTruthy();                      // 퍼팅 카드들을 담은 상자 안에서 붙는다
       expect(bar.style.position).toBe('sticky');
-      expect(bar.style.bottom).toContain('80px');                                        // 아래 탭바 바로 위
+      expect(bar.style.bottom).toContain('66px');                                        // 아래 막대(위 10 + 버튼 56) 바로 위
       expect(bar.contains(document.querySelector('[data-role="putt-primary"]'))).toBe(true);
       expect(bar.contains(document.querySelector('[data-role="putt-next"]'))).toBe(true);
       expect(bar.contains(document.querySelector('[data-role="off-green"]'))).toBe(false);
@@ -3294,6 +3294,7 @@ describe('라운드 수정 (스코어 입력 위의 연필) — 파 · 그린 �
     await screen.findByText('4번 홀');
   };
   const openEdit = async () => {
+    fireEvent.click(document.querySelector('[data-role="menu-button"]'));    // 아래 ☰ 메뉴 → 라운드 수정
     fireEvent.click(document.querySelector('[data-role="round-edit"]'));
     return screen.findByText('라운드 수정');
   };
@@ -3421,25 +3422,34 @@ describe('스코어 입력 — 아래 막대의 메모', () => {
     fireEvent.click(screen.getByText('이어서'));
     await screen.findByText('4번 홀');
   };
+  // 메모는 아래 ☰ 메뉴 안의 한 줄이다 — 메뉴를 열어야 보인다
+  const openMenu = () => fireEvent.click(document.querySelector('[data-role="menu-button"]'));
   const memoBtn = () => document.querySelector('[data-role="memo-button"]');
 
   it('메모가 없어도 흐려 보이지 않는 일반 글자색이고, 이름이 있다', async () => {
     await resume(makeActiveRound(ME));
+    expect(document.querySelector('[data-role="menu-memo-dot"]')).toBeNull();
+    openMenu();
     expect(memoBtn().getAttribute('data-has-memo')).toBe('0');
-    expect(memoBtn().querySelector('svg').getAttribute('stroke')).toBe('#4e5968');   // 메모가 없으면 평범한 회색 아이콘 (대비 4.5 이상)
+    expect(memoBtn().querySelector('svg').getAttribute('stroke')).toBe('#333d4b');   // 메모가 없으면 평범한 진회색 아이콘 (대비 4.5 이상)
     expect(memoBtn().getAttribute('aria-label')).toBe('메모 쓰기');
-    expect(memoBtn().textContent).toBe('');                              // 머리줄의 아이콘 버튼 — 글자 없이 이름(aria-label)만
+    expect(memoBtn().textContent).toContain('4번 홀 메모 쓰기');           // 메뉴의 줄 — 이름과 설명 글자가 함께 보인다
     expect(document.querySelector('[data-role="memo-dot"]')).toBeNull();
   });
 
-  it('메모를 저장하면 파란 점과 파란 아이콘으로 있다는 걸 알려 준다', async () => {
+  it('메모를 저장하면 ☰ 단추의 파란 점, 메뉴 줄의 파란 점 · 파란 아이콘 · "메모 있음"으로 알려 준다', async () => {
     await resume(makeActiveRound(ME));
+    openMenu();
     fireEvent.click(memoBtn());
     fireEvent.change(await screen.findByPlaceholderText(/티샷이 좌측 러프로/), { target: { value: '왼쪽 OB 조심' } });
     fireEvent.click(screen.getAllByText('저장').pop());
-    await waitFor(() => expect(memoBtn().getAttribute('data-has-memo')).toBe('1'));
+    await waitFor(() => expect(document.querySelector('[data-role="menu-memo-dot"]')).toBeTruthy());
+    expect(screen.getByRole('button', { name: '메뉴 — 이 홀 메모 있음' })).toBeTruthy();
+    openMenu();
+    expect(memoBtn().getAttribute('data-has-memo')).toBe('1');
     expect(document.querySelector('[data-role="memo-dot"]')).toBeTruthy();
     expect(memoBtn().getAttribute('aria-label')).toBe('메모 있음 — 열기');
+    expect(memoBtn().textContent).toContain('메모 있음');
     expect(memoBtn().querySelector('svg').getAttribute('stroke')).toBe('#1b64da');   // 파랑
   });
 });
@@ -3480,7 +3490,7 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     pin.forEach((b) => expect(h(b)).toBe('44px'));
   });
 
-  it('스코어 입력 머리줄의 홈 · 코스맵 · 메모 · 라운드 수정 아이콘에는 이름이 있다', async () => {
+  it('스코어 입력 아래 막대의 ☰ 메뉴와 메뉴 안 줄들(홈으로 · 코스맵 · 메모 · 라운드 수정 · 라운드 그만두기)에는 이름이 있다', async () => {
     await setup({ rounds: rounds18(1), active: makeActiveRound(ME) });
     tab('스탯');
     await pageTitle('스탯');
@@ -3488,10 +3498,14 @@ describe('버튼 크기 · 이름 (눌러야 하는 곳은 44px 안팎)', () => 
     tab('홈');
     fireEvent.click(await screen.findByText('이어서'));
     await screen.findByText('4번 홀');
-    expect(screen.getByRole('button', { name: '홈' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '메뉴' }));
+    expect(screen.getByRole('dialog', { name: '메뉴' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '홈으로' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '코스맵' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '메모 쓰기' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '라운드 수정' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '라운드 그만두기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '닫기' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '이전 홀' })).toBeTruthy();
   });
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus, Home } from 'lucide-react';
+import { ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus, Home, Menu as MenuIcon, LogOut } from 'lucide-react';
 import styles from '../../styles/styles';
 import ParTable from '../ui/ParTable';
 import GpsShotPoint from './GpsShotPoint';
@@ -642,6 +642,10 @@ const koScoreName = (strokes, par) => {
 const NAME_TONE = (strokes, par) => (strokes - par <= 0 ? { color: '#0a7f3f', bg: '#e6f6ec' } : { color: '#c8323a', bg: '#fdebec' });
 
 // 머리줄 아이콘 버튼 · 스코어 −/+ 큰 버튼 · 한 줄 목록 버튼
+// 아래 고정 막대(☰ · 이전 · 다음 홀) 자리 — 버튼(56px) 위 10px, 아래는 아이폰 홈 막대 자리(safe-area)에서 10px 를 덜어 버튼을 화면 아래로 붙인다
+// (safe-area 가 없는 기기는 10px). 퍼팅 결과 줄(PUTT_BAR)이 이 막대 바로 위에 붙으므로 같은 값을 쓴다.
+const BAR_TOP = 10;
+const BAR_GAP = 'max(10px, calc(env(safe-area-inset-bottom, 0px) - 10px))';
 const HDR_BTN = { width: 44, height: 44, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: 12 };
 const STEP_BTN = { width: 72, height: 72, flexShrink: 0, borderRadius: '50%', border: 'none', background: '#f2f4f6', color: '#191f28', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
 const ROW_BTN = { width: '100%', minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 2px', background: 'transparent', border: 'none', borderBottom: '1px solid #f2f4f6', color: '#191f28', fontSize: 15, cursor: 'pointer', textAlign: 'left' };
@@ -682,6 +686,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [shotPref, setShotPref] = useState(readShotDetail);   // 샷 기록을 열어 두었는지 (이 기기에 기억)
   const [penOpen, setPenOpen] = useState(false);              // 벌타 칸이 열려 있는지
   const [showHoleMap, setShowHoleMap] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);   // 아래 막대 ☰ — 홈 · 코스맵 · 메모 · 라운드 수정 · 라운드 그만두기
   // 그날의 그린 스피드 — 라운드 시작 때 못 정했거나 라운드 중 알게 된 값을 퍼팅 화면에서 고친다
   const [showGreenSpeed, setShowGreenSpeed] = useState(false);
   const [speedDraft, setSpeedDraft] = useState(null);
@@ -2254,31 +2259,10 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   return (
     <div style={styles.container}>
-      {/* Header — 홈 · 코스 이름 · 코스맵 · 메모 · 라운드 수정
-          왼쪽은 누르면 바로 홈으로 가는 버튼이다 (기록은 저장돼 있어 홈의 "이어서"로 같은 홀에 돌아온다).
-          예전엔 뒤로(<) → 확인 창 → "기록 유지하고 홈으로" 두 번을 눌러야 했다 (2026-11-12 사용자 요청).
-          라운드 삭제 · 세팅 다시하기는 실수로 누르지 않게 라운드 수정(연필) 창 맨 아래 "라운드 그만두기"로 옮겼다. */}
-      <header style={{ ...styles.scoringHeader, padding: '4px 0 8px' }}>
-        <button data-role="go-home" style={{ ...styles.iconBack, background: 'transparent', border: 'none', color: '#191f28', flexShrink: 0 }} onClick={onGoHome} aria-label="홈"><Home size={23} strokeWidth={2} /></button>
-        <div style={{ ...styles.scoringCourse, fontSize: 16 }} title={round.courseName}>{round.courseName}</div>
-        {(() => {
-          const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
-          return (
-            <button data-role="map-button" style={HDR_BTN} onClick={() => setShowHoleMap(true)} aria-label="코스맵">
-              <MapIcon size={21} strokeWidth={mapUsed ? 2.2 : 1.8} color={mapUsed ? '#1b64da' : '#4e5968'} />
-            </button>
-          );
-        })()}
-        <button
-          data-role="memo-button" data-has-memo={playerScore.memo ? '1' : '0'}
-          style={{ ...HDR_BTN, position: 'relative' }}
-          onClick={() => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); }}
-          aria-label={playerScore.memo ? '메모 있음 — 열기' : '메모 쓰기'}
-        >
-          <StickyNote size={21} strokeWidth={playerScore.memo ? 2.2 : 1.8} color={playerScore.memo ? '#1b64da' : '#4e5968'} />
-          {playerScore.memo && <span data-role="memo-dot" style={{ position: 'absolute', top: 9, right: 9, width: 9, height: 9, borderRadius: '50%', background: '#1b64da', border: '2px solid #ffffff' }} />}
-        </button>
-        <button style={HDR_BTN} onClick={openParEdit} data-role="round-edit" aria-label="라운드 수정"><Edit3 size={19} strokeWidth={1.8} color="#4e5968" /></button>
+      {/* Header — 코스 이름만. 홈 · 코스맵 · 메모 · 라운드 수정 · 라운드 그만두기는 아래 막대의 ☰ 메뉴로 옮겼다
+          (2026-11-12 사용자: "홈 버튼이 맨 위라 누르기 힘들다" — 엄지가 닿는 아래에서 다 열리게) */}
+      <header data-role="scoring-header" style={{ ...styles.scoringHeader, padding: '4px 0 8px', justifyContent: 'center', minHeight: 44 }}>
+        <div style={{ ...styles.scoringCourse, fontSize: 16, textAlign: 'center' }} title={round.courseName}>{round.courseName}</div>
       </header>
 
       {/* 전체 스코어 — 화면 맨 위: 몇 홀째 · 누적 · 홀 표(눌러서 홀 이동). 사용자가 "맨 위에 있는 게 낫다"고 해서 입력 아래에서 올렸다 (2026-11-12) */}
@@ -3527,12 +3511,23 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
       </div>}
 
-      {/* Scoring Bottom Bar — 이전 · 다음 홀 (코스맵 · 메모는 위쪽 머리줄로 옮겼다) */}
-      <div style={{ ...styles.tabBar, background: '#ffffff', borderTop: '1px solid #f2f4f6', boxShadow: 'none' }}>
-        <div style={{ display: 'flex', gap: 8, padding: '12px 20px' }}>
+      {/* Scoring Bottom Bar — ☰ 메뉴 · 이전 · 다음 홀.
+          버튼 아래 여백은 아이폰 홈 막대 자리(safe-area)에서 10px 를 덜어 예전(12px + safe-area = 46px)보다 내렸다 (2026-11-12 사용자 요청) */}
+      <div data-role="scoring-bar" style={{ ...styles.tabBar, background: '#ffffff', borderTop: '1px solid #f2f4f6', boxShadow: 'none', paddingBottom: BAR_GAP }}>
+        <div style={{ display: 'flex', gap: 8, padding: `${BAR_TOP}px 20px 0` }}>
+          <button
+            type="button" data-role="menu-button" aria-haspopup="dialog" aria-expanded={showMenu}
+            aria-label={playerScore.memo ? '메뉴 — 이 홀 메모 있음' : '메뉴'}
+            style={{ width: 56, height: 56, flexShrink: 0, position: 'relative', borderRadius: 16, border: 'none', background: '#f2f4f6', color: '#333d4b', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            onClick={() => setShowMenu(true)}
+          >
+            <MenuIcon size={24} strokeWidth={2} />
+            {/* 이 홀에 메모가 있으면 메뉴 단추에 점 — 예전 머리줄 메모 아이콘의 점과 같은 뜻 */}
+            {playerScore.memo && <span data-role="menu-memo-dot" style={{ position: 'absolute', top: 12, right: 12, width: 9, height: 9, borderRadius: '50%', background: '#1b64da', border: '2px solid #f2f4f6' }} />}
+          </button>
           <button
             data-role="prev-hole"
-            style={{ width: 96, height: 56, flexShrink: 0, borderRadius: 16, border: 'none', background: '#f2f4f6', color: holeIdx === 0 ? '#8b95a1' : '#4e5968', fontSize: 16, fontWeight: 700, cursor: holeIdx === 0 ? 'default' : 'pointer' }}
+            style={{ width: 88, height: 56, flexShrink: 0, borderRadius: 16, border: 'none', background: '#f2f4f6', color: holeIdx === 0 ? '#8b95a1' : '#4e5968', fontSize: 16, fontWeight: 700, cursor: holeIdx === 0 ? 'default' : 'pointer' }}
             onClick={() => goToHole(holeIdx - 1)}
             disabled={holeIdx === 0}
             aria-label="이전 홀"
@@ -3544,6 +3539,48 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           )}
         </div>
       </div>
+
+      {/* ☰ 메뉴 — 아래에서 올라오는 시트. 줄을 누르면 시트를 닫고 그 기능을 연다. 나중에 생기는 기능도 여기에 더한다 */}
+      {showMenu && (() => {
+        const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
+        const items = [
+          { role: 'go-home', Icon: Home, label: '홈으로', hint: '기록은 그대로 남아요', aria: '홈으로', run: onGoHome },
+          { role: 'map-button', Icon: MapIcon, label: '코스맵', hint: mapUsed ? '찍은 위치 보기' : '샷 위치 찍기', aria: '코스맵', on: mapUsed, run: () => setShowHoleMap(true) },
+          { role: 'memo-button', Icon: StickyNote, label: '메모', hint: playerScore.memo ? '메모 있음' : `${holeNo}번 홀 메모 쓰기`, aria: playerScore.memo ? '메모 있음 — 열기' : '메모 쓰기', on: !!playerScore.memo, dot: !!playerScore.memo, run: () => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); } },
+          { role: 'round-edit', Icon: Edit3, label: '라운드 수정', hint: '파 · 그린 스피드', aria: '라운드 수정', run: openParEdit },
+          { role: 'quit-round', Icon: LogOut, label: '라운드 그만두기', hint: '기록 삭제 · 세팅 다시하기', aria: '라운드 그만두기', danger: true, run: () => setShowExitConfirm(true) },
+        ];
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(25,31,40,0.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'modalFadeIn 0.15s ease-out' }} onClick={() => setShowMenu(false)}>
+            <div role="dialog" aria-label="메뉴" data-role="scoring-menu" onClick={e => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 520, boxSizing: 'border-box', background: '#ffffff', borderRadius: '20px 20px 0 0', padding: '6px 16px 0', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp 0.2s ease-out' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0 4px 4px' }}>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#191f28' }}>메뉴</span>
+                <button type="button" aria-label="닫기" style={HDR_BTN} onClick={() => setShowMenu(false)}><X size={22} color="#4e5968" /></button>
+              </div>
+              {items.map(({ role, Icon, label, hint, aria, on, dot, danger, run }) => (
+                <button key={role} type="button" data-role={role} aria-label={aria}
+                  data-has-memo={role === 'memo-button' ? (playerScore.memo ? '1' : '0') : undefined}
+                  style={{ width: '100%', minHeight: 60, display: 'flex', alignItems: 'center', gap: 14, padding: '0 4px', background: 'transparent', border: 'none', borderTop: danger ? '1px solid #e5e8eb' : 'none', marginTop: danger ? 6 : 0, cursor: 'pointer', textAlign: 'left' }}
+                  onClick={() => { setShowMenu(false); run(); }}>
+                  <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 12, background: danger ? 'rgba(200,50,58,0.08)' : on ? 'rgba(27,100,218,0.1)' : '#f2f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon size={21} strokeWidth={2} color={danger ? '#c8323a' : on ? '#1b64da' : '#333d4b'} />
+                  </span>
+                  {/* 이름 아래에 설명 — 좁은 폰(320px)에서도 이름이 여러 줄로 쪼개지지 않게 옆이 아니라 아래에 둔다 */}
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, padding: '8px 0' }}>
+                    <span style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.3, color: danger ? '#c8323a' : '#191f28' }}>{label}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, lineHeight: 1.4, color: '#4e5968', wordBreak: 'keep-all' }}>
+                      {dot && <span data-role="memo-dot" style={{ width: 8, height: 8, flexShrink: 0, borderRadius: '50%', background: '#1b64da' }} />}
+                      {hint}
+                    </span>
+                  </span>
+                  <ChevronRight size={18} color="#5b6572" style={{ flexShrink: 0 }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 미입력 홀 확인 모달 */}
       {pendingFinish && (
@@ -3710,7 +3747,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
       )}
 
-      {/* 라운드 그만두기 확인 — 라운드 수정(연필) 창의 "라운드 그만두기"에서 연다 */}
+      {/* 라운드 그만두기 확인 — 아래 ☰ 메뉴의 "라운드 그만두기"에서 연다 */}
       {showExitConfirm && (
         <div style={styles.modalOverlay} onClick={()=>setShowExitConfirm(false)}>
           <div data-role="quit-confirm" style={styles.modalCard} onClick={e=>e.stopPropagation()}>
@@ -3787,13 +3824,6 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={{ display:'flex', gap:8 }}>
               <button style={{ ...styles.modalBtnCancel, flex:1 }} onClick={()=>setShowParEditModal(false)}>취소</button>
               <button style={{ ...styles.memoSaveBtn, flex:2 }} onClick={saveParEdit}>저장</button>
-            </div>
-            {/* 라운드 그만두기 — 기록 삭제 · 세팅 다시하기는 여기서만 연다 (머리줄 왼쪽은 바로 홈으로 가는 버튼) */}
-            <div data-role="quit-section" style={{ borderTop:'1px solid #e5e8eb', marginTop:20, paddingTop:14, textAlign:'left' }}>
-              <button type="button" data-role="quit-round"
-                style={{ width:'100%', minHeight:48, borderRadius:12, border:'1.5px solid rgba(200,50,58,0.5)', background:'transparent', color:'#c8323a', fontSize:15, fontWeight:700, cursor:'pointer' }}
-                onClick={() => { setShowParEditModal(false); setShowExitConfirm(true); }}>라운드 그만두기</button>
-              <div style={{ fontSize:13, color:'#4e5968', marginTop:6, lineHeight:1.5, wordBreak:'keep-all' }}>이 라운드를 지우고 나가거나, 세팅부터 다시 할 수 있어요. 잠깐 홈에 다녀올 때는 왼쪽 위 홈 버튼을 쓰면 기록이 그대로 남아요.</div>
             </div>
           </div>
         </div>
@@ -3881,7 +3911,7 @@ const fChipWide = { minWidth:52, minHeight:44, padding:'7px 12px', borderRadius:
 
 // 퍼팅 결과 버튼 줄 — 카드가 화면보다 길어도 아래 탭바 바로 위에 붙어 있다 (탭바 높이 ≈ 75px + 아이폰 아래 여백).
 // 줄이 속한 상자(putt-cards)가 화면에 보이는 동안만 붙고, 퍼팅 칸이 아직 아래에 있으면 상자와 함께 내려가 있다.
-const PUTT_BAR = { position:'sticky', bottom:'calc(80px + env(safe-area-inset-bottom, 0px))', zIndex:20, margin:'0 -16px', padding:'10px 16px', background:'#ffffff', borderTop:'1px solid #e5e8eb', boxShadow:'0 -10px 14px -6px rgba(0,0,0,0.175)' };
+const PUTT_BAR = { position:'sticky', bottom:`calc(${BAR_TOP + 56}px + ${BAR_GAP})`, zIndex:20, margin:'0 -16px', padding:'10px 16px', background:'#ffffff', borderTop:'1px solid #e5e8eb', boxShadow:'0 -10px 14px -6px rgba(0,0,0,0.175)' };
 
 // 벌타 구제 방식 카드 — 왼쪽: 정식 명칭(영문) · 근거/벌타 · 설명, 오른쪽: 다음 샷 번호 (모든 카드에서 같은 너비로 줄을 맞춘다)
 const reliefCard = {

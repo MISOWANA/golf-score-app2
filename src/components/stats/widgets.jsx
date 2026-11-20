@@ -41,7 +41,8 @@ export function Metric({ id, value, unit, label, sub, tone, align = 'left' }) {
 }
 
 // 최근 5라운드와 그 이전의 차이. goodWhen: 값이 올라야 좋으면 'up', 내려야 좋으면 'down'.
-export function TrendChip({ delta, unit = '%p', goodWhen = 'up', digits = 0, flat = 0.5, label = '최근 5R', id }) {
+// words: 숫자 대신 "최근 좋아짐 / 나빠짐 / 비슷" 글자만 — 숫자가 많은 요약 화면(스탯 종합의 '내 게임')용.
+export function TrendChip({ delta, unit = '%p', goodWhen = 'up', digits = 0, flat = 0.5, label = '최근 5R', id, words = false }) {
   if (delta == null || Number.isNaN(delta)) return null;
   const abs = Math.abs(delta);
   const steady = abs < flat;
@@ -53,7 +54,7 @@ export function TrendChip({ delta, unit = '%p', goodWhen = 'up', digits = 0, fla
     <span data-role={id ?? 'trend'} data-trend={steady ? 'flat' : better ? 'better' : 'worse'}
       aria-label={`${label} ${word}`}
       style={{ fontSize: 13, fontWeight: 700, color, whiteSpace: 'nowrap', padding: '2px 8px', borderRadius: 999, border: `1px solid ${color}55`, background: `${color}14` }}>
-      {label} {arrow} {steady ? word : `${fmtNum(abs, digits)}${unit}`}
+      {words ? `${label} ${word}` : <>{label} {arrow} {steady ? word : `${fmtNum(abs, digits)}${unit}`}</>}
     </span>
   );
 }

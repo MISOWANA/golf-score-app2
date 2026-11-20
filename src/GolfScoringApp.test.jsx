@@ -661,7 +661,7 @@ describe('인사이트 — 제목 · 상태 표시', () => {
 
 describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
   // makeFullRound(i) 의 날짜는 2026-09-(1 + 3i) → 1번 9.4 · 2번 9.7 · 3번 9.10 (모두 2026년)
-  const YMD = /^\d{4}\.\d{1,2}\.\d{1,2}$/;
+  const YMD = /^\d{2}\.\d{1,2}\.\d{1,2}$/;   // 26.9.10 — 연도는 뒤 두 자리
   const openInsights = async () => { tab('인사이트'); await pageTitle('인사이트'); };
   // 장(탭)을 차례로 열어 가며 찾는 요소가 나올 때까지
   const findInChapters = async (selector) => {
@@ -677,19 +677,19 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     await openInsights();
     fireEvent.click(document.querySelector('[data-role="scope-pick"]'));
     const dates = await waitFor(() => { const d = [...document.querySelectorAll('[data-role="pick-date"]')]; expect(d.length).toBe(3); return d.map((x) => x.textContent); });
-    expect(dates).toEqual(['2026.9.10', '2026.9.7', '2026.9.4']);                // 최신이 맨 위
+    expect(dates).toEqual(['26.9.10', '26.9.7', '26.9.4']);                // 최신이 맨 위
     dates.forEach((t) => expect(t).toMatch(YMD));
   });
 
   it('인사이트 — 범위 카드의 날짜에도 연도가 붙는다 (지난 라운드를 누적으로 볼 때 "…까지" 도)', async () => {
     await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
     await openInsights();
-    await waitFor(() => expect(document.body.textContent).toContain('2026.9.10'));
+    await waitFor(() => expect(document.body.textContent).toContain('26.9.10'));
     fireEvent.click(document.querySelector('[data-role="scope-pick"]'));
-    fireEvent.click(await waitFor(() => { const o = document.querySelector('[data-role="pick-1"]'); expect(o).toBeTruthy(); return o; }));       // 두 번째로 최근(2026.9.7) 라운드
-    await waitFor(() => expect(document.body.textContent).toMatch(/· 2026\.9\.7/));
+    fireEvent.click(await waitFor(() => { const o = document.querySelector('[data-role="pick-1"]'); expect(o).toBeTruthy(); return o; }));       // 두 번째로 최근(26.9.7) 라운드
+    await waitFor(() => expect(document.body.textContent).toMatch(/· 26\.9\.7/));
     fireEvent.click(document.querySelector('[data-role="scope-career"]'));
-    await waitFor(() => expect(document.body.textContent).toContain('2라운드 평균 · 2026.9.7까지'));
+    await waitFor(() => expect(document.body.textContent).toContain('2라운드 평균 · 26.9.7까지'));
   });
 
   it('인사이트 — 범위 카드의 날짜는 줄여 쓰지 않는다 (코스 이름이 길어도 날짜가 보이게 아랫줄로 내려간다)', async () => {
@@ -697,7 +697,7 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     await openInsights();
     const label = await waitFor(() => { const l = document.querySelector('[data-role="scope-label"]'); expect(l).toBeTruthy(); return l; });
     const date = label.querySelector('[data-role="scope-date"]');
-    expect(date.textContent).toMatch(/^· \d{4}\.\d{1,2}\.\d{1,2}$/);
+    expect(date.textContent).toMatch(/^· \d{2}\.\d{1,2}\.\d{1,2}$/);
     expect(date.style.whiteSpace).toBe('nowrap');                       // 날짜는 자르지 않는다
     expect(label.style.flexWrap).toBe('wrap');                          // 모자라면 아랫줄로
     expect(label.style.overflow).toBe('visible');                       // 라벨 전체에는 말줄임을 걸지 않는다
@@ -708,7 +708,7 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     await openInsights();
     fireEvent.click(document.querySelector('[data-role="scope-career"]'));
     const rows = await findInChapters('[data-role="trend-date"]');
-    expect(rows.map((r) => r.textContent)).toEqual(['2026.9.4', '2026.9.7', '2026.9.10']);   // 오래된 라운드부터
+    expect(rows.map((r) => r.textContent)).toEqual(['26.9.4', '26.9.7', '26.9.10']);   // 오래된 라운드부터
   });
 
   // 파4 한 홀 — 세컨샷을 from(m) 에서 쳐서 그린에 올리고, 랜딩 hour 시 · 첫 퍼트 dist(m)
@@ -783,13 +783,17 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     expect(document.body.textContent).toContain('2026년 9월 7일 · 1인');      // 홈은 가장 최근 라운드 한 줄
   });
 
-  it('스탯 종합 — 스코어 추이 막대 밑에 월/일과 연도가 두 줄로 보인다', async () => {
-    await setup({ rounds: [makeFullRound(1), makeFullRound(2), makeFullRound(3)] });
+  it.each([
+    ['3라운드', 3, ['26.9.4', '26.9.10']],
+    ['10라운드', 10, ['26.9.4', '26.10.1']],
+  ])('스탯 종합 — 스코어 막대 밑 날짜는 처음과 끝 두 개만, 26.9.4 처럼 한 줄 (%s)', async (_, n, expected) => {
+    await setup({ rounds: Array.from({ length: n }, (_, i) => makeFullRound(i + 1)) });
     tab('스탯');
     await pageTitle('스탯');
-    const ticks = await waitFor(() => { const t = [...document.querySelectorAll('[data-role="trend-date"]')]; expect(t.length).toBeGreaterThan(1); return t; });
-    expect(ticks.map((t) => t.textContent)).toContain('9/42026');       // <br/> 로 나뉜 두 줄 — 월/일 다음에 연도
-    ticks.forEach((t) => expect(t.querySelector('br')).toBeTruthy());
+    const ticks = await waitFor(() => { const t = [...document.querySelectorAll('[data-role="trend-date"]')]; expect(t.length).toBe(2); return t; });
+    expect(ticks.map((t) => t.textContent)).toEqual(expected);
+    ticks.forEach((t) => { expect(t.querySelector('br')).toBeNull(); expect(t.textContent).not.toContain('2026'); });
+    expect(document.querySelectorAll('[data-role="score-trend"] > div')).toHaveLength(n);   // 막대는 라운드마다 그대로
   });
 
   it('라운드 설정 — 이 코스 기록의 날짜에 연도가 붙는다', async () => {
@@ -799,8 +803,8 @@ describe('라운드 날짜는 어느 화면에서나 연도까지', () => {
     await screen.findByPlaceholderText('골프장 이름 검색...');
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '남서울CC' } });
     const card = await waitFor(() => { const c = document.querySelector('[data-role="course-history"]'); expect(c).toBeTruthy(); return c; });
-    expect(card.querySelector('[data-role="course-recent"]').textContent).toMatch(/2026\.9\.7.*2026\.9\.4/);
-    expect(card.querySelector('[data-role="course-best"]').textContent).toMatch(/\(2026\.9\.\d+\)/);
+    expect(card.querySelector('[data-role="course-recent"]').textContent).toMatch(/26\.9\.7.*26\.9\.4/);
+    expect(card.querySelector('[data-role="course-best"]').textContent).toMatch(/\(26\.9\.\d+\)/);
   });
 });
 
@@ -3757,7 +3761,7 @@ describe('스탯과 인사이트는 같은 라운드에서 같은 숫자를 보�
     expect(document.body.textContent).not.toMatch(/편향지수/);              // 스탯에 없는 지표를 따로 만들지 않는다
   });
 
-  it('3퍼트 · 더블+ · OB: 스탯 종합의 타수가 새는 곳과 인사이트 빅 미스(누적)가 같은 숫자다', async () => {
+  it('3퍼트 · 더블+ · OB: 스탯 종합의 타수가 새는 곳과 인사이트 빅 미스(누적)가 같은 함수로 센다', async () => {
     const rs = rounds3();
     const e = sumRoundEvents(rs);
     expect(e.threePutt).toBeGreaterThan(0);
@@ -3765,8 +3769,10 @@ describe('스탯과 인사이트는 같은 라운드에서 같은 숫자를 보�
     const per = (n) => (n / 3).toFixed(1);
     await setup({ rounds: rs });
     await statsTab('overview');
-    expect(flat(await find('[data-role="leak-three"]'))).toContain(`${per(e.threePutt)}회`);
-    expect(flat(q('[data-role="leak-double"]'))).toContain(`${per(e.double)}홀`);
+    // 종합은 잃는 타수 하나만 (횟수는 인사이트 · 각 탭에) — 3퍼트는 두 번 넘게 친 퍼트 수, 벌타는 OB 2타 · 해저드·언플 1타
+    expect(flat(await find('[data-role="leak-three-strokes"]'))).toBe(`−${per(e.extraPutts)}타`);
+    expect(flat(q('[data-role="leak-penalty-strokes"]'))).toBe(`−${per(e.ob * 2 + e.hazard + e.unplayable)}타`);
+    expect(flat(q('[data-role="card-leaks"]'))).not.toMatch(/\d회|더블보기 이상/);
 
     await insightsChapter('bigmiss');
     fireEvent.click(await find('[data-role="scope-career"]'));

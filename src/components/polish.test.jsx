@@ -132,8 +132,63 @@ describe('스탯 종합 — 3퍼트와 벌타 문장', () => {
     expect(report.leaks.threePutt.extraStrokesPerRound).toBeGreaterThanOrEqual(0.15);
     const { container } = render(<OverviewTab report={report} onGo={() => {}} />);
     const text = container.textContent;
-    expect(text).toMatch(/3퍼트로 라운드당 [\d.]+타를 잃어요\. 벌타로는 거의 잃지 않아요/);
+    expect(text).toMatch(/잃는 타수는 거의 3퍼트에서 나와요\. 벌타로는 거의 잃지 않아요/);
     expect(text).not.toMatch(/벌타보다/);
     expect(container.querySelector('[data-role="leak-penalty-strokes"]').textContent).toBe('0타');
+  });
+});
+
+// 2026-11-20 "숫자가 너무 많아 꼭 필요한 정보만" — 종합은 카드마다 대표 숫자만, 같은 숫자를 두 번 말하지 않는다.
+// 자세한 숫자(좌우 미스 · 홀 수 · 횟수 · OB/해저드)는 각 탭과 인사이트에 있다.
+describe('스탯 종합 — 꼭 필요한 숫자만', () => {
+  const report = () => buildStatsReport(Array.from({ length: 10 }, (_, i) => makeFullRound(i + 1, ME)));
+  const view = () => render(<OverviewTab report={report()} onGo={() => {}} />).container;
+  const card = (c, id) => c.querySelector(`[data-role="card-${id}"]`);
+
+  it('스코어 — 평균 · 베스트만 크게, 막대 위 타수는 가장 최근 하나, 날짜는 처음과 끝 둘', () => {
+    const r = report();
+    const c = view();
+    const score = card(c, 'score');
+    expect(score.querySelector('[data-role="m-avg"]')).toBeTruthy();
+    expect(score.querySelector('[data-role="m-best"]')).toBeTruthy();
+    expect(score.querySelector('[data-role="m-rounds"]')).toBeNull();           // 라운드 수는 홈에 있다
+    expect(score.textContent).not.toMatch(/파 대비/);
+    expect(score.querySelector('[data-role="trend-score"]')).toBeNull();        // 위 칩 = 아래 문장과 같은 말
+    expect(r.score.improvement).not.toBeNull();
+    expect(score.querySelector('[data-role="takeaway"]').textContent).toMatch(/평균 [\d.]+타 덜 쳤어요|더 쳤어요|비슷해요/);
+    const bars = score.querySelector('[data-role="score-trend"]');
+    expect(bars.children).toHaveLength(10);
+    expect(bars.textContent).toBe(String(r.score.trend.at(-1).total));          // 숫자는 가장 최근 막대 하나
+    expect([...score.querySelectorAll('[data-role="trend-date"]')]).toHaveLength(2);
+  });
+
+  it('내 게임 — 칸마다 큰 숫자 하나 + "최근 좋아짐/나빠짐/비슷" 글자 (보조 숫자 줄 없음)', () => {
+    const c = view();
+    ['tee', 'approach', 'shortGame', 'putting'].forEach((id) => {
+      const tile = c.querySelector(`[data-role="skill-${id}"]`);
+      expect(tile.textContent).not.toMatch(/미스|홀 중|세이브|3퍼트|18홀에/);
+      const chip = tile.querySelector(`[data-role="trend-${id}"]`);
+      if (chip) expect(chip.textContent).toMatch(/^최근 (좋아짐|나빠짐|비슷)$/);
+    });
+    expect(c.querySelectorAll('[data-role^="trend-"][data-trend]').length).toBeGreaterThan(0);   // 칩이 실제로 보이는 데이터다
+  });
+
+  it('타수가 새는 곳 — 잃는 타수 하나씩만, 문장은 그 숫자를 되풀이하지 않는다', () => {
+    const c = view();
+    const leaks = card(c, 'leaks');
+    expect(leaks.querySelector('[data-role="leak-double"]')).toBeNull();
+    expect(leaks.textContent).not.toMatch(/\d회|OB \d|해저드 \d/);
+    const take = leaks.querySelector('[data-role="takeaway"]').textContent;
+    expect(take.replace(/3퍼트/g, '')).not.toMatch(/\d/);
+  });
+
+  it('스코어 구성 — 비율(%)과 파별 홀당 타수만, 홀 수는 적지 않는다', () => {
+    const c = view();
+    const comp = card(c, 'composition');
+    const leafTexts = [...comp.querySelectorAll('*')].filter((el) => el.children.length === 0).map((el) => el.textContent);
+    expect(leafTexts.filter((t) => /\d+홀/.test(t))).toEqual([]);              // 예전 '27홀' · '40홀 평균'
+    expect(leafTexts.filter((t) => t === '홀당')).toHaveLength(3);
+    const take = comp.querySelector('[data-role="takeaway"]');
+    if (take) expect(take.textContent).toMatch(/^파 \d 홀에서 가장 많이 잃어요\.$/);
   });
 });

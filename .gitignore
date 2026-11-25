@@ -24,6 +24,11 @@ dist-ssr
 # graphify 지식 그래프 결과 (로컬에서 다시 만들 수 있다)
 graphify-out/
 
+# 실제 브라우저 테스트(Playwright) 결과 — 돌릴 때마다 새로 만들어진다
+test-results/
+playwright-report/
+blob-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

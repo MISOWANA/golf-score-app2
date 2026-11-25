@@ -1,0 +1,41 @@
+name: 실제 브라우저 테스트 (Playwright)
+
+# main 에 올릴 때마다 진짜 크롬으로 앱을 눌러 본다.
+# 배포(deploy.yml)와는 따로 돈다 — 여기가 실패해도 배포는 막지 않는다.
+# 결과는 Actions 화면의 이 작업 → 맨 아래 "playwright-report" 를 내려받아 index.html 을 열면 볼 수 있다.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 크롬(Chromium)과 리눅스에서 필요한 부품을 받는다
+      - run: npx playwright install --with-deps chromium
+
+      # 배포와 같은 빌드를 만들어 띄우고 테스트한다 (playwright.config.js 의 webServer)
+      - run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

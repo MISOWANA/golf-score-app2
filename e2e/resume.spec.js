@@ -1,6 +1,6 @@
 // 라운드 도중 휴대폰 브라우저가 새로고침되거나 꺼졌다 켜져도 입력한 것이 남아 있고, 홈에서 "이어서"로 돌아온다.
 // (진짜 브라우저 저장소 IndexedDB 에 저장되는지는 jsdom 테스트로는 볼 수 없다)
-import { test, expect, COURSE, role, tap, login, startRound, playHole, enterHole, expectHole } from './kit.js';
+import { test, expect, COURSE, role, tap, login, startRound, playHole, enterHole, expectHole, waitSaved } from './kit.js';
 
 const FIRST3 = [{ strokes: 4, putts: 2 }, { strokes: 5, putts: 2 }, { strokes: 6, putts: 3 }];
 
@@ -10,6 +10,7 @@ test('3홀을 넣고 새로고침 → 홈에 "진행 중인 라운드" → 이�
   for (let i = 0; i < 3; i++) await playHole(page, i + 1, FIRST3[i]);
   await expect(role(page, 'running-total')).toHaveText('15(+3)');
 
+  await waitSaved(page);
   await page.reload();
 
   // 이름을 다시 묻지 않고 홈이 열린다. 맨 위 주인공은 "이어서"
@@ -34,6 +35,7 @@ test('"다음 홀"을 누르기 전에 새로고침돼도 그 홀에 넣던 스�
   await playHole(page, 1, FIRST3[0]);
   await enterHole(page, { strokes: 7, putts: 3 });   // 2번 홀: 7타 3퍼트 — 아직 "다음 홀"을 안 눌렀다
 
+  await waitSaved(page);
   await page.reload();
   await tap(role(page, 'home-resume'));
 
@@ -46,6 +48,7 @@ test('브라우저 탭을 닫았다가 새 탭으로 다시 열어도 이어서 
   await login(page);
   await startRound(page);
   await playHole(page, 1, FIRST3[0]);
+  await waitSaved(page);
   await page.close();
 
   const again = await context.newPage();

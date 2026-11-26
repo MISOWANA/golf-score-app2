@@ -90,7 +90,25 @@ export async function playHole(page, hole, score) {
   await expectHole(page, hole + 1);
 }
 
-// 18홀 동안 칠 스코어 — 파 4 · 보기 5 · 더블 6 이 번갈아 나온다 (합계 90타 · 퍼팅 42개)
+// 앱이 하던 저장이 끝날 때까지 기다린다 — 새로고침 · 탭 닫기 직전에 쓴다.
+// 사람은 "다음 홀"을 누르고 앱을 닫기까지 적어도 0.5초가 걸리지만, 테스트는 글자가 바뀌자마자(몇 ms 안에) 닫는다.
+// 컴퓨터가 바쁘면 그 사이에 저장이 다 끝나지 않아, 탭을 닫은 뒤 1번 홀로 돌아가는 일이 가끔 있었다 (2026-11-26).
+// 저장 형식은 보지 않는다: 같은 저장소(users)를 읽는 일을 하나 걸면, 브라우저는 앞서 걸린 쓰기를 다 끝낸 뒤에야 그 일을 한다.
+export async function waitSaved(page) {
+  await page.evaluate(() => new Promise((resolve, reject) => {
+    const open = indexedDB.open('GolfScoreDB');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const conn = open.result;
+      const tx = conn.transaction(['users'], 'readonly');
+      tx.objectStore('users').count();
+      tx.oncomplete = () => { conn.close(); resolve(); };
+      tx.onerror = () => { conn.close(); reject(tx.error); };
+    };
+  }));
+}
+
+// 18홀 동안 칠 스코어 —파 4 · 보기 5 · 더블 6 이 번갈아 나온다 (합계 90타 · 퍼팅 42개)
 export const ROUND = Array.from({ length: 18 }, (_, i) => ({ strokes: 4 + (i % 3), putts: i % 3 === 2 ? 3 : 2 }));
 export const ROUND_TOTAL = ROUND.reduce((s, h) => s + h.strokes, 0);
 export const ROUND_PUTTS = ROUND.reduce((s, h) => s + h.putts, 0);

@@ -29,7 +29,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // GitHub 에서는 'github' 보고도 켠다 — 실패한 테스트 이름과 이유가 실행 결과 화면(주석)에 바로 뜬다.
+  // (로그는 로그인해야 보이지만 이 주석은 누구나 볼 수 있어, 실패 이유를 바로 확인할 수 있다)
+  reporter: process.env.CI
+    ? [['github'], ['list'], ['html', { open: 'never' }]]
+    : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: BASE,
     locale: 'ko-KR',

@@ -8,6 +8,7 @@
 // 같은 값을 읽어서 숫자와 문장이 어긋나지 않는다. 입력 칸은 표시 단위로 받아 미터로 바꿔 저장한다.
 
 import { sanitizeFirstPutt } from './firstPutt.js';
+import { isInputMode } from './inputMode.js';
 
 export const UNIT_IDS = ['m', 'yd'];
 export const M_TO_YD = 1.0936133;
@@ -24,10 +25,15 @@ export const setUnit = (id) => { if (UNITS[id]) current = id; };
 export const isYards = (id = current) => id === 'yd';
 export const unitInfo = (id = current) => UNITS[id] ?? UNITS.m;
 
-// 저장된 설정 { unit, firstPutt? } 을 검사해 돌려준다 — 모르는 단위는 미터, 첫 퍼팅 기본 거리는 정한 사람만 키가 있다
+// 저장된 설정 { unit, firstPutt?, defaultInputMode? } 을 검사해 돌려준다 — 모르는 단위는 미터.
+// 첫 퍼팅 기본 거리 · 기본 입력 모드(engine/inputMode.js)는 정한 사람만 키가 있다 (처음 쓰는 사람은 모드를 직접 고른다)
 export const sanitizePrefs = (p) => {
   const firstPutt = sanitizeFirstPutt(p?.firstPutt);
-  return { unit: UNIT_IDS.includes(p?.unit) ? p.unit : 'm', ...(firstPutt != null ? { firstPutt } : {}) };
+  return {
+    unit: UNIT_IDS.includes(p?.unit) ? p.unit : 'm',
+    ...(firstPutt != null ? { firstPutt } : {}),
+    ...(isInputMode(p?.defaultInputMode) ? { defaultInputMode: p.defaultInputMode } : {}),
+  };
 };
 
 const r1 = (n) => Math.round(n * 10) / 10;

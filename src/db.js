@@ -575,8 +575,10 @@ export const importUserData = async (userId, importedData, ownIds = [userId]) =>
     await saveGoals(userId, data.goals);
   }
   // 거리 단위 설정도 파일에 들어 있을 때만 (예전 백업에는 없다)
+  // 기본 입력 모드가 없는 예전 백업이면 지금 고른 모드를 지우지 않는다 — 복원한 뒤 새 라운드에서 다시 고르지 않게
   if (data.prefs && typeof data.prefs === 'object') {
-    await savePrefs(userId, data.prefs);
+    const keepMode = data.prefs.defaultInputMode == null ? (await getPrefs(userId)).defaultInputMode : undefined;
+    await savePrefs(userId, keepMode ? { ...data.prefs, defaultInputMode: keepMode } : data.prefs);
   }
   return result;
 };

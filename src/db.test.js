@@ -510,4 +510,16 @@ describe('거리 단위 설정', () => {
     await db.importUserData(b.userId, { data: { rounds: [] } }, [b.userId]);      // prefs 가 없는 예전 백업
     expect(await db.getPrefs(b.userId)).toEqual({ unit: 'm' });
   });
+
+  it('기본 입력 모드도 설정과 함께 저장 · 백업된다. 기본 모드가 없는 예전 백업을 가져와도 지금 고른 모드는 남는다', async () => {
+    const a = await db.loginByName('A');
+    expect(await db.savePrefs(a.userId, { unit: 'm', defaultInputMode: 'simple' })).toEqual({ unit: 'm', defaultInputMode: 'simple' });
+    expect((await db.exportUserData(a)).data.prefs).toEqual({ unit: 'm', defaultInputMode: 'simple' });
+
+    await db.importUserData(a.userId, { data: { rounds: [], prefs: { unit: 'yd' } } }, [a.userId]);   // 이 기능 전의 백업
+    expect(await db.getPrefs(a.userId)).toEqual({ unit: 'yd', defaultInputMode: 'simple' });
+
+    await db.importUserData(a.userId, { data: { rounds: [], prefs: { unit: 'yd', defaultInputMode: 'detailed' } } }, [a.userId]);
+    expect(await db.getPrefs(a.userId)).toEqual({ unit: 'yd', defaultInputMode: 'detailed' });   // 백업에 있으면 그 값으로
+  });
 });

@@ -2,13 +2,14 @@ import GoalLine from '../goals/GoalLine';
 import CourseHistoryCard from './CourseHistoryCard';
 import { buildCourseHistory } from '../../engine/courseHistory.js';
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronLeft, Plus, X, Briefcase } from 'lucide-react';
+import { ChevronLeft, Plus, X, Briefcase, Check } from 'lucide-react';
 import styles from '../../styles/styles';
 import ParTable from '../ui/ParTable';
 import { searchCourses } from '../../data/courseDatabase';
 import { bagCoverage } from '../../engine/clubRecommend.js';
 import { setupBlockers } from '../../engine/roundSetup.js';
 import { localNoonISO } from '../../engine/roundDate.js';
+import { INPUT_MODES, INPUT_MODE_INFO, isInputMode } from '../../engine/inputMode.js';
 import { useBagClubs } from '../scoring/useBagClubs';
 import GreenSpeedPicker from '../common/GreenSpeedPicker';
 import BagSetupWizard from '../mybag/BagSetupWizard';
@@ -34,7 +35,8 @@ function todayLocalDateStr() {
 }
 
 //   rounds  지금까지의 모든 라운드 — 고른 코스의 과거 기록("이 코스 기록")에 쓴다
-export default function SetupView({ onStart, onBack, currentUser, goals = [], rounds = [] }) {
+//   defaultInputMode  이 사용자가 마지막으로 고른 입력 모드 — 미리 골라 둔다. 없으면(처음) 아무것도 골라 두지 않는다
+export default function SetupView({ onStart, onBack, currentUser, goals = [], rounds = [], defaultInputMode = null }) {
   const [courseName, setCourseName] = useState('');
   const [roundDate, setRoundDate] = useState(todayLocalDateStr);
   const [outCourseName, setOutCourseName] = useState('');
@@ -47,6 +49,8 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
   const [clubRecommend, setClubRecommend] = useState(readClubRecommendPref);
   // 그날의 그린 스피드(스팀프 피트) — 선택 입력. 날마다 다르니 지난 값을 기억하지 않는다.
   const [greenSpeed, setGreenSpeed] = useState(null);
+  // 입력 모드 — 'simple'(스코어 · 퍼팅만) | 'detailed'(샷 기록까지). 1인 라운드만 고른다 (engine/inputMode.js)
+  const [inputMode, setInputMode] = useState(isInputMode(defaultInputMode) ? defaultInputMode : null);
   const savedBagClubs = useBagClubs(currentUser);
   // 이 화면에서 마이백을 방금 등록했으면 그 클럽을 바로 쓴다 (설정 화면은 그대로 두고 등록 화면만 위에 겹쳐 연다)
   const [registeredBag, setRegisteredBag] = useState(null);
@@ -180,7 +184,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
   const hasDupPlayer = dupPlayer >= 0;
   // 시작이 막힌 이유 — 버튼이 흐려지기만 하고 이유를 모르던 문제. OUT·IN 코스 이름은 필수가 아니다
   // (비우면 'OUT'·'IN' 으로 저장된다).
-  const blockers = setupBlockers({ courseName, players, teeBox });
+  const blockers = setupBlockers({ courseName, players, teeBox, inputMode });
   // 이 코스를 전에 쳤다면 그 기록 (같은 코스·같은 9홀의 홀만 비교한다)
   const courseHistory = useMemo(
     () => buildCourseHistory(rounds, { courseName, outName: outCourseName, inName: inCourseName, nine, userName: currentUser?.userName }),
@@ -616,6 +620,46 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
 
       <GoalLine goals={goals} margin="4px 2px 12px" />
 
+      {/* 입력 모드 — 시작 버튼 바로 위. 큰 카드 둘 중 하나를 고른다. 동반자 라운드는 늘 간편 스코어라 고르지 않는다 */}
+      <div style={styles.formSection} data-role="input-mode">
+        {players.length > 1 ? (
+          <div data-role="input-mode-group-note" style={{ fontSize: 14, color: '#4e5968', lineHeight: 1.6, wordBreak: 'keep-all' }}>
+            동반자 라운드는 스코어만 기록돼요
+          </div>
+        ) : (<>
+          <label style={styles.formLabel}>입력 모드</label>
+          <div role="radiogroup" aria-label="입력 모드" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {INPUT_MODES.map((mode) => {
+              const on = inputMode === mode;
+              const { label, desc } = INPUT_MODE_INFO[mode];
+              return (
+                <button
+                  key={mode} type="button" role="radio" aria-checked={on} data-role={`input-mode-${mode}`}
+                  onClick={() => setInputMode(mode)}
+                  style={{
+                    width: '100%', minHeight: 68, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                    borderRadius: 20, textAlign: 'left', cursor: 'pointer',
+                    border: `1.5px solid ${on ? '#1b64da' : '#f2f4f6'}`, background: on ? '#e8f3ff' : '#f2f4f6',
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 16, fontWeight: 800, lineHeight: 1.35, color: on ? '#1b64da' : '#191f28' }}>{label}</span>
+                    <span style={{ display: 'block', fontSize: 14, lineHeight: 1.5, color: '#4e5968', marginTop: 2, wordBreak: 'keep-all' }}>{desc}</span>
+                  </span>
+                  <span aria-hidden="true" style={{
+                    width: 24, height: 24, flexShrink: 0, borderRadius: '50%', boxSizing: 'border-box',
+                    border: on ? 'none' : '2px solid #b0b8c1', background: on ? '#1b64da' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {on && <Check size={16} strokeWidth={3} color="#ffffff" />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>)}
+      </div>
+
       {/* 시작 버튼은 아래 탭 바 바로 위에 고정한다 — 긴 설정 화면을 끝까지 내리지 않아도 누를 수 있고, 못 누르는 이유도 같이 보인다 */}
       <div aria-hidden="true" style={{ height: 84 }} />
       <div data-role="start-bar" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 520, boxSizing: 'border-box', bottom: 'calc(64px + env(safe-area-inset-bottom, 0px))', zIndex: 40, padding: '22px 16px 10px', background: 'linear-gradient(180deg, rgba(25,31,40,0) 0, rgba(255,255,255,0.98) 18px)' }}>
@@ -628,7 +672,7 @@ export default function SetupView({ onStart, onBack, currentUser, goals = [], ro
         data-role="start-round"
         style={{ ...styles.primaryButton, marginTop: 0, ...(canStart ? {} : { background: '#e5e8eb', color: '#5b6572', boxShadow: 'none', cursor: 'not-allowed' }), cursor: canStart ? 'pointer' : 'not-allowed' }}
         disabled={!canStart}
-        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, localNoonISO(roundDate) ?? new Date().toISOString(), clubRecommend, players.length === 1 ? greenSpeed : null, nine)}
+        onClick={() => onStart(players.map(p => p.trim()), courseName.trim(), pars, outCourseName.trim(), inCourseName.trim(), teeBox, localNoonISO(roundDate) ?? new Date().toISOString(), clubRecommend, players.length === 1 ? greenSpeed : null, nine, players.length === 1 ? inputMode : null)}
       >
         라운드 시작하기
       </button>

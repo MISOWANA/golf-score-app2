@@ -341,6 +341,7 @@ describe('9홀 라운드', () => {
 
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '직접입력CC' } });
     fireEvent.click(screen.getByText('화이트'));
+    fireEvent.click(document.querySelector('[data-role="input-mode-detailed"]'));   // 1인 라운드는 입력 모드를 골라야 시작된다
     fireEvent.click(screen.getByText('라운드 시작하기'));
 
     await screen.findByText('1번 홀');
@@ -359,6 +360,7 @@ describe('9홀 라운드', () => {
     expect(screen.getByRole('radio', { name: /^18홀/ }).getAttribute('aria-checked')).toBe('true');
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '직접입력CC' } });
     fireEvent.click(screen.getByText('화이트'));
+    fireEvent.click(document.querySelector('[data-role="input-mode-detailed"]'));   // 1인 라운드는 입력 모드를 골라야 시작된다
     fireEvent.click(screen.getByText('라운드 시작하기'));
     await screen.findByText('1번 홀');
     expect(screen.getByText(/\/18홀/)).toBeTruthy();
@@ -3057,6 +3059,8 @@ describe('새 라운드 설정', () => {
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '직접입력CC' } });
     expect(blockers().textContent).not.toContain('골프장 이름');
     fireEvent.click(screen.getByText('화이트'));
+    expect(blockers().textContent).toBe('입력 모드를 골라 주세요');   // 처음 쓰는 사람은 입력 모드도 골라야 한다
+    fireEvent.click(document.querySelector('[data-role="input-mode-detailed"]'));   // 1인 라운드는 입력 모드를 골라야 시작된다
 
     expect(blockers()).toBeNull();
     expect(screen.getByText('라운드 시작하기').disabled).toBe(false);
@@ -3067,6 +3071,7 @@ describe('새 라운드 설정', () => {
     await goSetup();
     fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '직접입력CC' } });
     fireEvent.click(screen.getByText('화이트'));
+    fireEvent.click(document.querySelector('[data-role="input-mode-detailed"]'));   // 1인 라운드는 입력 모드를 골라야 시작된다
     fireEvent.click(screen.getByText('라운드 시작하기'));
 
     await waitFor(async () => {

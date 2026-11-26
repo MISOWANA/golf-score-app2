@@ -8,6 +8,7 @@ import { formatHandicap } from '../../engine/handicap.js';
 import { backupMessage } from '../../engine/backupStatus.js';
 import { MilestoneList } from '../common/EmptyGuide';
 import { NUDGE_SNOOZE_DAYS } from '../../platform/nudgeSnooze.js';
+import { inputModeOf, inputModeLabel } from '../../engine/inputMode.js';
 
 // 홈 화면의 카드들 — 새 라운드(항상 맨 위) · 진행 중인 라운드(바로 아래) · 요약.
 
@@ -40,7 +41,18 @@ export function NewRoundCard({ onNewRound, compact = false }) {
   );
 }
 
+// 진행 중인 라운드의 입력 모드 — "간단 입력" · "세부 입력" 작은 라벨. 동반자 라운드는 모드가 없어 보이지 않는다
+function InputModeTag({ round }) {
+  if ((round.players?.length ?? 1) > 1) return null;
+  return (
+    <span data-role="home-input-mode" style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: '#1b64da', background: '#e8f3ff', borderRadius: 8, padding: '2px 8px' }}>
+      {inputModeLabel(inputModeOf(round))}
+    </span>
+  );
+}
+
 // prominent: 진행 중인 라운드가 있을 때 홈의 맨 위 주인공 — 큰 "이어서" 버튼. (새 라운드 카드는 그 아래 보조로 내려간다)
+// "이어서"는 모드를 다시 묻지 않는다 — 그 라운드에 저장된 모드로 바로 열린다
 export function ActiveRoundCard({ round, onResume, prominent = false }) {
   const total = round.holes?.length || 18;
   const current = Math.min(total, (round.currentHole ?? 0) + 1);
@@ -52,6 +64,7 @@ export function ActiveRoundCard({ round, onResume, prominent = false }) {
           <div style={{ ...styles.liveLabel, position: 'relative' }}>
           <span className="bb-live-dot" style={styles.liveDot} />
           진행 중인 라운드
+          <InputModeTag round={round} />
         </div>
         <div style={{ position: 'relative', fontSize: 22, lineHeight: 1.35, fontWeight: 800, color: '#191f28', letterSpacing: '-0.02em', margin: '2px 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{round.courseName}</div>
         <div style={{ ...styles.liveMeta, position: 'relative', marginBottom: 12 }}>
@@ -75,6 +88,7 @@ export function ActiveRoundCard({ round, onResume, prominent = false }) {
           <div style={styles.liveLabel}>
             <span className="bb-live-dot" style={styles.liveDot} />
             진행 중인 라운드
+            <InputModeTag round={round} />
           </div>
           <div style={styles.liveCourse}>{round.courseName}</div>
           <div style={styles.liveMeta}>

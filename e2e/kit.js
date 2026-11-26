@@ -61,11 +61,15 @@ export async function login(page, name = ME) {
   await expect(role(page, 'user-name')).toHaveText(name);
 }
 
-// 홈 → 새 라운드 → 코스 이름 · 화이트 티 → 라운드 시작하기 → 1번 홀
-export async function startRound(page, course = COURSE) {
+// 홈 → 새 라운드 → 코스 이름 · 화이트 티 · 입력 모드 → 라운드 시작하기 → 1번 홀
+// mode: 'detailed'(세부 입력 — 예전부터 있던 스코어 입력 화면, 기본) | 'simple'(간단 입력 — 스코어 · 퍼팅만).
+// 처음 쓰는 사람은 모드를 골라야 시작된다 (한 번 고르면 다음 라운드에 미리 골라져 있다 — 다시 눌러도 그대로다)
+export async function startRound(page, course = COURSE, { mode = 'detailed' } = {}) {
   await tap(role(page, 'home-new-round').getByRole('button', { name: /시작하기/ }));
   await page.getByPlaceholder('골프장 이름 검색...').fill(course);
   await tap(page.getByRole('button', { name: '화이트', exact: true }));
+  await tap(role(page, `input-mode-${mode}`));
+  await expect(role(page, `input-mode-${mode}`)).toHaveAttribute('aria-checked', 'true');
   await tap(page.getByRole('button', { name: '라운드 시작하기' }));
   await expectHole(page, 1);
 }
@@ -108,7 +112,7 @@ export async function waitSaved(page) {
   }));
 }
 
-// 18홀 동안 칠 스코어 —파 4 · 보기 5 · 더블 6 이 번갈아 나온다 (합계 90타 · 퍼팅 42개)
+// 18홀 동안 칠 스코어 — 파 4 · 보기 5 · 더블 6 이 번갈아 나온다 (합계 90타 · 퍼팅 42개)
 export const ROUND = Array.from({ length: 18 }, (_, i) => ({ strokes: 4 + (i % 3), putts: i % 3 === 2 ? 3 : 2 }));
 export const ROUND_TOTAL = ROUND.reduce((s, h) => s + h.strokes, 0);
 export const ROUND_PUTTS = ROUND.reduce((s, h) => s + h.putts, 0);

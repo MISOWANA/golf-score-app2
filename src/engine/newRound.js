@@ -4,6 +4,7 @@
 // pars 는 18홀 전체 파 배열이고, 9홀이면 그중 해당 9개를 쓴다.
 import { holePlan } from './nines.js';
 import { validSpeed } from './greenSpeed.js';
+import { isInputMode } from './inputMode.js';
 
 // 입력하지 않은 홀의 기본값 — 파 · 2퍼트 · GIR 성공. touched 가 false 인 동안은 통계에서 세지 않는다.
 export const defaultHoleScore = (par) => ({
@@ -23,7 +24,7 @@ export const defaultHoleScore = (par) => ({
 });
 
 export function createRound({
-  id, players, courseName, pars, outCourseName, inCourseName, teeBox, date, clubRecommend, greenSpeed, nine = null,
+  id, players, courseName, pars, outCourseName, inCourseName, teeBox, date, clubRecommend, greenSpeed, nine = null, inputMode = null,
 }) {
   const plan = holePlan(pars, nine);
   return {
@@ -36,6 +37,9 @@ export function createRound({
     players,
     pars: plan.map((h) => h.par),
     ...(nine ? { nine } : {}),
+    // 입력 모드(engine/inputMode.js) — 1인 라운드만 남긴다. 동반자 라운드는 간편 스코어 화면이 따로 있어 저장하지 않는다.
+    // 모드를 넘기지 않으면(예전 호출) 남기지 않는다 — 값이 없는 라운드는 세부 입력으로 열린다.
+    ...(players.length === 1 && isInputMode(inputMode) ? { inputMode } : {}),
     holes: plan.map(({ holeNumber, par }) => ({
       holeNumber,
       par,

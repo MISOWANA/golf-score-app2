@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus, Home, Menu as MenuIcon, LogOut } from 'lucide-react';
+import { ChevronRight, X, Edit3, Map as MapIcon, StickyNote, Minus, Plus, Home, Menu as MenuIcon, LogOut, SlidersHorizontal } from 'lucide-react';
+import { inputModeOf, INPUT_MODE_INFO } from '../../engine/inputMode.js';
 import styles from '../../styles/styles';
 import ParTable from '../ui/ParTable';
 import { koScoreName, koScoreNameTone } from '../ui/scoreTone.js';
@@ -670,7 +671,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const [shotPref, setShotPref] = useState(readShotDetail);   // 샷 기록을 열어 두었는지 (이 기기에 기억)
   const [penOpen, setPenOpen] = useState(false);              // 벌타 칸이 열려 있는지
   const [showHoleMap, setShowHoleMap] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);   // 아래 막대 ☰ — 홈 · 코스맵 · 메모 · 라운드 수정 · 라운드 그만두기
+  const [showMenu, setShowMenu] = useState(false);   // 아래 막대 ☰ — 홈 · 코스맵 · 메모 · 라운드 수정 · 입력 모드 바꾸기 · 라운드 그만두기
+  const [showModeSheet, setShowModeSheet] = useState(false);   // ☰ → 입력 모드 바꾸기 확인 시트
   // 그날의 그린 스피드 — 라운드 시작 때 못 정했거나 라운드 중 알게 된 값을 퍼팅 화면에서 고친다
   const [showGreenSpeed, setShowGreenSpeed] = useState(false);
   const [speedDraft, setSpeedDraft] = useState(null);
@@ -1170,14 +1172,20 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
   const teeReady = teeRequired.length === 0;                          // 필드샷·퍼팅 탭이 열린다
   const teeComplete = teeReady && teeOptionalLeft.length === 0;        // 선택 항목까지 모두 입력 — 자동으로 다음 탭으로 넘어간다
   const isLastHole = holeIdx === holeTotal - 1;
-  const isSimpleMode = round.players.length > 1;
+  // 동반자 라운드(플레이어 2명 이상) — 플레이어별 간편 스코어만 받는다
+  const isGroupRound = round.players.length > 1;
+  // 간단 입력 모드(1인 라운드) — 스코어와 퍼팅 수만 받는다. 벌타 · 샷 기록 구역과 코스맵을 보이지 않는다 (engine/inputMode.js).
+  // 화면에서만 숨긴다: 이미 입력한 샷 기록 · 벌타는 지우지 않고, 그 홀의 스코어도 지금 방식(샷 기록으로 자동 계산 / 직접 입력)대로 계산된다.
+  // 모드 값이 없는 예전 라운드는 세부 입력이다.
+  const inputMode = inputModeOf(round);
+  const quickEntry = !isGroupRound && inputMode === 'simple';
 
   // ─── 샷 기록 열기 — 기본은 접혀 있고 스코어 · 퍼팅만 받는다 ─────────────────────────────
   // 이미 샷 기록(티샷 클럽 · 필드샷 · 퍼트 상세)이 있는 홀은 그 기록이 숨지 않게 늘 열어 둔다.
   const hasShotData = !!(playerScore.teeClub || (playerScore.extraShots || []).length > 0
     || (Array.isArray(playerScore.puttDetails) && playerScore.puttDetails.some(Boolean))
     || (playerScore.penalties || []).length > 0);
-  const shotVisible = !isSimpleMode && (shotPref || hasShotData);
+  const shotVisible = !isGroupRound && !quickEntry && (shotPref || hasShotData);
   const shotCount = (playerScore.teeClub ? 1 : 0) + (playerScore.extraShots || []).length
     + (Array.isArray(playerScore.puttDetails) ? playerScore.puttDetails.filter(Boolean).length : 0);
   const setShotOpen = (open) => {
@@ -1216,8 +1224,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
   // 샷 정보 — 샷마다 꼭 받는 네 가지: 라이 · 지형 · 거리 · 클럽 (engine/shotInfo.js).
   // 지금 입력 중인 상세 입력 홀에서만 필수 표시를 하고, '다음'·'완료'에서 비어 있으면 한 번 짚어 준다.
-  // 확정한 홀·예전 라운드·간편 입력(동반자) 홀은 막지 않는다 (strictRequired).
-  const infoRequired = strictRequired && !isSimpleMode;
+  // 확정한 홀·예전 라운드·간편 입력(동반자) 홀은 막지 않는다 (strictRequired). 간단 입력 모드에서는 샷 정보를 묻지 않는다.
+  const infoRequired = strictRequired && !isGroupRound && !quickEntry;
   const infoGaps = infoRequired ? shotInfoGaps(playerScore, hole.par) : [];
 
   // 세컨샷 지형 추천 — 티샷에서 페어웨이를 지켰으면 페어웨이, 놓쳤으면 러프 (고르기 전에만 ★ 로 알려 준다)
@@ -2271,7 +2279,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
 
       <div style={{ marginTop: 14 }}>
       {/* Running Score */}
-      {isSimpleMode ? (() => {
+      {isGroupRound ? (() => {
         const fmt=(d,has)=>!has?'—':d===0?'E':d>0?`+${d}`:`${d}`;
         const fmtC=(d,has)=>!has?'#4e5968':d>0?'#c8323a':d<0?'#0a7f3f':'#4e5968';
         return (
@@ -2366,7 +2374,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                 {holes.map((h,li) => { const i=offset+li; const ic=i===holeIdx; const pc=h.par===3?(ic?'#b45309':'#b45309'):h.par===5?(ic?'#0a7f3f':'#0a7f3f'):(ic?'#1b64da':'#4e5968'); const pb=ic?(h.par===3?'rgba(217,119,6,0.22)':h.par===5?'rgba(10,127,63,0.18)':'#e8ebee'):'transparent'; return <button key={i} style={{ ...styles.holeNavParCell, background: pb, color: pc, fontWeight: (h.par===3||h.par===5)?'800':'700', border:'none', cursor:'pointer', padding:0 }} onClick={()=>goToHole(i)}>{h.par}</button>; })}
               </div>
             </div>
-            {isSimpleMode ? round.players.map((player, pi) => {
+            {isGroupRound ? round.players.map((player, pi) => {
               const isLastPlayer = pi === round.players.length - 1;
               const shortName = player.length > 4 ? player.slice(0,4) : player;
               return (
@@ -2433,13 +2441,13 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
       {/* Hole Header — 몇 번 홀 · 파 몇 */}
       <div data-role="hole-header" style={{ padding: '22px 4px 0', textAlign: 'left' }}>
         <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.4, letterSpacing: '-0.02em', color: '#191f28' }}>
-          <span data-role="hole-no">{`${holeNo}번 홀`}</span>{isSimpleMode ? '' : <> 스코어를<br />알려 주세요</>}
+          <span data-role="hole-no">{`${holeNo}번 홀`}</span>{isGroupRound ? '' : <> 스코어를<br />알려 주세요</>}
         </div>
         <div data-role="hole-par" style={{ marginTop: 4, fontSize: 15, color: '#4e5968' }}>{`파 ${hole.par} 홀이에요`}</div>
       </div>
 
       {/* ── 멀티플레이어 간편 스코어 ── */}
-      {isSimpleMode && (
+      {isGroupRound && (
         <div style={{ padding:'8px 16px 4px' }}>
           {round.players.map((player, pi) => {
             const ps = hole.scores[player];
@@ -2467,7 +2475,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         </div>
       )}
 
-      {!isSimpleMode && <div style={{ padding: '0 4px', textAlign: 'left' }}>
+      {!isGroupRound && <div style={{ padding: '0 4px', textAlign: 'left' }}>
         {/* 스코어 — 크게 하나 */}
         <div data-role="score-input" style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <button data-role="score-minus" aria-label="한 타 줄이기" style={STEP_BTN}
@@ -2591,6 +2599,8 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
           })()}
         </div>
 
+        {/* 벌타 · 샷 기록 — 세부 입력에서만. 간단 입력 모드는 스코어 · 퍼팅만 받는다 (기록은 지우지 않고 보이지만 않는다) */}
+        {!quickEntry && (<>
         {/* 벌타 — 누르면 해저드 · OB · 언플레이어블을 넣는 칸이 열린다 */}
         <div data-role="penalty-input" style={{ marginTop: 12 }}>
           <button type="button" data-role="penalty-toggle" aria-expanded={penOpen} style={{ ...ROW_BTN, borderTop: '1px solid #f2f4f6' }} onClick={() => setPenOpen(v => !v)}>
@@ -2657,6 +2667,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             </div>
           )}
         </div>
+        </>)}
       </div>}
 
       {/* ── Score Input Form ── */}
@@ -3529,9 +3540,12 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
         const mapUsed = gpsPoints.some(Boolean) || !!gpsGreen;
         const items = [
           { role: 'go-home', Icon: Home, label: '홈으로', hint: '기록은 그대로 남아요', aria: '홈으로', run: onGoHome },
-          { role: 'map-button', Icon: MapIcon, label: '코스맵', hint: mapUsed ? '찍은 위치 보기' : '샷 위치 찍기', aria: '코스맵', on: mapUsed, run: () => setShowHoleMap(true) },
+          // 코스맵은 샷 위치를 찍고 보는 곳이라 간단 입력 모드에서는 뺀다
+          ...(quickEntry ? [] : [{ role: 'map-button', Icon: MapIcon, label: '코스맵', hint: mapUsed ? '찍은 위치 보기' : '샷 위치 찍기', aria: '코스맵', on: mapUsed, run: () => setShowHoleMap(true) }]),
           { role: 'memo-button', Icon: StickyNote, label: '메모', hint: playerScore.memo ? '메모 있음' : `${holeNo}번 홀 메모 쓰기`, aria: playerScore.memo ? '메모 있음 — 열기' : '메모 쓰기', on: !!playerScore.memo, dot: !!playerScore.memo, run: () => { setMemoDraft(playerScore.memo || ''); setShowMemoModal(true); } },
           { role: 'round-edit', Icon: Edit3, label: '라운드 수정', hint: '파 · 그린 스피드', aria: '라운드 수정', run: openParEdit },
+          // 1인 라운드만 — 동반자 라운드는 늘 간편 스코어다
+          ...(isGroupRound ? [] : [{ role: 'input-mode-change', Icon: SlidersHorizontal, label: '입력 모드 바꾸기', hint: `지금: ${INPUT_MODE_INFO[inputMode].label}`, aria: '입력 모드 바꾸기', run: () => setShowModeSheet(true) }]),
           { role: 'quit-round', Icon: LogOut, label: '라운드 그만두기', hint: '기록 삭제 · 세팅 다시하기', aria: '라운드 그만두기', danger: true, run: () => setShowExitConfirm(true) },
         ];
         return (
@@ -3561,6 +3575,39 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
                   <ChevronRight size={18} color="#5b6572" style={{ flexShrink: 0 }} />
                 </button>
               ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 입력 모드 바꾸기 — ☰ 메뉴에서 연다. 바꾼 모드는 이 라운드에 바로 저장돼 "이어서"로 들어와도 그 모드로 열린다.
+          간단 입력으로 바꿔도 입력한 샷 기록 · 벌타는 지우지 않는다 (화면에서만 숨긴다) */}
+      {showModeSheet && (() => {
+        const target = inputMode === 'simple' ? 'detailed' : 'simple';
+        const switchMode = () => {
+          setShowModeSheet(false);
+          setPenOpen(false);
+          setShowPuttsDropdown(false);
+          onUpdate({ ...round, inputMode: target });
+        };
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000, background: 'rgba(25,31,40,0.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'modalFadeIn 0.15s ease-out' }} onClick={() => setShowModeSheet(false)}>
+            <div role="dialog" aria-label="입력 모드 바꾸기" data-role="mode-sheet" data-target={target} onClick={e => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 520, boxSizing: 'border-box', textAlign: 'left', background: '#ffffff', borderRadius: '20px 20px 0 0', padding: '22px 20px 0', paddingBottom: 'calc(10px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp 0.2s ease-out' }}>
+              <div data-role="mode-sheet-title" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.4, color: '#191f28', wordBreak: 'keep-all' }}>
+                {INPUT_MODE_INFO[target].label}으로 바꿀까요?
+              </div>
+              <div data-role="mode-sheet-text" style={{ marginTop: 8, fontSize: 15, lineHeight: 1.6, color: '#4e5968', wordBreak: 'keep-all' }}>
+                {target === 'simple'
+                  ? <>스코어와 퍼팅만 입력해요.<br />입력한 샷 기록은 그대로 남아요</>
+                  : <>샷마다 클럽·거리·결과까지 입력해요.<br />지금까지 입력한 기록은 그대로 남아요</>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 20, paddingBottom: 6 }}>
+                <button type="button" data-role="mode-sheet-cancel" onClick={() => setShowModeSheet(false)}
+                  style={{ flex: 1, height: 56, borderRadius: 16, border: 'none', background: '#f2f4f6', color: '#333d4b', fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>취소</button>
+                <button type="button" data-role="mode-sheet-confirm" onClick={switchMode}
+                  style={{ flex: 1, height: 56, borderRadius: 16, border: 'none', background: '#1b64da', color: '#ffffff', fontSize: 17, fontWeight: 700, cursor: 'pointer' }}>바꾸기</button>
+              </div>
             </div>
           </div>
         );
@@ -3606,7 +3653,7 @@ export default function ScoringView({ round, currentUser, onUpdate, onFinish, on
             <div style={styles.modalIcon}>📝</div>
             <div style={styles.modalTitle}>{holeNo}번 홀 스코어를 입력하지 않았어요</div>
             <div style={styles.modalText}>
-              {isSimpleMode ? '모두 파로 기록할까요?' : '파(2퍼트)로 기록할까요?'}
+              {isGroupRound ? '모두 파로 기록할까요?' : '파(2퍼트)로 기록할까요?'}
               {/* 위치만 찍은 홀 — 스코어는 비어 있어도 찍은 지점은 남는다는 걸 알린다 */}
               {round.players.some(p => { const sc = hole.scores[p]; return (sc?.gpsPoints || []).some(Boolean) || sc?.gpsGreen || sc?.gpsPin; }) && (
                 <><br/>찍어 둔 위치(GPS)는 어느 쪽이든 그대로 남아요</>

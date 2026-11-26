@@ -32,7 +32,9 @@ export async function openApp({ prefs = null, shots = true } = {}) {
 }
 
 // nine: null(18홀) | 'out' | 'in' · players: 함께 칠 동반자 이름들 (최대 3명)
-export async function startRound({ nine = null, players = [] } = {}) {
+// mode: 입력 모드 'detailed'(세부 — 예전부터 있던 스코어 입력 화면, 기본) | 'simple'(간단 — 스코어 · 퍼팅만) | null(고르지 않음).
+//   1인 라운드는 처음 쓰는 사람이 모드를 골라야 시작되므로 기본으로 세부 입력을 누른다. 동반자 라운드는 모드를 고르지 않는다.
+export async function startRound({ nine = null, players = [], mode = 'detailed' } = {}) {
   fireEvent.click(screen.getByText('시작하기'));
   await screen.findByPlaceholderText('골프장 이름 검색...');
   fireEvent.change(screen.getByPlaceholderText('골프장 이름 검색...'), { target: { value: '흐름CC' } });
@@ -42,6 +44,7 @@ export async function startRound({ nine = null, players = [] } = {}) {
     fireEvent.change(await screen.findByPlaceholderText(`플레이어 ${i + 2}`), { target: { value: players[i] } });
   }
   fireEvent.click(screen.getByText('화이트'));
+  if (players.length === 0 && mode) fireEvent.click(document.querySelector(`[data-role="input-mode-${mode}"]`));
   fireEvent.click(screen.getByText('라운드 시작하기'));
   await screen.findByText(/^1번 홀$/);
 }

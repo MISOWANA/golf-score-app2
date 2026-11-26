@@ -46,8 +46,8 @@ export default defineConfig({
   projects: [
     // 아이폰 13~16 크기 — 모든 테스트
     { name: '휴대폰-390', use: phone(390, 844) },
-    // 아이폰 SE(1세대) 크기 — 좁은 화면에서 글자가 넘치지 않는지만 본다
-    { name: '좁은휴대폰-320', use: phone(320, 568), testMatch: /layout\.spec\.js/ },
+    // 아이폰 SE(1세대) 크기 — 좁은 화면에서 글자가 넘치지 않는지 본다 (화면 점검 · 간단 입력 18홀)
+    { name: '좁은휴대폰-320', use: phone(320, 568), testMatch: /(layout|inputMode)\.spec\.js/ },
   ],
   webServer: {
     // 배포와 같은 빌드를 만들어 띄운다. 예전에 띄워 둔 서버를 다시 쓰지 않는다 — 옛 화면을 보고 판단하지 않게.

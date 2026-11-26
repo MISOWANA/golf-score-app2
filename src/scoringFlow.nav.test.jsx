@@ -169,7 +169,7 @@ describe('아래 막대 — 메모', () => {
 describe('☰ 메뉴 — 홈 · 라운드 그만두기 · 이어서', () => {
   const openQuit = () => menuTap('quit-round');
 
-  it('머리줄에는 코스 이름만 있고, 아래 막대는 ☰ · 이전 · 다음 홀이다. ☰ 메뉴에 다섯 줄이 있고 닫기로 닫힌다', async () => {
+  it('머리줄에는 코스 이름만 있고, 아래 막대는 ☰ · 이전 · 다음 홀이다. ☰ 메뉴에 여섯 줄(세부 입력)이 있고 닫기로 닫힌다', async () => {
     await newHole();
     expect(area('scoring-header').querySelectorAll('button')).toHaveLength(0);
     expect(document.querySelector('[aria-label="뒤로"]')).toBeNull();
@@ -178,7 +178,7 @@ describe('☰ 메뉴 — 홈 · 라운드 그만두기 · 이어서', () => {
     expect(area('scoring-menu')).toBeNull();
     await openMenu();
     expect([...area('scoring-menu').querySelectorAll('button[data-role]')].map((b) => b.getAttribute('data-role')))
-      .toEqual(['go-home', 'map-button', 'memo-button', 'round-edit', 'quit-round']);
+      .toEqual(['go-home', 'map-button', 'memo-button', 'round-edit', 'input-mode-change', 'quit-round']);
     await tap(buttons(area('scoring-menu')).find((b) => b.getAttribute('aria-label') === '닫기'));
     expect(area('scoring-menu')).toBeNull();
     expect(holeHeader().hole).toBe(1);

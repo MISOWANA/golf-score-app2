@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { setupBlockers } from './roundSetup.js';
 
-const ok = { courseName: '남서울CC', players: ['홍길동'], teeBox: '화이트티' };
+const ok = { courseName: '남서울CC', players: ['홍길동'], teeBox: '화이트티', inputMode: 'simple' };
 
 describe('setupBlockers — 라운드 시작이 막힌 이유', () => {
   it('모두 채웠으면 막힌 이유가 없다', () => {
@@ -28,7 +28,18 @@ describe('setupBlockers — 라운드 시작이 막힌 이유', () => {
     expect(setupBlockers({ ...ok, players: ['Tiger', ' tiger '] })).toEqual(['플레이어 이름이 겹쳐요 (예: 철수A, 철수B)']);
   });
 
-  it('여러 가지가 비면 모두 알려 준다', () => {
-    expect(setupBlockers({ courseName: '', players: [''], teeBox: null })).toHaveLength(3);
+  it('여러 가지가 비면 모두 알려 준다 (1인 라운드는 입력 모드까지)', () => {
+    expect(setupBlockers({ courseName: '', players: [''], teeBox: null })).toHaveLength(4);
+  });
+
+  it('1인 라운드는 입력 모드를 골라야 시작된다 — 맨 아래(시작 버튼 바로 위) 구역이라 이유도 맨 뒤에 나온다', () => {
+    expect(setupBlockers({ ...ok, inputMode: null })).toEqual(['입력 모드를 골라 주세요']);
+    expect(setupBlockers({ ...ok, inputMode: undefined, teeBox: null })).toEqual(['TEE BOX를 선택해 주세요', '입력 모드를 골라 주세요']);
+    expect(setupBlockers({ ...ok, inputMode: 'detailed' })).toEqual([]);
+    expect(setupBlockers({ ...ok, inputMode: 'fast' })).toEqual(['입력 모드를 골라 주세요']);   // 모르는 값은 고르지 않은 것
+  });
+
+  it('동반자 라운드(2명 이상)는 입력 모드를 묻지 않는다 — 늘 간편 스코어다', () => {
+    expect(setupBlockers({ ...ok, players: ['홍길동', '철수'], inputMode: null })).toEqual([]);
   });
 });
